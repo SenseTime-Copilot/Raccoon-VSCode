@@ -1,4 +1,8 @@
-import { workspace } from "vscode";
+import { workspace, env } from "vscode";
+import { localeCN } from "./localeCN";
+import { localeEN } from "./localeEN";
+
+export const localeTag = env.language === "zh-cn" ? localeCN : localeEN;
 
 const configuration = workspace.getConfiguration("SenseCode", undefined);
 
@@ -13,3 +17,7 @@ export const topk = modelConfig.topk;
 export const topp = modelConfig.topp;
 
 export const completionDelay = configuration.get("CompletionDelay", 0.5);
+
+export function autoCompleteEnabled(): boolean {
+    return configuration.get("CompletionAutomatically", true);
+}

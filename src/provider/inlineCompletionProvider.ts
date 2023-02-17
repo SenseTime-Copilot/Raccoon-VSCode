@@ -1,19 +1,99 @@
 import * as vscode from "vscode";
-import { apiKey, apiSecret } from "../localconfig";
-import { completionDelay } from "../param/configures";
-import { Trie } from "../trie";
+import { completionDelay, autoCompleteEnabled } from "../param/configures";
+import { Trie } from "./trie";
 import { getCodeCompletions } from "../utils/getCodeCompletions";
-import getDocumentLanguage from "../utils/getDocumentLanguage";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 
 let lastRequest = null;
 let trie = new Trie([]);
-let prompts: string[] = [];
-let someTrackingIdCounter = 0;
 let delay: number = completionDelay * 1000;
 
-function middleOfLineWontComplete(editor: any, document: any) {
-    const cursorPosition = editor.selection.active;
+function getDocumentLanguage(document: vscode.TextDocument) {
+    const documentLanguageId: string = document.languageId;
+    let lang = "";
+    switch (documentLanguageId) {
+        case "cpp":
+            lang = "C++";
+            break;
+        case "c":
+            lang = "C";
+            break;
+        case "csharp":
+            lang = "C#";
+            break;
+        case "cuda-cpp":
+            lang = "Cuda";
+            break;
+        case "objective-c":
+            lang = "Objective-C";
+            break;
+        case "objective-cpp":
+            lang = "Objective-C++";
+            break;
+        case "python":
+            lang = "Python";
+            break;
+        case "java":
+            lang = "Java";
+            break;
+        case "tex":
+            lang = "TeX";
+            break;
+        case "html":
+            lang = "HTML";
+            break;
+        case "php":
+            lang = "PHP";
+            break;
+        case "javascript":
+        case "javascriptreact":
+            lang = "JavaScript";
+            break;
+        case "typescript":
+        case "typescriptreact":
+            lang = "TypeScript";
+            break;
+        case "go":
+            lang = "Go";
+            break;
+        case "shellscript":
+            lang = "Shell";
+            break;
+        case "rust":
+            lang = "Rust";
+            break;
+        case "css":
+        case "less":
+        case "sass":
+        case "scss":
+            lang = "CSS";
+            break;
+        case "sql":
+            lang = "SQL";
+            break;
+        case "r":
+            lang = "R";
+            break;
+        default:
+            lang = "";
+    }
+    return lang;
+}
+
+export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem) {
+    let lang = "";
+    if (doc) {
+        lang = getDocumentLanguage(doc);
+    }
+    if (lang === "") {
+        statusBarItem.hide();
+    } else {
+        statusBarItem.show();
+    }
+    return lang;
+}
+
+function middleOfLineWontComplete(cursorPosition: vscode.Position, document: any) {
     let currentLine = document?.lineAt(cursorPosition.line);
     let lineEndPosition = currentLine?.range.end;
     let selectionTrailingString: vscode.Selection;
@@ -33,8 +113,7 @@ function middleOfLineWontComplete(editor: any, document: any) {
     }
 }
 
-function isAtTheMiddleOfLine(editor: any, document: any) {
-    const cursorPosition = editor.selection.active;
+function isAtTheMiddleOfLine(cursorPosition: vscode.Position, document: any) {
     let currentLine = document?.lineAt(cursorPosition.line);
     let lineEndPosition = currentLine?.range.end;
     let selectionTrailingString: vscode.Selection;
@@ -95,38 +174,34 @@ function isBracketBalanced(str: string, character: string) {
     return count === 0;
 }
 
-interface MyInlineCompletionItem extends vscode.InlineCompletionItem {
-    trackingId: number;
-}
-export default function inlineCompletionProvider(
-    myStatusBarItem: vscode.StatusBarItem,
-    reGetCompletions: boolean,
+export function inlineCompletionProvider(
+    statusBarItem: vscode.StatusBarItem
 ) {
     const provider: vscode.InlineCompletionItemProvider = {
         provideInlineCompletionItems: async (
             document,
             position,
             context,
-            token
+            cancel
         ) => {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showInformationMessage(
-                    "Please open a file first to use SenseCode."
-                );
+            if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !autoCompleteEnabled()) {
+                return;
+            }
+
+            let lang = showHideStatusBtn(document, statusBarItem);
+            if (lang === "") {
                 return;
             }
             let selection: vscode.Selection;
-            const cursorPosition = editor.selection.active;
             selection = new vscode.Selection(
                 0,
                 0,
-                cursorPosition.line,
-                cursorPosition.character
+                position.line,
+                position.character
             );
             let textBeforeCursor = document.getText(selection);
             if (
-                cursorPosition.character === 0 &&
+                position.character === 0 &&
                 textBeforeCursor[textBeforeCursor.length - 1] !== "\n"
             ) {
                 textBeforeCursor += "\n";
@@ -143,176 +218,62 @@ export default function inlineCompletionProvider(
                 textBeforeCursor = str + textBeforeCursor;
             }
             if (textBeforeCursor.trim() === "") {
-                updateStatusBarItem(myStatusBarItem, "", "");
+                updateStatusBarItem(statusBarItem, "");
                 return { items: [] };
             }
 
-            //解决光标之后有除括号空格之外内容，仍然补充造成的调用浪费
-            let selectionNextChar: vscode.Selection;
-
-            selectionNextChar = new vscode.Selection(
-                cursorPosition.line,
-                cursorPosition.character,
-                cursorPosition.line,
-                cursorPosition.character + 1
-            );
-
-            if (middleOfLineWontComplete(editor, document)) {
-                updateStatusBarItem(myStatusBarItem, "", "");
+            if (middleOfLineWontComplete(position, document)) {
+                updateStatusBarItem(statusBarItem, "");
                 return;
             }
-            if (true && !reGetCompletions) {
-                for (let prompt of prompts) {
-                    if (textBeforeCursor.trimEnd().indexOf(prompt) != -1) {
-                        let completions;
-                        completions = trie.getPrefix(textBeforeCursor);
-                        let useTrim = false;
-                        if (completions.length === 0) {
-                            completions = trie.getPrefix(
-                                textBeforeCursor.trimEnd()
-                            );
-                            useTrim = true;
-                        }
-                        if (completions.length == 0) {
-                            break;
-                        }
-                        let items = new Array<MyInlineCompletionItem>();
-                        for (
-                            let i = 0;
-                            i <
-                            Math.min(
-                                Math.min(completions.length, 1) + 1,
-                                completions.length
-                            );
-                            i++
-                        ) {
-                            let insertText = useTrim
-                                ? completions[i].replace(
-                                    textBeforeCursor.trimEnd(),
-                                    ""
-                                )
-                                : completions[i].replace(textBeforeCursor, "");
-                            let needRequest = ["", "\n", "\n\n"];
-                            if (
-                                needRequest.includes(insertText) ||
-                                insertText.trim() === ""
-                            ) {
-                                continue;
-                            }
-                            if (useTrim) {
-                                const lines = insertText.split("\n");
-                                let nonNullIndex = 0;
-                                while (lines[nonNullIndex].trim() === "") {
-                                    nonNullIndex++;
-                                }
-                                let newInsertText = "";
-                                for (
-                                    let j = nonNullIndex;
-                                    j < lines.length;
-                                    j++
-                                ) {
-                                    newInsertText += lines[j];
-                                    if (j !== lines.length - 1) {
-                                        newInsertText += "\n";
-                                    }
-                                }
-                                if (
-                                    textBeforeCursor[
-                                    textBeforeCursor.length - 1
-                                    ] === "\n" ||
-                                    nonNullIndex === 0
-                                ) {
-                                    insertText = newInsertText;
-                                } else {
-                                    insertText = "\n" + newInsertText;
-                                }
-                            }
 
-                            items.push({
-                                insertText,
-                                range: new vscode.Range(
-                                    position.translate(0, completions.length),
-                                    position
-                                ),
-                                // range: new vscode.Range(endPosition.translate(0, completions.length), endPosition),
-                                trackingId: someTrackingIdCounter++,
-                            });
-                            if (useTrim) {
-                                trie.addWord(
-                                    textBeforeCursor.trimEnd() + insertText
-                                );
-                            } else {
-                                trie.addWord(textBeforeCursor + insertText);
-                            }
-                        }
-                        if (items.length === 0) {
-                            continue;
-                        } else {
-                            updateStatusBarItem(
-                                myStatusBarItem,
-                                "$(bracket-dot)",
-                                "Done"
-                            );
-                            return items;
-                        }
-                    }
-                }
-            }
-            if (textBeforeCursor.length > 8) {
+            if (textBeforeCursor.length > 8 || context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
                 let requestId = new Date().getTime();
                 lastRequest = requestId;
-                await new Promise((f) => setTimeout(f, delay));
+                if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
+                    await new Promise((f) => setTimeout(f, delay));
+                }
                 if (lastRequest !== requestId) {
                     return { items: [] };
                 }
                 let rs;
-                let lang = "";
                 try {
-                    if (editor) {
-                        lang = getDocumentLanguage(editor);
-                    }
-                    updateStatusBarItem(myStatusBarItem, "$(sync~spin)", "");
+                    updateStatusBarItem(statusBarItem, "$(sync~spin)");
                     rs = await getCodeCompletions(
                         textBeforeCursor,
-                        3,
-                        lang,
-                        apiKey,
-                        apiSecret);
+                        1,
+                        lang);
                 } catch (err) {
                     if (err) {
                         console.log(err);
                     }
                     updateStatusBarItem(
-                        myStatusBarItem,
-                        "$(bracket-error)",
-                        "No Suggestion"
+                        statusBarItem,
+                        "$(bracket-error)"
                     );
                     return { items: [] };
                 }
                 if (rs === null) {
                     updateStatusBarItem(
-                        myStatusBarItem,
-                        "$(bracket-error)",
-                        "No Suggestion"
+                        statusBarItem,
+                        "$(bracket-error)"
                     );
                     return { items: [] };
                 }
-                prompts.push(textBeforeCursor);
+
                 // Add the generated code to the inline suggestion list
-                let items = new Array<MyInlineCompletionItem>();
-                let cursorPosition = editor.selection.active;
+                let items = new Array<vscode.InlineCompletionItem>();
                 for (let i = 0; i < rs.completions.length; i++) {
                     let completion = rs.completions[i];
-                    if (isAtTheMiddleOfLine(editor, document)) {
-                        const cursorPosition = editor.selection.active;
-                        let currentLine = document?.lineAt(cursorPosition.line);
+                    if (isAtTheMiddleOfLine(position, document)) {
+                        let currentLine = document?.lineAt(position.line);
                         let lineEndPosition = currentLine?.range.end;
                         let selectionTrailingString: vscode.Selection;
 
                         selectionTrailingString = new vscode.Selection(
-                            cursorPosition.line,
-                            cursorPosition.character,
-                            cursorPosition.line,
+                            position.line,
+                            position.character,
+                            position.line,
                             lineEndPosition.character + 1
                         );
                         let trailingString = document.getText(
@@ -337,32 +298,28 @@ export default function inlineCompletionProvider(
                         insertText: rs.completions[i],
                         // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
                         range: new vscode.Range(
-                            cursorPosition.translate(0, rs.completions.length),
-                            cursorPosition
-                        ),
-                        trackingId: someTrackingIdCounter++,
+                            position.translate(0, rs.completions.length),
+                            position
+                        )
                     });
                     trie.addWord(textBeforeCursor + rs.completions[i]);
                 }
                 if (rs.completions.length === 0) {
                     updateStatusBarItem(
-                        myStatusBarItem,
-                        "$(bracket-error)",
-                        " No Suggestion"
+                        statusBarItem,
+                        "$(bracket-error)"
                     );
                 } else {
                     updateStatusBarItem(
-                        myStatusBarItem,
-                        "$(bracket-dot)",
-                        "Done"
+                        statusBarItem,
+                        "$(bracket-dot)"
                     );
                 }
                 return items;
             }
             updateStatusBarItem(
-                myStatusBarItem,
-                "$(bracket-error)",
-                "No Suggestion"
+                statusBarItem,
+                "$(bracket-error)"
             );
             return { items: [] };
         },

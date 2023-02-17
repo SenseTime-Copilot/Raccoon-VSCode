@@ -1,6 +1,5 @@
 import axios from "axios";
-import * as vscode from "vscode";
-import { apiHref } from "../localconfig";
+import { apiHref, apiKey, apiSecret } from "../localconfig";
 import { temp, topp, topk } from "../param/configures";
 
 export type GetCodeCompletions = {
@@ -10,63 +9,21 @@ export type GetCodeCompletions = {
 export function getCodeCompletions(
     prompt: string,
     num: Number,
-    lang: string,
-    apiKey: string,
-    apiSecret: string,
+    lang: string
 ): Promise<GetCodeCompletions> {
     let API_URL = `${apiHref}/multilingual_code_generate_adapt`;
     return new Promise(async (resolve, reject) => {
-        let n = 0;
-        if (prompt.length <= 300) {
-            n = 3;
-        } else if (prompt.length > 600 && prompt.length <= 900) {
-            n = 2;
-        } else if (prompt.length > 900 && prompt.length <= 1200) {
-            n = 1;
-        } else if (prompt.length > 1200) {
-            prompt = prompt.slice(prompt.length - 1200);
-            n = 1;
-        }
-        let payload = {};
-        if (lang.length == 0) {
-            payload = {
-                prompt: prompt,
-                n: num,
-                apikey: apiKey,
-                apisecret: apiSecret,
-                temperature: temp,
-                top_p: topp,
-                top_k: topk,
-            };
-        } else {
-            payload = {
-                lang: lang,
-                prompt: prompt,
-                n: num,
-                apikey: apiKey,
-                apisecret: apiSecret,
-                temperature: temp,
-                top_p: topp,
-                top_k: topk,
-            };
-        }
-        let editor = vscode.window.activeTextEditor;
-        let document = editor?.document;
-        let lastLine = document?.lineAt(document.lineCount - 1);
-        let endPosition = lastLine?.range.end;
-        let inputText;
-        if (endPosition) {
-            let input =
-                new vscode.Selection(
-                    0,
-                    0,
-                    endPosition.line,
-                    endPosition.character
-                ) || new vscode.Selection(0, 0, 0, 0);
-            inputText = document?.getText(input) || "";
-        } else {
-            inputText = prompt;
-        }
+        let payload = {
+            lang: lang,
+            prompt: prompt,
+            n: num,
+            apikey: apiKey,
+            apisecret: apiSecret,
+            temperature: temp,
+            top_p: topp,
+            top_k: topk,
+        };
+
         try {
             axios
                 .post(API_URL, payload, { proxy: false, timeout: 120000 })

@@ -1,5 +1,5 @@
 import { workspace, window } from "vscode";
-import { localeTag } from "../param/constparams";
+import { localeTag } from "../param/configures";
 
 //check if the user accept to share codes
 export async function checkPrivacy() {

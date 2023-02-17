@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -40,11 +40,16 @@
         "configuration": [
             {
                 "properties": {
+                    "SenseCode.CompletionAutomatically": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Automatic get completion suggestions once stop typing."
+                    },
                     "SenseCode.CompletionDelay": {
                         "type": "number",
                         "minimum": 0.5,
                         "default": 0.5,
-                        "description": "The delay in seconds to start getting completions without new change in the editor. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
+                        "description": "The delay in seconds to start getting completion suggestions. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
                     },
                     "SenseCode.DecodingStrategies.temp": {
                         "type": "number",
@@ -73,6 +78,24 @@
                         "default": null
                     }
                 }
+            }
+        ],
+        "commands": [
+            {
+                "command": "sensecode.inlineSuggest.toggle",
+                "category": "SenseCode",
+                "title": "Toggle Code Inline Completion"
+            },
+            {
+                "command": "sensecode.inlineSuggest.trigger",
+                "category": "SenseCode",
+                "title": "Code Inline Completion Trigger"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "sensecode.inlineSuggest.trigger",
+                "key": "Alt+/"
             }
         ]
     },
