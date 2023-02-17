@@ -51,12 +51,22 @@
                         "default": 0.5,
                         "description": "The delay in seconds to start getting completion suggestions. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
                     },
+                    "SenseCode.CandidateCount": {
+                        "type": "number",
+                        "default": 1,
+                        "enum": [
+                            1,
+                            3,
+                            5
+                        ],
+                        "description": "The number of candidate suggestions"
+                    },
                     "SenseCode.DecodingStrategies.temp": {
                         "type": "number",
                         "default": 0.8,
                         "maximum": 1,
                         "minimum": 0.01,
-                        "description": "Temp controls the randomness of output, range: [0.01, 1]. Higher temperature means more randomness, and the model will return creative results. "
+                        "description": "Temp controls the randomness of output, range: [0.01, 1]. Higher temperature means more randomness, and the model will return creative results."
                     },
                     "SenseCode.DecodingStrategies.topp": {
                         "type": "number",

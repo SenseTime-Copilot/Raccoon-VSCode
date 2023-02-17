@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { Configuration } from "./param/configures";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
@@ -6,8 +7,14 @@ import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCo
 let statusBarItem: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext) {
+    new Configuration();
+    vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("SenseCode")) {
+            Configuration.update();
+            updateStatusBarItem(statusBarItem, "");
+        }
+    });
     checkPrivacy();
-
     context.subscriptions.push(
         vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", () => {
             return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
@@ -18,7 +25,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand("sensecode.inlineSuggest.toggle", () => {
             const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
             let autoComplete = configuration.get("CompletionAutomatically", true);
-            configuration.update("CompletionAutomatically", !autoComplete).then(() => {
+            configuration.update("CompletionAutomatically", !autoComplete, true).then(() => {
                 updateStatusBarItem(statusBarItem, "");
             });
         })

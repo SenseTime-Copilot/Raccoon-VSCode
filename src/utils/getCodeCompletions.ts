@@ -1,6 +1,6 @@
 import axios from "axios";
 import { apiHref, apiKey, apiSecret } from "../localconfig";
-import { temp, topp, topk } from "../param/configures";
+import { Configuration } from "../param/configures";
 
 export type GetCodeCompletions = {
     completions: Array<string>;
@@ -19,9 +19,9 @@ export function getCodeCompletions(
             n: num,
             apikey: apiKey,
             apisecret: apiSecret,
-            temperature: temp,
-            top_p: topp,
-            top_k: topk,
+            temperature: Configuration.temp,
+            top_p: Configuration.topp,
+            top_k: Configuration.topk,
         };
 
         try {

@@ -1,12 +1,11 @@
 import * as vscode from "vscode";
-import { completionDelay, autoCompleteEnabled } from "../param/configures";
+import { Configuration } from "../param/configures";
 import { Trie } from "./trie";
 import { getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 
 let lastRequest = null;
 let trie = new Trie([]);
-let delay: number = completionDelay * 1000;
 
 function getDocumentLanguage(document: vscode.TextDocument) {
     const documentLanguageId: string = document.languageId;
@@ -184,7 +183,7 @@ export function inlineCompletionProvider(
             context,
             cancel
         ) => {
-            if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !autoCompleteEnabled()) {
+            if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !Configuration.autoCompleteEnabled) {
                 return;
             }
 
@@ -231,7 +230,7 @@ export function inlineCompletionProvider(
                 let requestId = new Date().getTime();
                 lastRequest = requestId;
                 if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-                    await new Promise((f) => setTimeout(f, delay));
+                    await new Promise((f) => setTimeout(f, Configuration.delay));
                 }
                 if (lastRequest !== requestId) {
                     return { items: [] };
@@ -241,7 +240,7 @@ export function inlineCompletionProvider(
                     updateStatusBarItem(statusBarItem, "$(sync~spin)");
                     rs = await getCodeCompletions(
                         textBeforeCursor,
-                        1,
+                        Configuration.candidateCount,
                         lang);
                 } catch (err) {
                     if (err) {
