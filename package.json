@@ -1,0 +1,104 @@
+{
+    "publisher": "SenseTime",
+    "name": "sensecode",
+    "displayName": "Sense Code",
+    "description": "Sense Code is an AI-based coding assistant.",
+    "homepage": "https://sensecore.cn",
+    "repository": {
+        "type": "git",
+        "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
+    },
+    "icon": "media/sensecode-logo.png",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": "^1.68.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets",
+        "Machine Learning",
+        "Other"
+    ],
+    "keywords": [
+        "python",
+        "go",
+        "java",
+        "javascript",
+        "c++",
+        "c#",
+        "php",
+        "typescript",
+        "ai",
+        "autocomplete",
+        "inline completion"
+    ],
+    "activationEvents": [
+        "*"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "configuration": [
+            {
+                "properties": {
+                    "SenseCode.CompletionDelay": {
+                        "type": "number",
+                        "minimum": 0.5,
+                        "default": 0.5,
+                        "description": "The delay in seconds to start getting completions without new change in the editor. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
+                    },
+                    "SenseCode.DecodingStrategies.temp": {
+                        "type": "number",
+                        "default": 0.8,
+                        "maximum": 1,
+                        "minimum": 0.01,
+                        "description": "Temp controls the randomness of output, range: [0.01, 1]. Higher temperature means more randomness, and the model will return creative results. "
+                    },
+                    "SenseCode.DecodingStrategies.topp": {
+                        "type": "number",
+                        "default": 0.95,
+                        "maximum": 1,
+                        "minimum": 0,
+                        "description": "Top-p keeps the candidate tokens whose probabilities sum to p, range [0, 1]. Top-p=0 means disabled."
+                    },
+                    "SenseCode.DecodingStrategies.topk": {
+                        "type": "number",
+                        "default": 0,
+                        "maximum": 40,
+                        "minimum": 0,
+                        "description": "Top-k keeps the k candidate tokens with the highest probabilities, range [0, 40]. Top-k=0 means disabled."
+                    },
+                    "SenseCode.Privacy": {
+                        "type": "boolean",
+                        "description": "Accept sharing the generated code only for research purposes to make SenseCode better. Otherwise, the code won't be stored and is only used to assist your programming.",
+                        "default": null
+                    }
+                }
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.2.0",
+        "@types/mocha": "^9.1.1",
+        "@types/node": "16.x",
+        "@types/vscode": "^1.68.0",
+        "@typescript-eslint/eslint-plugin": "^5.31.0",
+        "@typescript-eslint/parser": "^5.31.0",
+        "@vscode/test-electron": "^2.1.5",
+        "eslint": "^8.20.0",
+        "glob": "^8.0.3",
+        "mocha": "^10.0.0",
+        "typescript": "^4.7.4"
+    },
+    "dependencies": {
+        "@vscode/webview-ui-toolkit": "^1.2.0",
+        "axios": "^0.24.0",
+        "vsce": "^1.100.2"
+    }
+}
