@@ -3,7 +3,6 @@
 .vscode-test-web/**
 out/test/**
 src/**
-node_modules/**
 .gitignore
 **/tsconfig.json
 **/tslint.json
