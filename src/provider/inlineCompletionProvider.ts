@@ -221,7 +221,7 @@ export function inlineCompletionProvider(
                 return { items: [] };
             }
 
-            if (middleOfLineWontComplete(position, document)) {
+            if (middleOfLineWontComplete(position, document) && context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
                 updateStatusBarItem(statusBarItem, "");
                 return;
             }
