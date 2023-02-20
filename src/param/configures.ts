@@ -29,17 +29,17 @@ export class Configuration {
     }
 
     public static get temp(): number {
-        const modelConfig = Configuration.configuration.get("DecodingStrategies", defaultConfig);
+        const modelConfig = Configuration.configuration.get("decodingStrategies", defaultConfig);
         return modelConfig.temp;
     }
 
     public static get topk(): number {
-        const modelConfig = Configuration.configuration.get("DecodingStrategies", defaultConfig);
+        const modelConfig = Configuration.configuration.get("decodingStrategies", defaultConfig);
         return modelConfig.topk;
     }
 
     public static get topp(): number {
-        const modelConfig = Configuration.configuration.get("DecodingStrategies", defaultConfig);
+        const modelConfig = Configuration.configuration.get("decodingStrategies", defaultConfig);
         return modelConfig.topp;
     }
 

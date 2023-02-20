@@ -61,21 +61,21 @@
                         ],
                         "description": "The number of candidate suggestions"
                     },
-                    "SenseCode.DecodingStrategies.temp": {
+                    "SenseCode.decodingStrategies.temp": {
                         "type": "number",
                         "default": 0.8,
                         "maximum": 1,
                         "minimum": 0.01,
                         "description": "Temp controls the randomness of output, range: [0.01, 1]. Higher temperature means more randomness, and the model will return creative results."
                     },
-                    "SenseCode.DecodingStrategies.topp": {
+                    "SenseCode.decodingStrategies.topp": {
                         "type": "number",
                         "default": 0.95,
                         "maximum": 1,
                         "minimum": 0,
                         "description": "Top-p keeps the candidate tokens whose probabilities sum to p, range [0, 1]. Top-p=0 means disabled."
                     },
-                    "SenseCode.DecodingStrategies.topk": {
+                    "SenseCode.decodingStrategies.topk": {
                         "type": "number",
                         "default": 0,
                         "maximum": 40,
