@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -42,7 +42,7 @@
                 "properties": {
                     "SenseCode.EngineAPI": {
                         "type": "string",
-                        "default": "https://tianqi.aminer.cn/api/v2",
+                        "default": "https://code.sensecore.cn/api/v1",
                         "description": "Set code generation engine API URL."
                     },
                     "SenseCode.CompletionAutomatically": {

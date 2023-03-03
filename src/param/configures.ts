@@ -21,7 +21,11 @@ export class Configuration {
     }
 
     public static get engineAPI(): string {
-        return Configuration.configuration.get("EngineAPI", "");
+        let url = Configuration.configuration.get("EngineAPI", "");
+        if (url === "https://code.sensecore.cn/api/v1") {
+            url = "http://cci-proxy.cn-sh-01.sensecore.cn:29933/";
+        }
+        return url;
     }
     public static get autoCompleteEnabled(): boolean {
         return Configuration.configuration.get("CompletionAutomatically", true);
