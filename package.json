@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -40,9 +40,14 @@
         "configuration": [
             {
                 "properties": {
+                    "SenseCode.EngineAPI": {
+                        "type": "string",
+                        "default": "https://tianqi.aminer.cn/api/v2",
+                        "description": "Set code generation engine API URL."
+                    },
                     "SenseCode.CompletionAutomatically": {
                         "type": "boolean",
-                        "default": true,
+                        "default": false,
                         "description": "Automatic get completion suggestions once stop typing."
                     },
                     "SenseCode.CompletionDelay": {

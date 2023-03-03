@@ -20,6 +20,9 @@ export class Configuration {
         Configuration.configuration = workspace.getConfiguration("SenseCode", undefined);
     }
 
+    public static get engineAPI(): string {
+        return Configuration.configuration.get("EngineAPI", "");
+    }
     public static get autoCompleteEnabled(): boolean {
         return Configuration.configuration.get("CompletionAutomatically", true);
     }
