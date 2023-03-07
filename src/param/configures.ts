@@ -1,4 +1,4 @@
-import { workspace, env, WorkspaceConfiguration } from "vscode";
+import { workspace, env, WorkspaceConfiguration, Uri } from "vscode";
 import { localeCN } from "./localeCN";
 import { localeEN } from "./localeEN";
 
@@ -20,12 +20,10 @@ export class Configuration {
         Configuration.configuration = workspace.getConfiguration("SenseCode", undefined);
     }
 
-    public static get engineAPI(): string {
+    public static get engineAPI(): Uri {
         let url = Configuration.configuration.get("EngineAPI", "");
-        if (url === "https://code.sensecore.cn/api/v1") {
-            url = "http://cci-proxy.cn-sh-01.sensecore.cn:29933/";
-        }
-        return url;
+        let uri = Uri.parse(url);
+        return uri;
     }
     public static get autoCompleteEnabled(): boolean {
         return Configuration.configuration.get("CompletionAutomatically", true);

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { apiKey, apiSecret } from "../localconfig";
+import { Uri } from "vscode";
 import { Configuration } from "../param/configures";
 
 export type GetCodeCompletions = {
@@ -12,17 +13,18 @@ export function getCodeCompletions(
     lang: string
 ): Promise<GetCodeCompletions> {
     let api = Configuration.engineAPI;
-    if (api.includes("tianqi")) {
+    if (api.authority.includes("tianqi")) {
         return getCodeCompletionsTianqi(api, lang, prompt, num);
-    } else if (api.includes("sensecore")) {
+    } else if (api.authority.includes("sensecore")) {
+        api = Uri.parse("http://10.8.33.51:15000/v1");
         return getCodeCompletionsSensecore(api, lang, prompt, num);
     } else {
         throw Error();
     }
 }
 
-function getCodeCompletionsTianqi(api: string, lang: string, prompt: string, num: Number): Promise<GetCodeCompletions> {
-    let API_URL = `${api}/multilingual_code_generate_adapt`;
+function getCodeCompletionsTianqi(api: Uri, lang: string, prompt: string, num: Number): Promise<GetCodeCompletions> {
+    let API_URL = Uri.joinPath(api, "multilingual_code_generate_adapt");
     return new Promise(async (resolve, reject) => {
         let payload = {
             lang: lang,
@@ -37,7 +39,7 @@ function getCodeCompletionsTianqi(api: string, lang: string, prompt: string, num
 
         try {
             axios
-                .post(API_URL, payload, { proxy: false, timeout: 120000 })
+                .post(API_URL.toString(), payload, { proxy: false, timeout: 120000 })
                 .then(async (res) => {
                     if (res?.data.status === 0) {
                         let codeArray = res?.data.result.output.code;
@@ -65,28 +67,32 @@ function getCodeCompletionsTianqi(api: string, lang: string, prompt: string, num
     });
 }
 
-function getCodeCompletionsSensecore(api: string, lang: string, prompt: string, num: Number): Promise<GetCodeCompletions> {
-    let API_URL = `${api}/run/predict`;
+function getCodeCompletionsSensecore(api: Uri, lang: string, prompt: string, num: Number): Promise<GetCodeCompletions> {
+    let API_URL = Uri.joinPath(api, "completions");
     return new Promise(async (resolve, reject) => {
         let payload = {
-            data: prompt.split("\n")
+            prompt: prompt,
+            n: num,
+            max_tokens: 32,
+            temperature: Configuration.temp,
+            top_p: Configuration.topp,
         };
 
         try {
             axios
-                .post(API_URL, payload, { proxy: false, timeout: 120000 })
+                .post(API_URL.toString(), payload, { proxy: false, timeout: 120000 })
                 .then(async (res) => {
                     if (res?.status === 200) {
-                        let codeArray = res?.data.data;
+                        let codeArray = res?.data.choices;
                         const completions = Array<string>();
                         for (let i = 0; i < codeArray.length; i++) {
                             const completion = codeArray[i];
-                            let tmpstr = completion;
+                            let tmpstr = completion.text;
                             if (tmpstr.trim() === "")
                                 continue;
-                            if (completions.includes(completion))
+                            if (completions.includes(tmpstr))
                                 continue;
-                            completions.push(completion);
+                            completions.push(tmpstr);
                         }
                         resolve({ completions });
                     } else {

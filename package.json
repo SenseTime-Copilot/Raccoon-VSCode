@@ -47,7 +47,7 @@
                     },
                     "SenseCode.CompletionAutomatically": {
                         "type": "boolean",
-                        "default": false,
+                        "default": true,
                         "description": "Automatic get completion suggestions once stop typing."
                     },
                     "SenseCode.CompletionDelay": {
@@ -97,6 +97,11 @@
         ],
         "commands": [
             {
+                "command": "sensecode.config.selectEngine",
+                "category": "SenseCode",
+                "title": "Select Code Completion Engine"
+            },
+            {
                 "command": "sensecode.inlineSuggest.toggle",
                 "category": "SenseCode",
                 "title": "Toggle Code Inline Completion"
@@ -112,7 +117,16 @@
                 "command": "sensecode.inlineSuggest.trigger",
                 "key": "Alt+/"
             }
-        ]
+        ],
+        "icons": {
+            "sensecore-dark": {
+                "description": "SenseCore icon",
+                "default": {
+                    "fontPath": "./media/sensecore.woff",
+                    "fontCharacter": "\\E001"
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
