@@ -187,6 +187,13 @@ export function inlineCompletionProvider(
             if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !Configuration.autoCompleteEnabled) {
                 return;
             }
+            if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
+                await new Promise((f) => setTimeout(f, Configuration.delay * 1000));
+                if (!cancel.isCancellationRequested) {
+                    vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor)
+                }
+                return;
+            }
 
             let lang = showHideStatusBtn(document, statusBarItem);
             if (lang === "") {
@@ -222,7 +229,7 @@ export function inlineCompletionProvider(
                 return { items: [] };
             }
 
-            if (middleOfLineWontComplete(position, document) && context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
+            if (middleOfLineWontComplete(position, document)) {
                 updateStatusBarItem(extension, statusBarItem, "");
                 return;
             }
@@ -230,9 +237,6 @@ export function inlineCompletionProvider(
             if (textBeforeCursor.length > 8 || context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
                 let requestId = new Date().getTime();
                 lastRequest = requestId;
-                if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-                    await new Promise((f) => setTimeout(f, Configuration.delay));
-                }
                 if (lastRequest !== requestId) {
                     return { items: [] };
                 }
