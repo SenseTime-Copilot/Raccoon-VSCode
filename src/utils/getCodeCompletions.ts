@@ -1,45 +1,39 @@
 import axios from "axios";
-import { apiKey, apiSecret } from "../localconfig";
-import { Uri } from "vscode";
-import { Configuration } from "../param/configures";
+import { ExtensionContext } from "vscode";
+import { Engine } from "../param/configures";
 
 export type GetCodeCompletions = {
     completions: Array<string>;
 };
 
 export function getCodeCompletions(
+    context: ExtensionContext,
     prompt: string,
-    num: Number,
     lang: string
 ): Promise<GetCodeCompletions> {
-    let api = Configuration.engineAPI;
-    if (api.authority.includes("tianqi")) {
-        return getCodeCompletionsTianqi(api, lang, prompt, num);
-    } else if (api.authority.includes("sensecore")) {
-        api = Uri.parse("http://10.8.33.51:15000/v1");
-        return getCodeCompletionsSensecore(api, lang, prompt, num);
+    let activeEngine: Engine | undefined = context.globalState.get("engine");
+    if (!activeEngine) {
+        return Promise.resolve({ completions: [] });
+    }
+    let api = activeEngine.url;
+    if (api.includes("tianqi")) {
+        return getCodeCompletionsTianqi(activeEngine, lang, prompt);
     } else {
-        throw Error();
+        return getCodeCompletionsOpenAI(activeEngine, lang, prompt);
     }
 }
 
-function getCodeCompletionsTianqi(api: Uri, lang: string, prompt: string, num: Number): Promise<GetCodeCompletions> {
-    let API_URL = Uri.joinPath(api, "multilingual_code_generate_adapt");
+function getCodeCompletionsTianqi(engine: Engine, lang: string, prompt: string): Promise<GetCodeCompletions> {
     return new Promise(async (resolve, reject) => {
         let payload = {
             lang: lang,
             prompt: prompt,
-            n: num,
-            apikey: apiKey,
-            apisecret: apiSecret,
-            temperature: Configuration.temp,
-            top_p: Configuration.topp,
-            top_k: Configuration.topk,
+            ...engine.config
         };
 
         try {
             axios
-                .post(API_URL.toString(), payload, { proxy: false, timeout: 120000 })
+                .post(engine.url, payload, { proxy: false, timeout: 120000 })
                 .then(async (res) => {
                     if (res?.data.status === 0) {
                         let codeArray = res?.data.result.output.code;
@@ -67,24 +61,25 @@ function getCodeCompletionsTianqi(api: Uri, lang: string, prompt: string, num: N
     });
 }
 
-function getCodeCompletionsSensecore(api: Uri, lang: string, prompt: string, num: Number): Promise<GetCodeCompletions> {
-    let API_URL = Uri.joinPath(api, "completions");
+function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string): Promise<GetCodeCompletions> {
     return new Promise(async (resolve, reject) => {
         let payload = {
             prompt: prompt,
-            n: num,
-            max_tokens: 32,
-            temperature: Configuration.temp,
-            top_p: Configuration.topp,
+            ...engine.config
         };
 
         try {
+            let headers = undefined;
+            if (engine.key) {
+                headers = { 'Authorization': `Bearer ${engine.key}` };
+            }
             axios
-                .post(API_URL.toString(), payload, { proxy: false, timeout: 120000 })
+                .post(engine.url, payload, { headers, proxy: false, timeout: 120000 })
                 .then(async (res) => {
                     if (res?.status === 200) {
                         let codeArray = res?.data.choices;
                         const completions = Array<string>();
+                        const completions_backup = Array<string>();
                         for (let i = 0; i < codeArray.length; i++) {
                             const completion = codeArray[i];
                             let tmpstr = completion.text;
@@ -92,9 +87,13 @@ function getCodeCompletionsSensecore(api: Uri, lang: string, prompt: string, num
                                 continue;
                             if (completions.includes(tmpstr))
                                 continue;
-                            completions.push(tmpstr);
+                            if (completion.finish_reason === "stop") {
+                                completions.push(tmpstr + "\n");
+                            } else {
+                                completions_backup.push(tmpstr);
+                            }
                         }
-                        resolve({ completions });
+                        resolve({ completions: completions.concat(completions_backup) });
                     } else {
                         reject(res.data.message);
                     }

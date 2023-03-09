@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Configuration } from "./param/configures";
+import { Configuration, Engine } from "./param/configures";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
@@ -8,48 +8,34 @@ let statusBarItem: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext) {
     new Configuration();
+    let activeEngine: Engine | undefined = context.globalState.get("engine");
+    let engines = Configuration.engines;
+    if (activeEngine) {
+        let e = engines.filter((e) => {
+            return e.label === activeEngine!.label;
+        });
+        if (e.length === 0) {
+            context.globalState.update("engine", undefined);
+        }
+    }
     vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("SenseCode")) {
             Configuration.update();
-            updateStatusBarItem(statusBarItem, "");
+            updateStatusBarItem(context, statusBarItem, "");
         }
     });
     checkPrivacy();
 
     context.subscriptions.push(
         vscode.commands.registerCommand("sensecode.config.selectEngine", () => {
-            const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
-            let url = configuration.get("EngineAPI", "");
-            let engine = `Custom Engine - ${url}`;
-            if (url.includes("code.sensecore")) {
-                engine = `SenseCode - ${url}`;
-            } else if (url.includes("tianqi")) {
-                engine = `TianQi - ${url}`;
-            }
-            let qp = vscode.window.createQuickPick();
-            qp.placeholder = `Select engine, current is [${engine}]`;
-            qp.items = [{
-                label: "SenseCode",
-                description: "https://code.sensecore.cn/api/v1",
-            },
-            {
-                label: "TianQi",
-                description: "https://tianqi.aminer.cn/api/v2",
-            },
-            {
-                label: "",
-                kind: vscode.QuickPickItemKind.Separator,
-            },
-            {
-                label: "Custom Engine..."
-            }];
+            let engine = Configuration.engines;
+            let activeEngine = context.globalState.get("engine");
+            let qp = vscode.window.createQuickPick<Engine>();
+            qp.placeholder = `Select engine, current is [${activeEngine}]`;
+            qp.items = engine;
             qp.onDidChangeSelection(items => {
                 if (items[0]) {
-                    if (items[0].label === "Custom Engine...") {
-                        vscode.commands.executeCommand("workbench.action.openGlobalSettings", { query: "SenseCode.EngineAPI" });
-                    } else {
-                        configuration.update("EngineAPI", items[0].description, true);
-                    }
+                    context.globalState.update("engine", items[0]);
                     qp.hide();
                 }
             });
@@ -68,7 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
             let autoComplete = configuration.get("CompletionAutomatically", true);
             configuration.update("CompletionAutomatically", !autoComplete, true).then(() => {
-                updateStatusBarItem(statusBarItem, "");
+                updateStatusBarItem(context, statusBarItem, "");
             });
         })
     );
@@ -80,11 +66,12 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     statusBarItem.color = new vscode.ThemeColor("statusBar.remoteForeground");
     statusBarItem.backgroundColor = new vscode.ThemeColor("statusBar.remoteBackground");
-    updateStatusBarItem(statusBarItem, "");
+    updateStatusBarItem(context, statusBarItem, "");
 
     let inlineProvider: vscode.InlineCompletionItemProvider;
 
     inlineProvider = inlineCompletionProvider(
+        context,
         statusBarItem
     );
 

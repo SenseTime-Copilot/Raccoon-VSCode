@@ -40,10 +40,73 @@
         "configuration": [
             {
                 "properties": {
-                    "SenseCode.EngineAPI": {
-                        "type": "string",
-                        "default": "https://code.sensecore.cn/api/v1",
-                        "description": "Set code generation engine API URL."
+                    "SenseCode.Engines": {
+                        "type": "array",
+                        "description": "Engine List",
+                        "items": {
+                            "type": "object",
+                            "description": "Engine Config",
+                            "properties": {
+                                "label": {
+                                    "type": "string"
+                                },
+                                "url": {
+                                    "type": "string"
+                                },
+                                "key": {
+                                    "type": "string"
+                                },
+                                "config": {
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "default": [
+                            {
+                                "label": "SenseCode",
+                                "url": "http://10.8.33.51:15000/v1/completions/",
+                                "config": {
+                                    "n": 3,
+                                    "max_tokens": 128,
+                                    "stop": [
+                                        "\n\n"
+                                    ],
+                                    "temperature": 0.8,
+                                    "top_p": 0.95
+                                }
+                            },
+                            {
+                                "label": "OpenAI",
+                                "url": "https://api.openai.com/v1/completions",
+                                "key": "<YOUR OPENAI API KEY>",
+                                "config": {
+                                    "model": "text-davinci-003",
+                                    "n": 3,
+                                    "max_tokens": 128,
+                                    "stop": [
+                                        "\n\n"
+                                    ],
+                                    "temperature": 0.8,
+                                    "top_p": 0.95
+                                }
+                            },
+                            {
+                                "label": "TianQi",
+                                "url": "https://tianqi.aminer.cn/api/v2/multilingual_code_generate_adapt",
+                                "config": {
+                                    "apikey": "<YOUR TIANQI API KEY>",
+                                    "apisecret": "<YOUR TIANQI API SECRET>",
+                                    "n": 3,
+                                    "max_tokens": 128,
+                                    "stop": [
+                                        "\n\n"
+                                    ],
+                                    "temperature": 0.8,
+                                    "top_p": 0.95,
+                                    "top_k": 0
+                                }
+                            }
+                        ]
                     },
                     "SenseCode.CompletionAutomatically": {
                         "type": "boolean",
@@ -55,37 +118,6 @@
                         "minimum": 0.5,
                         "default": 0.5,
                         "description": "The delay in seconds to start getting completion suggestions. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
-                    },
-                    "SenseCode.CandidateCount": {
-                        "type": "number",
-                        "default": 1,
-                        "enum": [
-                            1,
-                            3,
-                            5
-                        ],
-                        "description": "The number of candidate suggestions"
-                    },
-                    "SenseCode.decodingStrategies.temp": {
-                        "type": "number",
-                        "default": 0.8,
-                        "maximum": 1,
-                        "minimum": 0.01,
-                        "description": "Temp controls the randomness of output, range: [0.01, 1]. Higher temperature means more randomness, and the model will return creative results."
-                    },
-                    "SenseCode.decodingStrategies.topp": {
-                        "type": "number",
-                        "default": 0.95,
-                        "maximum": 1,
-                        "minimum": 0,
-                        "description": "Top-p keeps the candidate tokens whose probabilities sum to p, range [0, 1]. Top-p=0 means disabled."
-                    },
-                    "SenseCode.decodingStrategies.topk": {
-                        "type": "number",
-                        "default": 0,
-                        "maximum": 40,
-                        "minimum": 0,
-                        "description": "Top-k keeps the k candidate tokens with the highest probabilities, range [0, 40]. Top-k=0 means disabled."
                     },
                     "SenseCode.Privacy": {
                         "type": "boolean",

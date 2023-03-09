@@ -174,6 +174,7 @@ function isBracketBalanced(str: string, character: string) {
 }
 
 export function inlineCompletionProvider(
+    extension: vscode.ExtensionContext,
     statusBarItem: vscode.StatusBarItem
 ) {
     const provider: vscode.InlineCompletionItemProvider = {
@@ -217,12 +218,12 @@ export function inlineCompletionProvider(
                 textBeforeCursor = str + textBeforeCursor;
             }
             if (textBeforeCursor.trim() === "") {
-                updateStatusBarItem(statusBarItem, "");
+                updateStatusBarItem(extension, statusBarItem, "");
                 return { items: [] };
             }
 
             if (middleOfLineWontComplete(position, document) && context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-                updateStatusBarItem(statusBarItem, "");
+                updateStatusBarItem(extension, statusBarItem, "");
                 return;
             }
 
@@ -237,23 +238,22 @@ export function inlineCompletionProvider(
                 }
                 let rs;
                 try {
-                    updateStatusBarItem(statusBarItem, "$(sync~spin)");
-                    rs = await getCodeCompletions(
+                    updateStatusBarItem(extension, statusBarItem, "$(sync~spin)");
+                    rs = await getCodeCompletions(extension,
                         textBeforeCursor,
-                        Configuration.candidateCount,
                         lang);
                 } catch (err) {
                     if (err) {
                         console.log(err);
                     }
-                    updateStatusBarItem(
+                    updateStatusBarItem(extension,
                         statusBarItem,
                         "$(bracket-error)"
                     );
                     return { items: [] };
                 }
                 if (rs === null) {
-                    updateStatusBarItem(
+                    updateStatusBarItem(extension,
                         statusBarItem,
                         "$(bracket-error)"
                     );
@@ -304,19 +304,19 @@ export function inlineCompletionProvider(
                     trie.addWord(textBeforeCursor + rs.completions[i]);
                 }
                 if (rs.completions.length === 0) {
-                    updateStatusBarItem(
+                    updateStatusBarItem(extension,
                         statusBarItem,
                         "$(bracket-error)"
                     );
                 } else {
-                    updateStatusBarItem(
+                    updateStatusBarItem(extension,
                         statusBarItem,
                         "$(bracket-dot)"
                     );
                 }
                 return items;
             }
-            updateStatusBarItem(
+            updateStatusBarItem(extension,
                 statusBarItem,
                 "$(bracket-error)"
             );

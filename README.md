@@ -1,6 +1,39 @@
 # SenseCode Coding Sensor
 
-* Engine list
-  * SenseCode [default]: `https://code.sensecore.cn/api/v1`
-  * SenseCore: For test only, e.g. `http://cci-proxy.cn-sh-01.sensecore.cn:29933`
-  * TianQi: `https://tianqi.aminer.cn/api/v2`
+* Engine list example (Support OpenAI & TianQi style):
+
+```json
+"SenseCode.Engines": [
+    {
+        "label": "OpenAI",
+        "url": "https://api.openai.com/v1/completions",
+        "key": "<YOUR-OPENAI-API-KEY>",
+        "config": {
+            "model": "text-davinci-003",
+            "n": 3,
+            "max_tokens": 128,
+            "stop": [
+                "\n\n"
+            ],
+            "temperature": 0.8,
+            "top_p": 0.95
+        }
+    },
+    {
+        "label": "TianQi",
+        "url": "https://tianqi.aminer.cn/api/v2/multilingual_code_generate_adapt",
+        "config": {
+            "apikey": "<YOUR-TIANQI-API-KEY>",
+            "apisecret": "<YOUR-TIANQI-API-SECRET>",
+            "n": 3,
+            "max_tokens": 128,
+            "stop": [
+                "\n\n"
+            ],
+            "temperature": 0.8,
+            "top_p": 0.95,
+            "top_k": 0
+        }
+    }
+]
+```

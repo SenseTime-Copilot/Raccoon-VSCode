@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
+import { Configuration, Engine } from "../param/configures";
 
 var statusbartimer: NodeJS.Timeout;
 
 export async function updateStatusBarItem(
+    context: vscode.ExtensionContext,
     statusBarItem: vscode.StatusBarItem,
     extraText: string
 ): Promise<void> {
@@ -14,19 +16,14 @@ export async function updateStatusBarItem(
     if (statusbartimer) {
         clearTimeout(statusbartimer);
     }
-    const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
-    let autoComplete = configuration.get("CompletionAutomatically", true);
+    let autoComplete = Configuration.autoCompleteEnabled;
     if (!autoComplete) {
         mode = '`Alt+/` [Switch to automatic](command:sensecode.inlineSuggest.toggle "Switch to automatic")';
     }
 
-    let engine = `\`Custom Engine\` [Change engine](command:sensecode.config.selectEngine "Change engine")`;
-    let url = configuration.get("EngineAPI", "");
-    if (url.includes("code.sensecore")) {
-        engine = `\`SenseCode\` [Change engine](command:sensecode.config.selectEngine "Change engine")`;
-    } else if (url.includes("tianqi")) {
-        engine = `\`TianQi\` [Change engine](command:sensecode.config.selectEngine "Change engine")`;
-    }
+    let activeEngine = context.globalState.get<Engine>("engine");
+
+    let engine = `\`${activeEngine?.label || 'None'}\` [Change engine](command:sensecode.config.selectEngine "Change engine")`;
 
     tip.appendMarkdown(`**SenseCode**\n\n`);
     tip.appendMarkdown(`***\n\n`);
