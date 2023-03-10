@@ -1,6 +1,6 @@
-import axios from "axios";
+import axios, { ResponseType } from "axios";
 import { ExtensionContext } from "vscode";
-import { Engine } from "../param/configures";
+import { Configuration, Engine } from "../param/configures";
 
 export type GetCodeCompletions = {
     completions: Array<string>;
@@ -63,20 +63,33 @@ function getCodeCompletionsTianqi(engine: Engine, lang: string, prompt: string):
 
 function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string): Promise<GetCodeCompletions> {
     return new Promise(async (resolve, reject) => {
+        let headers = undefined;
+        if (engine.key) {
+            headers = { 'Authorization': `Bearer ${engine.key}` };
+        }
         let payload = {
             prompt: prompt,
             ...engine.config
         };
-
+        let responseType: ResponseType | undefined = undefined;
+        if (Configuration.printOut && engine.url === "https://api.openai.com/v1/completions") {
+            payload.stream = true;
+            payload.max_tokens = 2048;
+            payload.stop = undefined;
+            payload.n = 1;
+            responseType = "stream";
+        } else {
+            payload.stream = undefined;
+        }
         try {
-            let headers = undefined;
-            if (engine.key) {
-                headers = { 'Authorization': `Bearer ${engine.key}` };
-            }
             axios
-                .post(engine.url, payload, { headers, proxy: false, timeout: 120000 })
+                .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })
                 .then(async (res) => {
                     if (res?.status === 200) {
+                        if (responseType === "stream") {
+                            resolve(res.data);
+                            return;
+                        }
                         let codeArray = res?.data.choices;
                         const completions = Array<string>();
                         const completions_backup = Array<string>();

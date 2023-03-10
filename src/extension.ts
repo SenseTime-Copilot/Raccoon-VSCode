@@ -21,6 +21,11 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("SenseCode")) {
             Configuration.update();
+            let activeEngine: Engine | undefined = context.globalState.get("engine");
+            if (activeEngine) {
+                let newEngine = Configuration.engines.filter((v) => { return v.label === activeEngine?.label });
+                context.globalState.update("engine", newEngine[0]);
+            }
             updateStatusBarItem(context, statusBarItem, "");
         }
     });
@@ -50,10 +55,20 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand("sensecode.inlineSuggest.toggle", () => {
+        vscode.commands.registerCommand("sensecode.inlineSuggest.toggleAuto", () => {
             const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
             let autoComplete = configuration.get("CompletionAutomatically", true);
             configuration.update("CompletionAutomatically", !autoComplete, true).then(() => {
+                updateStatusBarItem(context, statusBarItem, "");
+            });
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand("sensecode.inlineSuggest.togglePrintOut", () => {
+            const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
+            let printOut = configuration.get("DirectPrintOut", true);
+            configuration.update("DirectPrintOut", !printOut, true).then(() => {
                 updateStatusBarItem(context, statusBarItem, "");
             });
         })

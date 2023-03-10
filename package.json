@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -113,6 +113,11 @@
                         "default": true,
                         "description": "Automatic get completion suggestions once stop typing."
                     },
+                    "SenseCode.DirectPrintOut": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Direct print complition code to editor."
+                    },
                     "SenseCode.CompletionDelay": {
                         "type": "number",
                         "minimum": 0.5,
@@ -134,9 +139,14 @@
                 "title": "Select Code Completion Engine"
             },
             {
-                "command": "sensecode.inlineSuggest.toggle",
+                "command": "sensecode.inlineSuggest.toggleAuto",
                 "category": "SenseCode",
-                "title": "Toggle Code Inline Completion"
+                "title": "Toggle Auto/Manual Code Inline Completion"
+            },
+            {
+                "command": "sensecode.inlineSuggest.togglePrintOut",
+                "category": "SenseCode",
+                "title": "Toggle Auto/Manual Code Inline Completion"
             },
             {
                 "command": "sensecode.inlineSuggest.trigger",

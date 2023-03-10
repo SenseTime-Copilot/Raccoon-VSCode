@@ -37,3 +37,16 @@
     }
 ]
 ```
+
+* Direct print out (For OpenAI only)
+
+When Complition Mode set to `Print`, it direct print out the result into the active editor streamingly, for this purpose part of settings overwritten:
+
+```json
+{
+    "n": 1,
+    "max_tokens": 2048,
+    "stream" : true,
+    "stop": null
+}
+```

@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import { Configuration } from "../param/configures";
 import { Trie } from "./trie";
-import { getCodeCompletions } from "../utils/getCodeCompletions";
+import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
+import { IncomingMessage } from "http";
 
 let lastRequest = null;
 let trie = new Trie([]);
@@ -184,6 +185,7 @@ export function inlineCompletionProvider(
             context,
             cancel
         ) => {
+            let editor = vscode.window.activeTextEditor;
             if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !Configuration.autoCompleteEnabled) {
                 return;
             }
@@ -240,7 +242,7 @@ export function inlineCompletionProvider(
                 if (lastRequest !== requestId) {
                     return { items: [] };
                 }
-                let rs;
+                let rs: GetCodeCompletions | any;
                 try {
                     updateStatusBarItem(extension, statusBarItem, "$(sync~spin)");
                     rs = await getCodeCompletions(extension,
@@ -264,61 +266,103 @@ export function inlineCompletionProvider(
                     return { items: [] };
                 }
 
-                // Add the generated code to the inline suggestion list
-                let items = new Array<vscode.InlineCompletionItem>();
-                for (let i = 0; i < rs.completions.length; i++) {
-                    let completion = rs.completions[i];
-                    if (isAtTheMiddleOfLine(position, document)) {
-                        let currentLine = document?.lineAt(position.line);
-                        let lineEndPosition = currentLine?.range.end;
-                        let selectionTrailingString: vscode.Selection;
-
-                        selectionTrailingString = new vscode.Selection(
-                            position.line,
-                            position.character,
-                            position.line,
-                            lineEndPosition.character + 1
-                        );
-                        let trailingString = document.getText(
-                            selectionTrailingString
-                        );
-                        completion = removeTrailingCharsByReplacement(
-                            completion,
-                            trailingString
-                        );
-                        if (
-                            completion.trimEnd().slice(-1) === "{" ||
-                            completion.trimEnd().slice(-1) === ";" ||
-                            completion.trimEnd().slice(-1) === ":"
-                        ) {
-                            completion = completion
-                                .trimEnd()
-                                .substring(0, completion.length - 1);
+                if (rs instanceof IncomingMessage) {
+                    let data = rs as IncomingMessage;
+                    let start = editor!.selection.start;
+                    let end = editor!.selection.start;
+                    data.on("data", async (v: any) => {
+                        let msgstr: string = v.toString();
+                        let msgs = msgstr.split("data: ").filter((v) => {
+                            return v !== "data: ";
+                        });
+                        for (let msg of msgs) {
+                            let content = msg.trim();
+                            if (content === '[DONE]') {
+                                return;
+                            }
+                            if (content === "") {
+                                continue;
+                            }
+                            let json = JSON.parse(content);
+                            if (editor && editor.selection && start === editor.selection.active) {
+                                await editor.edit(e => { e.insert(start, json.choices[0].text); }).then((v) => {
+                                    end = editor!.selection.start;
+                                    editor!.revealRange(new vscode.Range(start, end));
+                                    start = end;
+                                });
+                            } else {
+                                data.destroy();
+                            }
                         }
-                    }
-                    items.push({
-                        // insertText: completion,
-                        insertText: rs.completions[i],
-                        // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
-                        range: new vscode.Range(
-                            position.translate(0, rs.completions.length),
-                            position
-                        )
                     });
-                    trie.addWord(textBeforeCursor + rs.completions[i]);
-                }
-                if (rs.completions.length === 0) {
-                    updateStatusBarItem(extension,
-                        statusBarItem,
-                        "$(bracket-error)"
-                    );
+                    data.on("close", (v: any) => {
+                        let editor = vscode.window.activeTextEditor;
+                        if (editor && editor.selection && start === editor.selection.active) {
+                            let start = editor.selection.start;
+                            editor.edit(e => { e.insert(start, "\n\n"); }).then((v) => {
+                                let end = editor!.selection.start;
+                                editor!.revealRange(new vscode.Range(start, end));
+                            });
+                        }
+                    });
                 } else {
-                    updateStatusBarItem(extension,
-                        statusBarItem,
-                        "$(bracket-dot)"
-                    );
+                    let data = rs as GetCodeCompletions;
+                    // Add the generated code to the inline suggestion list
+                    let items = new Array<vscode.InlineCompletionItem>();
+                    for (let i = 0; i < data.completions.length; i++) {
+                        let completion = data.completions[i];
+                        if (isAtTheMiddleOfLine(position, document)) {
+                            let currentLine = document?.lineAt(position.line);
+                            let lineEndPosition = currentLine?.range.end;
+                            let selectionTrailingString: vscode.Selection;
+
+                            selectionTrailingString = new vscode.Selection(
+                                position.line,
+                                position.character,
+                                position.line,
+                                lineEndPosition.character + 1
+                            );
+                            let trailingString = document.getText(
+                                selectionTrailingString
+                            );
+                            completion = removeTrailingCharsByReplacement(
+                                completion,
+                                trailingString
+                            );
+                            if (
+                                completion.trimEnd().slice(-1) === "{" ||
+                                completion.trimEnd().slice(-1) === ";" ||
+                                completion.trimEnd().slice(-1) === ":"
+                            ) {
+                                completion = completion
+                                    .trimEnd()
+                                    .substring(0, completion.length - 1);
+                            }
+                        }
+                        items.push({
+                            // insertText: completion,
+                            insertText: data.completions[i],
+                            // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
+                            range: new vscode.Range(
+                                position.translate(0, data.completions.length),
+                                position
+                            )
+                        });
+                        trie.addWord(textBeforeCursor + data.completions[i]);
+                    }
+                    if (data.completions.length === 0) {
+                        updateStatusBarItem(extension,
+                            statusBarItem,
+                            "$(bracket-error)"
+                        );
+                    } else {
+                        updateStatusBarItem(extension,
+                            statusBarItem,
+                            "$(bracket-dot)"
+                        );
+                    }
+                    return items;
                 }
-                return items;
             }
             updateStatusBarItem(extension,
                 statusBarItem,

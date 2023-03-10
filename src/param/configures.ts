@@ -24,8 +24,13 @@ export class Configuration {
     public static get engines(): Engine[] {
         return Configuration.configuration.get<Engine[]>("Engines", []);
     }
+
     public static get autoCompleteEnabled(): boolean {
         return Configuration.configuration.get("CompletionAutomatically", true);
+    }
+
+    public static get printOut(): boolean {
+        return Configuration.configuration.get("DirectPrintOut", false);
     }
 
     public static get delay(): number {
