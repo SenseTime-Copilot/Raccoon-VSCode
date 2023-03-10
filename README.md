@@ -38,15 +38,15 @@
 ]
 ```
 
-* Direct print out (For OpenAI only)
+* Direct print out (For OpenAI & SenseCode only)
 
 When Complition Mode set to `Print`, it direct print out the result into the active editor streamingly, for this purpose part of settings overwritten:
 
 ```json
 {
-    "n": 1,
-    "max_tokens": 2048,
-    "stream" : true,
-    "stop": null
+    "max_tokens": 2048, // 2048 for OpenAI, 128 for SenseCode
+    "n": 1, // Only 1 result required
+    "stream" : true, // force on
+    "stop": null // do not stop intentionally
 }
 ```

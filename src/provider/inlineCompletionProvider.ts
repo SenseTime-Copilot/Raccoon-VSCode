@@ -30,6 +30,9 @@ function getDocumentLanguage(document: vscode.TextDocument) {
         case "objective-cpp":
             lang = "Objective-C++";
             break;
+        case "markdown":
+            lang = "Markdown";
+            break;
         case "python":
             lang = "Python";
             break;

@@ -72,14 +72,19 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             ...engine.config
         };
         let responseType: ResponseType | undefined = undefined;
-        if (Configuration.printOut && engine.url === "https://api.openai.com/v1/completions") {
+        if (Configuration.printOut) {
             payload.stream = true;
-            payload.max_tokens = 2048;
-            payload.stop = undefined;
+            if (engine.url === "https://api.openai.com/v1/completions") {
+                payload.max_tokens = 2048;
+            } else {
+                payload.max_tokens = 128;
+            }
+            payload.stop = null;
             payload.n = 1;
+            payload.user = "sensecode-vscode-extension"
             responseType = "stream";
         } else {
-            payload.stream = undefined;
+            payload.stream = null;
         }
         try {
             axios
