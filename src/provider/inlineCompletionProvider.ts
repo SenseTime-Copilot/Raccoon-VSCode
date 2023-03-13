@@ -188,6 +188,12 @@ export function inlineCompletionProvider(
             context,
             cancel
         ) => {
+            cancel.onCancellationRequested(e => {
+                updateStatusBarItem(extension,
+                    statusBarItem,
+                    "$(bracket-error)"
+                );
+            });
             let editor = vscode.window.activeTextEditor;
             if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !Configuration.autoCompleteEnabled) {
                 return;
@@ -251,9 +257,9 @@ export function inlineCompletionProvider(
                     rs = await getCodeCompletions(extension,
                         textBeforeCursor,
                         lang);
-                } catch (err) {
+                } catch (err: any) {
                     if (err) {
-                        console.log(err);
+                        console.log(err.message);
                     }
                     updateStatusBarItem(extension,
                         statusBarItem,
@@ -287,7 +293,11 @@ export function inlineCompletionProvider(
                                 continue;
                             }
                             let json = JSON.parse(content);
-                            if (editor && editor.selection && start === editor.selection.active) {
+                            if (json.error) {
+                                vscode.window.showErrorMessage(`${json.error.type}: ${json.error.message}`, "Close");
+                                return;
+                            }
+                            if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
                                 await editor.edit(e => { e.insert(start, json.choices[0].text); }).then((v) => {
                                     end = editor!.selection.start;
                                     editor!.revealRange(new vscode.Range(start, end));
@@ -295,17 +305,8 @@ export function inlineCompletionProvider(
                                 });
                             } else {
                                 data.destroy();
+                                return;
                             }
-                        }
-                    });
-                    data.on("close", (v: any) => {
-                        let editor = vscode.window.activeTextEditor;
-                        if (editor && editor.selection && start === editor.selection.active) {
-                            let start = editor.selection.start;
-                            editor.edit(e => { e.insert(start, "\n\n"); }).then((v) => {
-                                let end = editor!.selection.start;
-                                editor!.revealRange(new vscode.Range(start, end));
-                            });
                         }
                     });
                 } else {
@@ -364,7 +365,7 @@ export function inlineCompletionProvider(
                             "$(bracket-dot)"
                         );
                     }
-                    return items;
+                    return cancel.isCancellationRequested ? { items: [] } : items;
                 }
             }
             updateStatusBarItem(extension,
