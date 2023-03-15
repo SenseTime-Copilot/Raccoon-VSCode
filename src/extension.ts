@@ -3,20 +3,28 @@ import { Configuration, Engine } from "./param/configures";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
+import { SenseCodeViewProvider } from "./provider/webviewProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext) {
     new Configuration();
+    const commandPrefix = Configuration.prompt;
+
     let activeEngine: Engine | undefined = context.globalState.get("engine");
     let engines = Configuration.engines;
     if (activeEngine) {
         let e = engines.filter((e) => {
             return e.label === activeEngine!.label;
         });
-        if (e.length === 0) {
-            context.globalState.update("engine", undefined);
+        if (e.length !== 0) {
+            activeEngine = e[0];
+            context.globalState.update("engine", e[0]);
         }
+    }
+    if (!activeEngine) {
+        activeEngine = engines[0];
+        context.globalState.update("engine", engines[0]);
     }
     vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("SenseCode")) {
@@ -104,6 +112,44 @@ export async function activate(context: vscode.ExtensionContext) {
             showHideStatusBtn(editor?.document, statusBarItem);
         })
     );
+
+    const provider = new SenseCodeViewProvider(context);
+
+    const view = vscode.window.registerWebviewViewProvider(
+        "sensecode.view",
+        provider,
+        {
+            webviewOptions: {
+                retainContextWhenHidden: true,
+            },
+        }
+    );
+    context.subscriptions.push(view);
+
+    const commands = [
+        ["sensecode.addTests", "addTests"],
+        ["sensecode.findProblems", "findProblems"],
+        ["sensecode.optimize", "optimize"],
+        ["sensecode.explain", "explain"],
+    ];
+
+    const registeredCommands = commands.map(([command, promptKey]) =>
+        vscode.commands.registerCommand(command, () => {
+            let selection = undefined;
+            let commandPrefix = Configuration.prompt[promptKey] as string;
+            if (commandPrefix.includes("${selection}")) {
+                const editor = vscode.window.activeTextEditor;
+                if (!editor) {
+                    return;
+                }
+                commandPrefix = commandPrefix.replace("${selection}", "");
+                selection = editor.document.getText(editor.selection);
+            }
+            provider?.sendApiRequest(commandPrefix, selection);
+        })
+    );
+
+    context.subscriptions.push(...registeredCommands);
 
 }
 export function deactivate() { }

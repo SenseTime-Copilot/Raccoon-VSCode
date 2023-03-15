@@ -17,6 +17,9 @@ export function getCodeCompletions(
     }
     let api = activeEngine.url;
     if (api.includes("tianqi")) {
+        if (lang === "__Q&A__") {
+            return Promise.reject({ completions: ["Current API not support Q&A."] });
+        }
         return getCodeCompletionsTianqi(activeEngine, lang, prompt);
     } else {
         return getCodeCompletionsOpenAI(activeEngine, lang, prompt);
@@ -72,8 +75,7 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             ...engine.config
         };
         let responseType: ResponseType | undefined = undefined;
-        if (Configuration.printOut) {
-            payload.stream = true;
+        if (lang === "__Q&A__" || Configuration.printOut) {
             if (engine.url === "https://api.openai.com/v1/completions") {
                 payload.max_tokens = 2048;
             } else {
@@ -82,7 +84,11 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             payload.stop = null;
             payload.n = 1;
             payload.user = "sensecode-vscode-extension"
-            responseType = "stream";
+            if (lang === "__Q&A__") {
+            } else {
+                payload.stream = true;
+                responseType = "stream";
+            }
         } else {
             payload.stream = null;
         }

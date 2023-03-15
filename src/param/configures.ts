@@ -21,6 +21,10 @@ export class Configuration {
         Configuration.configuration = workspace.getConfiguration("SenseCode", undefined);
     }
 
+    public static get prompt(): any {
+        return Configuration.configuration.get("Prompt", {});
+    }
+
     public static get engines(): Engine[] {
         return Configuration.configuration.get<Engine[]>("Engines", []);
     }

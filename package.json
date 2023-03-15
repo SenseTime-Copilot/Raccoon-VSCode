@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -33,7 +33,7 @@
         "inline completion"
     ],
     "activationEvents": [
-        "*"
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -124,6 +124,20 @@
                         "default": 0.5,
                         "description": "The delay in seconds to start getting completion suggestions. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
                     },
+                    "SenseCode.Prompt": {
+                        "type": "object",
+                        "description": "Prompt templates",
+                        "additionalProperties": {
+                            "type": "string",
+                            "description": "Prompt template"
+                        },
+                        "default": {
+                            "addTests": "Implement tests for the following code: ${selection}",
+                            "findProblems": "Find problems with the following code: ${selection}",
+                            "optimize": "Optimize the following code: ${selection}",
+                            "explain": "Explain the following code: ${selection}"
+                        }
+                    },
                     "SenseCode.Privacy": {
                         "type": "boolean",
                         "description": "Accept sharing the generated code only for research purposes to make SenseCode better. Otherwise, the code won't be stored and is only used to assist your programming.",
@@ -132,7 +146,55 @@
                 }
             }
         ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "sensecode.addTests",
+                    "group": "SenseCode@1",
+                    "when": "editorHasSelection"
+                },
+                {
+                    "command": "sensecode.findProblems",
+                    "group": "SenseCode@2",
+                    "when": "editorHasSelection"
+                },
+                {
+                    "command": "sensecode.optimize",
+                    "group": "SenseCode@3",
+                    "when": "editorHasSelection"
+                },
+                {
+                    "command": "sensecode.explain",
+                    "group": "SenseCode@4",
+                    "when": "editorHasSelection"
+                }
+            ]
+        },
         "commands": [
+            {
+                "command": "sensecode.addTests",
+                "category": "SenseCode",
+                "title": "Add tests",
+                "enablement": "editorHasSelection"
+            },
+            {
+                "command": "sensecode.findProblems",
+                "category": "SenseCode",
+                "title": "Find bugs",
+                "enablement": "editorHasSelection"
+            },
+            {
+                "command": "sensecode.optimize",
+                "category": "SenseCode",
+                "title": "Optimize",
+                "enablement": "editorHasSelection"
+            },
+            {
+                "command": "sensecode.explain",
+                "category": "SenseCode",
+                "title": "Explain",
+                "enablement": "editorHasSelection"
+            },
             {
                 "command": "sensecode.config.selectEngine",
                 "category": "SenseCode",
@@ -168,6 +230,24 @@
                     "fontCharacter": "\\E001"
                 }
             }
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "sensecode-view-container",
+                    "title": "SenseCode",
+                    "icon": "media/sensecode-logo.png"
+                }
+            ]
+        },
+        "views": {
+            "sensecode-view-container": [
+                {
+                    "type": "webview",
+                    "id": "sensecode.view",
+                    "name": "Assistant"
+                }
+            ]
         }
     },
     "scripts": {
