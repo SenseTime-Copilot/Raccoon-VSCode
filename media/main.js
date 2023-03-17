@@ -1,7 +1,7 @@
 // @ts-nocheck
+const vscode = acquireVsCodeApi();
 
 (function () {
-    const vscode = acquireVsCodeApi();
 
     marked.setOptions({
         renderer: new marked.Renderer(),
@@ -17,15 +17,19 @@
         xhtml: false
     });
 
-    const aiSvg = `<span class="material-symbols-rounded">all_inclusive</span>`;
-    const userSvg = `<span class="material-symbols-rounded">person</span>`;
-    const clipboardSvg = `<span class="material-symbols-rounded">content_paste</span>`;
-    const checkSvg = `<span class="material-symbols-rounded">inventory</span>`;
-    const cancelSvg = `<span class="material-symbols-rounded">cancel</span>`;
-    const sendSvg = `<span class="material-symbols-rounded">send</span>`;
-    const pencilSvg = `<span class="material-symbols-rounded">edit</span>`;
-    const plusSvg = `<span class="material-symbols-rounded">note_add</span>`;
-    const insertSvg = `<span class="material-symbols-rounded">double_arrow</span>`;
+    const aiIcon = `<span class="material-symbols-rounded">all_inclusive</span>`;
+    const userIcon = `<span class="material-symbols-rounded">person</span>`;
+    const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
+    const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
+    const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
+    const sendIcon = `<span class="material-symbols-rounded">send</span>`;
+    const pencilIcon = `<span class="material-symbols-rounded">edit</span>`;
+    const plusIcon = `<span class="material-symbols-rounded">note_add</span>`;
+    const insertIcon = `<span class="material-symbols-rounded">double_arrow</span>`;
+
+    var lastChatId = undefined;
+    var prompts = undefined;
+    var promptList = ``;
 
     // Handle messages sent from the extension to the webview
     window.addEventListener("message", (event) => {
@@ -33,79 +37,118 @@
         const list = document.getElementById("qa-list");
 
         switch (message.type) {
+            case "promptList":
+                prompts = message.value;
+                for (var k in prompts) {
+                    const label_pre = k.replace(/([A-Z])/g, " $1");
+                    const label = label_pre.charAt(0).toUpperCase() + label_pre.slice(1);
+                    promptList += `<vscode-option value="${prompts[k]}">${label}</vscode-option>`;
+                }
+                break;
             case "addQuestion":
-                const html = message.code != null
-                    ? marked.parse(message.value + "\r\n\n\n```\n" + message.code + "\n```")
-                    : message.value;
+                document.getElementById("cover")?.classList?.add("hidden");
+                var replaceElems = document.getElementsByClassName("replace");
+                for (var e of replaceElems) {
+                    e.remove();
+                }
+                const codehtml = message.code != null
+                    ? marked.parse("```\n" + message.code + "\n```")
+                    : "";
+
+                var promptText = message.value;
+                const edit = !message.send;
+                if (promptText === "") {
+                    for (var k in prompts) {
+                        promptText = prompts[k];
+                        break;
+                    }
+                }
 
                 list.innerHTML +=
-                    `<div class="p-4 self-end mt-4 question-element-gnc relative" style="background: var(--vscode-input-background)">
-                        <h2 class="font-bold mb-5 flex text-xl gap-1">${userSvg}You</h2>
+                    `<div class="p-4 self-end mt-4 question-element-gnc relative  ${edit ? "replace" : ""}" style="background: var(--vscode-input-background)">
+                        <h2 class="font-bold mb-5 flex text-xl gap-1">${userIcon}You</h2>
                         <no-export class="mb-5 flex items-center">
-                            <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 flex items-center rounded-lg text-base absolute right-4 top-4">${pencilSvg}</button>
-                            <div class="hidden send-cancel-elements-gnc flex gap-2 absolute right-6">
-                                <button title="Send this prompt" class="send-element-gnc p-0.5 rounded-lg flex items-center text-base">${sendSvg}</button>
-                                <button title="Cancel" class="cancel-element-gnc p-0.5 rounded-lg flex items-center text-base">${cancelSvg}</button>
+                            <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 flex items-center rounded-lg text-base absolute right-4 top-4 ${edit ? "hidden" : ""}">${pencilIcon}</button>
+                            <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex gap-2 absolute right-4" style="width: calc(100% - 32px);">
+                                <vscode-dropdown style="width: 100%">${promptList}</vscode-dropdown>
+                                <button title="Send this prompt" class="send-element-gnc p-0.5 rounded-lg flex items-center text-base">${sendIcon}</button>
+                                <button title="Cancel" class="cancel-element-gnc p-0.5 rounded-lg flex items-center text-base">${cancelIcon}</button>
                             </div>
                         </no-export>
-                        <div class="overflow-y-auto">${html}</div>
+                        <p class="prompt leading-loose p-2" contenteditable=${edit}>${promptText}</p>
+                        <div class="overflow-y-auto p-2">${codehtml}</div>
                     </div>`;
 
-                document.getElementById("in-progress")?.classList?.remove("hidden");
-                document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
+                if (!edit) {
+                    document.getElementById("in-progress")?.classList?.remove("hidden");
+                    document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
+                }
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                 break;
-            case "addResponse":
-                document.getElementById("in-progress")?.classList?.add("hidden");
-                document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+            case "stopResponse":
+                {
+                    document.getElementById("in-progress")?.classList?.add("hidden");
+                    document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
 
-                const markedResponse = new DOMParser().parseFromString(marked.parse(message.value), "text/html");
-                const preCodeList = markedResponse.querySelectorAll("pre > code");
+                    const chatText = document.getElementById(`${lastChatId}-text`);
+                    lastChatId = undefined;
+                    const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.textContent + "\n\n"), "text/html");
+                    const preCodeList = markedResponse.querySelectorAll("pre > code");
 
-                preCodeList.forEach((preCode, index) => {
-                    preCode.parentElement.classList.add("pre-code-element", "relative");
+                    preCodeList.forEach((preCode, index) => {
+                        preCode.parentElement.classList.add("pre-code-element", "relative");
 
-                    if (index != preCodeList.length - 1) {
-                        preCode.parentElement.classList.add("mb-8");
-                    }
+                        if (index != preCodeList.length - 1) {
+                            preCode.parentElement.classList.add("mb-8");
+                        }
 
-                    preCode.classList.add("block", "whitespace-pre", "overflow-x-scroll");
+                        preCode.classList.add("block", "whitespace-pre", "overflow-x-scroll");
 
-                    const buttonWrapper = document.createElement("div");
-                    buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
+                        const buttonWrapper = document.createElement("div");
+                        buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
 
-                    // Create copy to clipboard button
-                    const copyButton = document.createElement("button");
-                    copyButton.title = "Copy to clipboard";
-                    copyButton.innerHTML = clipboardSvg;
+                        // Create copy to clipboard button
+                        const copyButton = document.createElement("button");
+                        copyButton.title = "Copy to clipboard";
+                        copyButton.innerHTML = clipboardIcon;
 
-                    copyButton.classList.add("code-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
+                        copyButton.classList.add("code-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
 
-                    const insert = document.createElement("button");
-                    insert.title = "Insert the below code to the current file";
-                    insert.innerHTML = insertSvg;
+                        const insert = document.createElement("button");
+                        insert.title = "Insert the below code to the current file";
+                        insert.innerHTML = insertIcon;
 
-                    insert.classList.add("edit-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
+                        insert.classList.add("edit-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
 
-                    const newTab = document.createElement("button");
-                    newTab.title = "Create a new file with the below code";
-                    newTab.innerHTML = plusSvg;
+                        const newTab = document.createElement("button");
+                        newTab.title = "Create a new file with the below code";
+                        newTab.innerHTML = plusIcon;
 
-                    newTab.classList.add("new-code-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
+                        newTab.classList.add("new-code-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
 
-                    buttonWrapper.append(copyButton, insert, newTab);
+                        buttonWrapper.append(copyButton, insert, newTab);
 
-                    preCode.parentElement.prepend(buttonWrapper);
-                });
-
-                list.innerHTML +=
-                    `<div class="p-4 self-end mt-4 pb-8 answer-element-gnc">
-                        <h2 class="font-bold mb-5 flex text-xl gap-1">${aiSvg}SenseCode</h2>
-                        <div>${markedResponse.documentElement.innerHTML}</div>
-                    </div>`;
-
+                        preCode.parentElement.prepend(buttonWrapper);
+                    });
+                    chatText.innerHTML = markedResponse.documentElement.innerHTML;
+                    break;
+                }
+            case "addResponse": {
+                var chat = document.getElementById(message.id);
+                if (!chat) {
+                    lastChatId = message.id;
+                    chat = document.createElement("div");
+                    chat.id = message.id;
+                    chat.classList.add("p-4", "self-end", "mt-4", "pb-8", "answer-element-gnc");
+                    chat.innerHTML = `<h2 class="font-bold mb-5 flex text-xl gap-1">${aiIcon}SenseCode</h2>
+                                      <div id="${message.id}-text" class="flex flex-col gap-1 whitespace-pre-wrap"></div>`;
+                    list.appendChild(chat);
+                }
+                const chatText = document.getElementById(`${message.id}-text`);
+                chatText.textContent = chatText.textContent + message.value;
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                 break;
+            }
             case "addError":
                 if (!list.innerHTML) {
                     return;
@@ -113,8 +156,8 @@
 
                 list.innerHTML +=
                     `<div class="p-4 self-end mt-4 pb-8 error-element-gnc">
-                        <h2 class="font-bold mb-5 flex">${aiSvg}SenseCode</h2>
-                        <div class="text-red-400">${marked.parse("An error occurred.")}</div>
+                        <h2 class="font-bold mb-5 flex text-xl gap-1">${aiIcon}SenseCode</h2>
+                        <div class="text-red-400">${marked.parse("An error occurred\n\n> " + message.error)}</div>
                     </div>`;
 
                 document.getElementById("in-progress")?.classList?.add("hidden");
@@ -129,11 +172,21 @@
         }
     });
 
+    vscode.postMessage({ type: "listPrompt" });
+
     const clearQAList = () => {
         document.getElementById("qa-list").innerHTML = "";
-
+        document.getElementById("cover")?.classList?.remove("hidden");
         document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
     };
+
+    document.addEventListener("change", (e) => {
+        console.log(e.target._value);
+        const question = e.target.closest(".question-element-gnc");
+
+        const prompts = question.getElementsByClassName('prompt');
+        prompts[0].textContent = e.target._value;
+    });
 
     document.addEventListener("click", (e) => {
         const targetButton = e.target.closest('button');
@@ -147,10 +200,10 @@
         if (targetButton?.classList?.contains("code-element-gnc")) {
             e.preventDefault();
             navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
-                targetButton.innerHTML = checkSvg;
+                targetButton.innerHTML = checkIcon;
 
                 setTimeout(() => {
-                    targetButton.innerHTML = clipboardSvg;
+                    targetButton.innerHTML = clipboardIcon;
                 }, 1500);
             });
 
@@ -172,7 +225,8 @@
             const question = targetButton.closest(".question-element-gnc");
             const elements = targetButton.nextElementSibling;
             elements.classList.remove("hidden");
-            question.lastElementChild?.setAttribute("contenteditable", true);
+            const prompt = question.getElementsByClassName("prompt");
+            prompt[0]?.setAttribute("contenteditable", true);
 
             targetButton.classList.add("hidden");
 
@@ -187,12 +241,16 @@
             const resendElement = targetButton.parentElement.parentElement.firstElementChild;
             elements.classList.add("hidden");
             resendElement.classList.remove("hidden");
-            question.lastElementChild?.setAttribute("contenteditable", false);
+            const prompt = question.getElementsByClassName("prompt");
+            prompt[0]?.setAttribute("contenteditable", false);
+            const code = question.querySelectorAll("pre > code");
 
             if (question.lastElementChild.textContent?.length > 0) {
                 vscode.postMessage({
                     type: "addFreeTextQuestion",
-                    value: question.lastElementChild.textContent,
+                    value: prompt[0].textContent,
+                    code: code[0].textContent,
+                    send: true
                 });
             }
             return;
@@ -206,6 +264,7 @@
             elements.classList.add("hidden");
             resendElement.classList.remove("hidden");
             question.lastElementChild?.setAttribute("contenteditable", false);
+            document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
             return;
         }
 

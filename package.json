@@ -64,7 +64,7 @@
                         "default": [
                             {
                                 "label": "SenseCode",
-                                "url": "http://10.8.33.51:15000/v1/completions/",
+                                "url": "http://10.8.33.51:15000/v1/completions",
                                 "config": {
                                     "n": 3,
                                     "max_tokens": 128,
@@ -132,10 +132,10 @@
                             "description": "Prompt template"
                         },
                         "default": {
-                            "addTests": "Implement tests for the following code: ${selection}",
-                            "findProblems": "Find problems with the following code: ${selection}",
-                            "optimize": "Optimize the following code: ${selection}",
-                            "explain": "Explain the following code: ${selection}"
+                            "addTests": "Implement tests for the following code",
+                            "findProblems": "Find problems with the following code",
+                            "optimize": "Optimize the following code",
+                            "explain": "Explain the following code"
                         }
                     },
                     "SenseCode.Privacy": {
@@ -147,6 +147,13 @@
             }
         ],
         "menus": {
+            "view/title": [
+                {
+                    "command": "sensecode.settings",
+                    "group": "navigation@0",
+                    "when": "view == sensecode.view"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "sensecode.addTests",
@@ -167,32 +174,44 @@
                     "command": "sensecode.explain",
                     "group": "SenseCode@4",
                     "when": "editorHasSelection"
+                },
+                {
+                    "command": "sensecode.customPrompt",
+                    "group": "SenseCode@5",
+                    "when": "editorHasSelection"
                 }
             ]
         },
         "commands": [
             {
-                "command": "sensecode.addTests",
+                "command": "sensecode.settings",
                 "category": "SenseCode",
-                "title": "Add tests",
+                "title": "Settings",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "sensecode.addTests",
+                "title": "SenseCode: Add tests",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.findProblems",
-                "category": "SenseCode",
-                "title": "Find bugs",
+                "title": "SenseCode: Find bugs",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.optimize",
-                "category": "SenseCode",
-                "title": "Optimize",
+                "title": "SenseCode: Optimize",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.explain",
-                "category": "SenseCode",
-                "title": "Explain",
+                "title": "SenseCode: Explain",
+                "enablement": "editorHasSelection"
+            },
+            {
+                "command": "sensecode.customPrompt",
+                "title": "SenseCode: Custom Prompt...",
                 "enablement": "editorHasSelection"
             },
             {
@@ -208,7 +227,7 @@
             {
                 "command": "sensecode.inlineSuggest.togglePrintOut",
                 "category": "SenseCode",
-                "title": "Toggle Auto/Manual Code Inline Completion"
+                "title": "Toggle Snippets/Print Code Inline Completion"
             },
             {
                 "command": "sensecode.inlineSuggest.trigger",
@@ -226,7 +245,7 @@
             "sensecore-dark": {
                 "description": "SenseCore icon",
                 "default": {
-                    "fontPath": "media/sensecore.woff",
+                    "fontPath": "media/penrose.woff",
                     "fontCharacter": "\\E001"
                 }
             }
@@ -236,7 +255,7 @@
                 {
                     "id": "sensecode-view-container",
                     "title": "SenseCode",
-                    "icon": "media/sensecode-logo.png"
+                    "icon": "media/logo1.svg"
                 }
             ]
         },
@@ -268,6 +287,7 @@
         "eslint": "^8.20.0",
         "glob": "^8.0.3",
         "mocha": "^10.0.0",
+        "ts-loader": "^9.4.1",
         "typescript": "^4.7.4"
     },
     "dependencies": {

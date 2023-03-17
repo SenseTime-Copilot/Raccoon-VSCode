@@ -13,9 +13,13 @@ export async function checkPrivacy() {
         );
         if (selection !== undefined && selection === localeTag.privacyAccept) {
             configuration.update("Privacy", true, true);
+            return true;
         }
         if (selection !== undefined && selection === localeTag.privacyDecline) {
             configuration.update("Privacy", false, true);
+            return false;
         }
+    } else {
+        return true;
     }
 }

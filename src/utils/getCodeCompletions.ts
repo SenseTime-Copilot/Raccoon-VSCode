@@ -6,7 +6,7 @@ export type GetCodeCompletions = {
     completions: Array<string>;
 };
 
-export function getCodeCompletions(
+export async function getCodeCompletions(
     context: ExtensionContext,
     prompt: string,
     lang: string
@@ -84,10 +84,10 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             payload.stop = null;
             payload.n = 1;
             payload.user = "sensecode-vscode-extension"
+            payload.stream = true;
+            responseType = "stream";
             if (lang === "__Q&A__") {
-            } else {
-                payload.stream = true;
-                responseType = "stream";
+                payload.prompt = "Put return code in Markdown code block. " + payload.prompt;
             }
         } else {
             payload.stream = null;
@@ -123,7 +123,7 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
                     }
                 })
                 .catch((err) => {
-                    reject(err);
+                    reject(err.message);
                 });
         } catch (e) {
             reject(e);

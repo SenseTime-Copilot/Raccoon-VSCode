@@ -9,7 +9,6 @@ let statusBarItem: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext) {
     new Configuration();
-    const commandPrefix = Configuration.prompt;
 
     let activeEngine: Engine | undefined = context.globalState.get("engine");
     let engines = Configuration.engines;
@@ -57,7 +56,17 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", () => {
+        vscode.commands.registerCommand("sensecode.settings", () => {
+            return vscode.commands.executeCommand("workbench.action.openGlobalSettings", { query: "SenseCode" });
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
+            let privacy = await checkPrivacy();
+            if (!privacy) {
+                return;
+            }
             return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         })
     );
@@ -130,26 +139,34 @@ export async function activate(context: vscode.ExtensionContext) {
         ["sensecode.addTests", "addTests"],
         ["sensecode.findProblems", "findProblems"],
         ["sensecode.optimize", "optimize"],
-        ["sensecode.explain", "explain"],
+        ["sensecode.explain", "explain"]
     ];
 
     const registeredCommands = commands.map(([command, promptKey]) =>
         vscode.commands.registerCommand(command, () => {
             let selection = undefined;
             let commandPrefix = Configuration.prompt[promptKey] as string;
-            if (commandPrefix.includes("${selection}")) {
-                const editor = vscode.window.activeTextEditor;
-                if (!editor) {
-                    return;
-                }
-                commandPrefix = commandPrefix.replace("${selection}", "");
-                selection = editor.document.getText(editor.selection);
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return;
             }
+
+            selection = editor.document.getText(editor.selection);
             provider?.sendApiRequest(commandPrefix, selection);
         })
     );
 
-    context.subscriptions.push(...registeredCommands);
+    const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", () => {
+        let selection = undefined;
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+        selection = editor.document.getText(editor.selection);
+        provider?.sendApiRequest("", selection, false);
+    });
+
+    context.subscriptions.push(customPromptCommand, ...registeredCommands);
 
 }
 export function deactivate() { }

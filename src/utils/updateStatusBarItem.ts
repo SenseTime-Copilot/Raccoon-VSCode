@@ -36,7 +36,7 @@ export async function updateStatusBarItem(
     tip.appendMarkdown(`$(hubot) Code Engine: ${engine}\n\n`);
     tip.appendMarkdown(`$(zap) Trigger Mode: ${tmode}\n\n`);
     tip.appendMarkdown(`$(wand) Complition Mode: ${cmode}\n\n`);
-    tip.appendMarkdown(`$(gear) All Settings: [Open setting page](command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode" }))} "Open setting page")\n\n`);
+    tip.appendMarkdown(`$(gear) All Settings: [Open setting page](command:sensecode.settings "Open setting page")\n\n`);
 
     statusBarItem.tooltip = tip;
     statusBarItem.text = "$(sensecore-dark)";
