@@ -191,7 +191,8 @@ export function inlineCompletionProvider(
             cancel.onCancellationRequested(e => {
                 updateStatusBarItem(extension,
                     statusBarItem,
-                    "$(bracket-error)"
+                    "bracket-error",
+                    "User cancelled"
                 );
             });
             let editor = vscode.window.activeTextEditor;
@@ -236,12 +237,12 @@ export function inlineCompletionProvider(
                 textBeforeCursor = str + textBeforeCursor;
             }
             if (textBeforeCursor.trim() === "") {
-                updateStatusBarItem(extension, statusBarItem, "");
+                updateStatusBarItem(extension, statusBarItem);
                 return { items: [] };
             }
 
             if (middleOfLineWontComplete(position, document)) {
-                updateStatusBarItem(extension, statusBarItem, "");
+                updateStatusBarItem(extension, statusBarItem);
                 return;
             }
 
@@ -253,24 +254,23 @@ export function inlineCompletionProvider(
                 }
                 let rs: GetCodeCompletions | any;
                 try {
-                    updateStatusBarItem(extension, statusBarItem, "$(sync~spin)");
+                    updateStatusBarItem(extension, statusBarItem, "sync~spin", "Thinking...");
                     rs = await getCodeCompletions(extension,
                         textBeforeCursor,
                         lang);
                 } catch (err: any) {
-                    if (err) {
-                        console.log(err.message);
-                    }
                     updateStatusBarItem(extension,
                         statusBarItem,
-                        "$(bracket-error)"
+                        "bracket-error",
+                        err
                     );
                     return { items: [] };
                 }
                 if (rs === null) {
                     updateStatusBarItem(extension,
                         statusBarItem,
-                        "$(bracket-error)"
+                        "bracket-error",
+                        "No complition suggestion"
                     );
                     return { items: [] };
                 }
@@ -279,14 +279,24 @@ export function inlineCompletionProvider(
                     let data = rs as IncomingMessage;
                     let start = editor!.selection.start;
                     let end = editor!.selection.start;
+                    updateStatusBarItem(extension,
+                        statusBarItem,
+                        "sync~spin",
+                        "Typeing..."
+                    );
                     data.on("data", async (v: any) => {
                         let msgstr: string = v.toString();
-                        let msgs = msgstr.split("data: ").filter((v) => {
-                            return v !== "data: ";
+                        let msgs = msgstr.split("data:").filter((v) => {
+                            return v !== "data:";
                         });
                         for (let msg of msgs) {
                             let content = msg.trim();
                             if (content === '[DONE]') {
+                                updateStatusBarItem(extension,
+                                    statusBarItem,
+                                    "bracket-dot",
+                                    "Done"
+                                );
                                 return;
                             }
                             if (content === "") {
@@ -357,21 +367,19 @@ export function inlineCompletionProvider(
                     if (data.completions.length === 0) {
                         updateStatusBarItem(extension,
                             statusBarItem,
-                            "$(bracket-error)"
+                            "bracket-error",
+                            "No complition suggestion"
                         );
                     } else {
                         updateStatusBarItem(extension,
                             statusBarItem,
-                            "$(bracket-dot)"
+                            "bracket-dot",
+                            "Done"
                         );
                     }
                     return cancel.isCancellationRequested ? { items: [] } : items;
                 }
             }
-            updateStatusBarItem(extension,
-                statusBarItem,
-                "$(bracket-error)"
-            );
             return { items: [] };
         },
     };

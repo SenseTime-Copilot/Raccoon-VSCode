@@ -33,10 +33,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 let newEngine = Configuration.engines.filter((v) => { return v.label === activeEngine?.label });
                 context.globalState.update("engine", newEngine[0]);
             }
-            updateStatusBarItem(context, statusBarItem, "");
+            updateStatusBarItem(context, statusBarItem);
         }
     });
-    checkPrivacy();
+    checkPrivacy(context);
 
     context.subscriptions.push(
         vscode.commands.registerCommand("sensecode.config.selectEngine", () => {
@@ -48,6 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
             qp.onDidChangeSelection(items => {
                 if (items[0]) {
                     context.globalState.update("engine", items[0]);
+                    updateStatusBarItem(context, statusBarItem);
                     qp.hide();
                 }
             });
@@ -63,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
-            let privacy = await checkPrivacy();
+            let privacy = await checkPrivacy(context);
             if (!privacy) {
                 return;
             }
@@ -76,7 +77,10 @@ export async function activate(context: vscode.ExtensionContext) {
             const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
             let autoComplete = configuration.get("CompletionAutomatically", true);
             configuration.update("CompletionAutomatically", !autoComplete, true).then(() => {
-                updateStatusBarItem(context, statusBarItem, "");
+                Configuration.update();
+                updateStatusBarItem(context, statusBarItem);
+            }, (reason) => {
+                vscode.window.showErrorMessage(reason);
             });
         })
     );
@@ -86,7 +90,10 @@ export async function activate(context: vscode.ExtensionContext) {
             const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
             let printOut = configuration.get("DirectPrintOut", true);
             configuration.update("DirectPrintOut", !printOut, true).then(() => {
-                updateStatusBarItem(context, statusBarItem, "");
+                Configuration.update();
+                updateStatusBarItem(context, statusBarItem);
+            }, (reason) => {
+                vscode.window.showErrorMessage(reason);
             });
         })
     );
@@ -98,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     statusBarItem.color = new vscode.ThemeColor("statusBar.remoteForeground");
     statusBarItem.backgroundColor = new vscode.ThemeColor("statusBar.remoteBackground");
-    updateStatusBarItem(context, statusBarItem, "");
+    updateStatusBarItem(context, statusBarItem);
 
     let inlineProvider: vscode.InlineCompletionItemProvider;
 
@@ -143,7 +150,11 @@ export async function activate(context: vscode.ExtensionContext) {
     ];
 
     const registeredCommands = commands.map(([command, promptKey]) =>
-        vscode.commands.registerCommand(command, () => {
+        vscode.commands.registerCommand(command, async () => {
+            let privacy = await checkPrivacy(context);
+            if (!privacy) {
+                return;
+            }
             let selection = undefined;
             let commandPrefix = Configuration.prompt[promptKey] as string;
             const editor = vscode.window.activeTextEditor;
@@ -156,7 +167,11 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", () => {
+    const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", async () => {
+        let privacy = await checkPrivacy(context);
+        if (!privacy) {
+            return;
+        }
         let selection = undefined;
         const editor = vscode.window.activeTextEditor;
         if (!editor) {

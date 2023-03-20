@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -48,69 +48,101 @@
                             "description": "Engine Config",
                             "properties": {
                                 "label": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Engine label for UI dispaly"
                                 },
                                 "url": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Engine API URL"
+                                },
+                                "capacities": {
+                                    "type": "array",
+                                    "description": "Engine capacity list",
+                                    "items": [
+                                        {
+                                            "enum": [
+                                                "complition",
+                                                "chat"
+                                            ]
+                                        }
+                                    ]
                                 },
                                 "key": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "API Key for engine"
                                 },
                                 "config": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "description": "Request config"
                                 }
                             }
                         },
                         "default": [
                             {
                                 "label": "SenseCode",
-                                "url": "http://10.8.33.51:15000/v1/completions",
+                                "url": "https://ams.sensecoreapi.dev/studio/ams/data/ams/v1/completions",
+                                "capacities": [
+                                    "complition"
+                                ],
+                                "key": "<SenseCore AK>:<SenseCore SK>",
                                 "config": {
-                                    "n": 3,
+                                    "model": "codegen-16B-mono",
+                                    "n": 1,
                                     "max_tokens": 128,
-                                    "stop": [
-                                        "\n\n"
-                                    ],
-                                    "temperature": 0.8,
-                                    "top_p": 0.95
+                                    "stop": "\n\n",
+                                    "temperature": 0.8
+                                }
+                            },
+                            {
+                                "label": "SenseCode-Chat",
+                                "url": "https://ams.sensecoreapi.dev/studio/ams/data/ams/v1/chat/completions",
+                                "capacities": [
+                                    "complition",
+                                    "chat"
+                                ],
+                                "key": "<SenseCore AK>:<SenseCore SK>",
+                                "config": {
+                                    "model": "BLOOM-176b",
+                                    "n": 1,
+                                    "max_tokens": 128,
+                                    "stop": "\n\n",
+                                    "temperature": 0.8
                                 }
                             },
                             {
                                 "label": "OpenAI",
                                 "url": "https://api.openai.com/v1/completions",
+                                "capacities": [
+                                    "complition",
+                                    "chat"
+                                ],
                                 "key": "<YOUR OPENAI API KEY>",
                                 "config": {
                                     "model": "text-davinci-003",
-                                    "n": 3,
+                                    "n": 1,
                                     "max_tokens": 128,
                                     "stop": [
                                         "\n\n"
                                     ],
-                                    "temperature": 0.8,
-                                    "top_p": 0.95
+                                    "temperature": 0.8
                                 }
                             },
                             {
                                 "label": "TianQi",
                                 "url": "https://tianqi.aminer.cn/api/v2/multilingual_code_generate_adapt",
+                                "capacities": [
+                                    "complition"
+                                ],
+                                "key": "<YOUR TIANQI API KEY>:<YOUR TIANQI API SECRET>",
                                 "config": {
-                                    "apikey": "<YOUR TIANQI API KEY>",
-                                    "apisecret": "<YOUR TIANQI API SECRET>",
-                                    "n": 3,
-                                    "max_tokens": 128,
-                                    "stop": [
-                                        "\n\n"
-                                    ],
-                                    "temperature": 0.8,
-                                    "top_p": 0.95,
-                                    "top_k": 0
+                                    "n": 1
                                 }
                             }
                         ]
                     },
                     "SenseCode.CompletionAutomatically": {
                         "type": "boolean",
-                        "default": true,
+                        "default": false,
                         "description": "Automatic get completion suggestions once stop typing."
                     },
                     "SenseCode.DirectPrintOut": {
@@ -121,7 +153,7 @@
                     "SenseCode.CompletionDelay": {
                         "type": "number",
                         "minimum": 0.5,
-                        "default": 0.5,
+                        "default": 3,
                         "description": "The delay in seconds to start getting completion suggestions. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
                     },
                     "SenseCode.Prompt": {
@@ -137,11 +169,6 @@
                             "optimize": "Optimize the following code",
                             "explain": "Explain the following code"
                         }
-                    },
-                    "SenseCode.Privacy": {
-                        "type": "boolean",
-                        "description": "Accept sharing the generated code only for research purposes to make SenseCode better. Otherwise, the code won't be stored and is only used to assist your programming.",
-                        "default": null
                     }
                 }
             }
@@ -293,6 +320,7 @@
     "dependencies": {
         "@vscode/webview-ui-toolkit": "^1.2.0",
         "axios": "^0.24.0",
+        "crypto": "^1.0.1",
         "vsce": "^2.15.0"
     }
 }

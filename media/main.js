@@ -181,7 +181,6 @@ const vscode = acquireVsCodeApi();
     };
 
     document.addEventListener("change", (e) => {
-        console.log(e.target._value);
         const question = e.target.closest(".question-element-gnc");
 
         const prompts = question.getElementsByClassName('prompt');

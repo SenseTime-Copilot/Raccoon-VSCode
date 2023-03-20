@@ -2,7 +2,6 @@ import { IncomingMessage } from 'http';
 import * as vscode from 'vscode';
 import { Configuration } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
-import { checkPrivacy } from "../utils/checkPrivacy";
 
 export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
     private webView?: vscode.WebviewView;
@@ -70,11 +69,6 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
         let response: string;
         let question = prompt;
 
-        let privacy = await checkPrivacy();
-        if (!privacy) {
-            return;
-        }
-
         if (code != null) {
             // Add prompt prefix to the code if there was a code block selected
             question = `${prompt} \`\`\`\n${code}\n\`\`\``;
@@ -94,7 +88,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                 let data = rs as IncomingMessage;
                 data.on("data", async (v: any) => {
                     let msgstr: string = v.toString();
-                    let msgs = msgstr.split("data: ").filter((v) => {
+                    let msgs = msgstr.split("data:").filter((v) => {
                         return v !== "data: ";
                     });
                     for (let msg of msgs) {
@@ -114,7 +108,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                             data.destroy();
                             return;
                         } else {
-                            this.sendMessage({ type: 'addResponse', id: json.id, value: json.choices[0].text });
+                            this.sendMessage({ type: 'addResponse', id: json.id, value: json.choices[0].text || json.choices[0].message.content });
                         }
                     }
                 });

@@ -8,6 +8,7 @@ export interface Engine {
     label: string;
     url: string;
     key: string | undefined;
+    capacities: string[];
     config: any;
 }
 

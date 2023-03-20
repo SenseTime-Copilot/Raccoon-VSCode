@@ -6,11 +6,9 @@ var statusbartimer: NodeJS.Timeout;
 export async function updateStatusBarItem(
     context: vscode.ExtensionContext,
     statusBarItem: vscode.StatusBarItem,
-    extraText: string
+    extraIcon?: string,
+    errText?: string
 ): Promise<void> {
-    let tip = new vscode.MarkdownString;
-    tip.isTrusted = true;
-    tip.supportThemeIcons = true;
     let tmode = '`Alt+/` [Switch to automatic](command:sensecode.inlineSuggest.toggleAuto "Switch to automatic")';
     let cmode = '`Snippets` [Switch to print](command:sensecode.inlineSuggest.togglePrintOut "Switch to print")';
     statusBarItem.show();
@@ -31,22 +29,36 @@ export async function updateStatusBarItem(
 
     let engine = `\`${activeEngine?.label || 'None'}\` [Change engine](command:sensecode.config.selectEngine "Change engine")`;
 
+    statusBarItem.text = "$(sensecore-dark)";
+    if (extraIcon) {
+        statusBarItem.text = `$(sensecore-dark) - $(${extraIcon})`;
+        statusBarItem.tooltip = buildTip(engine, tmode, cmode, errText);
+    } else {
+        statusBarItem.tooltip = buildTip(engine, tmode, cmode);
+    }
+
+    if (extraIcon != "sync~spin") {
+        statusbartimer = setTimeout(() => {
+            statusBarItem.tooltip = buildTip(engine, tmode, cmode);
+            statusBarItem.text = `$(sensecore-dark)`;
+        }, 10000);
+    }
+}
+
+function buildTip(engine: string, tmode: string, cmode: string, err?: string) {
+    let tip = new vscode.MarkdownString;
+    tip.isTrusted = true;
+    tip.supportThemeIcons = true;
     tip.appendMarkdown(`**SenseCode**\n\n`);
     tip.appendMarkdown(`***\n\n`);
     tip.appendMarkdown(`$(hubot) Code Engine: ${engine}\n\n`);
     tip.appendMarkdown(`$(zap) Trigger Mode: ${tmode}\n\n`);
     tip.appendMarkdown(`$(wand) Complition Mode: ${cmode}\n\n`);
     tip.appendMarkdown(`$(gear) All Settings: [Open setting page](command:sensecode.settings "Open setting page")\n\n`);
-
-    statusBarItem.tooltip = tip;
-    statusBarItem.text = "$(sensecore-dark)";
-    if (extraText) {
-        statusBarItem.text = `$(sensecore-dark) - ${extraText}`;
+    if (err) {
+        tip.appendMarkdown(`***\n\n`);
+        tip.appendMarkdown(`$(bell) ${err}`);
     }
-
-    if (extraText != "$(sync~spin)") {
-        statusbartimer = setTimeout(() => {
-            statusBarItem.text = `$(sensecore-dark)`;
-        }, 10000);
-    }
+    return tip;
 }
+
