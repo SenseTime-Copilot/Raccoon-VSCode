@@ -308,7 +308,7 @@ export function inlineCompletionProvider(
                                 return;
                             }
                             if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
-                                await editor.edit(e => { e.insert(start, json.choices[0].text); }).then((v) => {
+                                await editor.edit(e => { e.insert(start, json.choices[0].text || json.choices[0].message.content); }).then((v) => {
                                     end = editor!.selection.start;
                                     editor!.revealRange(new vscode.Range(start, end));
                                     start = end;
