@@ -53,12 +53,12 @@ button {
     text-align: center;
     outline: 1px solid transparent;
     outline-offset: 2px !important;
-    color: var(--vscode-button-foreground) !important;
-    background: var(--vscode-button-background) !important;
+    color: var(--vscode-button-secondaryForeground) !important;
+    background: var(--vscode-button-secondaryBackground) !important;
 }
 
 button:hover {
-    background: var(--vscode-button-hoverBackground) !important;
+    background: var(--vscode-button-secondaryHoverBackground) !important;
 }
 
 button:hover svg {

@@ -168,9 +168,9 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
             <body class="overflow-hidden">
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
                     <div id="cover" class="flex flex-col gap-2 m-8">
-                        <div style="height: 120px; margin: 5em auto 8em auto; opacity: 0.4; filter: grayscale(1);">
+                        <div style="height: 120px; margin: 5em auto 8em auto; filter: opacity(0.3) contrast(0);">
                         <img src="${logo}"/>
-                        <div class="text-xl text-center    m-4">SenseCode</div>
+                        <div class="text-xl text-center m-4">SenseCode</div>
                         </div>
                         <div id="shortcuts" class="flex flex-col gap-2">
                         </div>
