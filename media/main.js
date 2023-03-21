@@ -17,8 +17,8 @@ const vscode = acquireVsCodeApi();
         xhtml: false
     });
 
-    const aiIcon = `<span class="material-symbols-rounded">all_inclusive</span>`;
-    const userIcon = `<span class="material-symbols-rounded">person</span>`;
+    const aiIcon = `<span class="material-symbols-rounded">lightbulb_circle</span>`;
+    const userIcon = `<span class="material-symbols-rounded">account_circle</span>`;
     const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
     const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
     const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
@@ -27,7 +27,6 @@ const vscode = acquireVsCodeApi();
     const plusIcon = `<span class="material-symbols-rounded">note_add</span>`;
     const insertIcon = `<span class="material-symbols-rounded">double_arrow</span>`;
 
-    var lastChatId = undefined;
     var prompts = undefined;
     var promptList = ``;
 
@@ -39,11 +38,22 @@ const vscode = acquireVsCodeApi();
         switch (message.type) {
             case "promptList":
                 prompts = message.value;
+                var shortcuts = "";
+
                 for (var k in prompts) {
                     const label_pre = k.replace(/([A-Z])/g, " $1");
                     const label = label_pre.charAt(0).toUpperCase() + label_pre.slice(1);
                     promptList += `<vscode-option value="${prompts[k]}">${label}</vscode-option>`;
+                    shortcuts += `  <button class="flex gap-2 justify-center items-center rounded-lg p-2"
+                                        onclick="vscode.postMessage({
+                                            type: 'repareQuestion',
+                                            value: '${prompts[k]}'});
+                                    ">
+                                        ${label}
+                                    </button>`;
                 }
+                document.getElementById("shortcuts").innerHTML = shortcuts;
+
                 break;
             case "addQuestion":
                 document.getElementById("cover")?.classList?.add("hidden");
@@ -65,33 +75,54 @@ const vscode = acquireVsCodeApi();
                 }
 
                 list.innerHTML +=
-                    `<div class="p-4 self-end mt-4 question-element-gnc relative  ${edit ? "replace" : ""}" style="background: var(--vscode-input-background)">
-                        <h2 class="font-bold mb-5 flex text-xl gap-1">${userIcon}You</h2>
-                        <no-export class="mb-5 flex items-center">
-                            <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 flex items-center rounded-lg text-base absolute right-4 top-4 ${edit ? "hidden" : ""}">${pencilIcon}</button>
+                    `<div class="p-4 self-end question-element-gnc relative  ${edit ? "replace" : ""}">
+                        <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${userIcon} You</h2>
+                        <div class="mb-5 flex items-center">
+                            <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-5 ${edit ? "hidden" : ""}">${pencilIcon}</button>
                             <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex gap-2 absolute right-4" style="width: calc(100% - 32px);">
                                 <vscode-dropdown style="width: 100%">${promptList}</vscode-dropdown>
-                                <button title="Send this prompt" class="send-element-gnc p-0.5 rounded-lg flex items-center text-base">${sendIcon}</button>
-                                <button title="Cancel" class="cancel-element-gnc p-0.5 rounded-lg flex items-center text-base">${cancelIcon}</button>
+                                <button title="Send this prompt" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
+                                <button title="Cancel" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
                             </div>
-                        </no-export>
-                        <p class="prompt leading-loose p-2" contenteditable=${edit}>${promptText}</p>
+                        </div>
+                        <p id="prompt-${message.id}" class="prompt leading-loose p-2" contenteditable=${edit}>${promptText}</p>
                         <div class="overflow-y-auto p-2">${codehtml}</div>
                     </div>`;
 
-                if (!edit) {
-                    document.getElementById("in-progress")?.classList?.remove("hidden");
+                if (edit) {
+                    var promptText = document.getElementById(`prompt-${message.id}`);
+                    var s = window.getSelection();
+                    if (s.rangeCount > 0) s.removeAllRanges();
+
+                    var range = document.createRange();
+                    range.selectNode(promptText);
+                    s.addRange(range);
+                } else {
                     document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
+                    var chat = document.getElementById(message.id);
+                    if (!chat) {
+                        chat = document.createElement("div");
+                        chat.id = message.id;
+                        chat.classList.add("p-4", "self-end", "pb-8", "answer-element-gnc");
+                        chat.innerHTML = `  <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${aiIcon} SenseCode</h2>
+                                        <div id="${message.id}-text" class="flex flex-col gap-1 whitespace-pre-wrap"></div>
+                                        <div id="${message.id}-progress" class="pt-2 flex items-center opacity-50">
+                                            <div class="spinner">
+                                                <span class="material-symbols-rounded">workspaces</span>
+                                            </div>
+                                            <div class="typing">Typing...</div>
+                                        </div>`;
+                        list.appendChild(chat);
+                    }
                 }
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                 break;
             case "stopResponse":
                 {
-                    document.getElementById("in-progress")?.classList?.add("hidden");
+                    document.getElementById(`${message.id}-progress`)?.classList?.add("hidden");
                     document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
 
-                    const chatText = document.getElementById(`${lastChatId}-text`);
-                    lastChatId = undefined;
+                    const chatText = document.getElementById(`${message.id}-text`);
                     const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.textContent + "\n\n"), "text/html");
                     const preCodeList = markedResponse.querySelectorAll("pre > code");
 
@@ -105,26 +136,26 @@ const vscode = acquireVsCodeApi();
                         preCode.classList.add("block", "whitespace-pre", "overflow-x-scroll");
 
                         const buttonWrapper = document.createElement("div");
-                        buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
+                        buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "opacity-20", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
 
                         // Create copy to clipboard button
                         const copyButton = document.createElement("button");
                         copyButton.title = "Copy to clipboard";
                         copyButton.innerHTML = clipboardIcon;
 
-                        copyButton.classList.add("code-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
+                        copyButton.classList.add("code-element-gnc", "text-base", "p-0.5", "opacity-50", "flex", "items-center", "rounded-lg");
 
                         const insert = document.createElement("button");
                         insert.title = "Insert the below code to the current file";
                         insert.innerHTML = insertIcon;
 
-                        insert.classList.add("edit-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
+                        insert.classList.add("edit-element-gnc", "text-base", "p-0.5", "flex", "opacity-50", "items-center", "rounded-lg");
 
                         const newTab = document.createElement("button");
                         newTab.title = "Create a new file with the below code";
                         newTab.innerHTML = plusIcon;
 
-                        newTab.classList.add("new-code-element-gnc", "text-base", "p-0.5", "flex", "items-center", "rounded-lg");
+                        newTab.classList.add("new-code-element-gnc", "text-base", "p-0.5", "flex", "opacity-50", "items-center", "rounded-lg");
 
                         buttonWrapper.append(copyButton, insert, newTab);
 
@@ -134,16 +165,6 @@ const vscode = acquireVsCodeApi();
                     break;
                 }
             case "addResponse": {
-                var chat = document.getElementById(message.id);
-                if (!chat) {
-                    lastChatId = message.id;
-                    chat = document.createElement("div");
-                    chat.id = message.id;
-                    chat.classList.add("p-4", "self-end", "mt-4", "pb-8", "answer-element-gnc");
-                    chat.innerHTML = `<h2 class="font-bold mb-5 flex text-xl gap-1">${aiIcon}SenseCode</h2>
-                                      <div id="${message.id}-text" class="flex flex-col gap-1 whitespace-pre-wrap"></div>`;
-                    list.appendChild(chat);
-                }
                 const chatText = document.getElementById(`${message.id}-text`);
                 chatText.textContent = chatText.textContent + message.value;
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
@@ -153,14 +174,15 @@ const vscode = acquireVsCodeApi();
                 if (!list.innerHTML) {
                     return;
                 }
+                const chatText = document.getElementById(`${message.id}-text`);
+                chatText.innerHTML = chatText.innerHTML + `<div class="text-red-400 flex items-center">
+                                        <span class="material-symbols-rounded text-3xl pr-4">report</span>
+                                        <div>
+                                            <p>An error occurred</p><p>${message.error}</p>
+                                        </div>
+                                    </div>`;
 
-                list.innerHTML +=
-                    `<div class="p-4 self-end mt-4 pb-8 error-element-gnc">
-                        <h2 class="font-bold mb-5 flex text-xl gap-1">${aiIcon}SenseCode</h2>
-                        <div class="text-red-400">${marked.parse("An error occurred\n\n> " + message.error)}</div>
-                    </div>`;
-
-                document.getElementById("in-progress")?.classList?.add("hidden");
+                document.getElementById(`${message.id}-progress`)?.classList?.add("hidden");
                 document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                 break;
@@ -226,6 +248,11 @@ const vscode = acquireVsCodeApi();
             elements.classList.remove("hidden");
             const prompt = question.getElementsByClassName("prompt");
             prompt[0]?.setAttribute("contenteditable", true);
+            var s = window.getSelection();
+            if (s.rangeCount > 0) s.removeAllRanges();
+            var range = document.createRange();
+            range.selectNode(prompt[0]);
+            s.addRange(range);
 
             targetButton.classList.add("hidden");
 
@@ -243,8 +270,10 @@ const vscode = acquireVsCodeApi();
             const prompt = question.getElementsByClassName("prompt");
             prompt[0]?.setAttribute("contenteditable", false);
             const code = question.querySelectorAll("pre > code");
+            var s = window.getSelection();
+            if (s.rangeCount > 0) s.removeAllRanges();
 
-            if (question.lastElementChild.textContent?.length > 0) {
+            if (prompt[0].textContent.length > 0) {
                 vscode.postMessage({
                     type: "addFreeTextQuestion",
                     value: prompt[0].textContent,
@@ -262,7 +291,9 @@ const vscode = acquireVsCodeApi();
             const resendElement = targetButton.parentElement.parentElement.firstElementChild;
             elements.classList.add("hidden");
             resendElement.classList.remove("hidden");
-            question.lastElementChild?.setAttribute("contenteditable", false);
+            question.querySelectorAll(".prompt")[0].setAttribute("contenteditable", false);
+            var s = window.getSelection();
+            if (s.rangeCount > 0) s.removeAllRanges();
             document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
             return;
         }

@@ -53,29 +53,20 @@ button {
     text-align: center;
     outline: 1px solid transparent;
     outline-offset: 2px !important;
-    color: var(--vscode-button-secondaryForeground) !important;
-    background: var(--vscode-button-secondaryBackground) !important;
+    color: var(--vscode-button-foreground) !important;
+    background: var(--vscode-button-background) !important;
 }
 
 button:hover {
-    background: var(--vscode-button-secondaryHoverBackground) !important;
+    background: var(--vscode-button-hoverBackground) !important;
 }
 
 button:hover svg {
-    stroke: var(--vscode-button-secondaryForeground) !important;
+    stroke: var(--vscode-button-foreground) !important;
 }
 
 button:focus {
     outline-color: var(--vscode-focusBorder);
-}
-
-button.secondary {
-    color: var(--vscode-button-secondaryForeground);
-    background: var(--vscode-button-secondaryBackground);
-}
-
-button.secondary:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
 }
 
 input:not([type='checkbox']),
@@ -99,58 +90,68 @@ textarea::placeholder {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
+.avatar {
+    color: var(--vscode-button-background);
+    align-items: center;
+}
+
+.avatar .material-symbols-rounded {
+    font-size: 2em;
+}
+
+.vscode-high-contrast .avatar {
+    color: var(--vscode-button-border);
+}
+
+.typing {
+    color: var(--vscode-button-background);
+}
+
 /* CSS Spinner */
 .spinner {
+    color: var(--vscode-button-background);
     width: 36px;
-    text-align: center;
+    text-align: left;
 }
 
-.spinner>div {
-    width: 4px;
-    height: 4px;
-    background-color: #888;
-
+.spinner>span {
     border-radius: 100%;
     display: inline-block;
-    -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;
-    animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+    -webkit-animation: rotate 3s infinite;
+    animation: rotate 3s infinite;
 }
 
-.spinner .bounce1 {
-    -webkit-animation-delay: -0.32s;
-    animation-delay: -0.32s;
+
+.vscode-high-contrast .typing,
+.vscode-high-contrast .spinner {
+    color: var(--vscode-button-border);
 }
 
-.spinner .bounce2 {
-    -webkit-animation-delay: -0.16s;
-    animation-delay: -0.16s;
-}
+@-webkit-keyframes rotate {
+    0% {
+        -webkit-transform: rotate(0deg);
+    }
 
-@-webkit-keyframes sk-bouncedelay {
+    50% {
+        -webkit-transform: rotate(180deg);
+    }
 
-    0%,
-    80%,
     100% {
-        -webkit-transform: scale(0)
-    }
-
-    40% {
-        -webkit-transform: scale(1.0)
+        -webkit-transform: rotate(360deg);
     }
 }
 
-@keyframes sk-bouncedelay {
-
-    0%,
-    80%,
-    100% {
-        -webkit-transform: scale(0);
-        transform: scale(0);
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
     }
 
-    40% {
-        -webkit-transform: scale(1.0);
-        transform: scale(1.0);
+    50% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
     }
 }
 
@@ -179,18 +180,22 @@ textarea::placeholder {
     grid-area: 1 / 1 / 2 / 2;
 }
 
-.pre-code-element .code-actions-wrapper {
-    opacity: 0.70;
-}
-
 .pre-code-element:hover .code-actions-wrapper {
     opacity: 1;
     display: flex;
 }
 
 #qa-list-wrapper {
-    height: calc(100vh - 10px);
-    margin: -1rem 0 10px 0;
+    height: calc(100vh);
+    margin: 0;
+}
+
+.question-element-gnc {
+    background: var(--vscode-editor-hoverHighlightBackground);
+}
+
+.answer-element-gnc {
+    background: var(--vscode-editor-background);
 }
 
 .whitespace-pre {
