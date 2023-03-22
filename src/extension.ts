@@ -178,7 +178,15 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         selection = editor.document.getText(editor.selection);
-        provider?.sendApiRequest("", selection, false);
+        if (selection) {
+            let prompts = Configuration.prompt;
+            let p = undefined;
+            for (let k in prompts) {
+                p = prompts[k];
+                break;
+            }
+            provider?.sendApiRequest(p, selection, false);
+        }
     });
 
     context.subscriptions.push(customPromptCommand, ...registeredCommands);

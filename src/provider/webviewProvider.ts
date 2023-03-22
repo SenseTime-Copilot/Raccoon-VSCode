@@ -45,9 +45,13 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                         return;
                     }
                     selection = editor.document.getText(editor.selection);
-                    this.sendApiRequest(data.value, selection, false);
+                    if (data.value != "" && !selection) {
+
+                    } else {
+                        this.sendApiRequest(data.value, selection, false);
+                    }
                     break;
-                case 'addFreeTextQuestion':
+                case 'sendQuestion':
                     this.sendApiRequest(data.value, data.code, data.send);
                     break;
                 case 'editCode':
@@ -176,7 +180,6 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
-
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
                             <span class="material-symbols-rounded" style="font-size: 2em;">delete_sweep</span>
@@ -184,7 +187,6 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                         </button>
                     </div>
                 </div>
-
                 <script src="${scriptUri}"></script>
             </body>
             </html>`;

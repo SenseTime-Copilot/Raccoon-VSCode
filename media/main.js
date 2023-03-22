@@ -36,7 +36,7 @@ const vscode = acquireVsCodeApi();
         const list = document.getElementById("qa-list");
 
         switch (message.type) {
-            case "promptList":
+            case "promptList": {
                 prompts = message.value;
                 var shortcuts = "";
 
@@ -52,26 +52,34 @@ const vscode = acquireVsCodeApi();
                                         ${label}
                                     </button>`;
                 }
+                shortcuts += `<button class="flex gap-2 justify-center items-center rounded-lg p-2"
+                                    onclick="vscode.postMessage({type: 'repareQuestion', value: ''});">
+                                    <span class="material-symbols-rounded">smart_toy</span>
+                                        Free Talk...
+                                    </button>`;
                 document.getElementById("shortcuts").innerHTML = shortcuts;
 
                 break;
-            case "addQuestion":
+            }
+            case "addQuestion": {
+                let id = message.id;
+                let p = message.value || "";
+                let code = message.code || "";
+                let hasPrompt = p.trim() !== "";
+                let hasCode = code.trim() !== "";
+                const edit = !message.send;
+
+                if (!hasPrompt && hasCode) {
+                    code = "";
+                    hasCode = false;
+                }
+
+                const codehtml = hasCode ? marked.parse("```\n" + code + "\n```") : "";
+
                 document.getElementById("cover")?.classList?.add("hidden");
                 var replaceElems = document.getElementsByClassName("replace");
                 for (var e of replaceElems) {
                     e.remove();
-                }
-                const codehtml = message.code != null
-                    ? marked.parse("```\n" + message.code + "\n```")
-                    : "";
-
-                var promptText = message.value;
-                const edit = !message.send;
-                if (promptText === "") {
-                    for (var k in prompts) {
-                        promptText = prompts[k];
-                        break;
-                    }
                 }
 
                 list.innerHTML +=
@@ -80,33 +88,28 @@ const vscode = acquireVsCodeApi();
                         <div class="mb-5 flex items-center">
                             <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-5 ${edit ? "hidden" : ""}">${pencilIcon}</button>
                             <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex gap-2 absolute right-4" style="width: calc(100% - 32px);">
-                                <vscode-dropdown style="width: 100%">${promptList}</vscode-dropdown>
+                                <vscode-dropdown style="width: 100%" class="${hasCode ? "" : "hidden"}">${promptList}</vscode-dropdown>
                                 <button title="Send this prompt" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
                                 <button title="Cancel" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
                             </div>
                         </div>
-                        <p id="prompt-${message.id}" class="prompt leading-loose p-2" contenteditable=${edit}>${promptText}</p>
+                        <p id="prompt-${id}" class="prompt leading-loose p-2" contenteditable=${edit}>${p}</p>
                         <div class="overflow-y-auto p-2">${codehtml}</div>
                     </div>`;
 
                 if (edit) {
-                    var promptText = document.getElementById(`prompt-${message.id}`);
-                    var s = window.getSelection();
-                    if (s.rangeCount > 0) s.removeAllRanges();
-
-                    var range = document.createRange();
-                    range.selectNode(promptText);
-                    s.addRange(range);
+                    var promptText = document.getElementById(`prompt-${id}`);
+                    promptText.focus();
                 } else {
                     document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
-                    var chat = document.getElementById(message.id);
+                    var chat = document.getElementById(id);
                     if (!chat) {
                         chat = document.createElement("div");
-                        chat.id = message.id;
+                        chat.id = id;
                         chat.classList.add("p-4", "self-end", "pb-8", "answer-element-gnc");
                         chat.innerHTML = `  <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${aiIcon} SenseCode</h2>
-                                        <div id="${message.id}-text" class="flex flex-col gap-1 whitespace-pre-wrap"></div>
-                                        <div id="${message.id}-progress" class="pt-2 flex items-center opacity-50">
+                                        <div id="${id}-text" class="flex flex-col gap-1 whitespace-pre-wrap"></div>
+                                        <div id="${id}-progress" class="pt-2 flex items-center opacity-50">
                                             <div class="spinner">
                                                 <span class="material-symbols-rounded">workspaces</span>
                                             </div>
@@ -117,6 +120,7 @@ const vscode = acquireVsCodeApi();
                 }
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                 break;
+            }
             case "stopResponse":
                 {
                     document.getElementById(`${message.id}-progress`)?.classList?.add("hidden");
@@ -162,6 +166,7 @@ const vscode = acquireVsCodeApi();
                         preCode.parentElement.prepend(buttonWrapper);
                     });
                     chatText.innerHTML = markedResponse.documentElement.innerHTML;
+                    chatText.classList.add("markdown-body");
                     break;
                 }
             case "addResponse": {
@@ -175,8 +180,8 @@ const vscode = acquireVsCodeApi();
                     return;
                 }
                 const chatText = document.getElementById(`${message.id}-text`);
-                chatText.innerHTML = chatText.innerHTML + `<div class="text-red-400 flex items-center">
-                                        <span class="material-symbols-rounded text-3xl pr-4">report</span>
+                chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg flex items-center">
+                                        <span class="material-symbols-rounded text-3xl p-2">report</span>
                                         <div>
                                             <p>An error occurred</p><p>${message.error}</p>
                                         </div>
@@ -186,9 +191,10 @@ const vscode = acquireVsCodeApi();
                 document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
                 list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                 break;
-            case "clearQAList":
+            case "clearQAList": {
                 clearQAList();
                 break;
+            }
             default:
                 break;
         }
@@ -243,16 +249,13 @@ const vscode = acquireVsCodeApi();
 
         if (targetButton?.classList?.contains("resend-element-gnc")) {
             e.preventDefault();
+            document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
             const question = targetButton.closest(".question-element-gnc");
             const elements = targetButton.nextElementSibling;
             elements.classList.remove("hidden");
             const prompt = question.getElementsByClassName("prompt");
             prompt[0]?.setAttribute("contenteditable", true);
-            var s = window.getSelection();
-            if (s.rangeCount > 0) s.removeAllRanges();
-            var range = document.createRange();
-            range.selectNode(prompt[0]);
-            s.addRange(range);
+            prompt[0].focus();
 
             targetButton.classList.add("hidden");
 
@@ -275,7 +278,7 @@ const vscode = acquireVsCodeApi();
 
             if (prompt[0].textContent.length > 0) {
                 vscode.postMessage({
-                    type: "addFreeTextQuestion",
+                    type: "sendQuestion",
                     value: prompt[0].textContent,
                     code: code[0].textContent,
                     send: true
