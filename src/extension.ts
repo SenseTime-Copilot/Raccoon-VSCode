@@ -28,10 +28,13 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("SenseCode")) {
             Configuration.update();
+            let engines = Configuration.engines;
             let activeEngine: Engine | undefined = context.globalState.get("engine");
             if (activeEngine) {
-                let newEngine = Configuration.engines.filter((v) => { return v.label === activeEngine?.label });
+                let newEngine = engines.filter((v) => { return v.label === activeEngine?.label });
                 context.globalState.update("engine", newEngine[0]);
+            } else if (engines.length !== 0) {
+                activeEngine = engines[0];
             }
             updateStatusBarItem(context, statusBarItem);
         }
