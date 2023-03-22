@@ -155,6 +155,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
         const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
         const logo = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
+        let debug = Configuration.debug;
         return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -170,7 +171,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                 <script type="module" src="${toolkitUri}"></script>
             </head>
             <body class="overflow-hidden">
-                <div class="flex flex-col h-screen" id="qa-list-wrapper">
+                <div class="flex flex-col h-screen ${debug.free_talk ? "free-talk" : ""}" id="qa-list-wrapper">
                     <div id="cover" class="flex flex-col gap-2 m-8">
                         <div style="height: 120px; margin: 5em auto 8em auto; filter: opacity(0.3) contrast(0);">
                         <img src="${logo}"/>
@@ -180,9 +181,13 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
-                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
+                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">                
+                        <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
+                            <span class="material-symbols-rounded" style="font-size: 2em;">quick_phrases</span>
+                            Chat
+                        </button>
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
-                            <span class="material-symbols-rounded" style="font-size: 2em;">delete_sweep</span>
+                            <span class="material-symbols-rounded" style="font-size: 2em;">delete</span>
                             Clear
                         </button>
                     </div>

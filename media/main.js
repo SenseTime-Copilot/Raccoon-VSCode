@@ -52,9 +52,9 @@ const vscode = acquireVsCodeApi();
                                         ${label}
                                     </button>`;
                 }
-                shortcuts += `<button class="flex gap-2 justify-center items-center rounded-lg p-2"
+                shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2"
                                     onclick="vscode.postMessage({type: 'repareQuestion', value: ''});">
-                                    <span class="material-symbols-rounded">smart_toy</span>
+                                    <span class="material-symbols-rounded">quick_phrases</span>
                                         Free Talk...
                                     </button>`;
                 document.getElementById("shortcuts").innerHTML = shortcuts;
@@ -87,10 +87,10 @@ const vscode = acquireVsCodeApi();
                         <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${userIcon} You</h2>
                         <div class="mb-5 flex items-center">
                             <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-5 ${edit ? "hidden" : ""}">${pencilIcon}</button>
-                            <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex gap-2 absolute right-4" style="width: calc(100% - 32px);">
-                                <vscode-dropdown style="width: 100%" class="${hasCode ? "" : "hidden"}">${promptList}</vscode-dropdown>
-                                <button title="Send this prompt" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
-                                <button title="Cancel" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
+                            <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-2 absolute right-4" style="width: calc(100% - 32px);">
+                                <button title="Cancel [Esc]" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
+                                <button title="Send this prompt [Ctrl+Enter]" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
+                                <vscode-dropdown style="width: 100%;margin: 1px 0;" class="${hasCode ? "" : "hidden"}">${promptList}</vscode-dropdown>
                             </div>
                         </div>
                         <p id="prompt-${id}" class="prompt leading-loose p-2" contenteditable=${edit}>${p}</p>
@@ -208,11 +208,58 @@ const vscode = acquireVsCodeApi();
         document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
     };
 
+    const sendQuestion = (question) => {
+        const elements = question.getElementsByClassName("send-cancel-elements-gnc");
+        const resendElement = question.getElementsByClassName("resend-element-gnc");
+        elements[0]?.classList.add("hidden");
+        resendElement[0]?.classList.remove("hidden");
+        const prompt = question.getElementsByClassName("prompt");
+        prompt[0]?.setAttribute("contenteditable", false);
+        const code = question.querySelectorAll("pre > code");
+        var s = window.getSelection();
+        if (s.rangeCount > 0)
+            s.removeAllRanges();
+
+        if (prompt[0].textContent.length > 0) {
+            vscode.postMessage({
+                type: "sendQuestion",
+                value: prompt[0].textContent,
+                code: code[0]?.textContent,
+                send: true
+            });
+        }
+    }
+
+    const cancelEditQuestion = (question) => {
+        const elements = question.getElementsByClassName("send-cancel-elements-gnc");
+        const resendElement = question.getElementsByClassName("resend-element-gnc");
+        elements[0]?.classList.add("hidden");
+        resendElement[0]?.classList.remove("hidden");
+        question.querySelectorAll(".prompt")[0].setAttribute("contenteditable", false);
+        var s = window.getSelection();
+        if (s.rangeCount > 0)
+            s.removeAllRanges();
+        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+    }
+
     document.addEventListener("change", (e) => {
         const question = e.target.closest(".question-element-gnc");
 
         const prompts = question.getElementsByClassName('prompt');
         prompts[0].textContent = e.target._value;
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.target.classList.contains("prompt") && e.ctrlKey && e.code === "Enter") {
+            e.preventDefault();
+            const question = e.target.closest('.question-element-gnc');
+            sendQuestion(question);
+        }
+        if (e.target.classList.contains("prompt") && e.code === "Escape") {
+            e.preventDefault();
+            const question = e.target.closest('.question-element-gnc');
+            cancelEditQuestion(question);
+        }
     });
 
     document.addEventListener("click", (e) => {
@@ -221,6 +268,40 @@ const vscode = acquireVsCodeApi();
         if (targetButton?.id === "clear-button") {
             e.preventDefault();
             clearQAList();
+            return;
+        }
+
+        if (targetButton?.id === "chat-button") {
+            e.preventDefault();
+            vscode.postMessage({ type: 'repareQuestion', value: '' });
+            return;
+        }
+
+        if (targetButton?.classList?.contains("resend-element-gnc")) {
+            e.preventDefault();
+            document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
+            const question = targetButton.closest(".question-element-gnc");
+            const elements = targetButton.nextElementSibling;
+            elements.classList.remove("hidden");
+            const prompt = question.getElementsByClassName("prompt");
+            prompt[0]?.setAttribute("contenteditable", true);
+            prompt[0].focus();
+
+            targetButton.classList.add("hidden");
+
+            return;
+        }
+
+        if (targetButton?.classList?.contains("send-element-gnc")) {
+            e.preventDefault();
+            const question = targetButton.closest(".question-element-gnc");
+            sendQuestion(question);
+        }
+
+        if (targetButton?.classList?.contains("cancel-element-gnc")) {
+            e.preventDefault();
+            const question = targetButton.closest(".question-element-gnc");
+            cancelEditQuestion(question);
             return;
         }
 
@@ -244,60 +325,6 @@ const vscode = acquireVsCodeApi();
                 value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
             });
 
-            return;
-        }
-
-        if (targetButton?.classList?.contains("resend-element-gnc")) {
-            e.preventDefault();
-            document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
-            const question = targetButton.closest(".question-element-gnc");
-            const elements = targetButton.nextElementSibling;
-            elements.classList.remove("hidden");
-            const prompt = question.getElementsByClassName("prompt");
-            prompt[0]?.setAttribute("contenteditable", true);
-            prompt[0].focus();
-
-            targetButton.classList.add("hidden");
-
-            return;
-        }
-
-        if (targetButton?.classList?.contains("send-element-gnc")) {
-            e.preventDefault();
-
-            const question = targetButton.closest(".question-element-gnc");
-            const elements = targetButton.closest(".send-cancel-elements-gnc");
-            const resendElement = targetButton.parentElement.parentElement.firstElementChild;
-            elements.classList.add("hidden");
-            resendElement.classList.remove("hidden");
-            const prompt = question.getElementsByClassName("prompt");
-            prompt[0]?.setAttribute("contenteditable", false);
-            const code = question.querySelectorAll("pre > code");
-            var s = window.getSelection();
-            if (s.rangeCount > 0) s.removeAllRanges();
-
-            if (prompt[0].textContent.length > 0) {
-                vscode.postMessage({
-                    type: "sendQuestion",
-                    value: prompt[0].textContent,
-                    code: code[0].textContent,
-                    send: true
-                });
-            }
-            return;
-        }
-
-        if (targetButton?.classList?.contains("cancel-element-gnc")) {
-            e.preventDefault();
-            const question = targetButton.closest(".question-element-gnc");
-            const elements = targetButton.closest(".send-cancel-elements-gnc");
-            const resendElement = targetButton.parentElement.parentElement.firstElementChild;
-            elements.classList.add("hidden");
-            resendElement.classList.remove("hidden");
-            question.querySelectorAll(".prompt")[0].setAttribute("contenteditable", false);
-            var s = window.getSelection();
-            if (s.rangeCount > 0) s.removeAllRanges();
-            document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
             return;
         }
 

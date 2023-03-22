@@ -191,6 +191,16 @@ textarea::placeholder {
     background: var(--panel-view-background);
 }
 
+#chat-shortcut,
+#chat-button {
+    display: none;
+}
+
+.free-talk #chat-shortcut,
+.free-talk #chat-button {
+    display: flex;
+}
+
 .question-element-gnc {
     background: var(--panel-view-background);
 }
