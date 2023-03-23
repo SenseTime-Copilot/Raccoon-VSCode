@@ -41,14 +41,13 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                 case 'repareQuestion':
                     let selection = undefined;
                     const editor = vscode.window.activeTextEditor;
-                    if (!editor) {
-                        return;
+                    if (editor) {
+                        selection = editor.document.getText(editor.selection);
                     }
-                    selection = editor.document.getText(editor.selection);
-                    if (data.value != "" && !selection) {
-
+                    if (data.value != "" && (!selection || selection?.trim() === "")) {
+                        vscode.window.showInformationMessage("No code selected.");
                     } else {
-                        this.sendApiRequest(data.value, selection, false);
+                        this.sendApiRequest(data.value, selection || "", data.send);
                     }
                     break;
                 case 'sendQuestion':
@@ -90,7 +89,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
         try {
             rs = await getCodeCompletions(this.context,
                 question,
-                "__Q&A__");
+                code ? "__CodeBrush__" : "__Q&A__");
             if (rs instanceof IncomingMessage) {
                 let data = rs as IncomingMessage;
                 data.on("data", async (v: any) => {
@@ -155,7 +154,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
         const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
         const logo = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
-        let debug = Configuration.debug;
+        let next = Configuration.next;
         return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -171,7 +170,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                 <script type="module" src="${toolkitUri}"></script>
             </head>
             <body class="overflow-hidden">
-                <div class="flex flex-col h-screen ${debug.free_talk ? "free-talk" : ""}" id="qa-list-wrapper">
+                <div class="flex flex-col h-screen ${next.free_talk ? "free-talk" : ""}" id="qa-list-wrapper">
                     <div id="cover" class="flex flex-col gap-2 m-8">
                         <div style="height: 120px; margin: 5em auto 8em auto; filter: opacity(0.3) contrast(0);">
                         <img src="${logo}"/>

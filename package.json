@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -170,7 +170,7 @@
                             "explain": "Explain the following code"
                         }
                     },
-                    "SenseCode.Debug": {
+                    "SenseCode.Next": {
                         "type": "object"
                     }
                 }

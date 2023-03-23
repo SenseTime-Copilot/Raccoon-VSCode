@@ -43,17 +43,27 @@ const vscode = acquireVsCodeApi();
                 for (var k in prompts) {
                     const label_pre = k.replace(/([A-Z])/g, " $1");
                     const label = label_pre.charAt(0).toUpperCase() + label_pre.slice(1);
-                    promptList += `<vscode-option value="${prompts[k]}">${label}</vscode-option>`;
+                    let p = prompts[k];
+                    let ellip = "";
+                    let send = true;
+                    if (p.includes("${input}")) {
+                        p = p.replace("${input}", "");
+                        ellip = "...";
+                        send = false;
+                    }
+                    promptList += `<vscode-option value="${p}">${label}${ellip}</vscode-option>`;
                     shortcuts += `  <button class="flex gap-2 justify-center items-center rounded-lg p-2"
                                         onclick="vscode.postMessage({
                                             type: 'repareQuestion',
-                                            value: '${prompts[k]}'});
+                                            value: '${p}',
+                                            send: ${send}
+                                        });
                                     ">
-                                        ${label}
+                                        ${label}${ellip}
                                     </button>`;
                 }
                 shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2"
-                                    onclick="vscode.postMessage({type: 'repareQuestion', value: ''});">
+                                    onclick="vscode.postMessage({type: 'repareQuestion', value: '', send: false});">
                                     <span class="material-symbols-rounded">quick_phrases</span>
                                         Free Talk...
                                     </button>`;
@@ -247,6 +257,7 @@ const vscode = acquireVsCodeApi();
 
         const prompts = question.getElementsByClassName('prompt');
         prompts[0].textContent = e.target._value;
+        prompts[0].focus();
     });
 
     document.addEventListener("keydown", (e) => {
@@ -273,7 +284,7 @@ const vscode = acquireVsCodeApi();
 
         if (targetButton?.id === "chat-button") {
             e.preventDefault();
-            vscode.postMessage({ type: 'repareQuestion', value: '' });
+            vscode.postMessage({ type: 'repareQuestion', value: '', send: false });
             return;
         }
 

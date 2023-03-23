@@ -22,8 +22,8 @@ export class Configuration {
         Configuration.configuration = workspace.getConfiguration("SenseCode", undefined);
     }
 
-    public static get debug(): any {
-        return Configuration.configuration.get("Debug", {});
+    public static get next(): any {
+        return Configuration.configuration.get("Next", {});
     }
 
     public static get prompt(): any {

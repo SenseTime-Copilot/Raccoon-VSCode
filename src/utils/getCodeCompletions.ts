@@ -16,7 +16,7 @@ export async function getCodeCompletions(
     if (!activeEngine) {
         return Promise.resolve({ completions: [] });
     }
-    if (lang === "__Q&A__" && !activeEngine.capacities.includes("chat")) {
+    if ((lang === "__Q&A__" || lang === "__CodeBrush__") && !activeEngine.capacities.includes("chat")) {
         return Promise.reject("Current API not support Q&A.");
     }
     let api = activeEngine.url;
@@ -87,14 +87,14 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             ...engine.config
         };
         let responseType: ResponseType | undefined = undefined;
-        if (lang === "__Q&A__" || Configuration.printOut) {
+        if (lang === "__Q&A__" || lang === "__CodeBrush__" || Configuration.printOut) {
             payload.max_tokens = 2048;
             payload.stop = undefined;
             payload.n = 1;
             payload.user = "sensecode-vscode-extension"
             payload.stream = true;
             responseType = "stream";
-            if (lang === "__Q&A__") {
+            if (lang === "__CodeBrush__") {
                 payload.prompt = "Use markdown syntax for response content like headings, lists, colored text, code blocks, highlights etc. Make sure not to mention markdown or styling in your actual response. " + payload.prompt;
             }
         } else {
@@ -166,7 +166,7 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
         }
         let payload;
         let p = prompt;
-        if (lang === "__Q&A__") {
+        if (lang === "__CodeBrush__") {
             p = "Use markdown syntax for response content like headings, lists, colored text, code blocks, highlights etc. Make sure not to mention markdown or styling in your actual response. " + prompt;
         }
         if (engine.url.includes("/chat/")) {
@@ -181,7 +181,7 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
             };
         }
         let responseType: ResponseType | undefined = undefined;
-        if (lang === "__Q&A__" || Configuration.printOut) {
+        if (lang === "__Q&A__" || lang === "__CodeBrush__" || Configuration.printOut) {
             payload.max_tokens = 256;
             payload.stop = undefined;
             payload.n = 1;
