@@ -288,6 +288,16 @@ const vscode = acquireVsCodeApi();
             return;
         }
 
+        if (targetButton?.id === "ask-button") {
+            e.preventDefault();
+            var p = "Question here";
+            for (var k in prompts) {
+                p = prompts[k].replace("${input}", "");
+            }
+            vscode.postMessage({ type: 'repareQuestion', value: p, send: false });
+            return;
+        }
+
         if (targetButton?.classList?.contains("resend-element-gnc")) {
             e.preventDefault();
             document.getElementById("chat-button-wrapper")?.classList?.add("hidden");

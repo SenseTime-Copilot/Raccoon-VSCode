@@ -180,7 +180,11 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
-                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">                
+                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
+                        <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
+                            <span class="material-symbols-rounded" style="font-size: 2em;">live_help</span>
+                            Ask
+                        </button>          
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
                             <span class="material-symbols-rounded" style="font-size: 2em;">quick_phrases</span>
                             Chat

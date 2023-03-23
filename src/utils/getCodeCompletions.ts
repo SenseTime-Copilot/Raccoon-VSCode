@@ -95,7 +95,7 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             payload.stream = true;
             responseType = "stream";
             if (lang === "__CodeBrush__") {
-                payload.prompt = "Use markdown syntax for response content like headings, lists, colored text, code blocks, highlights etc. Make sure not to mention markdown or styling in your actual response. " + payload.prompt;
+                payload.prompt = "If answer contains code snippets, surraound them into markdown code block format. Question:" + payload.prompt;
             }
         } else {
             payload.stream = undefined;
@@ -167,7 +167,7 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
         let payload;
         let p = prompt;
         if (lang === "__CodeBrush__") {
-            p = "Use markdown syntax for response content like headings, lists, colored text, code blocks, highlights etc. Make sure not to mention markdown or styling in your actual response. " + prompt;
+            p = "If answer contains code snippets, surraound them into markdown code block format. Question:" + p;
         }
         if (engine.url.includes("/chat/")) {
             payload = {
