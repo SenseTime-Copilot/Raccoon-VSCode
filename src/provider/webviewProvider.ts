@@ -39,15 +39,15 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                     this.sendMessage({ type: 'promptList', value: this.promptList });
                     break;
                 case 'repareQuestion':
-                    let selection = undefined;
+                    let selection: string = "";
                     const editor = vscode.window.activeTextEditor;
                     if (editor) {
                         selection = editor.document.getText(editor.selection);
                     }
-                    if (data.value != "" && (!selection || selection?.trim() === "")) {
+                    if (data.value != "" && (selection?.trim() === "")) {
                         vscode.window.showInformationMessage("No code selected.");
                     } else {
-                        this.sendApiRequest(data.value, selection || "", data.send);
+                        this.sendApiRequest(data.value, selection, data.send);
                     }
                     break;
                 case 'sendQuestion':

@@ -55,7 +55,7 @@ function getCodeCompletionsTianqi(engine: Engine, lang: string, prompt: string):
                         const completions = Array<string>();
                         for (let i = 0; i < codeArray.length; i++) {
                             const completion = codeArray[i];
-                            let tmpstr = completion;
+                            let tmpstr: string = completion || "";
                             if (tmpstr.trim() === "")
                                 continue;
                             if (completions.includes(completion))
@@ -114,7 +114,7 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
                         const completions_backup = Array<string>();
                         for (let i = 0; i < codeArray.length; i++) {
                             const completion = codeArray[i];
-                            let tmpstr = completion.text;
+                            let tmpstr: string = completion.text || "";
                             if (tmpstr.trim() === "")
                                 continue;
                             if (completions.includes(tmpstr))
@@ -202,7 +202,7 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
                         const completions_backup = Array<string>();
                         for (let i = 0; i < codeArray.length; i++) {
                             const completion = codeArray[i];
-                            let tmpstr = completion.text || completion.message.content;
+                            let tmpstr: string = completion.text || completion.message.content || "";
                             if (tmpstr.trim() === "")
                                 continue;
                             if (completions.includes(tmpstr))

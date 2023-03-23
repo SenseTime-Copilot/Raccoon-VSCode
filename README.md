@@ -49,3 +49,13 @@ When Complition Mode set to `Print`, it direct print out the result into the act
     "stop": null // do not stop intentionally
 }
 ```
+
+* Hidden talents
+
+Some function for SenseCode Next is hidden, to active them, add `SenseCode.Next` configuration to settings:
+
+```json
+"SenseCode.Next": {
+    "free_talk": true // enable sidebar free talk
+}
+```

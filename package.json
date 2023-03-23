@@ -58,14 +58,14 @@
                                 "capacities": {
                                     "type": "array",
                                     "description": "Engine capacity list",
-                                    "items": [
-                                        {
-                                            "enum": [
-                                                "complition",
-                                                "chat"
-                                            ]
-                                        }
-                                    ]
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "completion",
+                                            "chat"
+                                        ]
+                                    },
+                                    "uniqueItems": true
                                 },
                                 "key": {
                                     "type": "string",
