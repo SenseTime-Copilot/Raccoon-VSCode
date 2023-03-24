@@ -4,158 +4,157 @@ import { Configuration } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 
 export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
-    private webView?: vscode.WebviewView;
-    private promptList = Configuration.prompt;
+  private webView?: vscode.WebviewView;
+  private promptList = Configuration.prompt;
 
-    constructor(private context: vscode.ExtensionContext) {
-        vscode.workspace.onDidChangeConfiguration((e) => {
-            if (e.affectsConfiguration("SenseCode")) {
-                Configuration.update();
-                this.promptList = Configuration.prompt;
-                this.sendMessage({ type: "promptList", value: this.promptList });
-            }
-        });
+  constructor(private context: vscode.ExtensionContext) {
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("SenseCode")) {
+        Configuration.update();
+        this.promptList = Configuration.prompt;
+        this.sendMessage({ type: "promptList", value: this.promptList });
+      }
+    });
+  }
+
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken,
+  ) {
+    this.webView = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [
+        this.context.extensionUri
+      ]
+    };
+
+    webviewView.webview.html = this.getWebviewHtml(webviewView.webview);
+
+    webviewView.webview.onDidReceiveMessage(async data => {
+      switch (data.type) {
+        case 'listPrompt':
+          this.sendMessage({ type: 'promptList', value: this.promptList });
+          break;
+        case 'repareQuestion':
+          let selection: string = "";
+          const editor = vscode.window.activeTextEditor;
+          if (editor) {
+            selection = editor.document.getText(editor.selection);
+          }
+          if (data.value !== "" && (selection?.trim() === "")) {
+            vscode.window.showInformationMessage("No code selected.");
+          } else {
+            this.sendApiRequest(data.value, selection, data.send);
+          }
+          break;
+        case 'sendQuestion':
+          this.sendApiRequest(data.value, data.code, data.send);
+          break;
+        case 'editCode':
+          vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(data.value));
+          break;
+        case 'openNew':
+          const document = await vscode.workspace.openTextDocument({
+            content: data.value,
+            language: data.language
+          });
+          vscode.window.showTextDocument(document);
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  public async sendApiRequest(prompt: string, code: string, send = true) {
+    let response: string;
+    let question = prompt;
+
+    if (code !== null) {
+      // Add prompt prefix to the code if there was a code block selected
+      question = `${prompt} \`\`\`\n${code}\n\`\`\``;
     }
 
-    public resolveWebviewView(
-        webviewView: vscode.WebviewView,
-        _context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken,
-    ) {
-        this.webView = webviewView;
+    let id = new Date().valueOf();
 
-        webviewView.webview.options = {
-            enableScripts: true,
-            localResourceRoots: [
-                this.context.extensionUri
-            ]
-        };
-
-        webviewView.webview.html = this.getWebviewHtml(webviewView.webview);
-
-        webviewView.webview.onDidReceiveMessage(async data => {
-            switch (data.type) {
-                case 'listPrompt':
-                    this.sendMessage({ type: 'promptList', value: this.promptList });
-                    break;
-                case 'repareQuestion':
-                    let selection: string = "";
-                    const editor = vscode.window.activeTextEditor;
-                    if (editor) {
-                        selection = editor.document.getText(editor.selection);
-                    }
-                    if (data.value != "" && (selection?.trim() === "")) {
-                        vscode.window.showInformationMessage("No code selected.");
-                    } else {
-                        this.sendApiRequest(data.value, selection, data.send);
-                    }
-                    break;
-                case 'sendQuestion':
-                    this.sendApiRequest(data.value, data.code, data.send);
-                    break;
-                case 'editCode':
-                    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(data.value));
-                    break;
-                case 'openNew':
-                    const document = await vscode.workspace.openTextDocument({
-                        content: data.value,
-                        language: data.language
-                    });
-                    vscode.window.showTextDocument(document);
-                    break;
-                default:
-                    break;
-            }
-        });
+    this.sendMessage({ type: 'addQuestion', value: prompt, code, send, id });
+    if (!send) {
+      return;
     }
 
-    public async sendApiRequest(prompt: string, code: string, send = true) {
-        let response: string;
-        let question = prompt;
-
-        if (code != null) {
-            // Add prompt prefix to the code if there was a code block selected
-            question = `${prompt} \`\`\`\n${code}\n\`\`\``;
-        }
-
-        let id = new Date().valueOf();
-
-        this.sendMessage({ type: 'addQuestion', value: prompt, code, send, id });
-        if (!send) {
-            return;
-        }
-
-        let rs: GetCodeCompletions | IncomingMessage;
-        try {
-            rs = await getCodeCompletions(this.context,
-                question,
-                code ? "__CodeBrush__" : "__Q&A__");
-            if (rs instanceof IncomingMessage) {
-                let data = rs as IncomingMessage;
-                data.on("data", async (v: any) => {
-                    let msgstr: string = v.toString();
-                    let msgs = msgstr.split("data:").filter((v) => {
-                        return v !== "data: ";
-                    });
-                    for (let msg of msgs) {
-                        let content = msg.trim();
-                        if (content === '[DONE]') {
-                            this.sendMessage({ type: 'stopResponse', id });
-                            data.destroy();
-                            return;
-                        }
-                        if (content === "") {
-                            continue;
-                        }
-                        let json = JSON.parse(content);
-                        if (json.error) {
-                            this.sendMessage({ type: 'addError', error: json.error, id });
-                            this.sendMessage({ type: 'stopResponse', id });
-                            data.destroy();
-                            return;
-                        } else {
-                            this.sendMessage({ type: 'addResponse', id, value: json.choices[0].text || json.choices[0].message.content });
-                        }
-                    }
-                });
+    let rs: GetCodeCompletions | IncomingMessage;
+    try {
+      rs = await getCodeCompletions(this.context,
+        question,
+        code ? "__CodeBrush__" : "__Q&A__");
+      if (rs instanceof IncomingMessage) {
+        let data = rs as IncomingMessage;
+        data.on("data", async (v: any) => {
+          let msgstr: string = v.toString();
+          let msgs = msgstr.split("data:").filter((m) => {
+            return m !== "data: ";
+          });
+          for (let msg of msgs) {
+            let content = msg.trim();
+            if (content === '[DONE]') {
+              this.sendMessage({ type: 'stopResponse', id });
+              data.destroy();
+              return;
+            }
+            if (content === "") {
+              continue;
+            }
+            let json = JSON.parse(content);
+            if (json.error) {
+              this.sendMessage({ type: 'addError', error: json.error, id });
+              this.sendMessage({ type: 'stopResponse', id });
+              data.destroy();
+              return;
             } else {
-                response = rs.completions[0];
-                this.sendMessage({ type: 'addResponse', value: response });
-                this.sendMessage({ type: 'stopResponse' });
+              this.sendMessage({ type: 'addResponse', id, value: json.choices[0].text || json.choices[0].message.content });
             }
-        } catch (error: any) {
-            this.sendMessage({ type: 'addError', error, id });
-            return;
-        }
+          }
+        });
+      } else {
+        response = rs.completions[0];
+        this.sendMessage({ type: 'addResponse', value: response });
+        this.sendMessage({ type: 'stopResponse' });
+      }
+    } catch (error: any) {
+      this.sendMessage({ type: 'addError', error, id });
     }
+  }
 
-    public async sendMessage(message: any) {
-        // If the SenseCode view is not in focus/visible; focus on it to render Q&A
-        if (this.webView == null) {
-            await vscode.commands.executeCommand('sensecode.view.focus');
-            await new Promise((f) => setTimeout(f, 1000));
-        } else {
-            this.webView?.show?.(true);
-        }
-        if (this.webView) {
-            this.webView?.webview.postMessage(message);
-        }
+  public async sendMessage(message: any) {
+    // If the SenseCode view is not in focus/visible; focus on it to render Q&A
+    if (this.webView === null) {
+      await vscode.commands.executeCommand('sensecode.view.focus');
+      await new Promise((f) => setTimeout(f, 1000));
+    } else {
+      this.webView?.show?.(true);
     }
+    if (this.webView) {
+      this.webView?.webview.postMessage(message);
+    }
+  }
 
-    private getWebviewHtml(webview: vscode.Webview) {
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'main.js'));
-        const stylesMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
+  private getWebviewHtml(webview: vscode.Webview) {
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'main.js'));
+    const stylesMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
 
-        const vendorHighlightCss = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.css'));
-        const vendorHighlightJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.js'));
-        const vendorMarkedJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
-        const vendorTailwindJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
-        const toolkitUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
-        const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
-        const logo = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
+    const vendorHighlightCss = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.css'));
+    const vendorHighlightJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.js'));
+    const vendorMarkedJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
+    const vendorTailwindJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
+    const toolkitUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
+    const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
+    const logo = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
-        let next = Configuration.next;
-        return `<!DOCTYPE html>
+    let next = Configuration.next;
+    return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
@@ -198,5 +197,5 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                 <script src="${scriptUri}"></script>
             </body>
             </html>`;
-    }
+  }
 }

@@ -377,12 +377,6 @@ textarea::placeholder {
     line-height: inherit;
 }
 
-.markdown-body [type=button],
-.markdown-body [type=reset],
-.markdown-body [type=submit] {
-    -webkit-appearance: button;
-}
-
 .markdown-body [type=checkbox],
 .markdown-body [type=radio] {
     box-sizing: border-box;
