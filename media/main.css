@@ -191,13 +191,23 @@ textarea::placeholder {
     background: var(--panel-view-background);
 }
 
+#shortcuts,
 #chat-shortcut,
-#chat-button {
+#chat-button,
+#ask-button {
     display: none;
 }
 
-.free-talk #chat-shortcut,
-.free-talk #chat-button {
+.x-chat #shortcuts {
+    display: flex;
+}
+
+.x-chat #ask-button {
+    display: flex;
+}
+
+.x-chat.x-free_chat #chat-shortcut,
+.x-chat.x-free_chat #chat-button {
     display: flex;
 }
 

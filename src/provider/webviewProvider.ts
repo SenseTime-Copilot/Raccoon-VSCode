@@ -12,7 +12,8 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
       if (e.affectsConfiguration("SenseCode")) {
         Configuration.update();
         this.promptList = Configuration.prompt;
-        this.sendMessage({ type: "promptList", value: this.promptList });
+        this.sendMessage({ type: 'promptList', value: this.promptList });
+        this.sendMessage({ type: 'updateSettings', value: Configuration.next });
       }
     });
   }
@@ -35,10 +36,11 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
-        case 'listPrompt':
+        case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: this.promptList });
           break;
-        case 'repareQuestion':
+        }
+        case 'repareQuestion': {
           let selection: string = "";
           const editor = vscode.window.activeTextEditor;
           if (editor) {
@@ -50,19 +52,23 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
             this.sendApiRequest(data.value, selection, data.send);
           }
           break;
-        case 'sendQuestion':
+        }
+        case 'sendQuestion': {
           this.sendApiRequest(data.value, data.code, data.send);
           break;
-        case 'editCode':
+        }
+        case 'editCode': {
           vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(data.value));
           break;
-        case 'openNew':
+        }
+        case 'openNew': {
           const document = await vscode.workspace.openTextDocument({
             content: data.value,
             language: data.language
           });
           vscode.window.showTextDocument(document);
           break;
+        }
         default:
           break;
       }
@@ -94,11 +100,19 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
           let msgstr: string = v.toString();
-          let msgs = msgstr.split("data:").filter((m) => {
-            return m !== "data: ";
-          });
+          let msgs = msgstr.split("\n");
           for (let msg of msgs) {
-            let content = msg.trim();
+            let content = "";
+            if (msg.startsWith("data:")) {
+              content = msg.slice(6).trim();
+            } else if (msg.startsWith("event:")) {
+              content = msg.slice(6).trim();
+              if (content === "error") {
+                this.sendMessage({ type: 'addError', error: "", id });
+                data.destroy();
+              }
+              return;
+            }
             if (content === '[DONE]') {
               this.sendMessage({ type: 'stopResponse', id });
               data.destroy();
@@ -110,7 +124,6 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
             let json = JSON.parse(content);
             if (json.error) {
               this.sendMessage({ type: 'addError', error: json.error, id });
-              this.sendMessage({ type: 'stopResponse', id });
               data.destroy();
               return;
             } else {
@@ -121,10 +134,10 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
       } else {
         response = rs.completions[0];
         this.sendMessage({ type: 'addResponse', value: response });
-        this.sendMessage({ type: 'stopResponse' });
+        this.sendMessage({ type: 'stopResponse', id });
       }
     } catch (error: any) {
-      this.sendMessage({ type: 'addError', error, id });
+      this.sendMessage({ type: 'addError', error: error.message, id });
     }
   }
 
@@ -154,6 +167,12 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
     const logo = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
     let next = Configuration.next;
+    let bodyClass = "";
+    for (let k in next) {
+      if (next[k]) {
+        bodyClass += `x-${k} `;
+      }
+    }
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -169,7 +188,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                 <script type="module" src="${toolkitUri}"></script>
             </head>
             <body class="overflow-hidden">
-                <div class="flex flex-col h-screen ${next.free_talk ? "free-talk" : ""}" id="qa-list-wrapper">
+                <div class="flex flex-col h-screen ${bodyClass}" id="qa-list-wrapper">
                     <div id="cover" class="flex flex-col gap-2 m-8">
                         <div style="height: 120px; margin: 5em auto 8em auto; filter: opacity(0.3) contrast(0);">
                         <img src="${logo}"/>
@@ -181,15 +200,15 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
-                            <span class="material-symbols-rounded" style="font-size: 2em;">live_help</span>
+                            <span class="material-symbols-rounded">live_help</span>
                             Ask
                         </button>          
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
-                            <span class="material-symbols-rounded" style="font-size: 2em;">quick_phrases</span>
+                            <span class="material-symbols-rounded">quick_phrases</span>
                             Chat
                         </button>
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
-                            <span class="material-symbols-rounded" style="font-size: 2em;">delete</span>
+                            <span class="material-symbols-rounded">delete</span>
                             Clear
                         </button>
                     </div>

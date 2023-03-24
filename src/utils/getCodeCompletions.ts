@@ -13,19 +13,23 @@ export async function getCodeCompletions(
   lang: string
 ): Promise<GetCodeCompletions> {
   let activeEngine: Engine | undefined = context.globalState.get("engine");
+  let capacities: string[] = ["completion"];
   if (!activeEngine) {
-    return Promise.resolve({ completions: [] });
+    return Promise.reject({ message: "Active engine not set." });
   }
-  if ((lang === "__Q&A__" || lang === "__CodeBrush__") && !activeEngine.capacities.includes("chat")) {
-    return Promise.reject("Current API not support Q&A.");
+  if (activeEngine.capacities) {
+    capacities = activeEngine.capacities;
+  }
+  if ((lang === "__Q&A__" || lang === "__CodeBrush__") && !capacities.includes("chat")) {
+    return Promise.reject({ message: "Current API not support Q&A." });
   }
   let api = activeEngine.url;
   if (api.includes("tianqi")) {
     return getCodeCompletionsTianqi(activeEngine, lang, prompt);
-  } else if (api.includes("sensecore")) {
-    return getCodeCompletionsSenseCode(activeEngine, lang, prompt);
-  } else {
+  } else if (api.includes("openai")) {
     return getCodeCompletionsOpenAI(activeEngine, lang, prompt);
+  } else {
+    return getCodeCompletionsSenseCode(activeEngine, lang, prompt);
   }
 }
 
@@ -66,7 +70,7 @@ function getCodeCompletionsTianqi(engine: Engine, lang: string, prompt: string):
             }
             resolve({ completions });
           } else {
-            reject(res.data.message);
+            reject(res.data);
           }
         })
         .catch((err) => {
@@ -132,11 +136,11 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
             }
             resolve({ completions: completions.concat(completionsBackup) });
           } else {
-            reject(res.data.message);
+            reject(res.data);
           }
         })
         .catch((err) => {
-          reject(err.message);
+          reject(err);
         });
     } catch (e) {
       reject(e);
@@ -210,7 +214,7 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
             const completionsBackup = Array<string>();
             for (let i = 0; i < codeArray.length; i++) {
               const completion = codeArray[i];
-              let tmpstr: string = completion.text || completion.message.content || "";
+              let tmpstr: string = completion.text || completion.message?.content || "";
               if (tmpstr.trim() === "") {
                 continue;
               }
@@ -225,11 +229,11 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
             }
             resolve({ completions: completions.concat(completionsBackup) });
           } else {
-            reject(res.data.message);
+            reject(res.data);
           }
         })
         .catch((err) => {
-          reject(err.message);
+          reject(err);
         });
     } catch (e) {
       reject(e);

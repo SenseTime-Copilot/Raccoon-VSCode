@@ -9,6 +9,7 @@ let statusBarItem: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext) {
   new Configuration();
+  vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
 
   let activeEngine: Engine | undefined = context.globalState.get("engine");
   let engines = Configuration.engines;
@@ -39,6 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
         activeEngine = es[0];
       }
       updateStatusBarItem(context, statusBarItem);
+      vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
     }
   });
   checkPrivacy(context);

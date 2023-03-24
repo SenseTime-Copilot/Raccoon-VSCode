@@ -9,7 +9,7 @@
         "url": "https://api.openai.com/v1/completions",
         "key": "<YOUR-OPENAI-API-KEY>",
         "capacities": [
-            "complition",
+            "completion",
             "chat"
         ],
         "config": {
@@ -28,7 +28,7 @@
         "url": "https://tianqi.aminer.cn/api/v2/multilingual_code_generate_adapt",
         "key":  "<YOUR-TIANQI-API-KEY>:<YOUR-TIANQI-API-SECRET>",
         "capacities": [
-            "complition"
+            "completion"
         ],
         "config": {
             "n": 3,
@@ -56,6 +56,7 @@ Some function for SenseCode Next is hidden, to active them, add `SenseCode.Next`
 
 ```json
 "SenseCode.Next": {
-    "free_talk": true // enable sidebar free talk
+    "chat": true, // enable code Q&A (sidebar & context menu)
+    "free_chat": true // enable free talk (sidebar)
 }
 ```

@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -80,9 +80,9 @@
                         "default": [
                             {
                                 "label": "SenseCode",
-                                "url": "https://ams.sensecoreapi.dev/studio/ams/data/ams/v1/completions",
+                                "url": "https://ams.sensecoreapi.dev/studio/ams/data/v1/completions",
                                 "capacities": [
-                                    "complition"
+                                    "completion"
                                 ],
                                 "key": "<SenseCore AK>:<SenseCore SK>",
                                 "config": {
@@ -95,14 +95,14 @@
                             },
                             {
                                 "label": "SenseCode-Chat",
-                                "url": "https://ams.sensecoreapi.dev/studio/ams/data/ams/v1/chat/completions",
+                                "url": "https://ams.sensecoreapi.dev/studio/ams/data/v1/chat/completions",
                                 "capacities": [
-                                    "complition",
+                                    "completion",
                                     "chat"
                                 ],
                                 "key": "<SenseCore AK>:<SenseCore SK>",
                                 "config": {
-                                    "model": "BLOOM-176b",
+                                    "model": "BLOOMZ-176b-mt",
                                     "n": 1,
                                     "max_tokens": 128,
                                     "stop": "\n\n",
@@ -113,7 +113,7 @@
                                 "label": "OpenAI",
                                 "url": "https://api.openai.com/v1/completions",
                                 "capacities": [
-                                    "complition",
+                                    "completion",
                                     "chat"
                                 ],
                                 "key": "<YOUR OPENAI API KEY>",
@@ -131,7 +131,7 @@
                                 "label": "TianQi",
                                 "url": "https://tianqi.aminer.cn/api/v2/multilingual_code_generate_adapt",
                                 "capacities": [
-                                    "complition"
+                                    "completion"
                                 ],
                                 "key": "<YOUR TIANQI API KEY>:<YOUR TIANQI API SECRET>",
                                 "config": {
@@ -148,7 +148,7 @@
                     "SenseCode.DirectPrintOut": {
                         "type": "boolean",
                         "default": false,
-                        "description": "Direct print complition code to editor."
+                        "description": "Direct print completion code to editor."
                     },
                     "SenseCode.CompletionDelay": {
                         "type": "number",
@@ -188,27 +188,27 @@
                 {
                     "command": "sensecode.addTests",
                     "group": "SenseCode@1",
-                    "when": "editorHasSelection"
+                    "when": "editorHasSelection && sensecode.next.chat"
                 },
                 {
                     "command": "sensecode.findProblems",
                     "group": "SenseCode@2",
-                    "when": "editorHasSelection"
+                    "when": "editorHasSelection && sensecode.next.chat"
                 },
                 {
                     "command": "sensecode.optimize",
                     "group": "SenseCode@3",
-                    "when": "editorHasSelection"
+                    "when": "editorHasSelection && sensecode.next.chat"
                 },
                 {
                     "command": "sensecode.explain",
                     "group": "SenseCode@4",
-                    "when": "editorHasSelection"
+                    "when": "editorHasSelection && sensecode.next.chat"
                 },
                 {
                     "command": "sensecode.customPrompt",
                     "group": "SenseCode@5",
-                    "when": "editorHasSelection"
+                    "when": "editorHasSelection && sensecode.next.chat"
                 }
             ]
         },
