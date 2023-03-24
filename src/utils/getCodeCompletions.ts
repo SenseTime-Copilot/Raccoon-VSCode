@@ -93,6 +93,13 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
       prompt: prompt,
       ...engine.config
     };
+    if (lang === "__Q&A__") {
+
+    } else if (lang === "__CodeBrush__") {
+      payload.prompt = "If answer contains code snippets, surraound them into markdown code block format. Question: " + payload.prompt;
+    } else {
+      payload.prompt = `Complete following ${lang} code:\n` + payload.prompt;
+    }
     let responseType: ResponseType | undefined = undefined;
     if (lang === "__Q&A__" || lang === "__CodeBrush__" || Configuration.printOut) {
       payload.max_tokens = 2048;
@@ -101,9 +108,6 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
       payload.user = "sensecode-vscode-extension";
       payload.stream = true;
       responseType = "stream";
-      if (lang === "__CodeBrush__") {
-        payload.prompt = "If answer contains code snippets, surraound them into markdown code block format. Question:" + payload.prompt;
-      }
     } else {
       payload.stream = undefined;
     }
@@ -178,8 +182,12 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
     }
     let payload;
     let p = prompt;
-    if (lang === "__CodeBrush__") {
-      p = "If answer contains code snippets, surraound them into markdown code block format. Question:" + p;
+    if (lang === "__Q&A__") {
+
+    } else if (lang === "__CodeBrush__") {
+      p = "If answer contains code snippets, surraound them into markdown code block format. Question: " + p;
+    } else {
+      p = `Complete following ${lang} code:\n` + p;
     }
     if (engine.url.includes("/chat/")) {
       payload = {

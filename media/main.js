@@ -83,7 +83,7 @@ const vscode = acquireVsCodeApi();
         shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2"
                                     onclick="vscode.postMessage({type: 'repareQuestion', value: '', send: false});">
                                     <span class="material-symbols-rounded">quick_phrases</span>
-                                        Free Talk...
+                                        Free Chat...
                                     </button>`;
         document.getElementById("shortcuts").innerHTML = shortcuts;
 
@@ -142,6 +142,10 @@ const vscode = acquireVsCodeApi();
                                                 <span class="material-symbols-rounded">workspaces</span>
                                             </div>
                                             <div class="typing">Typing...</div>
+                                            <vscode-button appearance="icon">
+                                              <span class="material-symbols-rounded"
+                                                    onclick="vscode.postMessage({type: 'stopGenerate', id: '${id}'});">cancel</span>
+                                            </vscode-button>
                                         </div>`;
             list.appendChild(chat);
           }

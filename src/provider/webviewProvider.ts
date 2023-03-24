@@ -6,6 +6,7 @@ import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompleti
 export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
   private webView?: vscode.WebviewView;
   private promptList = Configuration.prompt;
+  private stopList: number[] = [];
 
   constructor(private context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -57,6 +58,10 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
           this.sendApiRequest(data.value, data.code, data.send);
           break;
         }
+        case 'stopGenerate': {
+          this.stopList.push(parseInt(data.id));
+          break;
+        }
         case 'editCode': {
           vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(data.value));
           break;
@@ -99,6 +104,12 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
+          if (this.stopList.includes(id)) {
+            this.stopList = this.stopList.filter(item => item !== id);
+            this.sendMessage({ type: 'stopResponse', id });
+            data.destroy();
+            return;
+          }
           let msgstr: string = v.toString();
           let msgs = msgstr.split("\n");
           for (let msg of msgs) {
@@ -126,14 +137,14 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
               this.sendMessage({ type: 'addError', error: json.error, id });
               data.destroy();
               return;
-            } else if (json.choices || json.choices[0]) {
+            } else if (json.choices && json.choices[0]) {
               this.sendMessage({ type: 'addResponse', id, value: json.choices[0].text || json.choices[0].message?.content });
             }
           }
         });
       } else {
         response = rs.completions[0];
-        this.sendMessage({ type: 'addResponse', value: response });
+        this.sendMessage({ type: 'addResponse', id, value: response });
         this.sendMessage({ type: 'stopResponse', id });
       }
     } catch (error: any) {
