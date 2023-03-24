@@ -104,7 +104,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
           for (let msg of msgs) {
             let content = "";
             if (msg.startsWith("data:")) {
-              content = msg.slice(6).trim();
+              content = msg.slice(5).trim();
             } else if (msg.startsWith("event:")) {
               content = msg.slice(6).trim();
               if (content === "error") {
@@ -126,8 +126,8 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
               this.sendMessage({ type: 'addError', error: json.error, id });
               data.destroy();
               return;
-            } else {
-              this.sendMessage({ type: 'addResponse', id, value: json.choices[0].text || json.choices[0].message.content });
+            } else if (json.choices || json.choices[0]) {
+              this.sendMessage({ type: 'addResponse', id, value: json.choices[0].text || json.choices[0].message?.content });
             }
           }
         });

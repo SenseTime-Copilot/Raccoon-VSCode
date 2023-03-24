@@ -35,10 +35,11 @@ export async function activate(context: vscode.ExtensionContext) {
         let newEngine = es.filter((v) => {
           return v.label === ae?.label;
         });
-        context.globalState.update("engine", newEngine[0]);
+        activeEngine = newEngine[0];
       } else if (es.length !== 0) {
         activeEngine = es[0];
       }
+      context.globalState.update("engine", activeEngine);
       updateStatusBarItem(context, statusBarItem);
       vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
     }
@@ -162,6 +163,8 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!privacy) {
         return;
       }
+      await vscode.commands.executeCommand('sensecode.view.focus');
+      await new Promise((f) => setTimeout(f, 1000));
       let selection = undefined;
       let commandPrefix = Configuration.prompt[promptKey] as string;
       const editor = vscode.window.activeTextEditor;
@@ -179,6 +182,8 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!privacy) {
       return;
     }
+    await vscode.commands.executeCommand('sensecode.view.focus');
+    await new Promise((f) => setTimeout(f, 1000));
     let selection = undefined;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
