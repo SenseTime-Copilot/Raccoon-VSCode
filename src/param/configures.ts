@@ -31,7 +31,28 @@ export class Configuration {
   }
 
   public static get engines(): Engine[] {
-    return Configuration.configuration.get<Engine[]>("Engines", []);
+    let es = Configuration.configuration.get<Engine[]>("Engines", []);
+    if (es.length === 0) {
+      let e = {
+        label: "Builtin",
+        url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
+        capacities: [
+          "completion"
+        ],
+        key: undefined,
+        config: {
+          model: "CodeGen-16B-mono",
+          n: 1,
+          max_tokens: 128,
+          stop: "\n\n",
+          temperature: 0.8
+        }
+      };
+      workspace.getConfiguration("SenseCode").update("Engines", [e], true);
+      return [e];
+    } else {
+      return es;
+    }
   }
 
   public static get autoCompleteEnabled(): boolean {

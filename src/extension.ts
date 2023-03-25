@@ -19,14 +19,15 @@ export async function activate(context: vscode.ExtensionContext) {
     });
     if (es.length !== 0) {
       activeEngine = es[0];
-      context.globalState.update("engine", es[0]);
     }
   }
   if (!activeEngine) {
     activeEngine = engines[0];
-    context.globalState.update("engine", engines[0]);
   }
-  vscode.workspace.onDidChangeConfiguration((e) => {
+  await checkEngineKey();
+  context.globalState.update("engine", activeEngine);
+
+  vscode.workspace.onDidChangeConfiguration(async (e) => {
     if (e.affectsConfiguration("SenseCode")) {
       Configuration.update();
       let es = Configuration.engines;
@@ -39,12 +40,36 @@ export async function activate(context: vscode.ExtensionContext) {
       } else if (es.length !== 0) {
         activeEngine = es[0];
       }
+      await checkEngineKey();
       context.globalState.update("engine", activeEngine);
       updateStatusBarItem(context, statusBarItem);
       vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
     }
   });
   checkPrivacy(context);
+
+  async function checkEngineKey() {
+    if (!activeEngine) {
+      return;
+    }
+    if (activeEngine.key === undefined) {
+      let k = await context.secrets.get("sensecode.key");
+      if (k) {
+        activeEngine.key = k;
+      } else {
+        return vscode.window.showInputBox({ title: "SenseCode: Input your Key..." }).then(async (v) => {
+          if (v) {
+            await context.secrets.store("sensecode.key", v);
+            activeEngine!.key = v;
+          } else {
+            activeEngine = undefined;
+          }
+        });
+      }
+    }
+  }
+
+  await checkEngineKey();
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.config.selectEngine", () => {
@@ -53,14 +78,22 @@ export async function activate(context: vscode.ExtensionContext) {
       let qp = vscode.window.createQuickPick<Engine>();
       qp.placeholder = `Select engine, current is [${ae}]`;
       qp.items = engine;
-      qp.onDidChangeSelection(items => {
+      qp.onDidChangeSelection(async items => {
         if (items[0]) {
-          context.globalState.update("engine", items[0]);
+          activeEngine = items[0]
+          await checkEngineKey();
+          context.globalState.update("engine", activeEngine);
           updateStatusBarItem(context, statusBarItem);
           qp.hide();
         }
       });
       qp.show();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.clearKey", async () => {
+      await context.secrets.delete("sensecode.key");
     })
   );
 
