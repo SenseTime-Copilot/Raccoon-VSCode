@@ -34,7 +34,7 @@ export class Configuration {
     let es = Configuration.configuration.get<Engine[]>("Engines", []);
     if (es.length === 0) {
       let e = {
-        label: "Builtin",
+        label: "Default",
         url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
         capacities: [
           "completion"
@@ -43,6 +43,7 @@ export class Configuration {
         config: {
           model: "CodeGen-16B-mono",
           n: 1,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           max_tokens: 128,
           stop: "\n\n",
           temperature: 0.8

@@ -307,9 +307,16 @@ export function inlineCompletionProvider(
                 vscode.window.showErrorMessage(`${json.error.type}: ${json.error.message}`, "Close");
                 return;
               }
+              if (!json.choices || !json.choices[0]) {
+                continue;
+              }
+              let code = json.choices[0].text || json.choices[0].message?.content;
+              if (!code) {
+                continue;
+              }
               if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
                 await editor.edit(e => {
-                  e.insert(start, json.choices[0].text || json.choices[0].message.content);
+                  e.insert(start, code);
                 }).then(() => {
                   end = editor!.selection.start;
                   editor!.revealRange(new vscode.Range(start, end));

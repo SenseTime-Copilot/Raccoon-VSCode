@@ -57,12 +57,10 @@ export async function activate(context: vscode.ExtensionContext) {
       if (k) {
         activeEngine.key = k;
       } else {
-        return vscode.window.showInputBox({ title: "SenseCode: Input your Key..." }).then(async (v) => {
+        return vscode.window.showInputBox({ title: "SenseCode: Input your Key...", ignoreFocusOut: true }).then(async (v) => {
           if (v) {
             await context.secrets.store("sensecode.key", v);
             activeEngine!.key = v;
-          } else {
-            activeEngine = undefined;
           }
         });
       }
@@ -80,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
       qp.items = engine;
       qp.onDidChangeSelection(async items => {
         if (items[0]) {
-          activeEngine = items[0]
+          activeEngine = items[0];
           await checkEngineKey();
           context.globalState.update("engine", activeEngine);
           updateStatusBarItem(context, statusBarItem);
@@ -105,6 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
+      await checkEngineKey();
       let privacy = await checkPrivacy(context);
       if (!privacy) {
         return;
@@ -198,6 +197,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       await vscode.commands.executeCommand('sensecode.view.focus');
       await new Promise((f) => setTimeout(f, 1000));
+      await checkEngineKey();
       let selection = undefined;
       let commandPrefix = Configuration.prompt[promptKey] as string;
       const editor = vscode.window.activeTextEditor;
@@ -217,6 +217,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     await vscode.commands.executeCommand('sensecode.view.focus');
     await new Promise((f) => setTimeout(f, 1000));
+    await checkEngineKey();
     let selection = undefined;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
