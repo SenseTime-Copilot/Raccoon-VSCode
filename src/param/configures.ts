@@ -1,8 +1,4 @@
-import { workspace, env, WorkspaceConfiguration } from "vscode";
-import { localeCN } from "./localeCN";
-import { localeEN } from "./localeEN";
-
-export const localeTag = env.language === "zh-cn" ? localeCN : localeEN;
+import { workspace, WorkspaceConfiguration } from "vscode";
 
 export interface Engine {
   label: string;

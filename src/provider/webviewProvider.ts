@@ -48,7 +48,7 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
             selection = editor.document.getText(editor.selection);
           }
           if (data.value !== "" && (selection?.trim() === "")) {
-            vscode.window.showInformationMessage("No code selected.");
+            vscode.window.showInformationMessage(vscode.l10n.t("No code selected"));
           } else {
             this.sendApiRequest(data.value, selection, data.send);
           }
@@ -212,18 +212,33 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
                             <span class="material-symbols-rounded">live_help</span>
-                            Ask
+                            ${vscode.l10n.t("Ask")}
                         </button>          
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
                             <span class="material-symbols-rounded">quick_phrases</span>
-                            Chat
+                            ${vscode.l10n.t("Free Chat")}
                         </button>
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
                             <span class="material-symbols-rounded">delete</span>
-                            Clear
+                            ${vscode.l10n.t("Clear")}
                         </button>
                     </div>
                 </div>
+                <script>
+                  const l10nForUI = {
+                    "addTests": "${vscode.l10n.t("Add Tests")}",
+                    "findProblems": "${vscode.l10n.t("Find Problems")}",
+                    "optimize": "${vscode.l10n.t("Optimize")}",
+                    "explain": "${vscode.l10n.t("Explain")}",
+                    "FreeChat": "${vscode.l10n.t("FreeChat")}",
+                    "Edit": "${vscode.l10n.t("Edit and resend this prompt")}",
+                    "Cancel": "${vscode.l10n.t("Cancel [Esc]")}",
+                    "Send": "${vscode.l10n.t("Send this prompt [Ctrl+Enter]")}",
+                    "Copy": "${vscode.l10n.t("Copy to clipboard")}",
+                    "Insert": "${vscode.l10n.t("Insert the below code to the current file")}",
+                    "NewFile": "${vscode.l10n.t("Create a new file with the below code")}"
+                  };
+                </script>
                 <script src="${scriptUri}"></script>
             </body>
             </html>`;

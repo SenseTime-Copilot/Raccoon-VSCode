@@ -192,7 +192,7 @@ export function inlineCompletionProvider(
         updateStatusBarItem(extension,
           statusBarItem,
           "bracket-error",
-          "User cancelled"
+          vscode.l10n.t("User cancelled")
         );
       });
       let editor = vscode.window.activeTextEditor;
@@ -254,7 +254,7 @@ export function inlineCompletionProvider(
         }
         let rs: GetCodeCompletions | any;
         try {
-          updateStatusBarItem(extension, statusBarItem, "sync~spin", "Thinking...");
+          updateStatusBarItem(extension, statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
           rs = await getCodeCompletions(extension,
             textBeforeCursor,
             lang);
@@ -270,7 +270,7 @@ export function inlineCompletionProvider(
           updateStatusBarItem(extension,
             statusBarItem,
             "bracket-error",
-            "No complition suggestion"
+            vscode.l10n.t("No complition suggestion")
           );
           return { items: [] };
         }
@@ -282,7 +282,7 @@ export function inlineCompletionProvider(
           updateStatusBarItem(extension,
             statusBarItem,
             "sync~spin",
-            "Typeing..."
+            vscode.l10n.t("Typeing...")
           );
           data.on("data", async (v: any) => {
             let msgstr: string = v.toString();
@@ -291,11 +291,12 @@ export function inlineCompletionProvider(
             });
             for (let msg of msgs) {
               let content = msg.trim();
+              console.log(content);
               if (content === '[DONE]') {
                 updateStatusBarItem(extension,
                   statusBarItem,
                   "bracket-dot",
-                  "Done"
+                  vscode.l10n.t("Done")
                 );
                 return;
               }
@@ -377,13 +378,13 @@ export function inlineCompletionProvider(
             updateStatusBarItem(extension,
               statusBarItem,
               "bracket-error",
-              "No complition suggestion"
+              vscode.l10n.t("No complition suggestion")
             );
           } else {
             updateStatusBarItem(extension,
               statusBarItem,
               "bracket-dot",
-              "Done"
+              vscode.l10n.t("Done")
             );
           }
           return cancel.isCancellationRequested ? { items: [] } : items;

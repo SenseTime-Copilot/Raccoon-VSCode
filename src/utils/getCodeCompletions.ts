@@ -1,5 +1,5 @@
 import axios, { ResponseType } from "axios";
-import { ExtensionContext, Uri } from "vscode";
+import { ExtensionContext, Uri, l10n } from "vscode";
 import { Configuration, Engine } from "../param/configures";
 import * as crypto from "crypto";
 
@@ -15,13 +15,13 @@ export async function getCodeCompletions(
   let activeEngine: Engine | undefined = context.globalState.get("engine");
   let capacities: string[] = ["completion"];
   if (!activeEngine) {
-    return Promise.reject({ message: "Active engine not set." });
+    return Promise.reject({ message: l10n.t("Active engine not set") });
   }
   if (activeEngine.capacities) {
     capacities = activeEngine.capacities;
   }
   if ((lang === "__Q&A__" || lang === "__CodeBrush__") && !capacities.includes("chat")) {
-    return Promise.reject({ message: "Current API not support Q&A." });
+    return Promise.reject({ message: l10n.t("Current API not support Q&A") });
   }
   let api = activeEngine.url;
   if (api.includes("tianqi")) {
@@ -96,9 +96,11 @@ function getCodeCompletionsOpenAI(engine: Engine, lang: string, prompt: string):
     if (lang === "__Q&A__") {
 
     } else if (lang === "__CodeBrush__") {
-      payload.prompt = "If answer contains code snippets, surraound them into markdown code block format. Question: " + payload.prompt;
+      let prefix = l10n.t("If answer contains code snippets, surraound them into markdown code block format. Question:");
+      payload.prompt = prefix + payload.prompt;
     } else {
-      payload.prompt = `Complete following ${lang} code:\n` + payload.prompt;
+      let prefix = l10n.t("Complete following {0} code:\n", lang);
+      payload.prompt = prefix + payload.prompt;
     }
     let responseType: ResponseType | undefined = undefined;
     if (lang === "__Q&A__" || lang === "__CodeBrush__" || Configuration.printOut) {
@@ -185,9 +187,11 @@ function getCodeCompletionsSenseCode(engine: Engine, lang: string, prompt: strin
     if (lang === "__Q&A__") {
 
     } else if (lang === "__CodeBrush__") {
-      p = "If answer contains code snippets, surraound them into markdown code block format. Question: " + p;
+      let prefix = l10n.t("If answer contains code snippets, surraound them into markdown code block format. Question:");
+      p = prefix + p;
     } else {
-      p = `Complete following ${lang} code:\n` + p;
+      let prefix = l10n.t("Complete following {0} code:\n", lang);
+      p = prefix + p;
     }
     if (engine.url.includes("/chat/")) {
       payload = {

@@ -2,7 +2,7 @@
     "publisher": "SenseTime",
     "name": "sensecode",
     "displayName": "Sense Code",
-    "description": "Sense Code is an AI-based coding assistant.",
+    "description": "%sensecode.description%",
     "homepage": "https://sensecore.cn",
     "repository": {
         "type": "git",
@@ -36,28 +36,29 @@
         "onStartupFinished"
     ],
     "main": "./dist/extension.js",
+    "l10n": "./l10n",
     "contributes": {
         "configuration": [
             {
                 "properties": {
                     "SenseCode.Engines": {
                         "type": "array",
-                        "description": "Engine List",
+                        "description": "%sensecode.config.engines.description%",
                         "items": {
                             "type": "object",
-                            "description": "Engine Config",
+                            "description": "%sensecode.config.engines.engine.description%",
                             "properties": {
                                 "label": {
                                     "type": "string",
-                                    "description": "Engine label for UI dispaly"
+                                    "description": "%sensecode.config.engines.engine.label%"
                                 },
                                 "url": {
                                     "type": "string",
-                                    "description": "Engine API URL"
+                                    "description": "%sensecode.config.engines.engine.url%"
                                 },
                                 "capacities": {
                                     "type": "array",
-                                    "description": "Engine capacity list",
+                                    "description": "%sensecode.config.engines.engine.capacities%",
                                     "items": {
                                         "type": "string",
                                         "enum": [
@@ -69,11 +70,11 @@
                                 },
                                 "key": {
                                     "type": "string",
-                                    "description": "API Key for engine"
+                                    "description": "%sensecode.config.engines.engine.key%"
                                 },
                                 "config": {
                                     "type": "object",
-                                    "description": "Request config"
+                                    "description": "%sensecode.config.engines.engine.config%"
                                 }
                             }
                         }
@@ -81,31 +82,31 @@
                     "SenseCode.CompletionAutomatically": {
                         "type": "boolean",
                         "default": false,
-                        "description": "Automatic get completion suggestions once stop typing."
-                    },
-                    "SenseCode.DirectPrintOut": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "Direct print completion code to editor."
+                        "description": "%sensecode.config.autoCompletion%"
                     },
                     "SenseCode.CompletionDelay": {
                         "type": "number",
                         "minimum": 0.5,
                         "default": 3,
-                        "description": "The delay in seconds to start getting completion suggestions. You can change this value to get better experience in coding with our extension and to avoid some unuseful completion suggestions."
+                        "description": "%sensecode.config.completionDelay%"
+                    },
+                    "SenseCode.DirectPrintOut": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "%sensecode.config.printOut%"
                     },
                     "SenseCode.Prompt": {
                         "type": "object",
-                        "description": "Prompt templates",
+                        "description": "%sensecode.config.prompt%",
                         "additionalProperties": {
                             "type": "string",
-                            "description": "Prompt template"
+                            "description": "%sensecode.config.prompt.item%"
                         },
                         "default": {
-                            "addTests": "Implement tests for the following code",
-                            "findProblems": "Find problems with the following code",
-                            "optimize": "Optimize the following code",
-                            "explain": "Explain the following code"
+                            "addTests": "%sensecode.command.addTests.prompt%",
+                            "findProblems": "%sensecode.command.findProblems.prompt%",
+                            "optimize": "%sensecode.command.optimize.prompt%",
+                            "explain": "%sensecode.command.explain.prompt%"
                         }
                     },
                     "SenseCode.Next": {
@@ -154,37 +155,37 @@
             {
                 "command": "sensecode.settings",
                 "category": "SenseCode",
-                "title": "Settings",
+                "title": "%sensecode.command.settings%",
                 "icon": "$(gear)"
             },
             {
                 "command": "sensecode.clearKey",
                 "category": "SenseCode",
-                "title": "Clear Key"
+                "title": "%sensecode.command.clearKey%"
             },
             {
                 "command": "sensecode.addTests",
-                "title": "SenseCode: Add tests",
+                "title": "%sensecode.command.addTests%",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.findProblems",
-                "title": "SenseCode: Find bugs",
+                "title": "%sensecode.command.findProblems%",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.optimize",
-                "title": "SenseCode: Optimize",
+                "title": "%sensecode.command.optimize%",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.explain",
-                "title": "SenseCode: Explain",
+                "title": "%sensecode.command.explain%",
                 "enablement": "editorHasSelection"
             },
             {
                 "command": "sensecode.customPrompt",
-                "title": "SenseCode: Custom Prompt...",
+                "title": "%sensecode.command.customPrompt%",
                 "enablement": "editorHasSelection"
             },
             {
@@ -237,7 +238,7 @@
                 {
                     "type": "webview",
                     "id": "sensecode.view",
-                    "name": "Assistant"
+                    "name": "%sensecode.view.title%"
                 }
             ]
         }

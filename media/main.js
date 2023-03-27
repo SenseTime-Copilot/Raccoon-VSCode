@@ -59,8 +59,11 @@ const vscode = acquireVsCodeApi();
         var shortcuts = "";
 
         for (var k in prompts) {
-          const labelPre = k.replace(/([A-Z])/g, " $1");
-          const label = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
+          var label = l10nForUI[k];
+          if (!label) {
+            const labelPre = k.replace(/([A-Z])/g, " $1");
+            label = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
+          }
           let p = prompts[k];
           let ellip = "";
           let send = true;
@@ -83,7 +86,7 @@ const vscode = acquireVsCodeApi();
         shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2"
                                     onclick="vscode.postMessage({type: 'repareQuestion', value: '', send: false});">
                                     <span class="material-symbols-rounded">quick_phrases</span>
-                                        Free Chat...
+                                      ${l10nForUI["FreeChat"]}
                                     </button>`;
         document.getElementById("shortcuts").innerHTML = shortcuts;
 
@@ -114,10 +117,10 @@ const vscode = acquireVsCodeApi();
           `<div class="p-4 self-end question-element-gnc relative  ${edit ? "replace" : ""}">
                         <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${userIcon} You</h2>
                         <div class="mb-5 flex items-center">
-                            <button title="Edit and resend this prompt" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-5 ${edit ? "hidden" : ""}">${pencilIcon}</button>
+                            <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-5 ${edit ? "hidden" : ""}">${pencilIcon}</button>
                             <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-2 absolute right-4" style="width: calc(100% - 32px);">
-                                <button title="Cancel [Esc]" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
-                                <button title="Send this prompt [Ctrl+Enter]" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
+                                <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
+                                <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
                                 <vscode-dropdown style="width: 100%;margin: 1px 0;" class="${hasCode ? "" : "hidden"}">${promptList}</vscode-dropdown>
                             </div>
                         </div>
@@ -175,19 +178,19 @@ const vscode = acquireVsCodeApi();
 
           // Create copy to clipboard button
           const copyButton = document.createElement("button");
-          copyButton.title = "Copy to clipboard";
+          copyButton.title = l10nForUI["Copy"];
           copyButton.innerHTML = clipboardIcon;
 
           copyButton.classList.add("code-element-gnc", "text-base", "p-0.5", "opacity-50", "flex", "items-center", "rounded-lg");
 
           const insert = document.createElement("button");
-          insert.title = "Insert the below code to the current file";
+          insert.title = l10nForUI["Insert"];
           insert.innerHTML = insertIcon;
 
           insert.classList.add("edit-element-gnc", "text-base", "p-0.5", "flex", "opacity-50", "items-center", "rounded-lg");
 
           const newTab = document.createElement("button");
-          newTab.title = "Create a new file with the below code";
+          newTab.title = l10nForUI["NewFile"];
           newTab.innerHTML = plusIcon;
 
           newTab.classList.add("new-code-element-gnc", "text-base", "p-0.5", "flex", "opacity-50", "items-center", "rounded-lg");
