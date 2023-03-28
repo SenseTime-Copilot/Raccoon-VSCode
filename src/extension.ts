@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { Configuration, Engine } from "./param/configures";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
-import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
+import { getDocumentLanguage, inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 
 let statusBarItem: vscode.StatusBarItem;
@@ -195,7 +195,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       selection = editor.document.getText(editor.selection);
-      provider?.sendApiRequest(commandPrefix, selection);
+      provider?.sendApiRequest(commandPrefix, selection, getDocumentLanguage(editor.document));
     })
   );
 
@@ -216,7 +216,7 @@ export async function activate(context: vscode.ExtensionContext) {
         p = prompts[k];
         break;
       }
-      provider?.sendApiRequest(p, selection, false);
+      provider?.sendApiRequest(p, selection, getDocumentLanguage(editor.document), false);
     }
   });
 

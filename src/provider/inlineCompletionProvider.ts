@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Configuration } from "../param/configures";
+import { Configuration, Engine } from "../param/configures";
 import { Trie } from "./trie";
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
@@ -8,7 +8,7 @@ import { IncomingMessage } from "http";
 let lastRequest = null;
 let trie = new Trie([]);
 
-function getDocumentLanguage(document: vscode.TextDocument) {
+export function getDocumentLanguage(document: vscode.TextDocument) {
   const documentLanguageId: string = document.languageId;
   let lang = "";
   switch (documentLanguageId) {
@@ -254,10 +254,15 @@ export function inlineCompletionProvider(
         }
         let rs: GetCodeCompletions | any;
         try {
+          let activeEngine: Engine | undefined = extension.globalState.get("engine");
+          if (!activeEngine) {
+            throw Error(vscode.l10n.t("Active engine not set"));
+          }
           updateStatusBarItem(extension, statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
-          rs = await getCodeCompletions(extension,
+          rs = await getCodeCompletions(activeEngine,
+            `${vscode.l10n.t("Complete following {0} code:\n", lang)}`,
             textBeforeCursor,
-            lang);
+            Configuration.printOut);
         } catch (err: any) {
           updateStatusBarItem(extension,
             statusBarItem,
@@ -291,12 +296,29 @@ export function inlineCompletionProvider(
             });
             for (let msg of msgs) {
               let content = msg.trim();
-              console.log(content);
+              if (cancel.isCancellationRequested) {
+                data.destroy();
+                updateStatusBarItem(extension,
+                  statusBarItem,
+                  "bracket-dot",
+                  vscode.l10n.t("User cancelled")
+                );
+                return;
+              }
               if (content === '[DONE]') {
                 updateStatusBarItem(extension,
                   statusBarItem,
                   "bracket-dot",
                   vscode.l10n.t("Done")
+                );
+                return;
+              }
+              if (content === 'event:error') {
+                data.destroy();
+                updateStatusBarItem(extension,
+                  statusBarItem,
+                  "bracket-dot",
+                  msgs[1]
                 );
                 return;
               }
@@ -325,6 +347,11 @@ export function inlineCompletionProvider(
                 });
               } else {
                 data.destroy();
+                updateStatusBarItem(extension,
+                  statusBarItem,
+                  "bracket-dot",
+                  vscode.l10n.t("User cancelled")
+                );
                 return;
               }
             }

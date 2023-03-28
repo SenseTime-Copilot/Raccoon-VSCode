@@ -1,7 +1,8 @@
 import { IncomingMessage } from 'http';
 import * as vscode from 'vscode';
-import { Configuration } from '../param/configures';
+import { Configuration, Engine } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
+import { getDocumentLanguage } from './inlineCompletionProvider';
 
 export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
   private webView?: vscode.WebviewView;
@@ -44,18 +45,28 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
         case 'repareQuestion': {
           let selection: string = "";
           const editor = vscode.window.activeTextEditor;
+          let lang = "";
           if (editor) {
             selection = editor.document.getText(editor.selection);
+            lang = getDocumentLanguage(editor.document);
           }
-          if (data.value !== "" && (selection?.trim() === "")) {
+          let prompt = "";
+          let send = data.send || false;
+          if (data.value) {
+            if (data.value.includes("${input}")) {
+              send = false;
+            }
+            prompt = data.value.replace("${input}", "").trim();
+          }
+          if (prompt !== "" && (selection?.trim() === "")) {
             vscode.window.showInformationMessage(vscode.l10n.t("No code selected"));
           } else {
-            this.sendApiRequest(data.value, selection, data.send);
+            this.sendApiRequest(prompt, selection, lang, send);
           }
           break;
         }
         case 'sendQuestion': {
-          this.sendApiRequest(data.value, data.code, data.send);
+          this.sendApiRequest(data.value, data.code, data.lang, true);
           break;
         }
         case 'stopGenerate': {
@@ -80,27 +91,39 @@ export class SenseCodeViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  public async sendApiRequest(prompt: string, code: string, send = true) {
+  public async sendApiRequest(prompt: string, code: string, lang: string, send = true) {
     let response: string;
-    let question = prompt;
-
-    if (code !== null) {
-      // Add prompt prefix to the code if there was a code block selected
-      question = `${prompt} \`\`\`\n${code}\n\`\`\``;
-    }
-
     let id = new Date().valueOf();
 
-    this.sendMessage({ type: 'addQuestion', value: prompt, code, send, id });
+    this.sendMessage({ type: 'addQuestion', value: prompt, code, lang, send, id });
     if (!send) {
       return;
     }
 
     let rs: GetCodeCompletions | IncomingMessage;
     try {
-      rs = await getCodeCompletions(this.context,
-        question,
-        code ? "__CodeBrush__" : "__Q&A__");
+      let activeEngine: Engine | undefined = this.context.globalState.get("engine");
+      if (!activeEngine) {
+        throw Error(vscode.l10n.t("Active engine not set"));
+      }
+      let capacities: string[] = ["completion"];
+      if (activeEngine.capacities) {
+        capacities = activeEngine.capacities;
+      }
+      if (!capacities.includes("chat")) {
+        throw Error(vscode.l10n.t("Current API not support Q&A"));
+      }
+      let prefix = "";
+      if (code) {
+        if (lang !== "") {
+          prefix = vscode.l10n.t("The following code is {0} code.", lang);
+        }
+        prefix += vscode.l10n.t("If answer contains code snippets, surraound them into markdown code block format. Question:");
+      }
+      rs = await getCodeCompletions(activeEngine,
+        prefix + prompt,
+        `\`\`\`${lang.toLowerCase()}\n${code}\n\`\`\`\n`,
+        true);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {

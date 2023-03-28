@@ -68,7 +68,6 @@ const vscode = acquireVsCodeApi();
           let ellip = "";
           let send = true;
           if (p.includes("${input}")) {
-            p = p.replace("${input}", "");
             ellip = "...";
             send = false;
           }
@@ -84,7 +83,7 @@ const vscode = acquireVsCodeApi();
                                     </button>`;
         }
         shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2"
-                                    onclick="vscode.postMessage({type: 'repareQuestion', value: '', send: false});">
+                                    onclick="vscode.postMessage({type: 'repareQuestion', value: ''});">
                                     <span class="material-symbols-rounded">quick_phrases</span>
                                       ${l10nForUI["FreeChat"]}
                                     </button>`;
@@ -96,6 +95,7 @@ const vscode = acquireVsCodeApi();
         let id = message.id;
         let p = message.value || "";
         let code = message.code || "";
+        let lang = message.lang ? `data-lang=${message.lang}` : "";
         let hasPrompt = p.trim() !== "";
         let hasCode = code.trim() !== "";
         const edit = !message.send;
@@ -124,7 +124,7 @@ const vscode = acquireVsCodeApi();
                                 <vscode-dropdown style="width: 100%;margin: 1px 0;" class="${hasCode ? "" : "hidden"}">${promptList}</vscode-dropdown>
                             </div>
                         </div>
-                        <p id="prompt-${id}" class="prompt leading-loose p-2" contenteditable=${edit}>${p}</p>
+                        <p id="prompt-${id}" class="prompt leading-loose p-2" ${lang} contenteditable=${edit}>${p}</p>
                         <div class="overflow-y-auto p-2">${codehtml}</div>
                     </div>`;
 
@@ -260,7 +260,7 @@ const vscode = acquireVsCodeApi();
         type: "sendQuestion",
         value: prompt[0].textContent,
         code: code[0]?.textContent,
-        send: true
+        lang: prompt[0].dataset.lang
       });
     }
   };
@@ -310,7 +310,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "chat-button") {
       e.preventDefault();
-      vscode.postMessage({ type: 'repareQuestion', value: '', send: false });
+      vscode.postMessage({ type: 'repareQuestion', value: '' });
       return;
     }
 
@@ -318,9 +318,10 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       var p = "Question here";
       for (var k in prompts) {
-        p = prompts[k].replace("${input}", "");
+        p = prompts[k];
+        break;
       }
-      vscode.postMessage({ type: 'repareQuestion', value: p, send: false });
+      vscode.postMessage({ type: 'repareQuestion', value: p });
       return;
     }
 

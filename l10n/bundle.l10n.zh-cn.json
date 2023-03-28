@@ -42,5 +42,6 @@
   "Active engine not set": "未设置活动的后端引擎",
   "Current API not support Q&A": "当前后端 API 不支持问答",
   "If answer contains code snippets, surraound them into markdown code block format. Question:": "如果回答中包含代码片段, 将其放在 Markdown 格式的代码块中. 问题: ",
-  "Complete following {0} code:\n": "补全以下 {0} 代码:\n"
+  "Complete following {0} code:\n": "补全以下 {0} 代码:\n",
+  "The following code is {0} code.": "以下代码是 {0} 代码."
 }
