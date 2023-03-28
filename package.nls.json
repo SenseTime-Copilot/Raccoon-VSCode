@@ -23,5 +23,10 @@
     "sensecode.command.optimize": "SenseCode: Optimize",
     "sensecode.command.optimize.prompt": "Optimize the following code",
     "sensecode.command.explain": "SenseCode: Explain",
-    "sensecode.command.explain.prompt": "Explain the following code"
+    "sensecode.command.explain.prompt": "Explain the following code",
+    "sensecode.command.selectEngine": "Select Code Completion Engine",
+    "sensecode.command.toggleAutoCompletion": "Toggle Auto/Manual Code Inline Completion",
+    "sensecode.command.toggleCompletionMode": "Toggle Snippets/Print Code Inline Completion",
+    "sensecode.command.completionTrigger": "Code Inline Completion Trigger",
+    "sensecode.command.setKeyinding": "Set keybinding for SenseCode completion Trigger"
 }

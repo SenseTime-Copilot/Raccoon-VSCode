@@ -23,5 +23,10 @@
     "sensecode.command.optimize": "SenseCode: 优化代码",
     "sensecode.command.optimize.prompt": "优化以下代码",
     "sensecode.command.explain": "SenseCode: 解释代码",
-    "sensecode.command.explain.prompt": "解释以下代码"
+    "sensecode.command.explain.prompt": "解释以下代码",
+    "sensecode.command.selectEngine": "切换后端引擎",
+    "sensecode.command.toggleAutoCompletion": "切换代码补全 自动/手动 触发模式",
+    "sensecode.command.toggleCompletionMode": "切换代码补全 提示/写入 补全模式",
+    "sensecode.command.completionTrigger": "触发代码补全",
+    "sensecode.command.setKeyinding": "设置触发代码补全的快捷键"
 }

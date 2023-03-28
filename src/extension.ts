@@ -131,6 +131,12 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.inlineSuggest.setKeybinding", () => {
+      return vscode.commands.executeCommand("workbench.action.openGlobalKeybindings", "sensecode.inlineSuggest.trigger");
+    })
+  );
+
   // create a new status bar item that we can now manage
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,

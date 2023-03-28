@@ -191,22 +191,27 @@
             {
                 "command": "sensecode.config.selectEngine",
                 "category": "SenseCode",
-                "title": "Select Code Completion Engine"
+                "title": "%sensecode.command.selectEngine%"
             },
             {
                 "command": "sensecode.inlineSuggest.toggleAuto",
                 "category": "SenseCode",
-                "title": "Toggle Auto/Manual Code Inline Completion"
+                "title": "%sensecode.command.toggleAutoCompletion%"
             },
             {
                 "command": "sensecode.inlineSuggest.togglePrintOut",
                 "category": "SenseCode",
-                "title": "Toggle Snippets/Print Code Inline Completion"
+                "title": "%sensecode.command.toggleCompletionMode%"
             },
             {
                 "command": "sensecode.inlineSuggest.trigger",
                 "category": "SenseCode",
-                "title": "Code Inline Completion Trigger"
+                "title": "%sensecode.command.completionTrigger%"
+            },
+            {
+                "command": "sensecode.inlineSuggest.setKeybinding",
+                "category": "SenseCode",
+                "title": "%sensecode.command.setKeyinding%"
             }
         ],
         "keybindings": [
