@@ -6,9 +6,12 @@ import { getDocumentLanguage, inlineCompletionProvider, showHideStatusBtn } from
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 
 let statusBarItem: vscode.StatusBarItem;
+export let outlog: vscode.LogOutputChannel;
 
 export async function activate(context: vscode.ExtensionContext) {
   new Configuration();
+  outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
+  context.subscriptions.push(outlog);
   vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
   context.globalState.update("privacy", false);
 
@@ -27,24 +30,26 @@ export async function activate(context: vscode.ExtensionContext) {
   }
   context.globalState.update("engine", activeEngine);
 
-  vscode.workspace.onDidChangeConfiguration(async (e) => {
-    if (e.affectsConfiguration("SenseCode")) {
-      Configuration.update();
-      let es = Configuration.engines;
-      let ae: Engine | undefined = context.globalState.get("engine");
-      if (ae) {
-        let newEngine = es.filter((v) => {
-          return v.label === ae?.label;
-        });
-        activeEngine = newEngine[0];
-      } else if (es.length !== 0) {
-        activeEngine = es[0];
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(async (e) => {
+      if (e.affectsConfiguration("SenseCode")) {
+        Configuration.update();
+        let es = Configuration.engines;
+        let ae: Engine | undefined = context.globalState.get("engine");
+        if (ae) {
+          let newEngine = es.filter((v) => {
+            return v.label === ae?.label;
+          });
+          activeEngine = newEngine[0];
+        } else if (es.length !== 0) {
+          activeEngine = es[0];
+        }
+        context.globalState.update("engine", activeEngine);
+        updateStatusBarItem(context, statusBarItem);
+        vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
       }
-      context.globalState.update("engine", activeEngine);
-      updateStatusBarItem(context, statusBarItem);
-      vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
-    }
-  });
+    })
+  );
   checkPrivacy(context);
 
   async function checkEngineKey() {
@@ -154,6 +159,8 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
+
+  context.subscriptions.push(statusBarItem);
 
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
