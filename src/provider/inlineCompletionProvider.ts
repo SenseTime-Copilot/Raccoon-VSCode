@@ -189,7 +189,7 @@ export function inlineCompletionProvider(
       cancel
     ) => {
       cancel.onCancellationRequested(_e => {
-        updateStatusBarItem(extension,
+        updateStatusBarItem(
           statusBarItem,
           "bracket-error",
           vscode.l10n.t("User cancelled")
@@ -237,12 +237,12 @@ export function inlineCompletionProvider(
         textBeforeCursor = str + textBeforeCursor;
       }
       if (textBeforeCursor.trim() === "") {
-        updateStatusBarItem(extension, statusBarItem);
+        updateStatusBarItem(statusBarItem);
         return { items: [] };
       }
 
       if (middleOfLineWontComplete(position, document)) {
-        updateStatusBarItem(extension, statusBarItem);
+        updateStatusBarItem(statusBarItem);
         return;
       }
 
@@ -258,21 +258,20 @@ export function inlineCompletionProvider(
           if (!activeEngine) {
             throw Error(vscode.l10n.t("Active engine not set"));
           }
-          updateStatusBarItem(extension, statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
+          updateStatusBarItem(statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
           rs = await getCodeCompletions(activeEngine,
             `${vscode.l10n.t("Complete following {0} code:\n", lang)}`,
             textBeforeCursor,
             Configuration.printOut);
         } catch (err: any) {
-          updateStatusBarItem(extension,
-            statusBarItem,
+          updateStatusBarItem(statusBarItem,
             "bracket-error",
             err
           );
           return { items: [] };
         }
         if (rs === null) {
-          updateStatusBarItem(extension,
+          updateStatusBarItem(
             statusBarItem,
             "bracket-error",
             vscode.l10n.t("No complition suggestion")
@@ -284,7 +283,7 @@ export function inlineCompletionProvider(
           let data = rs as IncomingMessage;
           let start = editor!.selection.start;
           let end = editor!.selection.start;
-          updateStatusBarItem(extension,
+          updateStatusBarItem(
             statusBarItem,
             "sync~spin",
             vscode.l10n.t("Typeing...")
@@ -298,7 +297,7 @@ export function inlineCompletionProvider(
               let content = msg.trim();
               if (cancel.isCancellationRequested) {
                 data.destroy();
-                updateStatusBarItem(extension,
+                updateStatusBarItem(
                   statusBarItem,
                   "bracket-dot",
                   vscode.l10n.t("User cancelled")
@@ -306,7 +305,7 @@ export function inlineCompletionProvider(
                 return;
               }
               if (content === '[DONE]') {
-                updateStatusBarItem(extension,
+                updateStatusBarItem(
                   statusBarItem,
                   "bracket-dot",
                   vscode.l10n.t("Done")
@@ -315,7 +314,7 @@ export function inlineCompletionProvider(
               }
               if (content === 'event:error') {
                 data.destroy();
-                updateStatusBarItem(extension,
+                updateStatusBarItem(
                   statusBarItem,
                   "bracket-dot",
                   msgs[1]
@@ -347,7 +346,7 @@ export function inlineCompletionProvider(
                 });
               } else {
                 data.destroy();
-                updateStatusBarItem(extension,
+                updateStatusBarItem(
                   statusBarItem,
                   "bracket-dot",
                   vscode.l10n.t("User cancelled")
@@ -402,13 +401,13 @@ export function inlineCompletionProvider(
             trie.addWord(textBeforeCursor + data.completions[i]);
           }
           if (data.completions.length === 0) {
-            updateStatusBarItem(extension,
+            updateStatusBarItem(
               statusBarItem,
               "bracket-error",
               vscode.l10n.t("No complition suggestion")
             );
           } else {
-            updateStatusBarItem(extension,
+            updateStatusBarItem(
               statusBarItem,
               "bracket-dot",
               vscode.l10n.t("Done")

@@ -36,7 +36,12 @@ const vscode = acquireVsCodeApi();
     const list = document.getElementById("qa-list");
 
     switch (message.type) {
-      case "updateSettings": {
+      case "updateSettingPage": {
+        const sp = document.getElementById("setting-page");
+        sp.innerHTML = message.value;
+        break;
+      }
+      case "updateNextFlags": {
         const wrapper = document.getElementById("qa-list-wrapper");
         let exClasses = [];
         for (var c of wrapper.classList) {
@@ -72,7 +77,7 @@ const vscode = acquireVsCodeApi();
             send = false;
           }
           promptList += `<vscode-option value="${p}">${label}${ellip}</vscode-option>`;
-          shortcuts += `  <button class="flex gap-2 justify-center items-center rounded-lg p-2"
+          shortcuts += `  <button class="flex gap-2 justify-center items-center rounded-lg p-2 max-w-sm"
                                         onclick="vscode.postMessage({
                                             type: 'repareQuestion',
                                             value: '${p}',
@@ -82,7 +87,7 @@ const vscode = acquireVsCodeApi();
                                         ${label}${ellip}
                                     </button>`;
         }
-        shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2"
+        shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2 max-w-sm"
                                     onclick="vscode.postMessage({type: 'repareQuestion', value: ''});">
                                     <span class="material-symbols-rounded">quick_phrases</span>
                                       ${l10nForUI["FreeChat"]}
@@ -279,11 +284,16 @@ const vscode = acquireVsCodeApi();
   };
 
   document.addEventListener("change", (e) => {
-    const question = e.target.closest(".question-element-gnc");
-
-    const ps = question.getElementsByClassName('prompt');
-    ps[0].textContent = e.target._value;
-    ps[0].focus();
+    if (e.target.id === "triggerModeRadio") {
+      vscode.postMessage({ type: "triggerMode", value: e.target._value });
+    } else if (e.target.id === "completionModeRadio") {
+      vscode.postMessage({ type: "completionMode", value: e.target._value });
+    } else {
+      const question = e.target.closest(".question-element-gnc");
+      const ps = question.getElementsByClassName('prompt');
+      ps[0].textContent = e.target._value;
+      ps[0].focus();
+    }
   });
 
   document.addEventListener("keydown", (e) => {

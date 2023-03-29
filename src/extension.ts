@@ -13,22 +13,23 @@ export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
   context.subscriptions.push(outlog);
   vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
-  context.globalState.update("privacy", false);
 
-  let activeEngine: Engine | undefined = context.globalState.get("engine");
-  let engines = Configuration.engines;
-  if (activeEngine) {
-    let es = engines.filter((e) => {
-      return e.label === activeEngine!.label;
-    });
-    if (es.length !== 0) {
-      activeEngine = es[0];
+  {
+    let activeEngine: Engine | undefined = context.globalState.get("engine");
+    let engines = Configuration.engines;
+    if (activeEngine) {
+      let es = engines.filter((e) => {
+        return e.label === activeEngine!.label;
+      });
+      if (es.length !== 0) {
+        activeEngine = es[0];
+      }
     }
+    if (!activeEngine) {
+      activeEngine = engines[0];
+    }
+    context.globalState.update("engine", activeEngine);
   }
-  if (!activeEngine) {
-    activeEngine = engines[0];
-  }
-  context.globalState.update("engine", activeEngine);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (e) => {
@@ -40,31 +41,31 @@ export async function activate(context: vscode.ExtensionContext) {
           let newEngine = es.filter((v) => {
             return v.label === ae?.label;
           });
-          activeEngine = newEngine[0];
-        } else if (es.length !== 0) {
-          activeEngine = es[0];
+          ae = newEngine[0];
         }
-        context.globalState.update("engine", activeEngine);
-        updateStatusBarItem(context, statusBarItem);
+        if (!ae && es.length !== 0) {
+          ae = es[0];
+        }
+        context.globalState.update("engine", ae);
         vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
       }
     })
   );
   checkPrivacy(context);
 
-  async function checkEngineKey() {
-    if (!activeEngine) {
+  async function checkEngineKey(ae?: Engine) {
+    if (!ae) {
       return;
     }
-    if (activeEngine.key === undefined) {
+    if (ae.key === undefined) {
       let k = await context.secrets.get("sensecode.key");
       if (k) {
-        activeEngine.key = k;
+        ae.key = k;
       } else {
         return vscode.window.showInputBox({ title: `${vscode.l10n.t("SenseCode: Input your Key...")}`, ignoreFocusOut: true }).then(async (v) => {
           if (v) {
             await context.secrets.store("sensecode.key", v);
-            activeEngine!.key = v;
+            ae!.key = v;
           }
         });
       }
@@ -76,15 +77,14 @@ export async function activate(context: vscode.ExtensionContext) {
       let engine = Configuration.engines;
       let ae = context.globalState.get<Engine>("engine");
       let qp = vscode.window.createQuickPick<Engine>();
-      qp.placeholder = `${vscode.l10n.t("Select engine, current is [{0}]", ae ? ae.label : "None")}`;
+      qp.placeholder = `${vscode.l10n.t("Select engine, current is [{0}]", ae ? ae.label : vscode.l10n.t("None"))}`;
       qp.items = engine;
       qp.onDidChangeSelection(async items => {
         if (items[0]) {
-          activeEngine = items[0];
-          await checkEngineKey();
-          context.globalState.update("engine", activeEngine);
-          updateStatusBarItem(context, statusBarItem);
+          await checkEngineKey(items[0]);
+          context.globalState.update("engine", items[0]);
           qp.hide();
+          provider.updateSettingPage();
         }
       });
       qp.show();
@@ -99,40 +99,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.settings", () => {
-      return vscode.commands.executeCommand("workbench.action.openGlobalSettings", { query: "SenseCode" });
+      return provider.updateSettingPage();
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
-      await checkEngineKey();
+      let ae = context.globalState.get<Engine>("engine");
+      await checkEngineKey(ae);
       return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.inlineSuggest.toggleAuto", () => {
-      const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
-      let autoComplete = configuration.get("CompletionAutomatically", true);
-      configuration.update("CompletionAutomatically", !autoComplete, true).then(() => {
-        Configuration.update();
-        updateStatusBarItem(context, statusBarItem);
-      }, (reason) => {
-        vscode.window.showErrorMessage(reason);
-      });
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.inlineSuggest.togglePrintOut", () => {
-      const configuration = vscode.workspace.getConfiguration("SenseCode", undefined);
-      let printOut = configuration.get("DirectPrintOut", true);
-      configuration.update("DirectPrintOut", !printOut, true).then(() => {
-        Configuration.update();
-        updateStatusBarItem(context, statusBarItem);
-      }, (reason) => {
-        vscode.window.showErrorMessage(reason);
-      });
     })
   );
 
@@ -149,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   statusBarItem.color = new vscode.ThemeColor("statusBar.remoteForeground");
   statusBarItem.backgroundColor = new vscode.ThemeColor("statusBar.remoteBackground");
-  updateStatusBarItem(context, statusBarItem);
+  updateStatusBarItem(statusBarItem);
 
   let inlineProvider: vscode.InlineCompletionItemProvider;
 
@@ -157,8 +132,6 @@ export async function activate(context: vscode.ExtensionContext) {
     context,
     statusBarItem
   );
-
-  showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
   context.subscriptions.push(statusBarItem);
 
@@ -199,7 +172,8 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(command, async () => {
       await vscode.commands.executeCommand('sensecode.view.focus');
       await new Promise((f) => setTimeout(f, 1000));
-      await checkEngineKey();
+      let ae = context.globalState.get<Engine>("engine");
+      await checkEngineKey(ae);
       let selection = undefined;
       let commandPrefix = Configuration.prompt[promptKey] as string;
       const editor = vscode.window.activeTextEditor;
@@ -215,7 +189,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", async () => {
     await vscode.commands.executeCommand('sensecode.view.focus');
     await new Promise((f) => setTimeout(f, 1000));
-    await checkEngineKey();
+    let ae = context.globalState.get<Engine>("engine");
+    await checkEngineKey(ae);
     let selection = undefined;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -234,6 +209,8 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(customPromptCommand, ...registeredCommands);
+
+  showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
 }
 export function deactivate() { }
