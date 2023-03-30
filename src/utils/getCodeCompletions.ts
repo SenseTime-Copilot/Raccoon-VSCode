@@ -136,9 +136,6 @@ function getCodeCompletionsSenseCode(engine: Engine, prompt: string, code: strin
       responseType = "stream";
     }
     try {
-      if (payload.prompt.length > (payload.max_tokens * 4)) {
-        payload.prompt = payload.prompt.slice(payload.max_tokens * 2);
-      }
       outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
       axios
         .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })

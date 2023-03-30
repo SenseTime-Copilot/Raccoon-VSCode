@@ -13,12 +13,12 @@
   "All settings": "全部设置",
   "Code Engine": "后端引擎",
   "Trigger Mode": "触发模式",
-  "Complition Mode": "补全模式",
+  "Completion Mode": "补全模式",
   "Settings": "设置",
   "Advanced": "高级",
   "User cancelled": "用户取消",
   "Thinking...": "正在思考...",
-  "No complition suggestion": "没有补全建议",
+  "No completion suggestion": "没有补全建议",
   "Typeing...": "正在输出...",
   "Done": "完成",
   "Ask": "提问",
@@ -36,7 +36,7 @@
   "Explain": "解释代码",
   "Active engine not set": "未设置活动的后端引擎",
   "Current API not support Q&A": "当前后端 API 不支持问答",
-  "If answer contains code snippets, surraound them into markdown code block format. Question:": "如果回答中包含代码片段, 将其放在 Markdown 格式的代码块中. 问题: ",
+  "If the response contains code, surraound them into markdown code block format.": "如果结果中包含代码, 将其放在 Markdown 格式的代码块中.",
   "Complete following {0} code:\n": "补全以下 {0} 代码:\n",
   "The following code is {0} code.": "以下代码是 {0} 代码."
 }

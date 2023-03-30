@@ -13,12 +13,12 @@
   "All settings": "All settings",
   "Code Engine": "Code Engine",
   "Trigger Mode": "Trigger Mode",
-  "Complition Mode": "Complition Mode",
+  "Completion Mode": "Completion Mode",
   "Settings": "Settings",
   "Advanced": "Advanced",
   "User cancelled": "User cancelled",
   "Thinking...": "Thinking...",
-  "No complition suggestion": "No complition suggestion",
+  "No completion suggestion": "No completion suggestion",
   "Typeing...": "Typeing...",
   "Done": "Done",
   "Ask": "Ask",
@@ -36,7 +36,7 @@
   "Explain": "Explain",
   "Active engine not set": "Active engine not set",
   "Current API not support Q&A": "Current API not support Q&A",
-  "If answer contains code snippets, surraound them into markdown code block format. Question:": "If answer contains code snippets, surraound them into markdown code block format. Question:",
+  "If the response contains code, surraound them into markdown code block format.": "If the response contains code, surraound them into markdown code block format.",
   "Complete following {0} code:\n": "Complete following {0} code:\n",
   "The following code is {0} code.": "The following code is in {0}."
 }

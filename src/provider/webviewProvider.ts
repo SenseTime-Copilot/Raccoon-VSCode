@@ -31,18 +31,18 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     let settingUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode" }))}`);
     let setDelayUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.CompletionDelay" }))}`);
     let settingPage = `
-    <div id="settings" class="h-screen flex flex-col gap-2 my-2 mx-auto p-4 max-w-sm">
+    <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <h3 class="flex flex-row justify-between text-base font-bold">
         ${l10n.t("Settings")}
         <div>
-          <span id="close-settings" class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').classList.add('hidden');">close</span>
+          <span id="close-settings" class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
         </div>
       </h3>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
       <div class="flex flex-col gap-2 w-full">
         <b>${l10n.t("Code Engine")}</b>
-        <div class=" flex flex-row justify-between">
-          <vscode-option class="align-middle">${activeEngine ? activeEngine.label : ""}</vscode-option>
+        <div class=" flex flex-row justify-between px-2">
+          <vscode-option class="align-middle" title='${JSON.stringify(activeEngine, undefined, 2)}'>${activeEngine ? activeEngine.label : ""}</vscode-option>
           <vscode-link slot="indicator" href="${Uri.parse("command:sensecode.config.selectEngine")}">
             <span class="material-symbols-rounded">tune</span>
           </vscode-link>
@@ -66,7 +66,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
       <div class="flex flex-col gap-2 w-full">
-        <b>${l10n.t("Complition Mode")}</b>
+        <b>${l10n.t("Completion Mode")}</b>
         <div>
         <vscode-radio-group id="completionModeRadio" class="flex flex-wrap px-2">
           <vscode-radio ${printOut ? "" : "checked"} class="w-32" value="Snippets">
@@ -81,7 +81,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
       <div class="flex flex-col gap-2 w-full">
         <b>${l10n.t("Advanced")}</b>
-        <div class="flex flex-row justify-between">
+        <div class="flex flex-row justify-between px-2">
           <span class="align-middle">${l10n.t("All settings")}</span>
           <vscode-link href="${settingUri}"><span class="material-symbols-rounded">settings</span></vscode-link>
         </div>
@@ -208,7 +208,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         if (lang !== "") {
           prefix = l10n.t("The following code is {0} code.", lang);
         }
-        prefix += l10n.t("If answer contains code snippets, surraound them into markdown code block format. Question:");
+        prefix += l10n.t("If the response contains code, surraound them into markdown code block format.");
       }
       rs = await getCodeCompletions(activeEngine,
         prefix + prompt,

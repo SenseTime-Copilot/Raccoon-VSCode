@@ -111,6 +111,9 @@
                     },
                     "SenseCode.Next": {
                         "type": "object"
+                    },
+                    "SenseCode.Debug": {
+                        "type": "object"
                     }
                 }
             }

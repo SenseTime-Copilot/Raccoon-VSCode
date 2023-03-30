@@ -20,12 +20,6 @@ ul {
     padding-left: var(--container-padding);
 }
 
-body>*,
-form>* {
-    margin-block-start: var(--input-margin-vertical);
-    margin-block-end: var(--input-margin-vertical);
-}
-
 *:focus {
     outline-color: var(--vscode-focusBorder) !important;
 }

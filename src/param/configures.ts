@@ -22,6 +22,10 @@ export class Configuration {
     return Configuration.configuration.get("Next", {});
   }
 
+  public static get debug(): any {
+    return Configuration.configuration.get("Debug", {});
+  }
+
   public static get prompt(): any {
     return Configuration.configuration.get("Prompt", {});
   }

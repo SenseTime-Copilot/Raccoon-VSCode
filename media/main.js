@@ -97,6 +97,7 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addQuestion": {
+        document.getElementById('settings')?.remove();
         let id = message.id;
         let p = message.value || "";
         let code = message.code || "";

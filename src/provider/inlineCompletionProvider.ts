@@ -196,6 +196,9 @@ export function inlineCompletionProvider(
         );
       });
       let editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !Configuration.autoCompleteEnabled) {
         return;
       }
@@ -211,13 +214,15 @@ export function inlineCompletionProvider(
       if (lang === "") {
         return;
       }
-      let selection: vscode.Selection;
-      selection = new vscode.Selection(
-        0,
-        0,
-        position.line,
-        position.character
-      );
+      let selection: vscode.Selection = editor.selection;
+      if (editor.selection.isEmpty) {
+        selection = new vscode.Selection(
+          0,
+          0,
+          position.line,
+          position.character
+        );
+      }
       let textBeforeCursor = document.getText(selection);
       if (
         position.character === 0 &&
@@ -259,9 +264,31 @@ export function inlineCompletionProvider(
             throw Error(vscode.l10n.t("Active engine not set"));
           }
           updateStatusBarItem(statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
+          // TODO: AST parse to ensure truncate at appropriate postion
+          if (textBeforeCursor.length > (activeEngine.config.max_tokens * 4)) {
+            textBeforeCursor = textBeforeCursor.slice(-2 * activeEngine.config.max_tokens);
+          }
+          let prefix = `${vscode.l10n.t("Complete following {0} code:\n", lang)}`;
+          let suffix = ``;
+          prefix = `Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+### Instruction:
+Task type: code completion. Please complete the incomplete code below.
+          
+### Input:
+`;
+          suffix = `### Response:
+`;
+          if (Configuration.debug.completionPrefix) {
+            prefix = Configuration.debug.completionPrefix.join("\n");
+          }
+          if (Configuration.debug.completionSuffix) {
+            suffix = Configuration.debug.completionSuffix.join("\n");
+          }
           rs = await getCodeCompletions(activeEngine,
-            `${vscode.l10n.t("Complete following {0} code:\n", lang)}`,
-            textBeforeCursor,
+            // `${vscode.l10n.t("Complete following {0} code:\n", lang)}`,
+            `${prefix}\n${textBeforeCursor}\n${suffix}`,
+            "",//textBeforeCursor,
             Configuration.printOut);
         } catch (err: any) {
           updateStatusBarItem(statusBarItem,
@@ -274,15 +301,15 @@ export function inlineCompletionProvider(
           updateStatusBarItem(
             statusBarItem,
             "bracket-error",
-            vscode.l10n.t("No complition suggestion")
+            vscode.l10n.t("No completion suggestion")
           );
           return { items: [] };
         }
 
         if (rs instanceof IncomingMessage) {
           let data = rs as IncomingMessage;
-          let start = editor!.selection.start;
-          let end = editor!.selection.start;
+          let start = editor.selection.start;
+          let end = editor.selection.start;
           updateStatusBarItem(
             statusBarItem,
             "sync~spin",
@@ -404,7 +431,7 @@ export function inlineCompletionProvider(
             updateStatusBarItem(
               statusBarItem,
               "bracket-error",
-              vscode.l10n.t("No complition suggestion")
+              vscode.l10n.t("No completion suggestion")
             );
           } else {
             updateStatusBarItem(
