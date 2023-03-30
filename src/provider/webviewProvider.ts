@@ -1,34 +1,47 @@
 import { IncomingMessage } from 'http';
 import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n } from 'vscode';
-import { Configuration, Engine } from '../param/configures';
+import { configuration } from '../extension';
+import { Engine } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from './inlineCompletionProvider';
 
 export class SenseCodeViewProvider implements WebviewViewProvider {
   private webView?: WebviewView;
-  private promptList;
   private stopList: number[];
 
   constructor(private context: ExtensionContext) {
-    this.promptList = Configuration.prompt;
     this.stopList = [];
-    workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("SenseCode")) {
-        Configuration.update();
-        this.promptList = Configuration.prompt;
-        this.sendMessage({ type: 'promptList', value: this.promptList });
-        this.sendMessage({ type: 'updateNextFlags', value: Configuration.next });
-        this.updateSettingPage();
-      }
-    });
+    context.subscriptions.push(
+      workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("SenseCode")) {
+          configuration.update();
+          if (e.affectsConfiguration("SenseCode.Prompt")) {
+            this.sendMessage({ type: 'promptList', value: configuration.prompt });
+          }
+          if (e.affectsConfiguration("SenseCode.Next")) {
+            commands.executeCommand("setContext", "sensecode.next.chat", configuration.next.chat === true);
+            this.sendMessage({ type: 'updateNextFlags', value: configuration.next });
+          }
+          this.updateSettingPage(false);
+        }
+      })
+    );
   }
 
-  async updateSettingPage(
+  async updateSettingPage(show: boolean
   ): Promise<void> {
-    let activeEngine = this.context.globalState.get<Engine>("engine");
-    let autoComplete = Configuration.autoCompleteEnabled;
-    let printOut = Configuration.printOut;
+    let activeEngine = configuration.activeEngine;
+    let es = configuration.engines;
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" ${activeEngine ? `value="${activeEngine.label}"` : ""}>`;
+    for (let e of es) {
+      esList += `<vscode-option class="align-middle" value="${e.label}">${e.label}</vscode-option>`;
+    }
+    esList += "</vscode-dropdown>";
+    let autoComplete = configuration.autoCompleteEnabled;
+    let printOut = configuration.printOut;
+    let sensetive = configuration.sensetive;
     let settingUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode" }))}`);
+    let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
     let setDelayUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.CompletionDelay" }))}`);
     let settingPage = `
     <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
@@ -41,9 +54,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
       <div class="flex flex-col gap-2 w-full">
         <b>${l10n.t("Code Engine")}</b>
-        <div class=" flex flex-row justify-between px-2">
-          <vscode-option class="align-middle" title='${JSON.stringify(activeEngine, undefined, 2)}'>${activeEngine ? activeEngine.label : ""}</vscode-option>
-          <vscode-link slot="indicator" href="${Uri.parse("command:sensecode.config.selectEngine")}">
+        <div class=" flex flex-row justify-between px-2 gap-2">
+          ${esList}
+          <vscode-link slot="indicator" href="${setEngineUri}">
             <span class="material-symbols-rounded">tune</span>
           </vscode-link>
         </div>
@@ -55,13 +68,26 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
           <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto">
             ${l10n.t("Auto")}
-            <vscode-link href="${setDelayUri}" ${!autoComplete ? "hidden" : ""}><span class="material-symbols-rounded">timer</span></vscode-link>
           </vscode-radio>
           <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Hotkey">
-            ${l10n.t("Hotkey")}
-            <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" ${autoComplete ? "hidden" : ""}><span class="material-symbols-rounded">keyboard</span></vscode-link>
+            ${l10n.t("Manual")}
           </vscode-radio>
         </vscode-radio-group>
+        </div>
+        <b ${autoComplete ? "" : "hidden"}>${l10n.t("Delay")}</b>
+        <div ${autoComplete ? "" : "hidden"}>
+        <vscode-radio-group id="triggerDelayRadio" class="flex flex-wrap px-2">
+          <vscode-radio ${sensetive ? "checked" : ""} class="w-32" value="short">
+            ${l10n.t("Short")}
+          </vscode-radio>
+          <vscode-radio ${sensetive ? "" : "checked"} class="w-32" value="long">
+            ${l10n.t("Long")}
+          </vscode-radio>
+        </vscode-radio-group>
+        </div>
+        <b ${autoComplete ? "hidden" : ""}>${l10n.t("Hotkey")}</b>
+        <div ${autoComplete ? "hidden" : ""} class="flex flex-wrap px-2">
+          <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" ${autoComplete ? "hidden" : ""}><span class="material-symbols-rounded">keyboard</span></vscode-link>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
@@ -89,7 +115,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
     </div>
     `;
-    this.sendMessage({ type: 'updateSettingPage', value: settingPage });
+    this.sendMessage({ type: 'updateSettingPage', value: settingPage, show });
   }
 
   public resolveWebviewView(
@@ -111,7 +137,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
         case 'listPrompt': {
-          this.sendMessage({ type: 'promptList', value: this.promptList });
+          this.sendMessage({ type: 'promptList', value: configuration.prompt });
           break;
         }
         case 'repareQuestion': {
@@ -157,22 +183,33 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           window.showTextDocument(document);
           break;
         }
-        case 'triggerMode': {
-          const configuration = workspace.getConfiguration("SenseCode", undefined);
-          configuration.update("CompletionAutomatically", data.value === "Auto", true).then(() => {
-            Configuration.update();
-          }, (reason) => {
-            window.showErrorMessage(reason);
-          });
+        case 'activeEngine': {
+          let ae = configuration.engines.filter((e) => { return e.label === data.value; });
+          let e = ae[0];
+          if (configuration.activeEngine === undefined || !e || configuration.activeEngine.label != e.label) {
+            configuration.activeEngine = e;
+            this.updateSettingPage(false);
+          }
           break;
         }
+        case 'triggerMode': {
+          if (configuration.autoCompleteEnabled !== (data.value === "Auto")) {
+            configuration.autoCompleteEnabled = (data.value === "Auto");
+            this.updateSettingPage(false);
+          }
+          break;
+        }
+        case 'delay': {
+          if ((configuration.sensetive && data.value === "long") || (!configuration.sensetive && data.value === "short")) {
+            configuration.sensetive = data.value === "short";
+            this.updateSettingPage(false);
+          }
+        }
         case 'completionMode': {
-          const configuration = workspace.getConfiguration("SenseCode", undefined);
-          configuration.update("DirectPrintOut", data.value === "Print", true).then(() => {
-            Configuration.update();
-          }, (reason) => {
-            window.showErrorMessage(reason);
-          });
+          if (configuration.printOut !== (data.value === "Print")) {
+            configuration.printOut = (data.value === "Print");
+            this.updateSettingPage(false);
+          }
           break;
         }
         default:
@@ -192,7 +229,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
 
     let rs: GetCodeCompletions | IncomingMessage;
     try {
-      let activeEngine: Engine | undefined = this.context.globalState.get("engine");
+      let activeEngine: Engine | undefined = configuration.activeEngine;
       if (!activeEngine) {
         throw Error(l10n.t("Active engine not set"));
       }
@@ -290,7 +327,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
     const logo = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
-    let next = Configuration.next;
+    let next = configuration.next;
     let bodyClass = "";
     for (let k in next) {
       if (next[k]) {

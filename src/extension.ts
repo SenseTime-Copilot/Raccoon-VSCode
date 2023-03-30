@@ -7,50 +7,14 @@ import { SenseCodeViewProvider } from "./provider/webviewProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
+export let configuration: Configuration;
 
 export async function activate(context: vscode.ExtensionContext) {
-  new Configuration();
+  configuration = new Configuration(context);
   outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
   context.subscriptions.push(outlog);
-  vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
+  vscode.commands.executeCommand("setContext", "sensecode.next.chat", configuration.next.chat === true);
 
-  {
-    let activeEngine: Engine | undefined = context.globalState.get("engine");
-    let engines = Configuration.engines;
-    if (activeEngine) {
-      let es = engines.filter((e) => {
-        return e.label === activeEngine!.label;
-      });
-      if (es.length !== 0) {
-        activeEngine = es[0];
-      }
-    }
-    if (!activeEngine) {
-      activeEngine = engines[0];
-    }
-    context.globalState.update("engine", activeEngine);
-  }
-
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(async (e) => {
-      if (e.affectsConfiguration("SenseCode")) {
-        Configuration.update();
-        let es = Configuration.engines;
-        let ae: Engine | undefined = context.globalState.get("engine");
-        if (ae) {
-          let newEngine = es.filter((v) => {
-            return v.label === ae?.label;
-          });
-          ae = newEngine[0];
-        }
-        if (!ae && es.length !== 0) {
-          ae = es[0];
-        }
-        context.globalState.update("engine", ae);
-        vscode.commands.executeCommand("setContext", "sensecode.next.chat", Configuration.next.chat === true);
-      }
-    })
-  );
   checkPrivacy(context);
 
   async function checkEngineKey(ae?: Engine) {
@@ -73,25 +37,6 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.config.selectEngine", () => {
-      let engine = Configuration.engines;
-      let ae = context.globalState.get<Engine>("engine");
-      let qp = vscode.window.createQuickPick<Engine>();
-      qp.placeholder = `${vscode.l10n.t("Select engine, current is [{0}]", ae ? ae.label : vscode.l10n.t("None"))}`;
-      qp.items = engine;
-      qp.onDidChangeSelection(async items => {
-        if (items[0]) {
-          await checkEngineKey(items[0]);
-          context.globalState.update("engine", items[0]);
-          qp.hide();
-          provider.updateSettingPage();
-        }
-      });
-      qp.show();
-    })
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.clearKey", async () => {
       await context.secrets.delete("sensecode.key");
     })
@@ -99,13 +44,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.settings", () => {
-      return provider.updateSettingPage();
+      return provider.updateSettingPage(true);
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
-      let ae = context.globalState.get<Engine>("engine");
+      let ae = configuration.activeEngine;
       await checkEngineKey(ae);
       return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
     })
@@ -172,10 +117,10 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(command, async () => {
       await vscode.commands.executeCommand('sensecode.view.focus');
       await new Promise((f) => setTimeout(f, 1000));
-      let ae = context.globalState.get<Engine>("engine");
+      let ae = configuration.activeEngine;
       await checkEngineKey(ae);
       let selection = undefined;
-      let commandPrefix = Configuration.prompt[promptKey] as string;
+      let commandPrefix = configuration.prompt[promptKey] as string;
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -189,7 +134,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", async () => {
     await vscode.commands.executeCommand('sensecode.view.focus');
     await new Promise((f) => setTimeout(f, 1000));
-    let ae = context.globalState.get<Engine>("engine");
+    let ae = configuration.activeEngine;
     await checkEngineKey(ae);
     let selection = undefined;
     const editor = vscode.window.activeTextEditor;
@@ -198,7 +143,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     selection = editor.document.getText(editor.selection);
     if (selection) {
-      let prompts = Configuration.prompt;
+      let prompts = configuration.prompt;
       let p = undefined;
       for (let k in prompts) {
         p = prompts[k];

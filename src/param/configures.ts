@@ -1,4 +1,4 @@
-import { workspace, WorkspaceConfiguration } from "vscode";
+import { ExtensionContext, workspace, WorkspaceConfiguration } from "vscode";
 
 export interface Engine {
   label: string;
@@ -9,29 +9,53 @@ export interface Engine {
 }
 
 export class Configuration {
-  static configuration: WorkspaceConfiguration;
-  constructor() {
-    Configuration.update();
+  private configuration: WorkspaceConfiguration;
+  private context: ExtensionContext;
+  constructor(context: ExtensionContext) {
+    this.context = context;
+    this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    this.update();
   }
 
-  public static update() {
-    Configuration.configuration = workspace.getConfiguration("SenseCode", undefined);
+  public update() {
+    this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    this.activeEngine = this.context.globalState.get("engine");
   }
 
-  public static get next(): any {
-    return Configuration.configuration.get("Next", {});
+  public get activeEngine(): Engine | undefined {
+    return this.context.globalState.get<Engine>("engine");
   }
 
-  public static get debug(): any {
-    return Configuration.configuration.get("Debug", {});
+  public set activeEngine(engine: Engine | undefined) {
+    let engines = this.engines;
+    if (engine) {
+      let es = engines.filter((e) => {
+        return e.label === engine!.label;
+      });
+      if (es.length !== 0) {
+        engine = es[0];
+      }
+    }
+    if (!engine) {
+      engine = engines[0];
+    }
+    this.context.globalState.update("engine", engine);
   }
 
-  public static get prompt(): any {
-    return Configuration.configuration.get("Prompt", {});
+  public get next(): any {
+    return this.configuration.get("Next", {});
   }
 
-  public static get engines(): Engine[] {
-    let es = Configuration.configuration.get<Engine[]>("Engines", []);
+  public get debug(): any {
+    return this.configuration.get("Debug", {});
+  }
+
+  public get prompt(): any {
+    return this.configuration.get("Prompt", {});
+  }
+
+  public get engines(): Engine[] {
+    let es = this.configuration.get<Engine[]>("Engines", []);
     if (es.length === 0) {
       let e = {
         label: "Default",
@@ -56,15 +80,27 @@ export class Configuration {
     }
   }
 
-  public static get autoCompleteEnabled(): boolean {
-    return Configuration.configuration.get("CompletionAutomatically", true);
+  public get autoCompleteEnabled(): boolean {
+    return this.context.globalState.get("CompletionAutomatically", true);
   }
 
-  public static get printOut(): boolean {
-    return Configuration.configuration.get("DirectPrintOut", false);
+  public set autoCompleteEnabled(v: boolean) {
+    this.context.globalState.update("CompletionAutomatically", v);
   }
 
-  public static get delay(): number {
-    return Configuration.configuration.get("CompletionDelay", 0.5);
+  public get printOut(): boolean {
+    return this.context.globalState.get("DirectPrintOut", true);
+  }
+
+  public set printOut(v: boolean) {
+    this.context.globalState.update("DirectPrintOut", v);
+  }
+
+  public get sensetive(): boolean {
+    return this.context.globalState.get("sensetive", true);
+  }
+
+  public set sensetive(v: boolean) {
+    this.context.globalState.update("sensetive", v);
   }
 }

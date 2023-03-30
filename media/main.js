@@ -37,8 +37,10 @@ const vscode = acquireVsCodeApi();
 
     switch (message.type) {
       case "updateSettingPage": {
-        const sp = document.getElementById("setting-page");
-        sp.innerHTML = message.value;
+        if (document.getElementById('settings') || message.show) {
+          const sp = document.getElementById("setting-page");
+          sp.innerHTML = message.value;
+        }
         break;
       }
       case "updateNextFlags": {
@@ -289,6 +291,10 @@ const vscode = acquireVsCodeApi();
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
     } else if (e.target.id === "completionModeRadio") {
       vscode.postMessage({ type: "completionMode", value: e.target._value });
+    } else if (e.target.id === "triggerDelayRadio") {
+      vscode.postMessage({ type: "delay", value: e.target._value });
+    } else if (e.target.id === "engineDropdown") {
+      vscode.postMessage({ type: "activeEngine", value: e.target._value });
     } else {
       const question = e.target.closest(".question-element-gnc");
       const ps = question.getElementsByClassName('prompt');

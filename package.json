@@ -79,22 +79,6 @@
                             }
                         }
                     },
-                    "SenseCode.CompletionAutomatically": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "%sensecode.config.autoCompletion%"
-                    },
-                    "SenseCode.CompletionDelay": {
-                        "type": "number",
-                        "minimum": 0.5,
-                        "default": 3,
-                        "description": "%sensecode.config.completionDelay%"
-                    },
-                    "SenseCode.DirectPrintOut": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "%sensecode.config.printOut%"
-                    },
                     "SenseCode.Prompt": {
                         "type": "object",
                         "description": "%sensecode.config.prompt%",
@@ -190,11 +174,6 @@
                 "command": "sensecode.customPrompt",
                 "title": "%sensecode.command.customPrompt%",
                 "enablement": "editorHasSelection"
-            },
-            {
-                "command": "sensecode.config.selectEngine",
-                "category": "SenseCode",
-                "title": "%sensecode.command.selectEngine%"
             },
             {
                 "command": "sensecode.inlineSuggest.trigger",

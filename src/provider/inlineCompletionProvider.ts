@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
-import { Configuration, Engine } from "../param/configures";
+import { Engine } from "../param/configures";
 import { Trie } from "./trie";
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { IncomingMessage } from "http";
+import { configuration } from "../extension";
 
 let lastRequest = null;
 let trie = new Trie([]);
@@ -199,11 +200,15 @@ export function inlineCompletionProvider(
       if (!editor) {
         return;
       }
-      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !Configuration.autoCompleteEnabled) {
+      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !configuration.autoCompleteEnabled) {
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        await new Promise((f) => setTimeout(f, Configuration.delay * 1000));
+        let delay = 3000;
+        if (configuration.sensetive) {
+          delay = 1000;
+        }
+        await new Promise((f) => setTimeout(f, delay));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }
@@ -279,17 +284,17 @@ Task type: code completion. Please complete the incomplete code below.
 `;
           suffix = `### Response:
 `;
-          if (Configuration.debug.completionPrefix) {
-            prefix = Configuration.debug.completionPrefix.join("\n");
+          if (configuration.debug.completionPrefix) {
+            prefix = configuration.debug.completionPrefix.join("\n");
           }
-          if (Configuration.debug.completionSuffix) {
-            suffix = Configuration.debug.completionSuffix.join("\n");
+          if (configuration.debug.completionSuffix) {
+            suffix = configuration.debug.completionSuffix.join("\n");
           }
           rs = await getCodeCompletions(activeEngine,
             // `${vscode.l10n.t("Complete following {0} code:\n", lang)}`,
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
             "",//textBeforeCursor,
-            Configuration.printOut);
+            configuration.printOut);
         } catch (err: any) {
           updateStatusBarItem(statusBarItem,
             "bracket-error",
