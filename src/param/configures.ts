@@ -6,6 +6,7 @@ export interface Engine {
   key: string | undefined;
   capacities: string[] | undefined;
   config: any;
+  streamConfig?: any;
 }
 
 export class Configuration {

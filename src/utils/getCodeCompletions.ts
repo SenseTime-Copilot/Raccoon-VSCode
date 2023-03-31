@@ -11,41 +11,45 @@ export type GetCodeCompletions = {
 export async function getCodeCompletions(
   engine: Engine,
   prompt: string,
-  code: string,
   stream: boolean
 ): Promise<GetCodeCompletions> {
   let api = engine.url;
   if (api.includes("openai")) {
-    return getCodeCompletionsOpenAI(engine, prompt, code, stream);
+    return getCodeCompletionsOpenAI(engine, prompt, stream);
   } else {
-    return getCodeCompletionsSenseCode(engine, prompt, code, stream);
+    return getCodeCompletionsSenseCode(engine, prompt, stream);
   }
 }
 
-function getCodeCompletionsOpenAI(engine: Engine, prompt: string, code: string, stream: boolean): Promise<GetCodeCompletions> {
+function getCodeCompletionsOpenAI(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (engine.key) {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       headers = { 'Authorization': `Bearer ${engine.key}` };
     }
+    let responseType: ResponseType | undefined = undefined;
+    let config = engine.config;
+    if (stream) {
+      if (engine.streamConfig) {
+        config = engine.streamConfig;
+      } else {
+        config.max_tokens = 2048;
+        config.stop = undefined;
+        config.n = 1;
+      }
+      config.user = "sensecode-vscode-extension";
+      config.stream = true;
+      responseType = "stream";
+    }
     let payload = {
-      prompt: `${prompt} ${code ? `\`\`\`\n${code}\n\`\`\`` : ""}`,
-      ...engine.config
+      prompt,
+      user: "sensecode-vscode-extension",
+      ...config
     };
 
-    let responseType: ResponseType | undefined = undefined;
-    if (stream) {
-      payload.max_tokens = 2048;
-      payload.stop = undefined;
-      payload.n = 1;
-      payload.user = "sensecode-vscode-extension";
-      payload.stream = true;
-      responseType = "stream";
-    } else {
-      payload.stream = undefined;
-    }
     try {
+      outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
       axios
         .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })
         .then(async (res) => {
@@ -107,7 +111,7 @@ function generateAuthHeader(url: Uri, ak: string, sk: string) {
   };
 }
 
-function getCodeCompletionsSenseCode(engine: Engine, prompt: string, code: string, stream: boolean): Promise<GetCodeCompletions> {
+function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (engine.key) {
@@ -115,25 +119,30 @@ function getCodeCompletionsSenseCode(engine: Engine, prompt: string, code: strin
       headers = generateAuthHeader(Uri.parse(engine.url), aksk[0], aksk[1]);
     }
     let payload;
-    let p = `${prompt}${code || ""}`;
+    let p = prompt;
+    let responseType: ResponseType | undefined = undefined;
+    let config = engine.config;
+    if (stream) {
+      if (engine.streamConfig) {
+        config = engine.streamConfig;
+      } else {
+        config.max_tokens = 2048;
+        config.stop = undefined;
+        config.n = 1;
+      }
+      config.stream = true;
+      responseType = "stream";
+    }
     if (engine.url.includes("/chat/")) {
       payload = {
         messages: [{ content: p }],
-        ...engine.config
+        ...config
       };
     } else {
       payload = {
         prompt: p,
-        ...engine.config
+        ...config
       };
-    }
-    let responseType: ResponseType | undefined = undefined;
-    if (stream) {
-      payload.max_tokens = 2048;
-      payload.stop = undefined;
-      payload.n = 1;
-      payload.stream = true;
-      responseType = "stream";
     }
     try {
       outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));

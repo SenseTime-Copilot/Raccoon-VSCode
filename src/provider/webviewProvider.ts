@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'http';
 import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n } from 'vscode';
-import { configuration } from '../extension';
+import { configuration, outlog } from '../extension';
 import { Engine } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from './inlineCompletionProvider';
@@ -159,7 +159,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           break;
         }
         case 'sendQuestion': {
-          this.sendApiRequest(data.value, data.code, data.lang, true);
+          this.sendApiRequest(data.value, data.code, data.lang || "", true);
           break;
         }
         case 'stopGenerate': {
@@ -235,15 +235,23 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         throw Error(l10n.t("Current API not support Q&A"));
       }
       let prefix = "";
+      let codeStr = "";
       if (code) {
         if (lang !== "") {
-          prefix = l10n.t("The following code is {0} code.", lang);
+          prefix = l10n.t("The following code is {lang} code.", { lang });
+          if (configuration.debug.programmingLanguagePromt) {
+            prefix = l10n.t(configuration.debug.programmingLanguagePromt.join("\n"), { lang });
+          }
         }
-        prefix += l10n.t("If the response contains code, surraound them into markdown code block format.");
+        if (configuration.debug.codeTaskPrompt) {
+          prefix += l10n.t(configuration.debug.codeTaskPrompt.join("\n"), { lang });
+        } else {
+          prefix += l10n.t("Response in Markdown format and put code part into a Markdown code block syntax.");
+        }
+        codeStr = `\`\`\`${lang.toLowerCase()}\n${code}\n\`\`\``;
       }
       rs = await getCodeCompletions(activeEngine,
-        prefix + prompt,
-        `\`\`\`${lang.toLowerCase()}\n${code}\n\`\`\`\n`,
+        prefix + `\n` + prompt + `\n` + codeStr + `\n`,
         true);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
@@ -261,6 +269,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             if (msg.startsWith("data:")) {
               content = msg.slice(5).trim();
             } else if (msg.startsWith("event:")) {
+              outlog.appendLine(msg);
               content = msg.slice(6).trim();
               if (content === "error") {
                 this.sendMessage({ type: 'addError', error: "", id });
@@ -268,8 +277,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
               }
               return;
             }
+
             if (content === '[DONE]') {
               this.sendMessage({ type: 'stopResponse', id });
+              outlog.appendLine("");
               data.destroy();
               return;
             }
@@ -279,19 +290,24 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             let json = JSON.parse(content);
             if (json.error) {
               this.sendMessage({ type: 'addError', error: json.error, id });
+              outlog.appendLine("");
               data.destroy();
               return;
             } else if (json.choices && json.choices[0]) {
-              this.sendMessage({ type: 'addResponse', id, value: json.choices[0].text || json.choices[0].message?.content });
+              let value = json.choices[0].text || json.choices[0].message?.content;
+              outlog.append(value);
+              this.sendMessage({ type: 'addResponse', id, value });
             }
           }
         });
       } else {
         response = rs.completions[0];
+        outlog.appendLine(response);
         this.sendMessage({ type: 'addResponse', id, value: response });
         this.sendMessage({ type: 'stopResponse', id });
       }
     } catch (error: any) {
+      outlog.appendLine("");
       this.sendMessage({ type: 'addError', error: error.message, id });
     }
   }

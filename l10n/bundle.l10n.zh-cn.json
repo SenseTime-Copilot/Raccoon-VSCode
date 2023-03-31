@@ -23,6 +23,7 @@
   "Completion Mode": "补全模式",
   "Settings": "设置",
   "Advanced": "高级",
+  "Complete following {lang} code:\n": "补全以下 {lang} 代码:\n",
   "User cancelled": "用户取消",
   "Thinking...": "正在思考...",
   "No completion suggestion": "没有补全建议",
@@ -43,7 +44,6 @@
   "Explain": "解释代码",
   "Active engine not set": "未设置活动的后端引擎",
   "Current API not support Q&A": "当前后端 API 不支持问答",
-  "If the response contains code, surraound them into markdown code block format.": "如果结果中包含代码, 将其放在 Markdown 格式的代码块中.",
-  "Complete following {0} code:\n": "补全以下 {0} 代码:\n",
-  "The following code is {0} code.": "以下代码是 {0} 代码."
+  "Response in Markdown format and put code content into a Markdown code block syntax.": "以 Mardown 格式返回响应, 并将其中的代码部分放入 Markdown 格式的代码块中.",
+  "The following code is {lang} code.": "以下代码是 {lang} 代码."
 }

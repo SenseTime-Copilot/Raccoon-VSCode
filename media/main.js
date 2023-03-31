@@ -161,7 +161,7 @@ const vscode = acquireVsCodeApi();
             list.appendChild(chat);
           }
         }
-        list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       }
       case "stopResponse": {
@@ -169,7 +169,8 @@ const vscode = acquireVsCodeApi();
         document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
 
         const chatText = document.getElementById(`${message.id}-text`);
-        const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.textContent + "\n\n"), "text/html");
+        const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.content + "\n\n"), "text/html");
+        chatText.dataset.content = undefined;
         const preCodeList = markedResponse.querySelectorAll("pre > code");
 
         preCodeList.forEach((preCode, index) => {
@@ -213,8 +214,10 @@ const vscode = acquireVsCodeApi();
       }
       case "addResponse": {
         const chatText = document.getElementById(`${message.id}-text`);
-        chatText.textContent = chatText.textContent + message.value;
-        list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+        chatText.dataset.content = (chatText.dataset.content || "") + message.value;
+        const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.content + "\n\n"), "text/html");
+        chatText.innerHTML = markedResponse.documentElement.innerHTML;
+        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       }
       case "addError":
@@ -231,7 +234,7 @@ const vscode = acquireVsCodeApi();
 
         document.getElementById(`${message.id}-progress`)?.classList?.add("hidden");
         document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
-        list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       case "clearQAList": {
         clearQAList();

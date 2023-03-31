@@ -269,7 +269,7 @@ export function inlineCompletionProvider(
           if (textBeforeCursor.length > (activeEngine.config.max_tokens * 4)) {
             textBeforeCursor = textBeforeCursor.slice(-2 * activeEngine.config.max_tokens);
           }
-          let prefix = `${vscode.l10n.t("Complete following {0} code:\n", lang)}`;
+          let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang })}`;
           let suffix = ``;
           prefix = `Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
@@ -281,15 +281,13 @@ Task type: code completion. Please complete the incomplete code below.
           suffix = `### Response:
 `;
           if (configuration.debug.completionPrefix) {
-            prefix = configuration.debug.completionPrefix.join("\n");
+            prefix = vscode.l10n.t(configuration.debug.completionPrefix.join("\n"), { lang });
           }
           if (configuration.debug.completionSuffix) {
-            suffix = configuration.debug.completionSuffix.join("\n");
+            suffix = vscode.l10n.t(configuration.debug.completionSuffix.join("\n"), { lang });
           }
           rs = await getCodeCompletions(activeEngine,
-            // `${vscode.l10n.t("Complete following {0} code:\n", lang)}`,
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
-            "",//textBeforeCursor,
             configuration.printOut);
         } catch (err: any) {
           updateStatusBarItem(statusBarItem,
