@@ -96,11 +96,11 @@ export class Configuration {
     this.context.globalState.update("DirectPrintOut", v);
   }
 
-  public get sensetive(): boolean {
-    return this.context.globalState.get("sensetive", true);
+  public get delay(): number {
+    return this.context.globalState.get("delay", 1);
   }
 
-  public set sensetive(v: boolean) {
-    this.context.globalState.update("sensetive", v);
+  public set delay(v: number) {
+    this.context.globalState.update("delay", v);
   }
 }

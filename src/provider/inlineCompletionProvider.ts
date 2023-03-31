@@ -204,11 +204,7 @@ export function inlineCompletionProvider(
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        let delay = 3000;
-        if (configuration.sensetive) {
-          delay = 1000;
-        }
-        await new Promise((f) => setTimeout(f, delay));
+        await new Promise((f) => setTimeout(f, configuration.delay * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }

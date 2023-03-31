@@ -289,10 +289,15 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("change", (e) => {
     if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
+      if (e.target._value === "Auto") {
+        document.getElementById("triggerDelay").classList.remove("hidden");
+        document.getElementById("keyBindingBtn").classList.add("hidden");
+      } else {
+        document.getElementById("triggerDelay").classList.add("hidden");
+        document.getElementById("keyBindingBtn").classList.remove("hidden");
+      }
     } else if (e.target.id === "completionModeRadio") {
       vscode.postMessage({ type: "completionMode", value: e.target._value });
-    } else if (e.target.id === "triggerDelayRadio") {
-      vscode.postMessage({ type: "delay", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
       vscode.postMessage({ type: "activeEngine", value: e.target._value });
     } else {
@@ -318,6 +323,20 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button');
+
+    if (e.target.id === "triggerDelayShort") {
+      document.getElementById("triggerDelayShortBtn").classList.add("hidden");
+      document.getElementById("triggerDelayLongBtn").classList.remove("hidden");
+      vscode.postMessage({ type: "delay", value: 3 });
+      return;
+    }
+
+    if (e.target.id === "triggerDelayLong") {
+      document.getElementById("triggerDelayShortBtn").classList.remove("hidden");
+      document.getElementById("triggerDelayLongBtn").classList.add("hidden");
+      vscode.postMessage({ type: "delay", value: 1 });
+      return;
+    }
 
     if (targetButton?.id === "clear-button") {
       e.preventDefault();

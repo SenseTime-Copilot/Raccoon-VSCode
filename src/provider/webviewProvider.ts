@@ -39,10 +39,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     esList += "</vscode-dropdown>";
     let autoComplete = configuration.autoCompleteEnabled;
     let printOut = configuration.printOut;
-    let sensetive = configuration.sensetive;
+    let delay = configuration.delay;
     let settingUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
-    let setDelayUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.CompletionDelay" }))}`);
     let settingPage = `
     <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <h3 class="flex flex-row justify-between text-base font-bold">
@@ -56,7 +55,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <b>${l10n.t("Code Engine")}</b>
         <div class=" flex flex-row justify-between px-2 gap-2">
           ${esList}
-          <vscode-link slot="indicator" href="${setEngineUri}">
+          <vscode-link slot="indicator" href="${setEngineUri}" title="${l10n.t("Settings")}">
             <span class="material-symbols-rounded">tune</span>
           </vscode-link>
         </div>
@@ -66,28 +65,24 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <b>${l10n.t("Trigger Mode")}</b>
         <div>
         <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
-          <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto">
+          <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
             ${l10n.t("Auto")}
+            <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
+              <vscode-link id="triggerDelayShortBtn" class="align-middle ${delay === 1 ? "" : "hidden"}" title="${l10n.t("Short delay")}">
+                <span id="triggerDelayShort" class="material-symbols-rounded">timer</span>
+              </vscode-link>
+              <vscode-link id="triggerDelayLongBtn" class="align-middle ${delay !== 1 ? "" : "hidden"}" title="${l10n.t("Delay 3 senconds")}">
+                <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
+              </vscode-link>
+            </span>
           </vscode-radio>
-          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Hotkey">
+          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
             ${l10n.t("Manual")}
+            <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""} align-middle" title="${l10n.t("Set keyboard shortcut")}">
+              <span class="material-symbols-rounded">keyboard</span>
+            </vscode-link>
           </vscode-radio>
         </vscode-radio-group>
-        </div>
-        <b ${autoComplete ? "" : "hidden"}>${l10n.t("Delay")}</b>
-        <div ${autoComplete ? "" : "hidden"}>
-        <vscode-radio-group id="triggerDelayRadio" class="flex flex-wrap px-2">
-          <vscode-radio ${sensetive ? "checked" : ""} class="w-32" value="short">
-            ${l10n.t("Short")}
-          </vscode-radio>
-          <vscode-radio ${sensetive ? "" : "checked"} class="w-32" value="long">
-            ${l10n.t("Long")}
-          </vscode-radio>
-        </vscode-radio-group>
-        </div>
-        <b ${autoComplete ? "hidden" : ""}>${l10n.t("Hotkey")}</b>
-        <div ${autoComplete ? "hidden" : ""} class="flex flex-wrap px-2">
-          <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" ${autoComplete ? "hidden" : ""}><span class="material-symbols-rounded">keyboard</span></vscode-link>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
@@ -95,10 +90,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <b>${l10n.t("Completion Mode")}</b>
         <div>
         <vscode-radio-group id="completionModeRadio" class="flex flex-wrap px-2">
-          <vscode-radio ${printOut ? "" : "checked"} class="w-32" value="Snippets">
+          <vscode-radio ${printOut ? "" : "checked"} class="w-32" value="Snippets" title="${l10n.t("Show completion suggestions as inline completion snippets")}">
             ${l10n.t("Snippets")}
           </vscode-radio>
-          <vscode-radio ${printOut ? "checked" : ""} class="w-32" value="Print">
+          <vscode-radio ${printOut ? "checked" : ""} class="w-32" value="Print" title="${l10n.t("Direct print completion code to editor, the cadidate number setting in `engine.config` will be ignored")}">
             ${l10n.t("Print")}
           </vscode-radio>
         </vscode-radio-group>
@@ -109,7 +104,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <b>${l10n.t("Advanced")}</b>
         <div class="flex flex-row justify-between px-2">
           <span class="align-middle">${l10n.t("All settings")}</span>
-          <vscode-link href="${settingUri}"><span class="material-symbols-rounded">settings</span></vscode-link>
+          <vscode-link href="${settingUri}" title="${l10n.t("All settings")}"><span class="material-symbols-rounded">settings</span></vscode-link>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--divider-background);"></vscode-divider>
@@ -184,9 +179,11 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           break;
         }
         case 'activeEngine': {
-          let ae = configuration.engines.filter((e) => { return e.label === data.value; });
+          let ae = configuration.engines.filter((e) => {
+            return e.label === data.value;
+          });
           let e = ae[0];
-          if (configuration.activeEngine === undefined || !e || configuration.activeEngine.label != e.label) {
+          if (configuration.activeEngine === undefined || !e || configuration.activeEngine.label !== e.label) {
             configuration.activeEngine = e;
             this.updateSettingPage(false);
           }
@@ -195,20 +192,17 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         case 'triggerMode': {
           if (configuration.autoCompleteEnabled !== (data.value === "Auto")) {
             configuration.autoCompleteEnabled = (data.value === "Auto");
-            this.updateSettingPage(false);
           }
           break;
         }
         case 'delay': {
-          if ((configuration.sensetive && data.value === "long") || (!configuration.sensetive && data.value === "short")) {
-            configuration.sensetive = data.value === "short";
-            this.updateSettingPage(false);
+          if (data.value !== configuration.delay) {
+            configuration.delay = data.value;
           }
         }
         case 'completionMode': {
           if (configuration.printOut !== (data.value === "Print")) {
             configuration.printOut = (data.value === "Print");
-            this.updateSettingPage(false);
           }
           break;
         }
