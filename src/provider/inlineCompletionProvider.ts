@@ -266,8 +266,12 @@ export function inlineCompletionProvider(
           }
           updateStatusBarItem(statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
           // TODO: AST parse to ensure truncate at appropriate postion
-          if (textBeforeCursor.length > (activeEngine.config.max_tokens * 4)) {
-            textBeforeCursor = textBeforeCursor.slice(-2 * activeEngine.config.max_tokens);
+          let maxTokens = activeEngine.config.max_tokens || 128;
+          if (configuration.printOut && activeEngine.streamConfig && activeEngine.streamConfig.max_tokens) {
+            maxTokens = activeEngine.streamConfig.max_tokens;
+          }
+          if (textBeforeCursor.length > (maxTokens * 4)) {
+            textBeforeCursor = textBeforeCursor.slice(-4 * maxTokens);
           }
           let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang })}`;
           let suffix = ``;
