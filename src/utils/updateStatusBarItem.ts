@@ -2,25 +2,29 @@ import { StatusBarItem, MarkdownString } from "vscode";
 
 var statusbartimer: NodeJS.Timeout;
 
-export async function updateStatusBarItem(
+export function updateStatusBarItem(
   statusBarItem: StatusBarItem,
-  extraIcon?: string,
-  errText?: string
-): Promise<void> {
+  info?: {
+    text: string;
+    tooltip: string | MarkdownString | undefined;
+    keep?: boolean;
+  }
+) {
   statusBarItem.show();
   if (statusbartimer) {
     clearTimeout(statusbartimer);
   }
-  statusBarItem.text = "$(sensecore-dark)";
-  if (extraIcon) {
-    statusBarItem.text = `$(sensecore-dark) - $(${extraIcon})`;
-    statusBarItem.tooltip = new MarkdownString(`$(bell) ${errText}`);
-    statusBarItem.tooltip.supportThemeIcons = true;
+  if (!info) {
+    statusBarItem.text = "$(sensecore-dark)";
+    statusBarItem.tooltip = "SenseCode";
+    return;
   }
 
-  if (extraIcon !== "sync~spin") {
+  statusBarItem.text = `$(sensecore-dark) $(dash) ${info.text}`;
+  statusBarItem.tooltip = info.tooltip;
+  if (!info.keep) {
     statusbartimer = setTimeout(() => {
-      statusBarItem.tooltip = undefined;
+      statusBarItem.tooltip = "SenseCode";
       statusBarItem.text = `$(sensecore-dark)`;
     }, 10000);
   }

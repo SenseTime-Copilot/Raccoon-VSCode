@@ -69,6 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   statusBarItem.color = new vscode.ThemeColor("statusBar.remoteForeground");
   statusBarItem.backgroundColor = new vscode.ThemeColor("statusBar.remoteBackground");
+  statusBarItem.command = "sensecode.settings";
   updateStatusBarItem(statusBarItem);
 
   let inlineProvider: vscode.InlineCompletionItemProvider;

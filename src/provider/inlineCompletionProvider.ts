@@ -192,8 +192,10 @@ export function inlineCompletionProvider(
       cancel.onCancellationRequested(_e => {
         updateStatusBarItem(
           statusBarItem,
-          "bracket-error",
-          vscode.l10n.t("User cancelled")
+          {
+            text: "$(circle-slash)",
+            tooltip: vscode.l10n.t("User cancelled")
+          }
         );
       });
       let editor = vscode.window.activeTextEditor;
@@ -264,7 +266,14 @@ export function inlineCompletionProvider(
           if (!activeEngine) {
             throw Error(vscode.l10n.t("Active engine not set"));
           }
-          updateStatusBarItem(statusBarItem, "sync~spin", vscode.l10n.t("Thinking..."));
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: "$(loading~spin)",
+              tooltip: vscode.l10n.t("Thinking..."),
+              keep: true
+            }
+          );
           // TODO: AST parse to ensure truncate at appropriate postion
           let maxTokens = activeEngine.config.max_tokens || 128;
           if (configuration.printOut && activeEngine.streamConfig && activeEngine.streamConfig.max_tokens) {
@@ -294,17 +303,28 @@ Task type: code completion. Please complete the incomplete code below.
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
             configuration.printOut);
         } catch (err: any) {
-          updateStatusBarItem(statusBarItem,
-            "bracket-error",
-            err
-          );
+          if (!cancel.isCancellationRequested) {
+            updateStatusBarItem(
+              statusBarItem,
+              {
+                text: `$(alert)${err.response.status}`,
+                tooltip: new vscode.MarkdownString(err.response.data.error)
+              }
+            );
+          }
+          return { items: [] };
+        }
+        if (cancel.isCancellationRequested) {
+          updateStatusBarItem(statusBarItem);
           return { items: [] };
         }
         if (rs === null) {
           updateStatusBarItem(
             statusBarItem,
-            "bracket-error",
-            vscode.l10n.t("No completion suggestion")
+            {
+              text: "$(bracket)",
+              tooltip: vscode.l10n.t("No completion suggestion")
+            }
           );
           return { items: [] };
         }
@@ -315,8 +335,11 @@ Task type: code completion. Please complete the incomplete code below.
           let end = editor.selection.start;
           updateStatusBarItem(
             statusBarItem,
-            "sync~spin",
-            vscode.l10n.t("Typeing...")
+            {
+              text: "$(pencil)",
+              tooltip: vscode.l10n.t("Typeing..."),
+              keep: true
+            }
           );
           data.on("data", async (v: any) => {
             let msgstr: string = v.toString();
@@ -329,16 +352,20 @@ Task type: code completion. Please complete the incomplete code below.
                 data.destroy();
                 updateStatusBarItem(
                   statusBarItem,
-                  "bracket-dot",
-                  vscode.l10n.t("User cancelled")
+                  {
+                    text: "$(circle-slash)",
+                    tooltip: vscode.l10n.t("User cancelled")
+                  }
                 );
                 return;
               }
               if (content === '[DONE]') {
                 updateStatusBarItem(
                   statusBarItem,
-                  "bracket-dot",
-                  vscode.l10n.t("Done")
+                  {
+                    text: "$(pass)",
+                    tooltip: vscode.l10n.t("Done")
+                  }
                 );
                 return;
               }
@@ -346,8 +373,10 @@ Task type: code completion. Please complete the incomplete code below.
                 data.destroy();
                 updateStatusBarItem(
                   statusBarItem,
-                  "bracket-dot",
-                  msgs[1]
+                  {
+                    text: "$(alert)",
+                    tooltip: new vscode.MarkdownString(msgs[1])
+                  }
                 );
                 return;
               }
@@ -378,8 +407,10 @@ Task type: code completion. Please complete the incomplete code below.
                 data.destroy();
                 updateStatusBarItem(
                   statusBarItem,
-                  "bracket-dot",
-                  vscode.l10n.t("User cancelled")
+                  {
+                    text: "$(circle-slash)",
+                    tooltip: vscode.l10n.t("User cancelled")
+                  }
                 );
                 return;
               }
@@ -433,14 +464,18 @@ Task type: code completion. Please complete the incomplete code below.
           if (data.completions.length === 0) {
             updateStatusBarItem(
               statusBarItem,
-              "bracket-error",
-              vscode.l10n.t("No completion suggestion")
+              {
+                text: "$(bracket)",
+                tooltip: vscode.l10n.t("No completion suggestion")
+              }
             );
-          } else {
+          } else if (!cancel.isCancellationRequested) {
             updateStatusBarItem(
               statusBarItem,
-              "bracket-dot",
-              vscode.l10n.t("Done")
+              {
+                text: "$(pass)",
+                tooltip: vscode.l10n.t("Done")
+              }
             );
           }
           return cancel.isCancellationRequested ? { items: [] } : items;

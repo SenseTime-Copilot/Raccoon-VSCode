@@ -65,6 +65,12 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <b>${l10n.t("Trigger Mode")}</b>
         <div>
         <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
+          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
+            ${l10n.t("Manual")}
+            <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""} align-middle" title="${l10n.t("Set keyboard shortcut")}">
+              <span class="material-symbols-rounded">keyboard</span>
+            </vscode-link>
+          </vscode-radio>
           <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
             ${l10n.t("Auto")}
             <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
@@ -75,12 +81,6 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                 <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
               </vscode-link>
             </span>
-          </vscode-radio>
-          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
-            ${l10n.t("Manual")}
-            <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""} align-middle" title="${l10n.t("Set keyboard shortcut")}">
-              <span class="material-symbols-rounded">keyboard</span>
-            </vscode-link>
           </vscode-radio>
         </vscode-radio-group>
         </div>
@@ -295,8 +295,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
               return;
             } else if (json.choices && json.choices[0]) {
               let value = json.choices[0].text || json.choices[0].message?.content;
-              outlog.append(value);
-              this.sendMessage({ type: 'addResponse', id, value });
+              if (value) {
+                outlog.append(value);
+                this.sendMessage({ type: 'addResponse', id, value });
+              }
             }
           }
         });
@@ -314,7 +316,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
 
   public async sendMessage(message: any) {
     // If the SenseCode view is not in focus/visible; focus on it to render Q&A
-    if (this.webView === null) {
+    if (!this.webView) {
       await commands.executeCommand('sensecode.view.focus');
       await new Promise((f) => setTimeout(f, 1000));
     } else {
