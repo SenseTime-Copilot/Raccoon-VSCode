@@ -9,7 +9,8 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.8.10",
+    "version": "0.10.7",
+    "preview": true,
     "engines": {
         "vscode": "^1.68.0"
     },
@@ -20,14 +21,6 @@
         "Other"
     ],
     "keywords": [
-        "python",
-        "go",
-        "java",
-        "javascript",
-        "c++",
-        "c#",
-        "php",
-        "typescript",
         "ai",
         "autocomplete",
         "inline completion"
@@ -56,18 +49,6 @@
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.url%"
                                 },
-                                "capacities": {
-                                    "type": "array",
-                                    "description": "%sensecode.config.engines.engine.capacities%",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "completion",
-                                            "chat"
-                                        ]
-                                    },
-                                    "uniqueItems": true
-                                },
                                 "key": {
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.key%"
@@ -85,12 +66,6 @@
                         "additionalProperties": {
                             "type": "string",
                             "description": "%sensecode.config.prompt.item%"
-                        },
-                        "default": {
-                            "addTests": "%sensecode.command.addTests.prompt%",
-                            "findProblems": "%sensecode.command.findProblems.prompt%",
-                            "optimize": "%sensecode.command.optimize.prompt%",
-                            "explain": "%sensecode.command.explain.prompt%"
                         }
                     },
                     "SenseCode.Next": {
@@ -112,29 +87,9 @@
             ],
             "editor/context": [
                 {
-                    "command": "sensecode.addTests",
-                    "group": "SenseCode@1",
-                    "when": "editorHasSelection && sensecode.next.chat"
-                },
-                {
-                    "command": "sensecode.findProblems",
-                    "group": "SenseCode@2",
-                    "when": "editorHasSelection && sensecode.next.chat"
-                },
-                {
-                    "command": "sensecode.optimize",
-                    "group": "SenseCode@3",
-                    "when": "editorHasSelection && sensecode.next.chat"
-                },
-                {
-                    "command": "sensecode.explain",
-                    "group": "SenseCode@4",
-                    "when": "editorHasSelection && sensecode.next.chat"
-                },
-                {
                     "command": "sensecode.customPrompt",
                     "group": "SenseCode@5",
-                    "when": "editorHasSelection && sensecode.next.chat"
+                    "when": "editorHasSelection"
                 }
             ]
         },

@@ -4,7 +4,7 @@ import { Trie } from "./trie";
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { IncomingMessage } from "http";
-import { configuration } from "../extension";
+import { configuration, outlog } from "../extension";
 
 let lastRequest = null;
 let trie = new Trie([]);
@@ -202,7 +202,7 @@ export function inlineCompletionProvider(
       if (!editor) {
         return;
       }
-      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !configuration.autoCompleteEnabled) {
+      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !configuration.autoComplete) {
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
@@ -246,7 +246,7 @@ export function inlineCompletionProvider(
       }
       if (textBeforeCursor.trim() === "") {
         updateStatusBarItem(statusBarItem);
-        return { items: [] };
+        return;
       }
 
       if (middleOfLineWontComplete(position, document)) {
@@ -258,12 +258,13 @@ export function inlineCompletionProvider(
         let requestId = new Date().getTime();
         lastRequest = requestId;
         if (lastRequest !== requestId) {
-          return { items: [] };
+          return;
         }
         let rs: GetCodeCompletions | any;
         try {
           let activeEngine: Engine | undefined = extension.globalState.get("engine");
           if (!activeEngine) {
+            vscode.window.showErrorMessage(vscode.l10n.t("Active engine not set"), vscode.l10n.t("Close"));
             throw Error(vscode.l10n.t("Active engine not set"));
           }
           updateStatusBarItem(
@@ -284,11 +285,11 @@ export function inlineCompletionProvider(
           }
           let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang })}`;
           let suffix = ``;
-          prefix = `Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+          prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
-Task type: code completion. Please complete the incomplete code below.
-          
+Task type: code completion. Please complete the following code.
+
 ### Input:
 `;
           suffix = `### Response:
@@ -303,20 +304,30 @@ Task type: code completion. Please complete the incomplete code below.
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
             configuration.printOut);
         } catch (err: any) {
+          let errInfo = err.message || err.response?.data?.error;
+          outlog.error(errInfo);
           if (!cancel.isCancellationRequested) {
             updateStatusBarItem(
               statusBarItem,
               {
-                text: `$(alert)${err.response.status}`,
-                tooltip: new vscode.MarkdownString(err.response.data.error)
+                text: `$(alert)${err.response?.status || ""}`,
+                tooltip: new vscode.MarkdownString(errInfo)
               }
             );
+          } else {
+            updateStatusBarItem(statusBarItem);
           }
-          return { items: [] };
+          return;
         }
         if (cancel.isCancellationRequested) {
-          updateStatusBarItem(statusBarItem);
-          return { items: [] };
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: "$(circle-slash)",
+              tooltip: vscode.l10n.t("User cancelled")
+            }
+          );
+          return;
         }
         if (rs === null) {
           updateStatusBarItem(
@@ -326,7 +337,7 @@ Task type: code completion. Please complete the incomplete code below.
               tooltip: vscode.l10n.t("No completion suggestion")
             }
           );
-          return { items: [] };
+          return;
         }
 
         if (rs instanceof IncomingMessage) {
@@ -337,17 +348,14 @@ Task type: code completion. Please complete the incomplete code below.
             statusBarItem,
             {
               text: "$(pencil)",
-              tooltip: vscode.l10n.t("Typeing..."),
+              tooltip: vscode.l10n.t("Typing..."),
               keep: true
             }
           );
           data.on("data", async (v: any) => {
             let msgstr: string = v.toString();
-            let msgs = msgstr.split("data:").filter((m) => {
-              return m !== "data:";
-            });
+            let msgs = msgstr.split("\n");
             for (let msg of msgs) {
-              let content = msg.trim();
               if (cancel.isCancellationRequested) {
                 data.destroy();
                 updateStatusBarItem(
@@ -359,6 +367,37 @@ Task type: code completion. Please complete the incomplete code below.
                 );
                 return;
               }
+              if (msg === "") {
+                continue;
+              }
+              let content = "";
+              if (msg.startsWith("data:")) {
+                content = msg.slice(5).trim();
+              } else if (msg.startsWith("event:")) {
+                content = msg.slice(6).trim();
+                outlog.error(content);
+                if (content === "error") {
+                  updateStatusBarItem(
+                    statusBarItem,
+                    {
+                      text: "$(alert)",
+                      tooltip: new vscode.MarkdownString(msgs[1])
+                    }
+                  );
+                  data.destroy();
+                }
+                return;
+              } else {
+                updateStatusBarItem(
+                  statusBarItem,
+                  {
+                    text: "$(alert)",
+                    tooltip: msg
+                  }
+                );
+                data.destroy();
+                return;
+              }
               if (content === '[DONE]') {
                 updateStatusBarItem(
                   statusBarItem,
@@ -367,52 +406,46 @@ Task type: code completion. Please complete the incomplete code below.
                     tooltip: vscode.l10n.t("Done")
                   }
                 );
-                return;
-              }
-              if (content === 'event:error') {
+                outlog.debug(content);
                 data.destroy();
-                updateStatusBarItem(
-                  statusBarItem,
-                  {
-                    text: "$(alert)",
-                    tooltip: new vscode.MarkdownString(msgs[1])
-                  }
-                );
                 return;
               }
               if (content === "") {
                 continue;
               }
-              let json = JSON.parse(content);
-              if (json.error) {
-                vscode.window.showErrorMessage(`${json.error.type}: ${json.error.message}`, "Close");
-                return;
-              }
-              if (!json.choices || !json.choices[0]) {
-                continue;
-              }
-              let code = json.choices[0].text || json.choices[0].message?.content;
-              if (!code) {
-                continue;
-              }
-              if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
-                await editor.edit(e => {
-                  e.insert(start, code);
-                }).then(() => {
-                  end = editor!.selection.start;
-                  editor!.revealRange(new vscode.Range(start, end));
-                  start = end;
-                });
-              } else {
-                data.destroy();
-                updateStatusBarItem(
-                  statusBarItem,
-                  {
-                    text: "$(circle-slash)",
-                    tooltip: vscode.l10n.t("User cancelled")
+              try {
+                let json = JSON.parse(content);
+                outlog.debug(JSON.stringify(json, undefined, 2));
+                if (json.error) {
+                  vscode.window.showErrorMessage(`${json.error.type}: ${json.error.message}`, vscode.l10n.t("Close"));
+                  data.destroy();
+                  return;
+                } else if (json.choices && json.choices[0]) {
+                  let value = json.choices[0].text || json.choices[0].message?.content;
+                  if (value) {
+                    if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
+                      await editor.edit(e => {
+                        e.insert(start, value);
+                      }).then(() => {
+                        end = editor!.selection.start;
+                        editor!.revealRange(new vscode.Range(start, end));
+                        start = end;
+                      });
+                    } else {
+                      data.destroy();
+                      updateStatusBarItem(
+                        statusBarItem,
+                        {
+                          text: "$(circle-slash)",
+                          tooltip: vscode.l10n.t("User cancelled")
+                        }
+                      );
+                      return;
+                    }
                   }
-                );
-                return;
+                }
+              } catch (e) {
+                outlog.error(content);
               }
             }
           });
@@ -422,6 +455,7 @@ Task type: code completion. Please complete the incomplete code below.
           let items = new Array<vscode.InlineCompletionItem>();
           for (let i = 0; i < data.completions.length; i++) {
             let completion = data.completions[i];
+            outlog.debug(completion);
             if (isAtTheMiddleOfLine(position, document)) {
               let currentLine = document?.lineAt(position.line);
               let lineEndPosition = currentLine?.range.end;
@@ -478,10 +512,9 @@ Task type: code completion. Please complete the incomplete code below.
               }
             );
           }
-          return cancel.isCancellationRequested ? { items: [] } : items;
+          return cancel.isCancellationRequested ? null : items;
         }
       }
-      return { items: [] };
     },
   };
   return provider;

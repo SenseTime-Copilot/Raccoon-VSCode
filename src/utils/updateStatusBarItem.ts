@@ -1,4 +1,4 @@
-import { StatusBarItem, MarkdownString } from "vscode";
+import { StatusBarItem, MarkdownString, l10n } from "vscode";
 
 var statusbartimer: NodeJS.Timeout;
 
@@ -16,7 +16,7 @@ export function updateStatusBarItem(
   }
   if (!info) {
     statusBarItem.text = "$(sensecore-dark)";
-    statusBarItem.tooltip = "SenseCode";
+    statusBarItem.tooltip = l10n.t("SenseCode");
     return;
   }
 
@@ -24,8 +24,8 @@ export function updateStatusBarItem(
   statusBarItem.tooltip = info.tooltip;
   if (!info.keep) {
     statusbartimer = setTimeout(() => {
-      statusBarItem.tooltip = "SenseCode";
       statusBarItem.text = `$(sensecore-dark)`;
+      statusBarItem.tooltip = l10n.t("SenseCode");
     }, 10000);
   }
 }

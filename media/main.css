@@ -21,7 +21,7 @@ ul {
 }
 
 *:focus {
-    outline-color: var(--vscode-focusBorder) !important;
+    outline-color: var(--vscode-checkbox-selectBorder) !important;
 }
 
 a {
@@ -43,12 +43,12 @@ button {
     text-align: center;
     outline: 1px solid transparent;
     outline-offset: 2px !important;
-    color: var(--vscode-button-foreground) !important;
-    background: var(--vscode-button-background) !important;
+    color: var(--vscode-checkbox-foreground);
+    background: var(--vscode-toolbar-activeBackground) !important;
 }
 
 button:hover {
-    background: var(--vscode-button-hoverBackground) !important;
+    background: var(--vscode-toolbar-hoverBackground) !important;
 }
 
 button:hover svg {
@@ -81,34 +81,23 @@ textarea::placeholder {
 }
 
 .avatar {
-    color: var(--vscode-button-background);
+    color: var(--vscode-icon-foreground);
     align-items: center;
 }
 
 .avatar .material-symbols-rounded {
-    font-size: 2em;
+    font-size: 2rem;
 }
 
 .vscode-high-contrast .avatar {
     color: var(--vscode-button-border);
 }
 
-.typing {
-    color: var(--vscode-button-background);
-}
-
-/* CSS Spinner */
-.spinner {
-    color: var(--vscode-button-background);
-    width: 36px;
-    text-align: left;
-}
-
 .spinner>span {
     border-radius: 100%;
     display: inline-block;
-    -webkit-animation: rotate 3s infinite;
-    animation: rotate 3s infinite;
+    -webkit-animation: rotate 2s linear infinite;
+    animation: rotate 2s linear infinite;
 }
 
 .errorMsg {
@@ -186,7 +175,7 @@ textarea::placeholder {
 }
 
 #shortcuts,
-#chat-shortcut,
+.chat-shortcut,
 #chat-button,
 #ask-button {
     display: none;
@@ -200,9 +189,47 @@ textarea::placeholder {
     display: flex;
 }
 
-.x-chat.x-free_chat #chat-shortcut,
+.x-chat.x-free_chat .chat-shortcut,
 .x-chat.x-free_chat #chat-button {
     display: flex;
+}
+
+#ask-list.hidden {
+    display: none;
+}
+
+#ask-list {
+    display: flex;
+    flex-direction: column;
+    grid-gap: 0.5rem;
+    position: fixed;
+    bottom: 3rem;
+    padding-bottom: 1.5rem;
+    width: 100%;
+}
+
+#ask-list button {
+    flex-direction: row;
+    width: 100%;
+    max-width: 260px;
+    padding-left: 2rem;
+    grid-gap: 2rem;
+    margin: 0 auto;
+    justify-content: flex-start;
+    white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+    #shortcuts button {
+        flex-direction: row;
+        width: 100%;
+        max-width: 260px;
+        padding-left: 2rem;
+        grid-gap: 2rem;
+        margin: 0.5rem auto;
+        justify-content: flex-start;
+        white-space: nowrap;
+    }
 }
 
 .question-element-gnc {

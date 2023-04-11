@@ -17,8 +17,8 @@ const vscode = acquireVsCodeApi();
     xhtml: false
   });
 
-  const aiIcon = `<span class="material-symbols-rounded">lightbulb_circle</span>`;
-  const userIcon = `<span class="material-symbols-rounded">account_circle</span>`;
+  const aiIcon = `<span class="material-symbols-rounded">assistant</span>`;
+  const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
@@ -43,57 +43,57 @@ const vscode = acquireVsCodeApi();
         }
         break;
       }
-      case "updateNextFlags": {
-        const wrapper = document.getElementById("qa-list-wrapper");
-        let exClasses = [];
-        for (var c of wrapper.classList) {
-          if (c.startsWith("x-")) {
-            exClasses.push(c);
-          }
-        }
-        for (var xc of exClasses) {
-          wrapper.classList.remove(xc);
-        }
-        for (let k in message.value) {
-          if (message.value[k] === true) {
-            wrapper.classList.add(`x-${k}`);
-          }
-        }
-        break;
-      }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = "";
+        var shortcuts = '<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>';
 
         for (var k in prompts) {
-          var label = l10nForUI[k];
-          if (!label) {
-            const labelPre = k.replace(/([A-Z])/g, " $1");
-            label = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
-          }
-          let p = prompts[k];
+          const labelPre = k.replace(/([A-Z])/g, " $1");
+          label = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
+
+          let p = prompts[k].prompt;
+          let icon = prompts[k].icon || "smart_button";
           let ellip = "";
-          let send = true;
+          let brush = prompts[k].brush || false;
           if (p.includes("${input}")) {
             ellip = "...";
-            send = false;
+            brush = false;
           }
           promptList += `<vscode-option value="${p}">${label}${ellip}</vscode-option>`;
-          shortcuts += `  <button class="flex gap-2 justify-center items-center rounded-lg p-2 max-w-sm"
-                                        onclick="vscode.postMessage({
-                                            type: 'repareQuestion',
-                                            value: '${p}',
-                                            send: ${send}
+          shortcuts += `  <button class="grow flex flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32 ${brush ? "with-brush" : ""}"
+                                        onclick='vscode.postMessage({
+                                            type: "repareQuestion",
+                                            value: ${JSON.stringify(prompts[k])}
                                         });
-                                    ">
-                                        ${label}${ellip}
-                                    </button>`;
+                          '>
+                            <span class="material-symbols-rounded text-2xl">${icon}</span>
+                            ${label}${ellip}
+                          </button>
+                      `;
         }
-        shortcuts += `<button id="chat-shortcut" class="flex gap-2 justify-center items-center rounded-lg p-2 max-w-sm"
-                                    onclick="vscode.postMessage({type: 'repareQuestion', value: ''});">
-                                    <span class="material-symbols-rounded">quick_phrases</span>
-                                      ${l10nForUI["FreeChat"]}
-                                    </button>`;
+        document.getElementById("ask-list").innerHTML = shortcuts +
+          `<button class="chat-shortcut grow flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32"
+                      onclick="vscode.postMessage({
+                          type: 'repareQuestion',
+                          value: {type: 'code Q&A', prompt: '\${input}'}
+                      });"
+            >
+          <span class="material-symbols-rounded text-2xl">chat</span>
+          ${l10nForUI["Code Q&A"]}
+        </button>
+        `;
+
+        shortcuts += `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+                      <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
+                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input}'}});">
+                        <span class="material-symbols-rounded text-2xl">chat</span>
+                        ${l10nForUI["Code Q&A"]}
+                      </button>
+                      <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
+                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input}'}});">
+                        <span class="material-symbols-rounded text-2xl">chat_bubble</span>
+                        ${l10nForUI["FreeChat"]}
+                      </button>`;
         document.getElementById("shortcuts").innerHTML = shortcuts;
 
         break;
@@ -101,19 +101,27 @@ const vscode = acquireVsCodeApi();
       case "addQuestion": {
         document.getElementById('settings')?.remove();
         let id = message.id;
-        let p = message.value || "";
+        let prompt = message.value;
         let code = message.code || "";
-        let lang = message.lang ? `data-lang=${message.lang}` : "";
-        let hasPrompt = p.trim() !== "";
-        let hasCode = code.trim() !== "";
+        let lang = message.lang || "";
+        let tip = message.streaming ? "Typing..." : "Thinking...";
         const edit = !message.send;
 
-        if (!hasPrompt && hasCode) {
-          code = "";
-          hasCode = false;
+        let margin = "";
+        if (edit && prompt.type !== 'free chat') {
+          margin = "mb-4";
         }
 
-        const codehtml = hasCode ? marked.parse("```\n" + code + "\n```") : "";
+        let prompthtml = prompt.prompt;
+        if (prompt.prompt.includes("${input}")) {
+          prompthtml = prompthtml.replace("${input}", "<p class=\"mx-1 px-2 w-fit h-6\" contenteditable=\"true\"></p>");
+        }
+        let codehtml = "";
+        if (prompt.type === 'free chat') {
+          code = "";
+        } else {
+          codehtml = marked.parse("```\n" + code + "\n```");
+        }
 
         document.getElementById("cover")?.classList?.add("hidden");
         var replaceElems = document.getElementsByClassName("replace");
@@ -123,16 +131,16 @@ const vscode = acquireVsCodeApi();
 
         list.innerHTML +=
           `<div class="p-4 self-end question-element-gnc relative  ${edit ? "replace" : ""}">
-                        <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${userIcon} You</h2>
+                        <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
                         <div class="mb-5 flex items-center">
-                            <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-5 ${edit ? "hidden" : ""}">${pencilIcon}</button>
+                            <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-4 hidden">${pencilIcon}</button>
                             <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-2 absolute right-4" style="width: calc(100% - 32px);">
                                 <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
                                 <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
-                                <vscode-dropdown style="width: 100%;margin: 1px 0;" class="${hasCode ? "" : "hidden"}">${promptList}</vscode-dropdown>
+                                <vscode-dropdown style="width: 100%;margin: 1px 0;" class="${code !== "" ? "" : "hidden"}">${promptList}</vscode-dropdown>
                             </div>
                         </div>
-                        <p id="prompt-${id}" class="prompt leading-loose p-2" ${lang} contenteditable=${edit}>${p}</p>
+                        <div id="prompt-${id}" class="prompt flex leading-loose p-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}" contenteditable="${edit}">${prompthtml}</div>
                         <div class="overflow-y-auto p-2">${codehtml}</div>
                     </div>`;
 
@@ -146,17 +154,21 @@ const vscode = acquireVsCodeApi();
             chat = document.createElement("div");
             chat.id = id;
             chat.classList.add("p-4", "self-end", "pb-8", "answer-element-gnc");
-            chat.innerHTML = `  <h2 class="avatar font-bold mb-5 flex text-xl gap-1">${aiIcon} SenseCode</h2>
+            chat.innerHTML = `  <h2 class="avatar font-bold mb-4 flex flex-row-reverse text-xl gap-1 opacity-60">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
                                         <div id="${id}-text" class="flex flex-col gap-1 whitespace-pre-wrap"></div>
-                                        <div id="${id}-progress" class="pt-2 flex items-center opacity-50">
+                                        <div id="${id}-progress" class="pt-6 flex opacity-50 justify-between items-center">
+                                          <span class="flex gap-2">
                                             <div class="spinner">
-                                                <span class="material-symbols-rounded">workspaces</span>
+                                                <span class="material-symbols-rounded">autorenew</span>
                                             </div>
-                                            <div class="typing">Typing...</div>
-                                            <vscode-button appearance="icon">
-                                              <span class="material-symbols-rounded"
-                                                    onclick="vscode.postMessage({type: 'stopGenerate', id: '${id}'});">cancel</span>
-                                            </vscode-button>
+                                            <div class="typing">${l10nForUI[tip]}</div>
+                                          </span>
+                                          <vscode-button appearance="icon" onclick="vscode.postMessage({type: 'stopGenerate', id: '${id}'});">
+                                            <span class="material-symbols-rounded">
+                                              stop_circle
+                                            </span>
+                                            <p style="margin: 0 4px 0 6px">${l10nForUI["Stop responding"]}</p>
+                                          </vscode-button>
                                         </div>`;
             list.appendChild(chat);
           }
@@ -169,6 +181,9 @@ const vscode = acquireVsCodeApi();
         document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
 
         const chatText = document.getElementById(`${message.id}-text`);
+        if (!chatText.dataset.content) {
+          break;
+        }
         const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.content + "\n\n"), "text/html");
         chatText.dataset.content = undefined;
         const preCodeList = markedResponse.querySelectorAll("pre > code");
@@ -183,7 +198,7 @@ const vscode = acquireVsCodeApi();
           preCode.classList.add("block", "whitespace-pre", "overflow-x-scroll");
 
           const buttonWrapper = document.createElement("div");
-          buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "opacity-20", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
+          buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "opacity-60", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
 
           // Create copy to clipboard button
           const copyButton = document.createElement("button");
@@ -260,17 +275,18 @@ const vscode = acquireVsCodeApi();
     resendElement[0]?.classList.remove("hidden");
     const prompt = question.getElementsByClassName("prompt");
     prompt[0]?.setAttribute("contenteditable", false);
-    const code = question.querySelectorAll("pre > code");
     var s = window.getSelection();
     if (s.rangeCount > 0) {
       s.removeAllRanges();
     }
 
     if (prompt[0].textContent.length > 0) {
+      let updatedPrompt = JSON.parse(prompt[0].dataset.prompt);
+      updatedPrompt.prompt = prompt[0].textContent;
       vscode.postMessage({
         type: "sendQuestion",
-        value: prompt[0].textContent,
-        code: code[0]?.textContent,
+        value: updatedPrompt,
+        code: decodeURIComponent(prompt[0].dataset.code),
         lang: prompt[0].dataset.lang
       });
     }
@@ -301,6 +317,8 @@ const vscode = acquireVsCodeApi();
       }
     } else if (e.target.id === "completionModeRadio") {
       vscode.postMessage({ type: "completionMode", value: e.target._value });
+    } else if (e.target.id === "responseModeRadio") {
+      vscode.postMessage({ type: "responseMode", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
       vscode.postMessage({ type: "activeEngine", value: e.target._value });
     } else {
@@ -327,6 +345,17 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button');
 
+    if (targetButton?.id === "ask-button") {
+      e.preventDefault();
+      document.getElementById("ask-list").classList.toggle("hidden");
+      return;
+    }
+
+    var list = document.getElementById("ask-list");
+    if (!list.classList.contains("hidden")) {
+      list.classList.add("hidden");
+    }
+
     if (e.target.id === "triggerDelayShort") {
       document.getElementById("triggerDelayShortBtn").classList.add("hidden");
       document.getElementById("triggerDelayLongBtn").classList.remove("hidden");
@@ -349,18 +378,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "chat-button") {
       e.preventDefault();
-      vscode.postMessage({ type: 'repareQuestion', value: '' });
-      return;
-    }
-
-    if (targetButton?.id === "ask-button") {
-      e.preventDefault();
-      var p = "Question here";
-      for (var k in prompts) {
-        p = prompts[k];
-        break;
-      }
-      vscode.postMessage({ type: 'repareQuestion', value: p });
+      vscode.postMessage({ type: 'repareQuestion', value: { type: 'free chat', prompt: '${input}' } });
       return;
     }
 
@@ -383,6 +401,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       const question = targetButton.closest(".question-element-gnc");
       sendQuestion(question);
+      return;
     }
 
     if (targetButton?.classList?.contains("cancel-element-gnc")) {
@@ -421,7 +440,9 @@ const vscode = acquireVsCodeApi();
         type: "openNew",
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
+      // return;
     }
+
   });
 
 })();

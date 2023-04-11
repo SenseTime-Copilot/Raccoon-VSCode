@@ -3,6 +3,7 @@ import { Uri } from "vscode";
 import { Engine } from "../param/configures";
 import * as crypto from "crypto";
 import { outlog } from "../extension";
+import { IncomingMessage } from "http";
 
 export type GetCodeCompletions = {
   completions: Array<string>;
@@ -12,7 +13,7 @@ export async function getCodeCompletions(
   engine: Engine,
   prompt: string,
   stream: boolean
-): Promise<GetCodeCompletions> {
+): Promise<GetCodeCompletions | IncomingMessage> {
   let api = engine.url;
   if (api.includes("openai")) {
     return getCodeCompletionsOpenAI(engine, prompt, stream);
@@ -21,7 +22,7 @@ export async function getCodeCompletions(
   }
 }
 
-function getCodeCompletionsOpenAI(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions> {
+function getCodeCompletionsOpenAI(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (engine.key) {
@@ -29,7 +30,7 @@ function getCodeCompletionsOpenAI(engine: Engine, prompt: string, stream: boolea
       headers = { 'Authorization': `Bearer ${engine.key}` };
     }
     let responseType: ResponseType | undefined = undefined;
-    let config = engine.config;
+    let config = { ...engine.config };
     if (stream) {
       if (engine.streamConfig) {
         config = engine.streamConfig;
@@ -48,45 +49,43 @@ function getCodeCompletionsOpenAI(engine: Engine, prompt: string, stream: boolea
       ...config
     };
 
-    try {
-      outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
-      axios
-        .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })
-        .then(async (res) => {
-          if (res?.status === 200) {
-            if (responseType === "stream") {
-              resolve(res.data);
-              return;
-            }
-            let codeArray = res?.data.choices;
-            const completions = Array<string>();
-            const completionsBackup = Array<string>();
-            for (let i = 0; i < codeArray.length; i++) {
-              const completion = codeArray[i];
-              let tmpstr: string = completion.text || "";
-              if (tmpstr.trim() === "") {
-                continue;
-              }
-              if (completions.includes(tmpstr)) {
-                continue;
-              }
-              if (completion.finish_reason === "stop") {
-                completions.push(tmpstr + "\n");
-              } else {
-                completionsBackup.push(tmpstr);
-              }
-            }
-            resolve({ completions: completions.concat(completionsBackup) });
-          } else {
-            reject(res.data);
+    outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
+    axios
+      .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })
+      .then(async (res) => {
+        if (res?.status === 200) {
+          if (responseType === "stream") {
+            resolve(res.data);
+            return;
           }
-        })
-        .catch((err) => {
-          reject(err);
-        });
-    } catch (e) {
-      reject(e);
-    }
+          let codeArray = res?.data.choices;
+          const completions = Array<string>();
+          const completionsBackup = Array<string>();
+          for (let i = 0; i < codeArray.length; i++) {
+            const completion = codeArray[i];
+            let tmpstr: string = completion.text || "";
+            if (tmpstr.trim() === "") {
+              continue;
+            }
+            if (completions.includes(tmpstr)) {
+              continue;
+            }
+            if (completion.finish_reason === "stop") {
+              completions.push(tmpstr + "\n");
+            } else {
+              completionsBackup.push(tmpstr);
+            }
+          }
+          resolve({ completions: completions.concat(completionsBackup) });
+        } else {
+          reject(res.data);
+        }
+      }, (err) => {
+        reject(err);
+      }).catch(e => {
+        reject(e);
+      });
+
   });
 }
 
@@ -111,7 +110,7 @@ function generateAuthHeader(url: Uri, ak: string, sk: string) {
   };
 }
 
-function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions> {
+function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (engine.key) {
@@ -121,7 +120,7 @@ function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boo
     let payload;
     let p = prompt;
     let responseType: ResponseType | undefined = undefined;
-    let config = engine.config;
+    let config = { ...engine.config };
     if (stream) {
       if (engine.streamConfig) {
         config = engine.streamConfig;
@@ -144,8 +143,8 @@ function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boo
         ...config
       };
     }
+    outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
     try {
-      outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
       axios
         .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })
         .then(async (res) => {
@@ -154,7 +153,11 @@ function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boo
               resolve(res.data);
               return;
             }
-            let codeArray = res?.data.choices;
+            let codeArray = res?.data?.choices;
+            if (!codeArray) {
+              resolve(res.data);
+              return;
+            }
             const completions = Array<string>();
             const completionsBackup = Array<string>();
             for (let i = 0; i < codeArray.length; i++) {
@@ -176,9 +179,10 @@ function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boo
           } else {
             reject(res.data);
           }
-        })
-        .catch((err) => {
+        }, (err) => {
           reject(err);
+        }).catch(e => {
+          reject(e);
         });
     } catch (e) {
       reject(e);

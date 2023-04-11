@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Configuration, Engine } from "./param/configures";
+import { Configuration, Prompt } from "./param/configures";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { getDocumentLanguage, inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
@@ -9,32 +9,37 @@ let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
 
-export async function activate(context: vscode.ExtensionContext) {
-  configuration = new Configuration(context);
-  outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
-  context.subscriptions.push(outlog);
-  vscode.commands.executeCommand("setContext", "sensecode.next.chat", configuration.next.chat === true);
-
-  checkPrivacy(context);
-
-  async function checkEngineKey(ae?: Engine) {
-    if (!ae) {
-      return;
-    }
-    if (ae.key === undefined) {
-      let k = await context.secrets.get("sensecode.key");
-      if (k) {
-        ae.key = k;
-      } else {
-        return vscode.window.showInputBox({ title: `${vscode.l10n.t("SenseCode: Input your Key...")}`, ignoreFocusOut: true }).then(async (v) => {
-          if (v) {
-            await context.secrets.store("sensecode.key", v);
-            ae!.key = v;
-          }
-        });
-      }
+export async function checkEngineKey(context: vscode.ExtensionContext): Promise<boolean> {
+  if (!configuration.activeEngine) {
+    return false;
+  }
+  if (configuration.activeEngine.key === undefined) {
+    let k = await context.secrets.get("sensecode.key");
+    if (k) {
+      configuration.activeEngine.key = k;
+      return true;
+    } else {
+      return await vscode.window.showInputBox({ title: `${vscode.l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
+        if (v) {
+          await context.secrets.store("sensecode.key", v);
+          configuration.activeEngine!.key = v;
+          return true;
+        } else {
+          return false;
+        }
+      });
     }
   }
+  return true;
+}
+
+export async function activate(context: vscode.ExtensionContext) {
+  configuration = new Configuration(context);
+  configuration.update();
+  outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
+  context.subscriptions.push(outlog);
+
+  checkPrivacy(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.clearKey", async () => {
@@ -50,9 +55,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
-      let ae = configuration.activeEngine;
-      await checkEngineKey(ae);
-      return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
+      let ok = await checkEngineKey(context);
+      if (ok) {
+        return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
+      }
     })
   );
 
@@ -107,36 +113,13 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(view);
 
-  const commands = [
-    ["sensecode.addTests", "addTests"],
-    ["sensecode.findProblems", "findProblems"],
-    ["sensecode.optimize", "optimize"],
-    ["sensecode.explain", "explain"]
-  ];
-
-  const registeredCommands = commands.map(([command, promptKey]) =>
-    vscode.commands.registerCommand(command, async () => {
-      await vscode.commands.executeCommand('sensecode.view.focus');
-      await new Promise((f) => setTimeout(f, 1000));
-      let ae = configuration.activeEngine;
-      await checkEngineKey(ae);
-      let selection = undefined;
-      let commandPrefix = configuration.prompt[promptKey] as string;
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
-
-      selection = editor.document.getText(editor.selection);
-      provider?.sendApiRequest(commandPrefix, selection, getDocumentLanguage(editor.document));
-    })
-  );
-
   const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", async () => {
     await vscode.commands.executeCommand('sensecode.view.focus');
     await new Promise((f) => setTimeout(f, 1000));
-    let ae = configuration.activeEngine;
-    await checkEngineKey(ae);
+    let ok = await checkEngineKey(context);
+    if (!ok) {
+      return;
+    }
     let selection = undefined;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -144,19 +127,19 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     selection = editor.document.getText(editor.selection);
     if (selection) {
-      let prompts = configuration.prompt;
-      let p = undefined;
-      for (let k in prompts) {
-        p = prompts[k];
-        break;
-      }
-      provider?.sendApiRequest(p, selection, getDocumentLanguage(editor.document), false);
+      let prompt: Prompt = {
+        type: "code Q&A",
+        prompt: "${input}"
+      };
+      provider?.sendApiRequest(prompt, selection, getDocumentLanguage(editor.document));
     }
   });
 
-  context.subscriptions.push(customPromptCommand, ...registeredCommands);
+  context.subscriptions.push(customPromptCommand);
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
+
+  await checkEngineKey(context);
 
 }
 export function deactivate() { }

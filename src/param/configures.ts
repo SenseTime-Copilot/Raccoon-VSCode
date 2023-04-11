@@ -1,13 +1,67 @@
-import { ExtensionContext, workspace, WorkspaceConfiguration } from "vscode";
+import { ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
 
 export interface Engine {
   label: string;
   url: string;
   key: string | undefined;
-  capacities: string[] | undefined;
   config: any;
   streamConfig?: any;
 }
+
+export interface Prompt {
+  type: string;
+  prompt: string;
+  brush?: boolean;
+  icon?: string;
+}
+
+const builtinPrompts: { [key: string]: Prompt } = {
+  generation: {
+    type: "code generation",
+    prompt: "code generation.",
+    brush: true,
+    icon: "process_chart"
+  },
+  completion: {
+    type: "code completion",
+    prompt: "Please complete the following code",
+    brush: true,
+    icon: "gradient"
+  },
+  blankFilling: {
+    type: "code blank filling",
+    prompt: "Complete the following code, fill in the missing parts",
+    brush: true,
+    icon: "format_image_right"
+  },
+  codeCorrection: {
+    type: "code error correction",
+    prompt: "Identify and correct any errors in the following code snippet",
+    brush: true,
+    icon: "add_task"
+  },
+  refactoring: {
+    type: "code refactoring and optimization",
+    prompt: "code refactoring and optimization. Refactor the given code to improve readability, modularity, and maintainability",
+    brush: true,
+    icon: "build_circle"
+  },
+  addTest: {
+    type: "test sample generation",
+    prompt: "Generate a set of test cases and corresponding test code for the following code",
+    icon: "science"
+  },
+  complexityAnalysis: {
+    type: "code complexity analysis",
+    prompt: "Analyze the space and time complexity of the provided code. Provide a brief explanation of the code and the reasoning behind the complexities",
+    icon: "multiline_chart"
+  },
+  codeConversion: {
+    type: "code language conversion",
+    prompt: "Convert the given code equivalent ${input} code",
+    icon: "repeat"
+  }
+};
 
 export class Configuration {
   private configuration: WorkspaceConfiguration;
@@ -33,7 +87,9 @@ export class Configuration {
       let es = engines.filter((e) => {
         return e.label === engine!.label;
       });
-      if (es.length !== 0) {
+      if (es.length === 0) {
+        engine = undefined;
+      } else {
         engine = es[0];
       }
     }
@@ -44,15 +100,34 @@ export class Configuration {
   }
 
   public get next(): any {
-    return this.configuration.get("Next", {});
+    let next: any = this.configuration.get("Next", {});
+    if (!next.chat) {
+      next.chat = true;
+    }
+    return next;
   }
 
   public get debug(): any {
     return this.configuration.get("Debug", {});
   }
 
-  public get prompt(): any {
-    return this.configuration.get("Prompt", {});
+  public get prompt(): { [key: string]: Prompt } {
+    let customPrompts: { [key: string]: string } = this.configuration.get("Prompt", {});
+    let prompts: { [key: string]: Prompt } = {};
+    for (let label in builtinPrompts) {
+      let labelPre = label.replace(/([A-Z])/g, " $1");
+      labelPre = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
+      prompts[l10n.t(labelPre)] = builtinPrompts[label];
+    }
+    for (let label in customPrompts) {
+      let labelPre = label.replace(/([A-Z])/g, " $1");
+      labelPre = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
+      prompts[labelPre] = {
+        type: "custom",
+        prompt: customPrompts[label]
+      };
+    }
+    return prompts;
   }
 
   public get engines(): Engine[] {
@@ -61,12 +136,9 @@ export class Configuration {
       let e = {
         label: "Default",
         url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
-        capacities: [
-          "completion"
-        ],
         key: undefined,
         config: {
-          model: "CodeGen-16B-mono",
+          model: "penrose-411",
           n: 1,
           // eslint-disable-next-line @typescript-eslint/naming-convention
           max_tokens: 128,
@@ -81,12 +153,20 @@ export class Configuration {
     }
   }
 
-  public get autoCompleteEnabled(): boolean {
+  public get autoComplete(): boolean {
     return this.context.globalState.get("CompletionAutomatically", false);
   }
 
-  public set autoCompleteEnabled(v: boolean) {
+  public set autoComplete(v: boolean) {
     this.context.globalState.update("CompletionAutomatically", v);
+  }
+
+  public get streamResponse(): boolean {
+    return this.context.globalState.get("StreamResponse", true);
+  }
+
+  public set streamResponse(v: boolean) {
+    this.context.globalState.update("StreamResponse", v);
   }
 
   public get printOut(): boolean {
