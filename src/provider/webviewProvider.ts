@@ -233,7 +233,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     let send = true;
     let streaming = configuration.streamResponse;
     let instruction = prompt.prompt;
-    if (instruction.includes("${input}")) {
+    if (instruction.includes("${input")) {
       send = false;
     }
 

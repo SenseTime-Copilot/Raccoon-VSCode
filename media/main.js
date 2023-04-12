@@ -55,7 +55,7 @@ const vscode = acquireVsCodeApi();
           let icon = prompts[k].icon || "smart_button";
           let ellip = "";
           let brush = prompts[k].brush || false;
-          if (p.includes("${input}")) {
+          if (p.includes("${input")) {
             ellip = "...";
             brush = false;
           }
@@ -75,7 +75,7 @@ const vscode = acquireVsCodeApi();
           `<button class="chat-shortcut grow flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32"
                       onclick="vscode.postMessage({
                           type: 'repareQuestion',
-                          value: {type: 'code Q&A', prompt: '\${input}'}
+                          value: {type: 'code Q&A', prompt: '\${input:Question Here...}'}
                       });"
             >
           <span class="material-symbols-rounded text-2xl">chat</span>
@@ -85,12 +85,12 @@ const vscode = acquireVsCodeApi();
 
         shortcuts += `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
                       <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
-                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input}'}});">
+                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input:Question Here...}'}});">
                         <span class="material-symbols-rounded text-2xl">chat</span>
                         ${l10nForUI["Code Q&A"]}
                       </button>
                       <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
-                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input}'}});">
+                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input:Question Here...}'}});">
                         <span class="material-symbols-rounded text-2xl">chat_bubble</span>
                         ${l10nForUI["FreeChat"]}
                       </button>`;
@@ -102,8 +102,8 @@ const vscode = acquireVsCodeApi();
         document.getElementById('settings')?.remove();
         let id = message.id;
         let prompt = message.value;
-        let code = message.code || "";
-        let lang = message.lang || "";
+        let code = message.code + "" || "";
+        let lang = message.lang + "" || "";
         let tip = message.streaming ? "Typing..." : "Thinking...";
         const edit = !message.send;
 
@@ -113,14 +113,30 @@ const vscode = acquireVsCodeApi();
         }
 
         let prompthtml = prompt.prompt;
-        if (prompt.prompt.includes("${input}")) {
-          prompthtml = prompthtml.replace("${input}", "<p class=\"mx-1 px-2 w-fit h-6\" contenteditable=\"true\"></p>");
+        if (prompt.prompt.includes("${input")) {
+          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="eidtable mx-1 px-2 w-fit h-6" contenteditable="${edit}">$2</p>`);
         }
-        let codehtml = "";
+
+        let codeSnippet = "";
         if (prompt.type === 'free chat') {
           code = "";
         } else {
-          codehtml = marked.parse("```\n" + code + "\n```");
+          let expendStatus = "";
+          let expendBtn = "";
+          let codehtml = marked.parse("```\n" + code + "\n```");
+          let lines = code.split('\n');
+          if (lines.length > 10) {
+            expendBtn = `<button class="expend-code -ml-2 mr-1 border-none rounded-md cursor-pointer justify-center opacity-75">
+                      <span class="material-symbols-rounded">keyboard_double_arrow_down</span>
+                    </button>`;
+            expendStatus = "";
+          } else {
+            expendStatus = "expend";
+          }
+          codeSnippet = `<div class="code-wrapper ${expendStatus} flex p-2">
+                          ${expendBtn}
+                          ${codehtml}
+                        </div>`;
         }
 
         document.getElementById("cover")?.classList?.add("hidden");
@@ -130,19 +146,19 @@ const vscode = acquireVsCodeApi();
         }
 
         list.innerHTML +=
-          `<div class="p-4 self-end question-element-gnc relative  ${edit ? "replace" : ""}">
-                        <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
-                        <div class="mb-5 flex items-center">
-                            <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-4 hidden">${pencilIcon}</button>
-                            <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-2 absolute right-4" style="width: calc(100% - 32px);">
-                                <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
-                                <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
-                                <vscode-dropdown style="width: 100%;margin: 1px 0;" class="${code !== "" ? "" : "hidden"}">${promptList}</vscode-dropdown>
-                            </div>
-                        </div>
-                        <div id="prompt-${id}" class="prompt flex leading-loose p-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}" contenteditable="${edit}">${prompthtml}</div>
-                        <div class="overflow-y-auto p-2">${codehtml}</div>
-                    </div>`;
+          `<div class="p-4 self-end question-element-gnc relative ${edit ? "replace" : ""}">
+              <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
+              <div class="mb-5 flex items-center">
+                  <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-4 hidden">${pencilIcon}</button>
+                  <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-2 absolute right-4" style="width: calc(100% - 32px);">
+                      <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
+                      <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
+                      <vscode-dropdown style="width: 100%;margin: 1px 0;" class="hidden">${promptList}</vscode-dropdown>
+                  </div>
+              </div>
+              <div id="prompt-${id}" class="prompt flex leading-loose p-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
+              ${codeSnippet}
+          </div>`;
 
         if (edit) {
           var promptText = document.getElementById(`prompt-${id}`);
@@ -274,7 +290,10 @@ const vscode = acquireVsCodeApi();
     elements[0]?.classList.add("hidden");
     resendElement[0]?.classList.remove("hidden");
     const prompt = question.getElementsByClassName("prompt");
-    prompt[0]?.setAttribute("contenteditable", false);
+    const eidtableElems = prompt[0].getElementsByClassName("eidtable");
+    Array.from(eidtableElems).forEach((el) => {
+      el.setAttribute("contenteditable", false);
+    });
     var s = window.getSelection();
     if (s.rangeCount > 0) {
       s.removeAllRanges();
@@ -297,7 +316,11 @@ const vscode = acquireVsCodeApi();
     const resendElement = question.getElementsByClassName("resend-element-gnc");
     elements[0]?.classList.add("hidden");
     resendElement[0]?.classList.remove("hidden");
-    question.querySelectorAll(".prompt")[0].setAttribute("contenteditable", false);
+    const prompt = question.getElementsByClassName("prompt");
+    const eidtableElems = prompt[0].getElementsByClassName("eidtable");
+    Array.from(eidtableElems).forEach((el) => {
+      el.setAttribute("contenteditable", false);
+    });
     var s = window.getSelection();
     if (s.rangeCount > 0) {
       s.removeAllRanges();
@@ -324,18 +347,20 @@ const vscode = acquireVsCodeApi();
     } else {
       const question = e.target.closest(".question-element-gnc");
       const ps = question.getElementsByClassName('prompt');
-      ps[0].textContent = e.target._value;
+      var content = e.target._value;
+      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="eidtable mx-1 px-2 w-fit h-6" contenteditable="true">$2</p>`);
       ps[0].focus();
     }
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.target.classList.contains("prompt") && e.ctrlKey && e.code === "Enter") {
+    const promptBox = e.target.closest('.prompt');
+    if (promptBox && e.ctrlKey && e.code === "Enter") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
       sendQuestion(question);
     }
-    if (e.target.classList.contains("prompt") && e.code === "Escape") {
+    if (promptBox && e.code === "Escape") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
       cancelEditQuestion(question);
@@ -378,7 +403,15 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "chat-button") {
       e.preventDefault();
-      vscode.postMessage({ type: 'repareQuestion', value: { type: 'free chat', prompt: '${input}' } });
+      vscode.postMessage({ type: 'repareQuestion', value: { type: 'free chat', prompt: '${input:Question Here...}' } });
+      return;
+    }
+
+    if (targetButton?.classList?.contains("expend-code")) {
+      e.preventDefault();
+      const question = targetButton.closest(".question-element-gnc");
+      const code = question.getElementsByClassName("code-wrapper");
+      code[0].classList.toggle("expend");
       return;
     }
 
@@ -389,8 +422,11 @@ const vscode = acquireVsCodeApi();
       const elements = targetButton.nextElementSibling;
       elements.classList.remove("hidden");
       const prompt = question.getElementsByClassName("prompt");
-      prompt[0]?.setAttribute("contenteditable", true);
-      prompt[0].focus();
+      const eidtableElems = prompt[0].getElementsByClassName("eidtable");
+      Array.from(eidtableElems).forEach((el) => {
+        el.setAttribute("contenteditable", true);
+        el.focus();
+      });
 
       targetButton.classList.add("hidden");
 
