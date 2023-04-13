@@ -215,16 +215,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           }
           break;
         }
-        case 'like': {
-          telemetryReporter.logUsage("like", { id: data.id });
-          break;
-        }
-        case 'unlike': {
-          telemetryReporter.logUsage("unlike", { id: data.id });
-          break;
-        }
-        case 'regenerate': {
-          telemetryReporter.logUsage("regenerate", { id: data.id });
+        case 'telemetry': {
+          telemetryReporter.logUsage(data.info.event, data.info);
           break;
         }
         default:

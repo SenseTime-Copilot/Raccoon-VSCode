@@ -40,13 +40,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const sender: vscode.TelemetrySender = {
     flush() {
-      outlog.info("FLUSH");
     },
     sendErrorData(error, data) {
-      outlog.info("ERROR", error.message, data);
     },
     sendEventData(eventName, data) {
-      outlog.info("", { event: eventName.split("/")[1], ...data });
+      outlog.info(eventName, data);
     },
   };
   telemetryReporter = vscode.env.createTelemetryLogger(sender);
