@@ -135,7 +135,7 @@ const vscode = acquireVsCodeApi();
           let codehtml = marked.parse("```\n" + code + "\n```");
           let lines = code.split('\n');
           if (lines.length > 10) {
-            expendBtn = `<button class="expend-code rounded-l-md cursor-pointer justify-center opacity-75">
+            expendBtn = `<button class="expend-code rounded-l-md border-0 border-r cursor-pointer justify-center opacity-75">
                       <span class="material-symbols-rounded">keyboard_double_arrow_down</span>
                     </button>`;
             expendStatus = "";
