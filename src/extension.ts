@@ -8,6 +8,7 @@ import { SenseCodeViewProvider } from "./provider/webviewProvider";
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
+export let telemetryReporter: vscode.TelemetryLogger;
 
 export async function checkEngineKey(context: vscode.ExtensionContext): Promise<boolean> {
   if (!configuration.activeEngine) {
@@ -34,10 +35,24 @@ export async function checkEngineKey(context: vscode.ExtensionContext): Promise<
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  configuration = new Configuration(context);
-  configuration.update();
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
   context.subscriptions.push(outlog);
+
+  const sender: vscode.TelemetrySender = {
+    flush() {
+      outlog.info("FLUSH");
+    },
+    sendErrorData(error, data) {
+      outlog.info("ERROR", error.message, data);
+    },
+    sendEventData(eventName, data) {
+      outlog.info("", { event: eventName.split("/")[1], ...data });
+    },
+  };
+  telemetryReporter = vscode.env.createTelemetryLogger(sender);
+
+  configuration = new Configuration(context);
+  configuration.update();
 
   checkPrivacy(context);
 

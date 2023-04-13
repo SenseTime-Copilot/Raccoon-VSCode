@@ -126,14 +126,14 @@ const vscode = acquireVsCodeApi();
           let codehtml = marked.parse("```\n" + code + "\n```");
           let lines = code.split('\n');
           if (lines.length > 10) {
-            expendBtn = `<button class="expend-code -ml-2 mr-1 border-none rounded-md cursor-pointer justify-center opacity-75">
+            expendBtn = `<button class="expend-code rounded-l-md cursor-pointer justify-center opacity-75">
                       <span class="material-symbols-rounded">keyboard_double_arrow_down</span>
                     </button>`;
             expendStatus = "";
           } else {
             expendStatus = "expend";
           }
-          codeSnippet = `<div class="code-wrapper ${expendStatus} flex p-2">
+          codeSnippet = `<div class="code-wrapper ${expendStatus} flex rounded-md">
                           ${expendBtn}
                           ${codehtml}
                         </div>`;
@@ -185,6 +185,26 @@ const vscode = acquireVsCodeApi();
                                             </span>
                                             <p style="margin: 0 4px 0 6px">${l10nForUI["Stop responding"]}</p>
                                           </vscode-button>
+                                        </div>
+                                        <div id="${id}-feedback" class="feedback pt-6 flex opacity-50 justify-between items-center hidden">
+                                          <span class="flex gap-2">
+                                            <vscode-button appearance="icon" onclick="vscode.postMessage({type: 'like', id: '${id}'});">
+                                              <span class="material-symbols-rounded">
+                                                thumb_up
+                                              </span>
+                                            </vscode-button>
+                                            <vscode-button appearance="icon" onclick="vscode.postMessage({type: 'unlike', id: '${id}'});">
+                                              <span class="material-symbols-rounded">
+                                                thumb_down
+                                              </span>
+                                            </vscode-button>
+                                          </span>
+                                          <vscode-button appearance="icon" onclick="vscode.postMessage({type: 'regenerate', id: '${id}'});">
+                                            <span class="material-symbols-rounded">
+                                              refresh
+                                            </span>
+                                            <p style="margin: 0 4px 0 6px">${l10nForUI["Regenerate"]}</p>
+                                          </vscode-button>
                                         </div>`;
             list.appendChild(chat);
           }
@@ -194,6 +214,7 @@ const vscode = acquireVsCodeApi();
       }
       case "stopResponse": {
         document.getElementById(`${message.id}-progress`)?.classList?.add("hidden");
+        document.getElementById(`${message.id}-feedback`)?.classList?.remove("hidden");
         document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
 
         const chatText = document.getElementById(`${message.id}-text`);

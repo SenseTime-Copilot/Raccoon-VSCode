@@ -236,6 +236,21 @@ textarea::placeholder {
     background: var(--panel-view-background);
 }
 
+.question-element-gnc .code-wrapper {
+    border: 1px solid var(--vscode-button-border);
+    overflow: auto;
+}
+
+.question-element-gnc .code-wrapper.expend pre {
+    overflow: auto;
+}
+
+.question-element-gnc .code-wrapper pre {
+    padding: 0.5rem;
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+
 .question-element-gnc:not(.replace) .code-wrapper:not(.expend) {
     overflow-y: hidden;
     --scrollbar-width: 8px;

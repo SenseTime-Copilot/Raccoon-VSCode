@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'http';
 import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n } from 'vscode';
-import { checkEngineKey, configuration, outlog } from '../extension';
+import { checkEngineKey, configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from './inlineCompletionProvider';
@@ -215,6 +215,18 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           }
           break;
         }
+        case 'like': {
+          telemetryReporter.logUsage("like", { id: data.id });
+          break;
+        }
+        case 'unlike': {
+          telemetryReporter.logUsage("unlike", { id: data.id });
+          break;
+        }
+        case 'regenerate': {
+          telemetryReporter.logUsage("regenerate", { id: data.id });
+          break;
+        }
         default:
           break;
       }
@@ -425,7 +437,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                     "NewFile": "${l10n.t("Create a new file with the below code")}",
                     "Thinking...": "${l10n.t("Thinking...")}",
                     "Typing...": "${l10n.t("Typing...")}",
-                    "Stop responding": "${l10n.t("Stop responding")}"
+                    "Stop responding": "${l10n.t("Stop responding")}",
+                    "Regenerate": "${l10n.t("Regenerate")}"
                   };
                 </script>
                 <script src="${scriptUri}"></script>
