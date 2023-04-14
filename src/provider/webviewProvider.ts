@@ -166,7 +166,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         case 'stopGenerate': {
           let id = parseInt(data.id);
           this.stopList.push(id);
-          this.sendMessage({ type: 'stopResponse', id });
+          this.sendMessage({ type: 'stopResponse', id, byUser: true });
           break;
         }
         case 'editCode': {
@@ -388,14 +388,14 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             <body class="overflow-hidden">
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen ${bodyClass}" id="qa-list-wrapper">
-                    <div id="cover" class="flex flex-col gap-2 m-8">
+                    <div id="cover" class="flex flex-col gap-2 overflow-auto">
                       <div style="height: 100px;margin: 1rem auto 5rem auto;filter: opacity(0.3) contrast(0);">
                         <img style="margin: 0 auto;" src="${logo}"/>
                         <div class="text-2xl opacity-40 font-bold tracking-widest text-center m-4">
                           ${l10n.t("SenseCode")}
                         </div>
                       </div>
-                      <div id="shortcuts" class="flex flex-wrap self-center">
+                      <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto">
                       </div>
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>

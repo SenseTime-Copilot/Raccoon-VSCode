@@ -1,4 +1,3 @@
-// @ts-nocheck
 const vscode = acquireVsCodeApi();
 
 (function () {
@@ -36,16 +35,19 @@ const vscode = acquireVsCodeApi();
     var prompt = promptNode.dataset.prompt;
     var code = decodeURIComponent(promptNode.dataset.code);
     var response = responseNode.dataset.response;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     return { prompt, code, response, generate_at: parseInt(id), report_at: new Date().valueOf() };
-  }
+  };
 
   // Handle messages sent from the extension to the webview
   window.addEventListener("message", (event) => {
     const message = event.data;
     const list = document.getElementById("qa-list");
+    const asklist = document.getElementById("ask-list");
 
     switch (message.type) {
       case "updateSettingPage": {
+        asklist.classList.add("hidden");
         if (document.getElementById('settings') || message.show) {
           const sp = document.getElementById("setting-page");
           sp.innerHTML = message.value;
@@ -113,8 +115,32 @@ const vscode = acquireVsCodeApi();
         let prompt = message.value;
         let code = message.code + "" || "";
         let lang = message.lang + "" || "";
-        let tip = message.streaming ? "Typing..." : "Thinking...";
+        let progress = `<div id="progress-${id}" class="pt-6 flex justify-between items-center">
+                    <span class="flex gap-2 opacity-50">
+                      <div class="spinner">
+                          <span class="material-symbols-rounded">autorenew</span>
+                      </div>
+                      <div class="typing">${l10nForUI["Thinking..."]}</div>
+                    </span>
+                  </div>`;
         const edit = !message.send;
+        if (message.streaming === true) {
+          progress = `
+          <div id="progress-${id}" class="pt-6 flex justify-between items-center">
+            <span class="flex gap-2 opacity-50">
+              <div class="spinner">
+                  <span class="material-symbols-rounded">autorenew</span>
+              </div>
+              <div class="typing">${l10nForUI["Typing..."]}</div>
+            </span>
+            <button class="stopGenerate flex" data-id=${id}>
+              <span class="material-symbols-rounded">
+                stop_circle
+              </span>
+              <p style="margin: 0 4px 0 6px">${l10nForUI["Stop responding"]}</p>
+            </button>
+          </div>`;
+        }
 
         let margin = "";
         if (edit && prompt.type !== 'free chat') {
@@ -155,7 +181,7 @@ const vscode = acquireVsCodeApi();
         }
 
         list.innerHTML +=
-          `<div class="p-4 self-end question-element-gnc relative ${edit ? "replace" : ""}">
+          `<div id="question-${id}" class="p-4 self-end question-element-gnc relative ${edit ? "replace" : ""}">
               <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
               <div class="mb-5 flex items-center">
                   <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-4 hidden">${pencilIcon}</button>
@@ -181,21 +207,8 @@ const vscode = acquireVsCodeApi();
             chat.classList.add("p-4", "self-end", "answer-element-gnc");
             chat.innerHTML = `  <h2 class="avatar font-bold mb-4 flex flex-row-reverse text-xl gap-1 opacity-60">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
                                         <div id="response-${id}" class="flex flex-col gap-1 whitespace-pre-wrap"></div>
-                                        <div id="progress-${id}" class="pt-6 flex opacity-50 justify-between items-center">
-                                          <span class="flex gap-2">
-                                            <div class="spinner">
-                                                <span class="material-symbols-rounded">autorenew</span>
-                                            </div>
-                                            <div class="typing">${l10nForUI[tip]}</div>
-                                          </span>
-                                          <button class="stopGenerate flex" data-id=${id}>
-                                            <span class="material-symbols-rounded">
-                                              stop_circle
-                                            </span>
-                                            <p style="margin: 0 4px 0 6px">${l10nForUI["Stop responding"]}</p>
-                                          </button>
-                                        </div>
-                                        <div id="feedback-${id}" class="feedback pt-6 flex opacity-50 justify-between items-center hidden">
+                                        ${progress}
+                                        <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                           <span class="flex gap-2">
                                             <button class="like flex rounded" data-id=${id}>
                                               <span class="material-symbols-rounded">
@@ -272,6 +285,11 @@ const vscode = acquireVsCodeApi();
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
         chatText.classList.add("markdown-body");
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
+
+        if (message.byUser === true) {
+          var qinfo = collectInfo(message.id);
+          vscode.postMessage({ type: 'telemetry', info: { event: "stopped-by-user", ...qinfo } });
+        }
         break;
       }
       case "addResponse": {
@@ -405,6 +423,7 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.id === "ask-button") {
       e.preventDefault();
       document.getElementById("ask-list").classList.toggle("hidden");
+      targetButton.classList.toggle("open");
       return;
     }
 
@@ -445,38 +464,42 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('like')) {
-      var loginfo = collectInfo(targetButton?.dataset.id);
-      const feedback_actions = targetButton.closest('.feedback');
-      var unlike = feedback_actions.querySelectorAll(".unlike")[0];
+      var likeInfo = collectInfo(targetButton?.dataset.id);
+      const feedbackActions = targetButton.closest('.feedback');
+      var unlike = feedbackActions.querySelectorAll(".unlike")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "like-cancelled", ...loginfo } });
+        vscode.postMessage({ type: 'telemetry', info: { event: "like-cancelled", ...likeInfo } });
       } else {
         unlike?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "like", ...loginfo } });
+        vscode.postMessage({ type: 'telemetry', info: { event: "like", ...likeInfo } });
       }
       return;
     }
 
     if (targetButton?.classList?.contains('unlike')) {
-      var loginfo = collectInfo(targetButton?.dataset.id);
-      const feedback_actions = targetButton.closest('.feedback');
-      var like = feedback_actions.querySelectorAll(".like")[0];
+      var unlikeInfo = collectInfo(targetButton?.dataset.id);
+      const feedbackActions = targetButton.closest('.feedback');
+      var like = feedbackActions.querySelectorAll(".like")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "unlike-cancelled", ...loginfo } });
+        vscode.postMessage({ type: 'telemetry', info: { event: "unlike-cancelled", ...unlikeInfo } });
       } else {
         like?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "unlike", ...loginfo } });
+        vscode.postMessage({ type: 'telemetry', info: { event: "unlike", ...unlikeInfo } });
       }
       return;
     }
 
     if (targetButton?.classList?.contains('regenerate')) {
-      var loginfo = collectInfo(targetButton?.dataset.id);
-      vscode.postMessage({ type: 'telemetry', info: { event: "regenerate", ...loginfo } });
+      let id = targetButton?.dataset.id;
+      e.preventDefault();
+      const question = document.getElementById(`question-${id}`);
+      sendQuestion(question);
+      var reginfo = collectInfo(id);
+      vscode.postMessage({ type: 'telemetry', info: { event: "regenerate", ...reginfo } });
       return;
     }
 

@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const sender: vscode.TelemetrySender = {
     flush() {
     },
-    sendErrorData(error, data) {
+    sendErrorData(_error, _data) {
     },
     sendEventData(eventName, data) {
       outlog.info(eventName, data);

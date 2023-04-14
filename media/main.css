@@ -20,10 +20,6 @@ ul {
     padding-left: var(--container-padding);
 }
 
-*:focus {
-    outline-color: var(--vscode-checkbox-selectBorder) !important;
-}
-
 a {
     color: var(--vscode-textLink-foreground);
 }
@@ -187,6 +183,11 @@ textarea::placeholder {
 
 .x-chat #ask-button {
     display: flex;
+    transition-duration: 0.2s;
+}
+
+.x-chat #ask-button.open .material-symbols-rounded {
+    transform: rotateX(180deg);
 }
 
 .x-chat.x-free_chat .chat-shortcut,
@@ -253,29 +254,24 @@ textarea::placeholder {
 
 .question-element-gnc:not(.replace) .code-wrapper:not(.expend) {
     overflow-y: hidden;
-    --scrollbar-width: 8px;
     --mask-height: 50px;
     height: 200px;
     padding-bottom: var(--mask-height);
     --mask-image-content:
         linear-gradient(to bottom, black, black calc(100% - var(--mask-height)), transparent);
-    --mask-size-content:
-        calc(100% - var(--scrollbar-width)) 100%;
-    --mask-image-scrollbar:
-        linear-gradient(black, black);
-    --mask-size-scrollbar:
-        var(--scrollbar-width) 100%;
-    -webkit-mask-image: var(--mask-image-content), var(--mask-image-scrollbar);
-    -webkit-mask-size: var(--mask-size-content), var(--mask-size-scrollbar);
-    -webkit-mask-position: 0 0, 120% 0;
+    --mask-size-content: 100% 100%;
+    -webkit-mask-image: var(--mask-image-content);
+    -webkit-mask-size: var(--mask-size-content);
+    -webkit-mask-position: 0 0, 100% 0;
     -webkit-mask-repeat: no-repeat, no-repeat;
-    mask-image: var(--mask-image-content), var(--mask-image-scrollbar);
-    mask-size: var(--mask-size-content), var(--mask-size-scrollbar);
+    mask-image: var(--mask-image-content);
+    mask-size: var(--mask-size-content);
     mask-position: 0 0, 100% 0;
     mask-repeat: no-repeat, no-repeat;
 }
 
-.question-element-gnc .code-wrapper::-webkit-scrollbar {
+.question-element-gnc .code-wrapper::-webkit-scrollbar,
+#shortcuts::-webkit-scrollbar {
     display: none;
 }
 
@@ -296,26 +292,54 @@ textarea::placeholder {
 
 .answer-element-gnc {
     background-color: var(--vscode-minimapSlider-background);
-
 }
 
-.stopGenerate,
+button.stopGenerate,
 .feedback button {
     background: transparent !important;
     border: none;
+    opacity: 0.5;
+}
+
+.stopGenerate:focus,
+.feedback button:focus,
+.expend-code {
+    outline: none;
+}
+
+@keyframes bouncy {
+
+    from,
+    to {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1) rotate(-10deg);
+    }
+
+    80% {
+        transform: scale(1.1) rotate(-15deg);
+    }
+
+    90% {
+        transform: scale(1) rotate(10deg);
+    }
 }
 
 .feedback button.checked {
-    color: var(--vscode-sash-hoverBorder);
+    opacity: 0.8;
+    -webkit-animation: bouncy 0.4s;
+    animation: bouncy 0.4s;
+}
+
+.feedback .checked .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1;
 }
 
 .stopGenerate .material-symbols-rounded,
 .feedback .material-symbols-rounded {
     margin-top: 2px;
-}
-
-.feedback .checked .material-symbols-rounded {
-    font-variation-settings: 'FILL' 1;
 }
 
 .vscode-high-contrast .answer-element-gnc {
