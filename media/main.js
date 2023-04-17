@@ -86,7 +86,7 @@ const vscode = acquireVsCodeApi();
           `<button class="chat-shortcut grow flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32"
                       onclick="vscode.postMessage({
                           type: 'repareQuestion',
-                          value: {type: 'code Q&A', prompt: '\${input:Question Here...}'}
+                          value: {type: 'code Q&A', prompt: '\${input:${l10nForUI["Question Here..."]}}'}
                       });"
             >
           <span class="material-symbols-rounded text-2xl">chat</span>
@@ -96,12 +96,12 @@ const vscode = acquireVsCodeApi();
 
         shortcuts += `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
                       <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
-                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input:Question Here...}'}});">
+                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input:${l10nForUI["Question Here..."]}}'}});">
                         <span class="material-symbols-rounded text-2xl">chat</span>
                         ${l10nForUI["Code Q&A"]}
                       </button>
                       <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
-                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input:Question Here...}'}});">
+                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input:${l10nForUI["Question Here..."]}}'}});">
                         <span class="material-symbols-rounded text-2xl">chat_bubble</span>
                         ${l10nForUI["FreeChat"]}
                       </button>`;
@@ -419,21 +419,25 @@ const vscode = acquireVsCodeApi();
 
   var checkMengxiStart = false;
   var clickMengxiCount = 0;
+  var timer;
   const checkMengxi = function (elem) {
     if (elem.id === "Penrose") {
       if (checkMengxiStart === false) {
         checkMengxiStart = true;
         clickMengxiCount++;
-        setTimeout(() => {
+        timer = setTimeout(() => {
           checkMengxiStart = false;
           clickMengxiCount = 0;
+          clearTimeout(timer);
         }, 1500);
       } else {
         clickMengxiCount++;
       }
-      if (clickMengxiCount > 10) {
+      if ((!document.body.classList.contains("x-next") && clickMengxiCount >= 8) ||
+        (document.body.classList.contains("x-next") && clickMengxiCount >= 4)) {
         checkMengxiStart = false;
         clickMengxiCount = 0;
+        clearTimeout(timer);
         return true;
       }
     } else {
@@ -445,7 +449,7 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("click", (e) => {
     if (checkMengxi(e.target)) {
-      document.getElementById("qa-list-wrapper").classList.toggle('x-next');
+      document.body.classList.toggle('x-next');
       return;
     }
     const targetButton = e.target.closest('button');
@@ -484,7 +488,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "chat-button") {
       e.preventDefault();
-      vscode.postMessage({ type: 'repareQuestion', value: { type: 'free chat', prompt: '${input:Question Here...}' } });
+      vscode.postMessage({ type: 'repareQuestion', value: { type: 'free chat', prompt: `\${input:${l10nForUI["Question Here..."]}}` } });
       return;
     }
 

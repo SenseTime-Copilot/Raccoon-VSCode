@@ -440,6 +440,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                   const l10nForUI = {
                     "Question": "${l10n.t("Question")}",
                     "SenseCode": "${l10n.t("SenseCode")}",
+                    "Question Here...": "${l10n.t("Question Here...")}",
                     "Code Q&A": "${l10n.t("Code Q&A")}",
                     "FreeChat": "${l10n.t("Free chat")}",
                     "Edit": "${l10n.t("Edit and resend this prompt")}",

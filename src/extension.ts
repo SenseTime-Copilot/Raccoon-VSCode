@@ -127,7 +127,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (selection) {
       let prompt: Prompt = {
         type: "code Q&A",
-        prompt: "${input:Question Here...}"
+        prompt: `\${input:${vscode.l10n.t("Question Here...")}}`
       };
       provider?.sendApiRequest(prompt, selection, getDocumentLanguage(editor.document));
     }
