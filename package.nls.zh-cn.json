@@ -9,6 +9,7 @@
     "sensecode.config.prompt": "提示模板列表",
     "sensecode.config.prompt.item": "提示模板",
     "sensecode.command.settings": "设置",
+    "sensecode.command.setKey": "设置秘钥",
     "sensecode.command.clearKey": "清除 Secret Storage 中的密钥",
     "sensecode.command.customPrompt": "SenseCode: 执行自定义提示...",
     "sensecode.view.title": "代码助手",

@@ -2,9 +2,8 @@ import axios, { ResponseType } from "axios";
 import { Uri } from "vscode";
 import { Engine } from "../param/configures";
 import * as crypto from "crypto";
-import { outlog } from "../extension";
+import { configuration, outlog } from "../extension";
 import { IncomingMessage } from "http";
-import { getCodeCompletionsOpenAI } from "./getCodeCompletionsOpenAI";
 
 export type GetCodeCompletions = {
   completions: Array<string>;
@@ -15,12 +14,8 @@ export async function getCodeCompletions(
   prompt: string,
   stream: boolean
 ): Promise<GetCodeCompletions | IncomingMessage> {
-  let api = engine.url;
-  if (api.includes("openai")) {
-    return getCodeCompletionsOpenAI(engine, prompt, stream);
-  } else {
-    return getCodeCompletionsSenseCode(engine, prompt, stream);
-  }
+  let key = engine.key || await configuration.getApiKey();
+  return getCodeCompletionsSenseCode(engine, key, prompt, stream);
 }
 
 function hmacSHA256(key: Buffer, data: Buffer): string {
@@ -44,11 +39,11 @@ function generateAuthHeader(url: Uri, ak: string, sk: string) {
   };
 }
 
-function getCodeCompletionsSenseCode(engine: Engine, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
+function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
-    if (engine.key) {
-      let aksk = engine.key.split(":");
+    if (key) {
+      let aksk = key.split(":");
       headers = generateAuthHeader(Uri.parse(engine.url), aksk[0], aksk[1]);
     }
     let payload;

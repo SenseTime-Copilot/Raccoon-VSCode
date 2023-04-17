@@ -153,6 +153,18 @@ export class Configuration {
     }
   }
 
+  public async getApiKey(): Promise<string | undefined> {
+    return await this.context.secrets.get("sensecode.key");
+  }
+
+  public async setApiKey(v: string | undefined) {
+    if (!v) {
+      await this.context.secrets.delete("sensecode.key");
+    } else {
+      await this.context.secrets.store("sensecode.key", v);
+    }
+  }
+
   public get autoComplete(): boolean {
     return this.context.globalState.get("CompletionAutomatically", false);
   }

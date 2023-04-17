@@ -101,6 +101,11 @@
                 "icon": "$(gear)"
             },
             {
+                "command": "sensecode.setKey",
+                "category": "SenseCode",
+                "title": "%sensecode.command.setKey%"
+            },
+            {
                 "command": "sensecode.clearKey",
                 "category": "SenseCode",
                 "title": "%sensecode.command.clearKey%"

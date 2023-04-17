@@ -239,7 +239,7 @@ textarea::placeholder {
 
 .question-element-gnc .code-wrapper {
     border: 1px solid var(--vscode-button-border);
-    overflow: auto;
+    overflow: hidden;
 }
 
 .question-element-gnc .code-wrapper.expend pre {

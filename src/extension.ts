@@ -10,30 +10,6 @@ export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
 export let telemetryReporter: vscode.TelemetryLogger;
 
-export async function checkEngineKey(context: vscode.ExtensionContext): Promise<boolean> {
-  if (!configuration.activeEngine) {
-    return false;
-  }
-  if (configuration.activeEngine.key === undefined) {
-    let k = await context.secrets.get("sensecode.key");
-    if (k) {
-      configuration.activeEngine.key = k;
-      return true;
-    } else {
-      return await vscode.window.showInputBox({ title: `${vscode.l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-        if (v) {
-          await context.secrets.store("sensecode.key", v);
-          configuration.activeEngine!.key = v;
-          return true;
-        } else {
-          return false;
-        }
-      });
-    }
-  }
-  return true;
-}
-
 export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
   context.subscriptions.push(outlog);
@@ -55,8 +31,24 @@ export async function activate(context: vscode.ExtensionContext) {
   checkPrivacy(context);
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.setKey", async () => {
+      await vscode.window.showInputBox({ title: `${vscode.l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
+        configuration.setApiKey(v);
+      });
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.clearKey", async () => {
-      await context.secrets.delete("sensecode.key");
+      vscode.window.showWarningMessage(
+        vscode.l10n.t("Clear API Key from your Secret Storage?"),
+        { modal: true },
+        vscode.l10n.t("Clear"))
+        .then((v) => {
+          if (v === vscode.l10n.t("Clear")) {
+            configuration.setApiKey(undefined);
+          }
+        });
     })
   );
 
@@ -68,10 +60,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
-      let ok = await checkEngineKey(context);
-      if (ok) {
-        return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
-      }
+      return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
     })
   );
 
@@ -129,10 +118,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", async () => {
     await vscode.commands.executeCommand('sensecode.view.focus');
     await new Promise((f) => setTimeout(f, 1000));
-    let ok = await checkEngineKey(context);
-    if (!ok) {
-      return;
-    }
     let selection = undefined;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -151,8 +136,5 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(customPromptCommand);
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
-
-  await checkEngineKey(context);
-
 }
 export function deactivate() { }

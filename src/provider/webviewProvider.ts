@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'http';
 import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n } from 'vscode';
-import { checkEngineKey, configuration, outlog, telemetryReporter } from '../extension';
+import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from './inlineCompletionProvider';
@@ -22,6 +22,13 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
       })
     );
+    context.subscriptions.push(
+      context.secrets.onDidChange((e) => {
+        if (e.key === "sensecode.key") {
+          this.updateSettingPage(false);
+        }
+      })
+    );
   }
 
   async updateSettingPage(show: boolean
@@ -33,6 +40,29 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
+    let key = await configuration.getApiKey();
+    let keycfg = "";
+    if (!key) {
+      keycfg = `
+          <span class="flex content-between gap-2">
+            <vscode-text-field readonly placeholder="Not set" style="width: -webkit-fill-available; font-family: var(--vscode-editor-font-family);">
+              <span slot="start" class="material-symbols-rounded">password</span>
+            </vscode-text-field>
+            <vscode-link href="${Uri.parse("command:sensecode.setKey")}" id="setKeyBtn" title="${l10n.t("Set API Key")}">
+              <span class="material-symbols-rounded">key</span>
+            </vscode-link>
+          </span>`;
+    } else {
+      keycfg = `
+          <span class="flex content-between gap-2">
+            <vscode-text-field readonly placeholder="${key.slice(0, 7)}****${key.slice(-7)}" style="width: -webkit-fill-available; font-family: var(--vscode-editor-font-family);">
+              <span slot="start" class="material-symbols-rounded">password</span>
+            </vscode-text-field>
+            <vscode-link href="${Uri.parse("command:sensecode.clearKey")}" id="clearKeyBtn" title="${l10n.t("Clear API Key from Secret Storage")}">
+              <span class="material-symbols-rounded">key_off</span>
+            </vscode-link>
+          </span>`;
+    }
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
     let printOut = configuration.printOut;
@@ -47,6 +77,14 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           <span id="close-settings" class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
         </div>
       </h3>
+      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+      <b>${l10n.t("Account")}</b>
+      <div class="ml-4">
+        <div class="flex flex-col grow my-2 px-2 gap-2">
+          <span>${l10n.t("API Key")}</span>
+          ${keycfg}
+        </div>
+      </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Inline completion")}</b>
       <div class="ml-4">
@@ -228,11 +266,6 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
     let response: string;
     let id = new Date().valueOf();
-
-    let ok = await checkEngineKey(this.context);
-    if (!ok) {
-      return;
-    }
 
     let send = true;
     let streaming = configuration.streamResponse;

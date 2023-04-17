@@ -9,6 +9,7 @@
     "sensecode.config.prompt": "Prompt template list",
     "sensecode.config.prompt.item": "Prompt template",
     "sensecode.command.settings": "Settings",
+    "sensecode.command.setKey": "Set API Key",
     "sensecode.command.clearKey": "Clear API Key from Secret Storage",
     "sensecode.command.customPrompt": "SenseCode: Custom Prompt...",
     "sensecode.view.title": "Assistant",
