@@ -417,7 +417,37 @@ const vscode = acquireVsCodeApi();
     }
   });
 
+  var checkMengxiStart = false;
+  var clickMengxiCount = 0;
+  const checkMengxi = function (elem) {
+    if (elem.id === "Penrose") {
+      if (checkMengxiStart === false) {
+        checkMengxiStart = true;
+        clickMengxiCount++;
+        setTimeout(() => {
+          checkMengxiStart = false;
+          clickMengxiCount = 0;
+        }, 1500);
+      } else {
+        clickMengxiCount++;
+      }
+      if (clickMengxiCount > 10) {
+        checkMengxiStart = false;
+        clickMengxiCount = 0;
+        return true;
+      }
+    } else {
+      checkMengxiStart = false;
+      clickMengxiCount = 0;
+    }
+    return false;
+  };
+
   document.addEventListener("click", (e) => {
+    if (checkMengxi(e.target)) {
+      document.getElementById("qa-list-wrapper").classList.toggle('x-next');
+      return;
+    }
     const targetButton = e.target.closest('button');
 
     if (targetButton?.id === "ask-button") {

@@ -44,7 +44,7 @@ const builtinPrompts: { [key: string]: Prompt } = {
     type: "code refactoring and optimization",
     prompt: "code refactoring and optimization. Refactor the given code to improve readability, modularity, and maintainability",
     brush: true,
-    icon: "build_circle"
+    icon: "construction"
   },
   addTest: {
     type: "test sample generation",
@@ -97,18 +97,6 @@ export class Configuration {
       engine = engines[0];
     }
     this.context.globalState.update("engine", engine);
-  }
-
-  public get next(): any {
-    let next: any = this.configuration.get("Next", {});
-    if (!next.chat) {
-      next.chat = true;
-    }
-    return next;
-  }
-
-  public get debug(): any {
-    return this.configuration.get("Debug", {});
   }
 
   public get prompt(): { [key: string]: Prompt } {

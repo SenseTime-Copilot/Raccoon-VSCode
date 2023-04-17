@@ -44,21 +44,21 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     let keycfg = "";
     if (!key) {
       keycfg = `
-          <span class="flex content-between gap-2">
-            <vscode-text-field readonly placeholder="Not set" style="width: -webkit-fill-available; font-family: var(--vscode-editor-font-family);">
-              <span slot="start" class="material-symbols-rounded">password</span>
+          <span class="flex">
+            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">security</span>
+            <vscode-text-field readonly placeholder="Not set" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
             </vscode-text-field>
-            <vscode-link href="${Uri.parse("command:sensecode.setKey")}" id="setKeyBtn" title="${l10n.t("Set API Key")}">
+            <vscode-link href="${Uri.parse("command:sensecode.setKey")}" class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Set API Key")}">
               <span class="material-symbols-rounded">key</span>
             </vscode-link>
           </span>`;
     } else {
       keycfg = `
-          <span class="flex content-between gap-2">
-            <vscode-text-field readonly placeholder="${key.slice(0, 7)}****${key.slice(-7)}" style="width: -webkit-fill-available; font-family: var(--vscode-editor-font-family);">
-              <span slot="start" class="material-symbols-rounded">password</span>
+          <span class="flex">
+            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">security</span>
+            <vscode-text-field readonly placeholder="${key.slice(0, 7)}****${key.slice(-7)}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
             </vscode-text-field>
-            <vscode-link href="${Uri.parse("command:sensecode.clearKey")}" id="clearKeyBtn" title="${l10n.t("Clear API Key from Secret Storage")}">
+            <vscode-link href="${Uri.parse("command:sensecode.clearKey")}" class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Clear API Key from Secret Storage")}">
               <span class="material-symbols-rounded">key_off</span>
             </vscode-link>
           </span>`;
@@ -145,8 +145,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         <p>${l10n.t("Code engine")}</p>
         <div class="flex flex-row">
           ${esList}
-          <vscode-link slot="indicator" href="${setEngineUri}" title="${l10n.t("Settings")}">
-            <span class="material-symbols-rounded" style="padding: 3px;">tune</span>
+          <vscode-link href="${setEngineUri}" class="pt-px attach-btn-right" title="${l10n.t("Settings")}">
+            <span class="material-symbols-rounded">tune</span>
           </vscode-link>
         </div>
       </div>
@@ -397,13 +397,6 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
     const logo = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
-    let next: any = { chat: true };
-    let bodyClass = "";
-    for (let k in next) {
-      if (next[k]) {
-        bodyClass += `x-${k} `;
-      }
-    }
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -420,10 +413,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             </head>
             <body class="overflow-hidden">
                 <div id="setting-page"></div>
-                <div class="flex flex-col h-screen ${bodyClass}" id="qa-list-wrapper">
+                <div class="flex flex-col h-screen" id="qa-list-wrapper">
                     <div id="cover" class="flex flex-col gap-2 overflow-auto">
                       <div style="height: 100px;margin: 1rem auto 5rem auto;filter: opacity(0.3) contrast(0);">
-                        <img style="margin: 0 auto;" src="${logo}"/>
+                        <img id="Penrose" style="margin: 0 auto;" src="${logo}"/>
                         <div class="text-2xl opacity-40 font-bold tracking-widest text-center m-4">
                           ${l10n.t("SenseCode")}
                         </div>

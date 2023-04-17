@@ -67,12 +67,6 @@
                             "type": "string",
                             "description": "%sensecode.config.prompt.item%"
                         }
-                    },
-                    "SenseCode.Next": {
-                        "type": "object"
-                    },
-                    "SenseCode.Debug": {
-                        "type": "object"
                     }
                 }
             }

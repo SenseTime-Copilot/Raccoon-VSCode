@@ -85,6 +85,23 @@ textarea::placeholder {
     font-size: 2rem;
 }
 
+.attach-btn-left,
+.attach-btn-right {
+    border-radius: calc(var(--corner-radius) * 1px);
+    border: calc(var(--border-width) * 1px) solid var(--dropdown-border);
+    height: calc(var(--input-height) * 1px);
+    background: var(--input-background);
+    padding: 0px 3px;
+}
+
+.attach-btn-left {
+    border-right: none;
+}
+
+.attach-btn-right {
+    border-left: none;
+}
+
 .vscode-high-contrast .avatar {
     color: var(--vscode-button-border);
 }
@@ -170,28 +187,29 @@ textarea::placeholder {
     background: var(--panel-view-background);
 }
 
-#shortcuts,
 .chat-shortcut,
-#chat-button,
-#ask-button {
+#chat-button {
     display: none;
 }
 
-.x-chat #shortcuts {
+#shortcuts {
     display: flex;
 }
 
-.x-chat #ask-button {
+#ask-button {
     display: flex;
-    transition-duration: 0.2s;
 }
 
-.x-chat #ask-button.open .material-symbols-rounded {
+#ask-button .material-symbols-rounded {
+    transition-duration: 0.3s;
+}
+
+#ask-button.open .material-symbols-rounded {
     transform: rotateX(180deg);
 }
 
-.x-chat.x-free_chat .chat-shortcut,
-.x-chat.x-free_chat #chat-button {
+.x-next .chat-shortcut,
+.x-next #chat-button {
     display: flex;
 }
 

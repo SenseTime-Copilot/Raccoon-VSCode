@@ -294,12 +294,6 @@ Task type: code completion. Please complete the following code.
 `;
           suffix = `### Response:
 `;
-          if (configuration.debug.completionPrefix) {
-            prefix = vscode.l10n.t(configuration.debug.completionPrefix.join("\n"), { lang });
-          }
-          if (configuration.debug.completionSuffix) {
-            suffix = vscode.l10n.t(configuration.debug.completionSuffix.join("\n"), { lang });
-          }
           rs = await getCodeCompletions(activeEngine,
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
             configuration.printOut);
