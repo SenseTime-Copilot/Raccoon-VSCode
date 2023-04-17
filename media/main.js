@@ -149,7 +149,7 @@ const vscode = acquireVsCodeApi();
 
         let prompthtml = prompt.prompt;
         if (prompt.prompt.includes("${input")) {
-          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 -mb-1 px-2 w-fit" contenteditable="${edit}">$2</p>`);
+          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="${edit}">$2</p>`);
         }
 
         let codeSnippet = "";
@@ -402,7 +402,7 @@ const vscode = acquireVsCodeApi();
       const question = e.target.closest(".question-element-gnc");
       const ps = question.getElementsByClassName('prompt');
       var content = e.target._value;
-      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 -mb-1 px-2 w-fit" contenteditable="true">$2</p>`);
+      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="true">$2</p>`);
       ps[0].focus();
     }
   });

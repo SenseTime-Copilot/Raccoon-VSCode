@@ -107,9 +107,19 @@ textarea::placeholder {
     border: 1px solid var(--vscode-progressBar-background);
 }
 
+.prompt .editable br {
+    display: none;
+}
+
+.prompt .editable:before,
+.prompt .editable:after {
+    content: "\00a0\00a0";
+}
+
 .prompt .editable[contenteditable='false'] {
     border: 1px solid transparent;
-    border-bottom: 1px solid var(--vscode-progressBar-background);
+    text-decoration: 3px underline var(--vscode-progressBar-background);
+    text-underline-position: under;
 }
 
 .prompt-dropdown {
