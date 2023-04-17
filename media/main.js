@@ -149,7 +149,7 @@ const vscode = acquireVsCodeApi();
 
         let prompthtml = prompt.prompt;
         if (prompt.prompt.includes("${input")) {
-          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="eidtable mx-1 px-2 w-fit h-6" contenteditable="${edit}">$2</p>`);
+          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 -mb-1 px-2 w-fit" contenteditable="${edit}">$2</p>`);
         }
 
         let codeSnippet = "";
@@ -183,21 +183,25 @@ const vscode = acquireVsCodeApi();
         list.innerHTML +=
           `<div id="question-${id}" class="p-4 self-end question-element-gnc relative ${edit ? "replace" : ""}">
               <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
-              <div class="mb-5 flex items-center">
-                  <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-50 flex items-center rounded-lg text-base absolute right-4 top-4 hidden">${pencilIcon}</button>
-                  <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-2 absolute right-4" style="width: calc(100% - 32px);">
-                      <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${cancelIcon}</button>
-                      <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-50 rounded-lg flex items-center text-base">${sendIcon}</button>
-                      <vscode-dropdown style="width: 100%;margin: 1px 0;" class="hidden">${promptList}</vscode-dropdown>
+              <div class="mb-4 flex items-center">
+                  <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-75 rounded flex items-center absolute right-4 top-4 hidden">${pencilIcon}</button>
+                  <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-0.5 absolute right-4" style="width: calc(100% - 32px);">
+                      <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-75 rounded flex items-center">${cancelIcon}</button>
+                      <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-75 rounded flex items-center">${sendIcon}</button>
+                      <vscode-dropdown style="width: 100%;--corner-radius: 4;" class="prompt-dropdown ${code === "" ? "hidden" : ""}">${promptList}</vscode-dropdown>
                   </div>
               </div>
-              <div id="prompt-${id}" class="prompt flex leading-loose p-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
+              <div id="prompt-${id}" class="prompt inline-block leading-loose py-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
               ${codeSnippet}
           </div>`;
 
         if (edit) {
           var promptText = document.getElementById(`prompt-${id}`);
-          promptText.focus();
+          const editableElems = promptText.getElementsByClassName("editable");
+          Array.from(editableElems).reverse().forEach((el) => {
+            el.setAttribute("contenteditable", true);
+            el.focus();
+          });
         } else {
           document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
           var chat = document.getElementById(id);
@@ -339,8 +343,8 @@ const vscode = acquireVsCodeApi();
     elements[0]?.classList.add("hidden");
     resendElement[0]?.classList.remove("hidden");
     const prompt = question.getElementsByClassName("prompt");
-    const eidtableElems = prompt[0].getElementsByClassName("eidtable");
-    Array.from(eidtableElems).forEach((el) => {
+    const editableElems = prompt[0].getElementsByClassName("editable");
+    Array.from(editableElems).forEach((el) => {
       el.setAttribute("contenteditable", false);
     });
     var s = window.getSelection();
@@ -367,8 +371,8 @@ const vscode = acquireVsCodeApi();
     elements[0]?.classList.add("hidden");
     resendElement[0]?.classList.remove("hidden");
     const prompt = question.getElementsByClassName("prompt");
-    const eidtableElems = prompt[0].getElementsByClassName("eidtable");
-    Array.from(eidtableElems).forEach((el) => {
+    const editableElems = prompt[0].getElementsByClassName("editable");
+    Array.from(editableElems).forEach((el) => {
       el.setAttribute("contenteditable", false);
     });
     var s = window.getSelection();
@@ -398,7 +402,7 @@ const vscode = acquireVsCodeApi();
       const question = e.target.closest(".question-element-gnc");
       const ps = question.getElementsByClassName('prompt');
       var content = e.target._value;
-      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="eidtable mx-1 px-2 w-fit h-6" contenteditable="true">$2</p>`);
+      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 -mb-1 px-2 w-fit" contenteditable="true">$2</p>`);
       ps[0].focus();
     }
   });
@@ -552,8 +556,8 @@ const vscode = acquireVsCodeApi();
       const elements = targetButton.nextElementSibling;
       elements.classList.remove("hidden");
       const prompt = question.getElementsByClassName("prompt");
-      const eidtableElems = prompt[0].getElementsByClassName("eidtable");
-      Array.from(eidtableElems).forEach((el) => {
+      const editableElems = prompt[0].getElementsByClassName("editable");
+      Array.from(editableElems).reverse().forEach((el) => {
         el.setAttribute("contenteditable", true);
         el.focus();
       });

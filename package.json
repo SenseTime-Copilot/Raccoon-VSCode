@@ -78,13 +78,6 @@
                     "group": "navigation@0",
                     "when": "view == sensecode.view"
                 }
-            ],
-            "editor/context": [
-                {
-                    "command": "sensecode.customPrompt",
-                    "group": "SenseCode@5",
-                    "when": "editorHasSelection"
-                }
             ]
         },
         "commands": [
@@ -122,11 +115,6 @@
             {
                 "command": "sensecode.explain",
                 "title": "%sensecode.command.explain%",
-                "enablement": "editorHasSelection"
-            },
-            {
-                "command": "sensecode.customPrompt",
-                "title": "%sensecode.command.customPrompt%",
                 "enablement": "editorHasSelection"
             },
             {

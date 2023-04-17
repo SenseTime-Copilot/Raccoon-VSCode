@@ -115,26 +115,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(view);
 
-  const customPromptCommand = vscode.commands.registerCommand("sensecode.customPrompt", async () => {
-    await vscode.commands.executeCommand('sensecode.view.focus');
-    await new Promise((f) => setTimeout(f, 1000));
-    let selection = undefined;
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-    selection = editor.document.getText(editor.selection);
-    if (selection) {
-      let prompt: Prompt = {
-        type: "code Q&A",
-        prompt: `\${input:${vscode.l10n.t("Question Here...")}}`
-      };
-      provider?.sendApiRequest(prompt, selection, getDocumentLanguage(editor.document));
-    }
-  });
-
-  context.subscriptions.push(customPromptCommand);
-
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 }
 export function deactivate() { }

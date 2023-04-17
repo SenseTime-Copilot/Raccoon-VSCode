@@ -73,7 +73,7 @@ textarea::placeholder {
 }
 
 [contenteditable='true'] {
-    outline: 1px solid var(--vscode-focusBorder);
+    outline: none;
 }
 
 #Penrose,
@@ -101,6 +101,23 @@ textarea::placeholder {
 .x-next #Penrose-text {
     color: var(--vscode-progressBar-background);
     filter: opacity(0.8);
+}
+
+.prompt .editable {
+    border: 1px solid var(--vscode-progressBar-background);
+}
+
+.prompt .editable[contenteditable='false'] {
+    border: 1px solid transparent;
+    border-bottom: 1px solid var(--vscode-progressBar-background);
+}
+
+.prompt-dropdown {
+    opacity: 0.7;
+}
+
+.prompt-dropdown.open {
+    opacity: 1;
 }
 
 .avatar {
@@ -379,6 +396,7 @@ button.stopGenerate,
 }
 
 .feedback .checked .material-symbols-rounded {
+    color: var(--vscode-progressBar-background);
     font-variation-settings: 'FILL' 1;
 }
 
