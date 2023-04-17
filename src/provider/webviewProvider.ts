@@ -415,14 +415,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
                     <div id="cover" class="flex flex-col gap-2 overflow-auto">
-                      <div style="height: 100px;margin: 1rem auto 5rem auto;filter: opacity(0.3) contrast(0);">
-                        <img id="Penrose" style="margin: 0 auto;" src="${logo}"/>
-                        <div class="text-2xl opacity-40 font-bold tracking-widest text-center m-4">
-                          ${l10n.t("SenseCode")}
-                        </div>
-                      </div>
-                      <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto">
-                      </div>
+                      <div id="Penrose" style="-webkit-mask-image: url(${logo});"></div>
+                      <div id="Penrose-text" class="text-2xl font-bold text-center mb-6">${l10n.t("SenseCode")}</div>
+                      <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto"></div>
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">

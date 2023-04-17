@@ -76,6 +76,33 @@ textarea::placeholder {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
+#Penrose,
+#Penrose-text {
+    font-family: var(--vscode-editor-font-family);
+    filter: opacity(0.3);
+}
+
+#Penrose {
+    height: 150px;
+    background-color: var(--vscode-foreground);
+    -webkit-mask-position-x: 50%;
+    -webkit-mask-position-y: 70%;
+    -webkit-mask-size: 120px;
+    -webkit-mask-repeat: no-repeat;
+    mask-size: 120px;
+    mask-repeat: no-repeat;
+}
+
+.x-next #Penrose {
+    background-color: var(--vscode-progressBar-background);
+    filter: opacity(0.8);
+}
+
+.x-next #Penrose-text {
+    color: var(--vscode-progressBar-background);
+    filter: opacity(0.8);
+}
+
 .avatar {
     color: var(--vscode-icon-foreground);
     align-items: center;
