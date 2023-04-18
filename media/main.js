@@ -252,37 +252,36 @@ const vscode = acquireVsCodeApi();
         const preCodeList = markedResponse.querySelectorAll("pre > code");
 
         preCodeList.forEach((preCode, index) => {
-          preCode.parentElement.classList.add("pre-code-element", "relative");
+          preCode.classList.forEach((cls) => {
+            if (cls.startsWith('language-')) {
+              preCode.parentElement.dataset.lang = cls.slice(9);
+            }
+          });
+          preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
 
           if (index !== preCodeList.length - 1) {
             preCode.parentElement.classList.add("mb-8");
           }
 
-          preCode.classList.add("block", "whitespace-pre", "overflow-x-scroll");
+          preCode.classList.add("inline", "whitespace-pre", "overflow-x-scroll", "overflow-y-auto");
 
           const buttonWrapper = document.createElement("div");
-          buttonWrapper.classList.add("code-actions-wrapper", "flex", "gap-2", "opacity-60", "flex-wrap", "items-center", "right-2", "top-1", "absolute");
+          buttonWrapper.classList.add("code-actions-wrapper");
 
           // Create copy to clipboard button
           const copyButton = document.createElement("button");
           copyButton.title = l10nForUI["Copy"];
           copyButton.innerHTML = clipboardIcon;
 
-          copyButton.classList.add("code-element-gnc", "text-base", "p-0.5", "opacity-50", "flex", "items-center", "rounded-lg");
+          copyButton.classList.add("code-element-gnc", "rounded");
 
           const insert = document.createElement("button");
           insert.title = l10nForUI["Insert"];
           insert.innerHTML = insertIcon;
 
-          insert.classList.add("edit-element-gnc", "text-base", "p-0.5", "flex", "opacity-50", "items-center", "rounded-lg");
+          insert.classList.add("edit-element-gnc", "rounded");
 
-          const newTab = document.createElement("button");
-          newTab.title = l10nForUI["NewFile"];
-          newTab.innerHTML = plusIcon;
-
-          newTab.classList.add("new-code-element-gnc", "text-base", "p-0.5", "flex", "opacity-50", "items-center", "rounded-lg");
-
-          buttonWrapper.append(copyButton, insert, newTab);
+          buttonWrapper.append(insert, copyButton);
 
           preCode.parentElement.prepend(buttonWrapper);
         });
@@ -601,15 +600,6 @@ const vscode = acquireVsCodeApi();
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
 
-      return;
-    }
-
-    if (targetButton?.classList?.contains("new-code-element-gnc")) {
-      e.preventDefault();
-      vscode.postMessage({
-        type: "openNew",
-        value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
-      });
       // return;
     }
 

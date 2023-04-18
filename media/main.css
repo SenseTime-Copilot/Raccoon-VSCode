@@ -230,11 +230,6 @@ textarea::placeholder {
     grid-area: 1 / 1 / 2 / 2;
 }
 
-.pre-code-element:hover .code-actions-wrapper {
-    opacity: 1;
-    display: flex;
-}
-
 #qa-list-wrapper {
     height: calc(100vh);
     margin: 0;
@@ -1141,12 +1136,10 @@ button.stopGenerate,
 }
 
 .markdown-body pre>code {
-    padding: 0;
-    margin: 0;
+    display: block;
     word-break: normal;
     white-space: pre;
     background: transparent;
-    border: 0;
 }
 
 .markdown-body .highlight {
@@ -1160,23 +1153,58 @@ button.stopGenerate,
 
 .markdown-body .highlight pre,
 .markdown-body pre {
-    padding: 16px;
-    overflow: auto;
-    font-size: 85%;
-    line-height: 1.45;
-    background-color: var(--color-canvas-subtle);
+    padding: 8px;
+    background-color: var(--panel-view-background);
     border-radius: 6px;
+    width: 100%;
+}
+
+.vscode-high-contrast .code-actions-wrapper {
+    border-bottom: 1px solid var(--vscode-button-border);
+}
+
+.pre-code-element:before {
+    content: attr(data-lang);
+    font-family: var(--vscode-editor-font-family);
+    color: var(--badge-foreground);
+    text-transform: capitalize;
+    z-index: 99999;
+    opacity: 0.6;
+    height: 0px;
+    width: fit-content;
+}
+
+.code-actions-wrapper {
+    margin: -8px;
+    margin-bottom: 0.5rem;
+    padding: 0.2rem 0.4rem;
+    background-color: var(--badge-background);
+    border-radius: 5px 5px 0 0;
+    opacity: 0.7;
+    gap: 0.4rem;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.code-actions-wrapper button {
+    padding: 2px;
+    margin: 1px 0 2px 0;
+    background: none !important;
+    color: var(--badge-foreground);
+}
+
+.pre-code-element:hover .code-actions-wrapper {
+    opacity: 0.8;
+}
+
+.vscode-high-contrast .pre-code-element {
+    border: 1px solid var(--vscode-button-border);
 }
 
 .markdown-body pre code,
 .markdown-body pre tt {
-    display: inline;
-    max-width: auto;
     padding: 0;
     margin: 0;
-    overflow: visible;
-    line-height: inherit;
-    word-wrap: normal;
     background-color: transparent;
     border: 0;
 }
