@@ -174,6 +174,8 @@ const vscode = acquireVsCodeApi();
         }
 
         document.getElementById("cover")?.classList?.add("hidden");
+        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
           e.remove();
@@ -202,14 +204,14 @@ const vscode = acquireVsCodeApi();
             el.focus();
           });
         } else {
-          document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
+          document.getElementById("chat-button-wrapper")?.classList?.add("disabled");
           var chat = document.getElementById(id);
           if (!chat) {
             chat = document.createElement("div");
             chat.id = id;
             chat.classList.add("p-4", "self-end", "answer-element-gnc");
             chat.innerHTML = `  <h2 class="avatar font-bold mb-4 flex flex-row-reverse text-xl gap-1 opacity-60">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                                        <div id="response-${id}" class="flex flex-col gap-1 whitespace-pre-wrap"></div>
+                                        <div id="response-${id}" class="flex flex-col gap-1"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                           <span class="flex gap-2">
@@ -240,7 +242,7 @@ const vscode = acquireVsCodeApi();
       case "stopResponse": {
         document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
         document.getElementById(`feedback-${message.id}`)?.classList?.remove("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+        document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
 
         const chatText = document.getElementById(`response-${message.id}`);
         if (!chatText.dataset.response) {
@@ -315,7 +317,7 @@ const vscode = acquireVsCodeApi();
                                     </div>`;
 
         document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+        document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       case "clearQAList": {
@@ -331,6 +333,8 @@ const vscode = acquireVsCodeApi();
 
   const clearQAList = () => {
     document.getElementById("qa-list").innerHTML = "";
+    document.getElementById("ask-list").classList.add("hidden");
+    document.getElementById("ask-button").classList.remove("open");
     document.getElementById("cover")?.classList?.remove("hidden");
     document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
   };
@@ -377,7 +381,7 @@ const vscode = acquireVsCodeApi();
     if (s.rangeCount > 0) {
       s.removeAllRanges();
     }
-    document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+    document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
   };
 
   document.addEventListener("change", (e) => {
@@ -549,7 +553,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("resend-element-gnc")) {
       e.preventDefault();
-      document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
+      document.getElementById("chat-button-wrapper")?.classList?.add("disabled");
       const question = targetButton.closest(".question-element-gnc");
       const elements = targetButton.nextElementSibling;
       elements.classList.remove("hidden");
