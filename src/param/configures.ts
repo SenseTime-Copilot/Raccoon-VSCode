@@ -1,4 +1,5 @@
-import { ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
+import axios from "axios";
+import { ExtensionContext, l10n, window, workspace, WorkspaceConfiguration } from "vscode";
 
 export interface Engine {
   label: string;
@@ -142,14 +143,56 @@ export class Configuration {
   }
 
   public async getApiKey(): Promise<string | undefined> {
-    return await this.context.secrets.get("sensecode.key");
+    let token = await this.context.secrets.get("sensecode.token");
+    if (!token) {
+      return undefined;
+    }
+    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
+      {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        headers: { "PRIVATE-TOKEN": token }
+      })
+      .then(
+        async (res) => {
+          if (res?.data?.name === "kestrel.guest") {
+            return await this.context.secrets.get("sensecode.key");
+          }
+          return undefined;
+        }
+      ).catch(async (error) => {
+        await this.context.secrets.delete("sensecode.key");
+        await this.context.secrets.delete("sensecode.token");
+        window.showErrorMessage(error.message, l10n.t("Close"));
+        return undefined;
+      });
   }
 
-  public async setApiKey(v: string | undefined) {
-    if (!v) {
+  public async getToken(): Promise<string | undefined> {
+    return await this.context.secrets.get("sensecode.token");
+  }
+
+  public async setApiKey(token: string | undefined) {
+    if (!token) {
       await this.context.secrets.delete("sensecode.key");
+      await this.context.secrets.delete("sensecode.token");
     } else {
-      await this.context.secrets.store("sensecode.key", v);
+      return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
+        {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          headers: { "PRIVATE-TOKEN": token }
+        })
+        .then(
+          async (res) => {
+            if (res?.data?.name === "kestrel.guest") {
+              await this.context.secrets.store("sensecode.key", "FBSCRPFSAEPP=FEASBC?QNSFRB>?==A>GBD>C=PR=C=O?CCFAQBBQOB?@>=?@D?=R");
+              await this.context.secrets.store("sensecode.token", token);
+            }
+          }
+        ).catch(async (error) => {
+          await this.context.secrets.delete("sensecode.key");
+          await this.context.secrets.delete("sensecode.token");
+          window.showErrorMessage(error.message, l10n.t("Close"));
+        });
     }
   }
 

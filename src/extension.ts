@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { Configuration, Prompt } from "./param/configures";
+import { Configuration } from "./param/configures";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
-import { getDocumentLanguage, inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
+import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 
 let statusBarItem: vscode.StatusBarItem;

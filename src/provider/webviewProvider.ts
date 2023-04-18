@@ -24,7 +24,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     );
     context.subscriptions.push(
       context.secrets.onDidChange((e) => {
-        if (e.key === "sensecode.key") {
+        if (e.key === "sensecode.token") {
           this.updateSettingPage(false);
         }
       })
@@ -40,7 +40,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
-    let key = await configuration.getApiKey();
+    let key = await configuration.getToken();
     let keycfg = "";
     if (!key) {
       keycfg = `

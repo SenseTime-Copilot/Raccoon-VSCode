@@ -14,7 +14,15 @@ export async function getCodeCompletions(
   prompt: string,
   stream: boolean
 ): Promise<GetCodeCompletions | IncomingMessage> {
-  let key = engine.key || await configuration.getApiKey();
+  let key = engine.key;
+  if (!key) {
+    let k = await configuration.getApiKey();
+    if (k) {
+      key = k.split('').map(function (x) {
+        return String.fromCharCode((255 + x.charCodeAt(0) - 13) % 255);
+      }).join('');
+    }
+  }
   return getCodeCompletionsSenseCode(engine, key, prompt, stream);
 }
 
