@@ -172,11 +172,6 @@ textarea::placeholder {
     background-color: var(--vscode-testing-message\.error\.lineBackground);
 }
 
-.vscode-high-contrast .typing,
-.vscode-high-contrast .spinner {
-    color: var(--vscode-button-border);
-}
-
 @-webkit-keyframes rotate {
     0% {
         -webkit-transform: rotate(0deg);
