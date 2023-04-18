@@ -23,7 +23,6 @@ const vscode = acquireVsCodeApi();
   const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const pencilIcon = `<span class="material-symbols-rounded">edit</span>`;
-  const plusIcon = `<span class="material-symbols-rounded">note_add</span>`;
   const insertIcon = `<span class="material-symbols-rounded">double_arrow</span>`;
 
   var prompts = undefined;
