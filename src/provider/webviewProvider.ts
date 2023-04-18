@@ -208,7 +208,13 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           break;
         }
         case 'editCode': {
-          window.activeTextEditor?.insertSnippet(new SnippetString(data.value));
+          let docUri = window.activeTextEditor?.document.uri;
+          if (docUri) {
+            window.activeTextEditor?.insertSnippet(new SnippetString(data.value)).then(async (_v) => {
+              await new Promise((f) => setTimeout(f, 200));
+              commands.executeCommand("editor.action.formatDocument", docUri);
+            });
+          }
           break;
         }
         case 'openNew': {
