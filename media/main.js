@@ -24,6 +24,8 @@ const vscode = acquireVsCodeApi();
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const pencilIcon = `<span class="material-symbols-rounded">edit</span>`;
   const insertIcon = `<span class="material-symbols-rounded">double_arrow</span>`;
+  const unfoldIcon = `<span class="material-symbols-rounded">unfold_more</span>`;
+  const foldIcon = `<span class="material-symbols-rounded">unfold_less</span>`;
 
   var prompts = undefined;
   var promptList = ``;
@@ -47,6 +49,7 @@ const vscode = acquireVsCodeApi();
     switch (message.type) {
       case "updateSettingPage": {
         asklist.classList.add("hidden");
+        document.getElementById("ask-button").classList.remove("open");
         if (document.getElementById('settings') || message.show) {
           const sp = document.getElementById("setting-page");
           sp.innerHTML = message.value;
@@ -148,29 +151,39 @@ const vscode = acquireVsCodeApi();
 
         let prompthtml = prompt.prompt;
         if (prompt.prompt.includes("${input")) {
-          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="${edit}">$2</p>`);
+          prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="${edit}" data-placeholder="$2"></p>`);
         }
 
         let codeSnippet = "";
         if (prompt.type === 'free chat') {
           code = "";
         } else {
-          let expendStatus = "";
-          let expendBtn = "";
-          let codehtml = marked.parse("```\n" + code + "\n```");
-          let lines = code.split('\n');
-          if (lines.length > 10) {
-            expendBtn = `<button class="expend-code rounded-l-md border-0 border-r cursor-pointer justify-center opacity-75">
-                      <span class="material-symbols-rounded">keyboard_double_arrow_down</span>
-                    </button>`;
-            expendStatus = "";
-          } else {
-            expendStatus = "expend";
-          }
-          codeSnippet = `<div class="code-wrapper ${expendStatus} flex rounded-md">
-                          ${expendBtn}
-                          ${codehtml}
-                        </div>`;
+          const codehtml = new DOMParser().parseFromString(marked.parse("```\n" + code + "\n```"), "text/html");
+          const preCodeList = codehtml.querySelectorAll("pre > code");
+          preCodeList.forEach((preCode, _index) => {
+            preCode.parentElement.dataset.lang = lang;
+            preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+
+            preCode.classList.add("inline", "whitespace-pre");
+            const buttonWrapper = document.createElement("div");
+            buttonWrapper.classList.add("code-actions-wrapper");
+
+            let lines = code.split('\n');
+            if (lines.length > 10) {
+              // Create copy to clipboard button
+              const unfoldButton = document.createElement("button");
+              unfoldButton.innerHTML = unfoldIcon;
+              unfoldButton.classList.add("unfold-btn", "expend-code", "rounded");
+              const flodButton = document.createElement("button");
+              flodButton.innerHTML = foldIcon;
+              flodButton.classList.add("fold-btn", "expend-code", "rounded", "hidden");
+              buttonWrapper.append(unfoldButton, flodButton);
+              preCode.parentElement.classList.add("fold");
+            }
+
+            preCode.parentElement.prepend(buttonWrapper);
+            codeSnippet = codehtml.documentElement.innerHTML;
+          });
         }
 
         document.getElementById("cover")?.classList?.add("hidden");
@@ -211,7 +224,7 @@ const vscode = acquireVsCodeApi();
             chat.id = id;
             chat.classList.add("p-4", "self-end", "answer-element-gnc");
             chat.innerHTML = `  <h2 class="avatar font-bold mb-4 flex flex-row-reverse text-xl gap-1 opacity-60">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                                        <div id="response-${id}" class="flex flex-col gap-1"></div>
+                                        <div id="response-${id}" class="response flex flex-col gap-1"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                           <span class="flex gap-2">
@@ -282,7 +295,7 @@ const vscode = acquireVsCodeApi();
 
           insert.classList.add("edit-element-gnc", "rounded");
 
-          buttonWrapper.append(insert, copyButton);
+          buttonWrapper.append(copyButton, insert);
 
           preCode.parentElement.prepend(buttonWrapper);
         });
@@ -404,7 +417,7 @@ const vscode = acquireVsCodeApi();
       const question = e.target.closest(".question-element-gnc");
       const ps = question.getElementsByClassName('prompt');
       var content = e.target._value;
-      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="true">$2</p>`);
+      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="true" data-placeholder="$2"></p>`);
       ps[0].focus();
     }
   });
@@ -470,6 +483,7 @@ const vscode = acquireVsCodeApi();
     var list = document.getElementById("ask-list");
     if (!list.classList.contains("hidden")) {
       list.classList.add("hidden");
+      document.getElementById("ask-button").classList.remove("open");
     }
 
     if (e.target.id === "triggerDelayShort") {
@@ -546,8 +560,8 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("expend-code")) {
       e.preventDefault();
       const question = targetButton.closest(".question-element-gnc");
-      const code = question.getElementsByClassName("code-wrapper");
-      code[0].classList.toggle("expend");
+      const code = question.getElementsByClassName("pre-code-element");
+      code[0].classList.toggle("fold");
       return;
     }
 

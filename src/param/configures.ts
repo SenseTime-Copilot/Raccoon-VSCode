@@ -59,7 +59,7 @@ const builtinPrompts: { [key: string]: Prompt } = {
   },
   codeConversion: {
     type: "code language conversion",
-    prompt: "Convert the given code equivalent ${input} code",
+    prompt: "Convert the given code equivalent ${input:target language} code",
     icon: "repeat"
   }
 };

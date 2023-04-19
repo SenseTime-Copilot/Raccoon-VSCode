@@ -116,6 +116,11 @@ textarea::placeholder {
     content: "\00a0\00a0";
 }
 
+.prompt .editable:empty::before {
+    content: "\00a0\00a0" attr(data-placeholder);
+    opacity: 0.5;
+}
+
 .prompt .editable[contenteditable='false'] {
     border: 1px solid transparent;
     text-decoration: 3px underline var(--vscode-progressBar-background);
@@ -305,25 +310,39 @@ textarea::placeholder {
     background: var(--panel-view-background);
 }
 
-.question-element-gnc .code-wrapper {
+.response pre {
     overflow: hidden;
 }
 
-.question-element-gnc .code-wrapper.expend pre {
+.pre-code-element {
+    overflow: hidden;
+}
+
+.question-element-gnc .pre-code-element code {
     overflow: auto;
 }
 
-.question-element-gnc .code-wrapper pre {
-    padding: 0.5rem;
+.question-element-gnc .pre-code-element.fold code {
+    overflow: hidden;
 }
 
-.question-element-gnc:not(.replace) .code-wrapper:not(.expend) {
-    overflow-y: hidden;
+.question-element-gnc .pre-code-element .fold-btn,
+.question-element-gnc .pre-code-element .unfold-btn {
+    display: none;
+}
+
+.question-element-gnc:not(.replace) .pre-code-element:not(.fold) .fold-btn {
+    display: block;
+}
+
+.question-element-gnc:not(.replace) .pre-code-element.fold .unfold-btn {
+    display: block;
+}
+
+.question-element-gnc:not(.replace) .pre-code-element.fold {
     --mask-height: 50px;
     height: 200px;
-    padding-bottom: var(--mask-height);
-    --mask-image-content:
-        linear-gradient(to bottom, black, black calc(100% - var(--mask-height)), transparent);
+    --mask-image-content: linear-gradient(to bottom, black, black calc(100% - var(--mask-height)), transparent);
     --mask-size-content: 100% 100%;
     -webkit-mask-image: var(--mask-image-content);
     -webkit-mask-size: var(--mask-size-content);
@@ -335,24 +354,9 @@ textarea::placeholder {
     mask-repeat: no-repeat, no-repeat;
 }
 
-.question-element-gnc .code-wrapper::-webkit-scrollbar,
+.question-element-gnc .pre-code-element::-webkit-scrollbar,
 #shortcuts::-webkit-scrollbar {
     display: none;
-}
-
-.question-element-gnc .expend-code {
-    display: none;
-}
-
-.question-element-gnc:not(.replace) .expend-code {
-    display: flex;
-    height: 140%;
-}
-
-
-.question-element-gnc:not(.replace) .code-wrapper.expend .expend-code {
-    transform: rotateX(180deg);
-    height: auto;
 }
 
 .answer-element-gnc {
@@ -1130,9 +1134,7 @@ button.stopGenerate,
 
 .markdown-body .highlight pre,
 .markdown-body pre {
-    padding: 8px;
     background-color: var(--panel-view-background);
-    border-radius: 6px;
     width: 100%;
 }
 
@@ -1143,8 +1145,10 @@ button.stopGenerate,
 .pre-code-element:before {
     content: attr(data-lang);
     font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
+    line-height: 36px;
+    margin-left: 0.5rem;
     color: var(--badge-foreground);
-    text-transform: capitalize;
     z-index: 99999;
     height: 0px;
     opacity: 0.7;
@@ -1152,15 +1156,19 @@ button.stopGenerate,
 }
 
 .code-actions-wrapper {
-    margin: -8px;
-    margin-bottom: 0.5rem;
-    padding: 0.2rem 0.4rem;
+    padding: 0.4rem;
+    align-items: center;
+    height: 36px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: 13px;
+    color: var(--badge-foreground);
+    border-bottom: 1px solid var(--panel-view-border);
+    box-shadow: inset 0 0 1px var(--panel-view-border);
     background-color: var(--badge-background);
-    border-radius: 5px 5px 0 0;
     opacity: 0.7;
     gap: 0.4rem;
     display: flex;
-    flex-direction: row-reverse;
+    justify-content: flex-end;
 }
 
 .code-actions-wrapper button {
@@ -1170,12 +1178,16 @@ button.stopGenerate,
     color: var(--badge-foreground);
 }
 
+.code-actions-wrapper button .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1;
+}
+
 .pre-code-element:hover .code-actions-wrapper {
     opacity: 0.8;
 }
 
-.code-wrapper,
 .pre-code-element {
+    border-radius: 6px;
     border: 1px solid var(--panel-view-border);
     box-shadow: inset 0 0 1px var(--panel-view-border);
 }
