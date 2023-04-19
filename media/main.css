@@ -118,7 +118,7 @@ textarea::placeholder {
 
 .prompt .editable:empty::before {
     content: "\00a0\00a0" attr(data-placeholder);
-    opacity: 0.5;
+    color: var(--vscode-editorGhostText-foreground);
 }
 
 .prompt .editable[contenteditable='false'] {
@@ -369,6 +369,18 @@ textarea::placeholder {
 
 .answer-element-gnc {
     background-color: var(--vscode-minimapSlider-background);
+}
+
+.answer-element-gnc:before {
+    content: " ";
+    float: left;
+    margin-top: -16px;
+    border-radius: 6px;
+    width: 40px;
+    height: 0px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 16px solid var(--panel-view-background);
 }
 
 button.stopGenerate,
@@ -1163,7 +1175,7 @@ button.stopGenerate,
     color: var(--badge-foreground);
     z-index: 99999;
     height: 0px;
-    opacity: 0.7;
+    opacity: 0.4;
     width: fit-content;
 }
 
@@ -1177,10 +1189,11 @@ button.stopGenerate,
     border-bottom: 1px solid var(--panel-view-border);
     box-shadow: inset 0 0 1px var(--panel-view-border);
     background-color: var(--badge-background);
-    opacity: 0.7;
+    opacity: 0.4;
     gap: 0.4rem;
     display: flex;
     justify-content: flex-end;
+    transition-duration: 0.2s;
 }
 
 .code-actions-wrapper button {
@@ -1190,6 +1203,7 @@ button.stopGenerate,
     color: var(--badge-foreground);
 }
 
+.pre-code-element:hover::before,
 .pre-code-element:hover .code-actions-wrapper {
     opacity: 0.8;
 }
