@@ -23,9 +23,9 @@ const vscode = acquireVsCodeApi();
   const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const pencilIcon = `<span class="material-symbols-rounded">edit</span>`;
-  const insertIcon = `<span class="material-symbols-rounded">double_arrow</span>`;
-  const unfoldIcon = `<span class="material-symbols-rounded">unfold_more</span>`;
-  const foldIcon = `<span class="material-symbols-rounded">unfold_less</span>`;
+  const insertIcon = `<span class="material-symbols-rounded">post_add</span>`;
+  const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
+  const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
   var prompts = undefined;
   var promptList = ``;
