@@ -141,7 +141,7 @@ textarea::placeholder {
 }
 
 .avatar .material-symbols-rounded {
-    font-size: 2rem;
+    font-variation-settings: "FILL" 1;
 }
 
 #setting-page {
