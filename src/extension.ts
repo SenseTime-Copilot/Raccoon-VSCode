@@ -31,28 +31,6 @@ export async function activate(context: vscode.ExtensionContext) {
   checkPrivacy(context);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.setKey", async () => {
-      await vscode.window.showInputBox({ title: `${vscode.l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-        configuration.setApiKey(v);
-      });
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.clearKey", async () => {
-      vscode.window.showWarningMessage(
-        vscode.l10n.t("Clear API Key from your Secret Storage?"),
-        { modal: true },
-        vscode.l10n.t("Clear"))
-        .then((v) => {
-          if (v === vscode.l10n.t("Clear")) {
-            configuration.setApiKey(undefined);
-          }
-        });
-    })
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.settings", () => {
       return provider.updateSettingPage(true);
     })
@@ -61,12 +39,6 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
       return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.inlineSuggest.setKeybinding", () => {
-      return vscode.commands.executeCommand("workbench.action.openGlobalKeybindings", "sensecode.inlineSuggest.trigger");
     })
   );
 

@@ -9,7 +9,7 @@ import { configuration, outlog } from "../extension";
 let lastRequest = null;
 let trie = new Trie([]);
 
-export function getDocumentLanguage(document: vscode.TextDocument) {
+function getDocumentLanguage(document: vscode.TextDocument) {
   const documentLanguageId: string = document.languageId;
   let lang = "";
   switch (documentLanguageId) {
@@ -94,7 +94,6 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
   } else {
     statusBarItem.show();
   }
-  return lang;
 }
 
 function middleOfLineWontComplete(cursorPosition: vscode.Position, document: any) {
@@ -213,10 +212,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let lang = showHideStatusBtn(document, statusBarItem);
-      if (lang === "") {
-        return;
-      }
+      showHideStatusBtn(document, statusBarItem);
       let selection: vscode.Selection = editor.selection;
       if (editor.selection.isEmpty) {
         selection = new vscode.Selection(
@@ -283,7 +279,7 @@ export function inlineCompletionProvider(
           if (textBeforeCursor.length > (maxTokens * 4)) {
             textBeforeCursor = textBeforeCursor.slice(-4 * maxTokens);
           }
-          let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang })}`;
+          let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: document.languageId })}`;
           let suffix = ``;
           prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 

@@ -36,8 +36,9 @@ const vscode = acquireVsCodeApi();
     var prompt = promptNode.dataset.prompt;
     var code = decodeURIComponent(promptNode.dataset.code);
     var response = responseNode.dataset.response;
+    var error = responseNode.dataset.error;
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    return { prompt, code, response, generate_at: parseInt(id), report_at: new Date().valueOf() };
+    return { prompt, code, response, error, generate_at: parseInt(id), report_at: new Date().valueOf() };
   };
 
   // Handle messages sent from the extension to the webview
@@ -50,7 +51,14 @@ const vscode = acquireVsCodeApi();
       case "updateSettingPage": {
         asklist.classList.add("hidden");
         document.getElementById("ask-button").classList.remove("open");
-        if (document.getElementById('settings') || message.show) {
+        if (message.show) {
+          if (document.getElementById('settings')) {
+            document.getElementById('settings').remove();
+          } else {
+            const sp = document.getElementById("setting-page");
+            sp.innerHTML = message.value;
+          }
+        } else {
           const sp = document.getElementById("setting-page");
           sp.innerHTML = message.value;
         }
@@ -237,7 +245,7 @@ const vscode = acquireVsCodeApi();
                                               <span class="material-symbols-rounded">
                                                 thumb_down
                                               </span>
-                                            </button>
+                                            </button>                                         
                                           </span>
                                           <button class="regenerate flex rounded" data-id=${id}>
                                             <span class="material-symbols-rounded">
@@ -322,11 +330,17 @@ const vscode = acquireVsCodeApi();
           return;
         }
         const chatText = document.getElementById(`response-${message.id}`);
-        chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg flex items-center">
+        chatText.dataset.error = message.error;
+        chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
-                                        <div>
+                                        <div class="grow">
                                             <p>An error occurred</p><p>${message.error}</p>
                                         </div>
+                                        <button class="bug rounded border-0 mx-4 opacity-50 focus:outline-none" data-id=${message.id}>
+                                          <span class="material-symbols-rounded">
+                                            bug_report
+                                          </span>
+                                        </button>
                                     </div>`;
 
         document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
@@ -486,6 +500,16 @@ const vscode = acquireVsCodeApi();
       document.getElementById("ask-button").classList.remove("open");
     }
 
+    if (e.target.id === "setKey") {
+      vscode.postMessage({ type: "setKey" });
+      return;
+    }
+
+    if (e.target.id === "clearKey") {
+      vscode.postMessage({ type: "clearKey" });
+      return;
+    }
+
     if (e.target.id === "triggerDelayShort") {
       document.getElementById("triggerDelayShortBtn").classList.add("hidden");
       document.getElementById("triggerDelayLongBtn").classList.remove("hidden");
@@ -543,6 +567,15 @@ const vscode = acquireVsCodeApi();
         like?.classList.remove("checked");
         targetButton?.classList?.add("checked");
         vscode.postMessage({ type: 'telemetry', info: { event: "unlike", ...unlikeInfo } });
+      }
+      return;
+    }
+
+    if (targetButton?.classList?.contains('bug')) {
+      if (!targetButton?.classList?.contains('checked')) {
+        var bugInfo = collectInfo(targetButton?.dataset.id);
+        targetButton?.classList?.add("checked", "pointer-events-none");
+        vscode.postMessage({ type: 'telemetry', info: { event: "bug-report", ...bugInfo } });
       }
       return;
     }

@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.12.0",
+    "version": "0.12.2",
     "preview": true,
     "engines": {
         "vscode": "^1.68.0"
@@ -88,44 +88,9 @@
                 "icon": "$(gear)"
             },
             {
-                "command": "sensecode.setKey",
-                "category": "SenseCode",
-                "title": "%sensecode.command.setKey%"
-            },
-            {
-                "command": "sensecode.clearKey",
-                "category": "SenseCode",
-                "title": "%sensecode.command.clearKey%"
-            },
-            {
-                "command": "sensecode.addTests",
-                "title": "%sensecode.command.addTests%",
-                "enablement": "editorHasSelection"
-            },
-            {
-                "command": "sensecode.findProblems",
-                "title": "%sensecode.command.findProblems%",
-                "enablement": "editorHasSelection"
-            },
-            {
-                "command": "sensecode.optimize",
-                "title": "%sensecode.command.optimize%",
-                "enablement": "editorHasSelection"
-            },
-            {
-                "command": "sensecode.explain",
-                "title": "%sensecode.command.explain%",
-                "enablement": "editorHasSelection"
-            },
-            {
                 "command": "sensecode.inlineSuggest.trigger",
                 "category": "SenseCode",
                 "title": "%sensecode.command.completionTrigger%"
-            },
-            {
-                "command": "sensecode.inlineSuggest.setKeybinding",
-                "category": "SenseCode",
-                "title": "%sensecode.command.setKeyinding%"
             }
         ],
         "keybindings": [

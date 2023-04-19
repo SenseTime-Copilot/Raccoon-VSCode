@@ -3,7 +3,6 @@ import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, 
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
-import { getDocumentLanguage } from './inlineCompletionProvider';
 
 export class SenseCodeViewProvider implements WebviewViewProvider {
   private webView?: WebviewView;
@@ -48,18 +47,18 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">security</span>
             <vscode-text-field readonly placeholder="Not set" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
             </vscode-text-field>
-            <vscode-link href="${Uri.parse("command:sensecode.setKey")}" class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Set API Key")}">
-              <span class="material-symbols-rounded">key</span>
+            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Set API Key")}">
+              <span id="setKey" class="material-symbols-rounded">key</span>
             </vscode-link>
           </span>`;
     } else {
       keycfg = `
           <span class="flex">
             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">security</span>
-            <vscode-text-field readonly placeholder="${key.slice(0, 7)}****${key.slice(-7)}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
+            <vscode-text-field readonly placeholder="${key.slice(0, 5)}*********${key.slice(-5)}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
             </vscode-text-field>
-            <vscode-link href="${Uri.parse("command:sensecode.clearKey")}" class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Clear API Key from Secret Storage")}">
-              <span class="material-symbols-rounded">key_off</span>
+            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Clear API Key from Secret Storage")}">
+              <span id="clearKey" class="material-symbols-rounded">key_off</span>
             </vscode-link>
           </span>`;
     }
@@ -93,7 +92,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           <label slot="label">${l10n.t("Trigger Mode")}</label>
           <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
             ${l10n.t("Manual")}
-            <vscode-link href="${Uri.parse("command:sensecode.inlineSuggest.setKeybinding")}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}">
+            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}">
               <span class="material-symbols-rounded">keyboard</span>
             </vscode-link>
           </vscode-radio>
@@ -156,7 +155,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           <vscode-link href="${settingUri}" title="${l10n.t("All settings")}"><span class="material-symbols-rounded">settings</span></vscode-link>
         </div>
       </div>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);padding-bottom: 4rem;"></vscode-divider>
     </div>
     `;
     this.sendMessage({ type: 'updateSettingPage', value: settingPage, show });
@@ -190,7 +189,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           let lang = "";
           if (editor) {
             selection = editor.document.getText(editor.selection);
-            lang = getDocumentLanguage(editor.document);
+            lang = editor.document.languageId;
           }
           if (data.value) {
             this.sendApiRequest(data.value, selection, lang);
@@ -234,6 +233,24 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             configuration.activeEngine = e;
             this.updateSettingPage(false);
           }
+          break;
+        }
+        case 'setKey': {
+          await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
+            configuration.setApiKey(v);
+          });
+          break;
+        }
+        case 'clearKey': {
+          window.showWarningMessage(
+            l10n.t("Clear API Key from your Secret Storage?"),
+            { modal: true },
+            l10n.t("Clear"))
+            .then((v) => {
+              if (v === l10n.t("Clear")) {
+                configuration.setApiKey(undefined);
+              }
+            });
           break;
         }
         case 'triggerMode': {

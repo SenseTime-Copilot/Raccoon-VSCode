@@ -144,6 +144,14 @@ textarea::placeholder {
     font-size: 2rem;
 }
 
+#setting-page {
+    overflow: auto;
+    position: fixed;
+    background-color: var(--panel-view-background);
+    z-index: 999999;
+    width: 100%;
+}
+
 .attach-btn-left,
 .attach-btn-right {
     border-radius: calc(var(--corner-radius) * 1px);
@@ -173,8 +181,8 @@ textarea::placeholder {
 }
 
 .errorMsg {
-    color: var(--vscode-testing-message\.error\.lineForeground);
-    background-color: var(--vscode-testing-message\.error\.lineBackground);
+    color: var(--input-foreground);
+    background-color: var(--vscode-inputValidation-errorBackground);
 }
 
 @-webkit-keyframes rotate {
@@ -394,6 +402,10 @@ button.stopGenerate,
     90% {
         transform: scale(1) rotate(10deg);
     }
+}
+
+.errorMsg .checked .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1;
 }
 
 .feedback button.checked {
