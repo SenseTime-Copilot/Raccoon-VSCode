@@ -258,7 +258,7 @@ export function inlineCompletionProvider(
         }
         let rs: GetCodeCompletions | any;
         try {
-          let activeEngine: Engine | undefined = extension.globalState.get("engine");
+          let activeEngine: Engine | undefined = configuration.activeEngine;
           if (!activeEngine) {
             vscode.window.showErrorMessage(vscode.l10n.t("Active engine not set"), vscode.l10n.t("Close"));
             throw Error(vscode.l10n.t("Active engine not set"));

@@ -16,7 +16,7 @@ export async function getCodeCompletions(
 ): Promise<GetCodeCompletions | IncomingMessage> {
   let key = engine.key;
   if (!key) {
-    let k = await configuration.getApiKey();
+    let k = await configuration.getApiKey(engine.label);
     if (k) {
       key = k.split('').map(function (x) {
         return String.fromCharCode((255 + x.charCodeAt(0) - 13) % 255);
@@ -58,6 +58,7 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, pr
     let p = prompt;
     let responseType: ResponseType | undefined = undefined;
     let config = { ...engine.config };
+    config.n = configuration.candidates;
     if (stream) {
       if (engine.streamConfig) {
         config = engine.streamConfig;

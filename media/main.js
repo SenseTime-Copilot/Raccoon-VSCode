@@ -23,7 +23,7 @@ const vscode = acquireVsCodeApi();
   const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const pencilIcon = `<span class="material-symbols-rounded">edit</span>`;
-  const insertIcon = `<span class="material-symbols-rounded">post_add</span>`;
+  const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
   const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
@@ -203,7 +203,7 @@ const vscode = acquireVsCodeApi();
         }
 
         list.innerHTML +=
-          `<div id="question-${id}" class="p-4 self-end question-element-gnc relative ${edit ? "replace" : ""}">
+          `<div id="question-${id}" class="p-4 pb-8 self-end question-element-gnc relative ${edit ? "replace" : ""}">
               <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
               <div class="mb-4 flex items-center">
                   <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-75 rounded flex items-center absolute right-4 top-4 hidden">${pencilIcon}</button>
@@ -414,13 +414,6 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("change", (e) => {
     if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
-      if (e.target._value === "Auto") {
-        document.getElementById("triggerDelay").classList.remove("hidden");
-        document.getElementById("keyBindingBtn").classList.add("hidden");
-      } else {
-        document.getElementById("triggerDelay").classList.add("hidden");
-        document.getElementById("keyBindingBtn").classList.remove("hidden");
-      }
     } else if (e.target.id === "completionModeRadio") {
       vscode.postMessage({ type: "completionMode", value: e.target._value });
     } else if (e.target.id === "responseModeRadio") {
@@ -521,6 +514,16 @@ const vscode = acquireVsCodeApi();
       document.getElementById("triggerDelayShortBtn").classList.remove("hidden");
       document.getElementById("triggerDelayLongBtn").classList.add("hidden");
       vscode.postMessage({ type: "delay", value: 1 });
+      return;
+    }
+
+    if (e.target.id === 'candidates') {
+      vscode.postMessage({ type: "candidates", value: (parseInt(e.target.dataset.value) + 2) % 6 });
+      return;
+    }
+
+    if (e.target.id === "clearAll") {
+      vscode.postMessage({ type: "clearAll" });
       return;
     }
 

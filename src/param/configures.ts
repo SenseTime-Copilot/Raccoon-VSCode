@@ -4,10 +4,25 @@ import { ExtensionContext, l10n, window, workspace, WorkspaceConfiguration } fro
 export interface Engine {
   label: string;
   url: string;
-  key: string | undefined;
   config: any;
+  key?: string;
   streamConfig?: any;
 }
+
+const builtinEngines: Engine[] = [
+  {
+    label: "Penrose",
+    url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
+    config: {
+      model: "penrose-411",
+      n: 1,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      max_tokens: 128,
+      stop: "\n\n",
+      temperature: 0.8
+    }
+  }
+];
 
 export interface Prompt {
   type: string;
@@ -70,7 +85,23 @@ export class Configuration {
   constructor(context: ExtensionContext) {
     this.context = context;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    let lastVersion = this.context.globalState.get<string>("lastVersion");
+    if (!lastVersion) {
+      this.clear();
+      this.context.globalState.update("lastVersion", context.extension.packageJSON.version);
+    }
     this.update();
+  }
+
+  public clear() {
+    this.context.globalState.update("engine", undefined);
+    this.context.globalState.update("CompletionAutomatically", undefined);
+    this.context.globalState.update("StreamResponse", undefined);
+    this.context.globalState.update("Candidates", undefined);
+    this.context.globalState.update("DirectPrintOut", undefined);
+    this.context.globalState.update("delay", undefined);
+    this.configuration.update("Prompt", undefined, true);
+    this.setApiKey("*", undefined);
   }
 
   public update() {
@@ -79,7 +110,12 @@ export class Configuration {
   }
 
   public get activeEngine(): Engine | undefined {
-    return this.context.globalState.get<Engine>("engine");
+    let ae = this.context.globalState.get<Engine>("engine");
+    if (!ae) {
+      this.activeEngine = this.engines[0];
+      return this.activeEngine;
+    }
+    return ae;
   }
 
   public set activeEngine(engine: Engine | undefined) {
@@ -88,11 +124,7 @@ export class Configuration {
       let es = engines.filter((e) => {
         return e.label === engine!.label;
       });
-      if (es.length === 0) {
-        engine = undefined;
-      } else {
-        engine = es[0];
-      }
+      engine = es[0];
     }
     if (!engine) {
       engine = engines[0];
@@ -121,31 +153,16 @@ export class Configuration {
 
   public get engines(): Engine[] {
     let es = this.configuration.get<Engine[]>("Engines", []);
-    if (es.length === 0) {
-      let e = {
-        label: "Default",
-        url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
-        key: undefined,
-        config: {
-          model: "penrose-411",
-          n: 1,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          max_tokens: 128,
-          stop: "\n\n",
-          temperature: 0.8
-        }
-      };
-      workspace.getConfiguration("SenseCode").update("Engines", [e], true);
-      return [e];
-    } else {
-      return es;
-    }
+    return builtinEngines.concat(es);
   }
 
-  public async getApiKey(): Promise<string | undefined> {
-    let token = await this.context.secrets.get("sensecode.token");
+  public async getApiKey(engineLabel: string): Promise<string | undefined> {
+    let token = await this.getToken(engineLabel);
     if (!token) {
       return undefined;
+    }
+    if (!engineLabel.startsWith("Penrose")) {
+      return token;
     }
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
       {
@@ -155,28 +172,42 @@ export class Configuration {
       .then(
         async (res) => {
           if (res?.data?.name === "kestrel.guest") {
-            return await this.context.secrets.get("sensecode.key");
+            return "FBSCRPFSAEPP=FEASBC?QNSFRB>?==A>GBD>C=PR=C=O?CCFAQBBQOB?@>=?@D?=R";
           }
           return undefined;
         }
       ).catch(async (error) => {
-        await this.context.secrets.delete("sensecode.key");
-        await this.context.secrets.delete("sensecode.token");
         window.showErrorMessage(error.message, l10n.t("Close"));
         return undefined;
       });
   }
 
-  public async getToken(): Promise<string | undefined> {
-    return await this.context.secrets.get("sensecode.token");
+  public async getToken(engineLabel: string): Promise<string | undefined> {
+    let value = await this.context.secrets.get("sensecode.token");
+    if (value) {
+      let tokens = JSON.parse(value);
+      return tokens[engineLabel];
+    }
   }
 
-  public async setApiKey(token: string | undefined) {
+  public async setApiKey(engineLabel: string, token: string | undefined) {
     if (!token) {
-      await this.context.secrets.delete("sensecode.key");
-      await this.context.secrets.delete("sensecode.token");
+      if (engineLabel === "*") {
+        await this.context.secrets.delete("sensecode.token");
+      } else {
+        let value = await this.context.secrets.get("sensecode.token");
+        if (value) {
+          let tokens = JSON.parse(value);
+          delete tokens[engineLabel];
+          await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
+        }
+      }
     } else {
-      return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
+      if (engineLabel !== "Penrose") {
+        await this.context.secrets.store("sensecode.token", `{"${engineLabel}": "${token}"}`);
+        return;
+      }
+      await axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { "PRIVATE-TOKEN": token }
@@ -184,13 +215,11 @@ export class Configuration {
         .then(
           async (res) => {
             if (res?.data?.name === "kestrel.guest") {
-              await this.context.secrets.store("sensecode.key", "FBSCRPFSAEPP=FEASBC?QNSFRB>?==A>GBD>C=PR=C=O?CCFAQBBQOB?@>=?@D?=R");
-              await this.context.secrets.store("sensecode.token", token);
+              await this.context.secrets.store("sensecode.token", `{"${engineLabel}": "${token}"}`);
             }
           }
         ).catch(async (error) => {
-          await this.context.secrets.delete("sensecode.key");
-          await this.context.secrets.delete("sensecode.token");
+          await this.setApiKey(engineLabel, undefined);
           window.showErrorMessage(error.message, l10n.t("Close"));
         });
     }
@@ -212,8 +241,16 @@ export class Configuration {
     this.context.globalState.update("StreamResponse", v);
   }
 
+  public get candidates(): number {
+    return this.context.globalState.get("Candidates", 1);
+  }
+
+  public set candidates(v: number) {
+    this.context.globalState.update("Candidates", v);
+  }
+
   public get printOut(): boolean {
-    return this.context.globalState.get("DirectPrintOut", true);
+    return this.context.globalState.get("DirectPrintOut", false);
   }
 
   public set printOut(v: boolean) {
