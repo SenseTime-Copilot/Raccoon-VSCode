@@ -7,6 +7,22 @@ export interface Engine {
   config: any;
   key?: string;
   streamConfig?: any;
+  validate?: boolean;
+}
+
+interface AuthInfo {
+  id: number;
+  name?: string;
+  token?: string;
+}
+
+function parseAuthInfo(info: string): AuthInfo {
+  let p = Buffer.from(info, "base64").toString().split("#");
+  return {
+    id: parseInt(p[0]),
+    name: p[1],
+    token: p[2]
+  };
 }
 
 const builtinEngines: Engine[] = [
@@ -20,7 +36,8 @@ const builtinEngines: Engine[] = [
       max_tokens: 128,
       stop: "\n\n",
       temperature: 0.8
-    }
+    },
+    validate: true
   }
 ];
 
@@ -32,47 +49,55 @@ export interface Prompt {
 }
 
 const builtinPrompts: { [key: string]: Prompt } = {
-  generation: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Generation": {
     type: "code generation",
     prompt: "code generation",
     brush: true,
     icon: "process_chart"
   },
-  completion: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Completion": {
     type: "code completion",
     prompt: "Please complete the following code",
     brush: true,
     icon: "gradient"
   },
-  blankFilling: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Blank Filling": {
     type: "code blank filling",
     prompt: "Complete the following code, fill in the missing parts",
     brush: true,
     icon: "format_image_right"
   },
-  codeCorrection: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Code Correction": {
     type: "code error correction",
     prompt: "Identify and correct any errors in the following code snippet",
     brush: true,
     icon: "add_task"
   },
-  refactoring: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Refactoring": {
     type: "code refactoring and optimization",
     prompt: "Refactor the given code to improve readability, modularity, and maintainability",
     brush: true,
     icon: "construction"
   },
-  addTest: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Add Test": {
     type: "test sample generation",
     prompt: "Generate a set of test cases and corresponding test code for the following code",
     icon: "science"
   },
-  complexityAnalysis: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Complexity Analysis": {
     type: "code complexity analysis",
     prompt: "Analyze the space and time complexity of the provided code. Provide a brief explanation of the code and the reasoning behind the complexities",
     icon: "multiline_chart"
   },
-  codeConversion: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Code Conversion": {
     type: "code language conversion",
     prompt: "Convert the given code equivalent ${input:target language} code",
     icon: "repeat"
@@ -100,8 +125,9 @@ export class Configuration {
     this.context.globalState.update("Candidates", undefined);
     this.context.globalState.update("DirectPrintOut", undefined);
     this.context.globalState.update("delay", undefined);
+    this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
-    this.setApiKey("*", undefined);
+    this.context.secrets.delete("sensecode.token");
   }
 
   public update() {
@@ -136,17 +162,10 @@ export class Configuration {
     let customPrompts: { [key: string]: string } = this.configuration.get("Prompt", {});
     let prompts: { [key: string]: Prompt } = {};
     for (let label in builtinPrompts) {
-      let labelPre = label.replace(/([A-Z])/g, " $1");
-      labelPre = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
-      prompts[l10n.t(labelPre)] = builtinPrompts[label];
+      prompts[l10n.t(label)] = builtinPrompts[label];
     }
     for (let label in customPrompts) {
-      let labelPre = label.replace(/([A-Z])/g, " $1");
-      labelPre = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
-      prompts[labelPre] = {
-        type: "custom",
-        prompt: customPrompts[label]
-      };
+      prompts[label] = { type: "custom", prompt: customPrompts[label] };
     }
     return prompts;
   }
@@ -156,24 +175,56 @@ export class Configuration {
     return builtinEngines.concat(es);
   }
 
-  public async getApiKey(engineLabel: string): Promise<string | undefined> {
-    let token = await this.getToken(engineLabel);
+  public async username(engine: Engine): Promise<string | undefined> {
+    let token = await this.getApiKey(engine);
+    if (!token || !engine.validate) {
+      return;
+    }
+    let info = parseAuthInfo(token);
+    return info.name;
+  }
+
+  public async avatar(engine: Engine): Promise<string | undefined> {
+    let token = await this.getApiKey(engine);
+    if (!token || !engine.validate) {
+      return;
+    }
+    let info = parseAuthInfo(token);
+    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${info.name}`,
+      {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        headers: { "PRIVATE-TOKEN": info.token || "" }
+      })
+      .then(
+        async (res) => {
+          if (res && res.data && res.data[0]) {
+            return res.data[0].avatar_url;
+          }
+        }
+      ).catch(async (_error) => {
+      });
+  }
+
+  public async getApiKeyRaw(engine: Engine): Promise<string | undefined> {
+    let token = await this.getApiKey(engine);
     if (!token) {
       return undefined;
     }
-    if (!engineLabel.startsWith("Penrose")) {
+    if (!engine.validate) {
       return token;
     }
+    let info = parseAuthInfo(token);
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        headers: { "PRIVATE-TOKEN": token }
+        headers: { "PRIVATE-TOKEN": info.token || "" }
       })
       .then(
         async (res) => {
           if (res?.data?.name === "kestrel.guest") {
             return "FBSCRPFSAEPP=FEASBC?QNSFRB>?==A>GBD>C=PR=C=O?CCFAQBBQOB?@>=?@D?=R";
           }
+          window.showErrorMessage("Invalid API Key", l10n.t("Close"));
           return undefined;
         }
       ).catch(async (error) => {
@@ -182,44 +233,51 @@ export class Configuration {
       });
   }
 
-  public async getToken(engineLabel: string): Promise<string | undefined> {
+  public async getApiKey(engine: Engine): Promise<string | undefined> {
     let value = await this.context.secrets.get("sensecode.token");
     if (value) {
       let tokens = JSON.parse(value);
-      return tokens[engineLabel];
+      return tokens[engine.label];
     }
   }
 
-  public async setApiKey(engineLabel: string, token: string | undefined) {
+  public async setApiKey(engine: Engine | undefined, token: string | undefined) {
+    if (!engine) {
+      return;
+    }
     if (!token) {
-      if (engineLabel === "*") {
-        await this.context.secrets.delete("sensecode.token");
-      } else {
-        let value = await this.context.secrets.get("sensecode.token");
-        if (value) {
-          let tokens = JSON.parse(value);
-          delete tokens[engineLabel];
-          await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
-        }
+      let value = await this.context.secrets.get("sensecode.token");
+      if (value) {
+        let tokens = JSON.parse(value);
+        delete tokens[engine.label];
+        await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
       }
     } else {
-      if (engineLabel !== "Penrose") {
-        await this.context.secrets.store("sensecode.token", `{"${engineLabel}": "${token}"}`);
+      if (!engine.validate) {
+        await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
         return;
       }
-      await axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
+      let info = parseAuthInfo(token);
+      await axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { "PRIVATE-TOKEN": token }
+          headers: { "PRIVATE-TOKEN": info.token || "" }
         })
         .then(
           async (res) => {
-            if (res?.data?.name === "kestrel.guest") {
-              await this.context.secrets.store("sensecode.token", `{"${engineLabel}": "${token}"}`);
+            if (res && res.data) {
+              for (let t of res.data) {
+                if (t.id === info.id && t.name === info.name) {
+                  await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
+                  return;
+                }
+              }
             }
+            await this.setApiKey(engine, undefined);
+            window.showErrorMessage("Invalid API Key", l10n.t("Close"));
           }
         ).catch(async (error) => {
-          await this.setApiKey(engineLabel, undefined);
+          await this.setApiKey(engine, undefined);
           window.showErrorMessage(error.message, l10n.t("Close"));
         });
     }

@@ -30,8 +30,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     );
   }
 
-  async updateSettingPage(show: boolean
-  ): Promise<void> {
+  async updateSettingPage(toggle: boolean): Promise<void> {
     let activeEngine = configuration.activeEngine;
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
@@ -46,7 +45,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
-    let key = activeEngine ? (activeEngine.key || await configuration.getToken(activeEngine.label)) : undefined;
+    let key = activeEngine ? (activeEngine.key || await configuration.getApiKey(activeEngine)) : undefined;
     let keycfg = "";
     if (!key) {
       keycfg = `
@@ -188,7 +187,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);padding-bottom: 4rem;"></vscode-divider>
     </div>
     `;
-    this.sendMessage({ type: 'updateSettingPage', value: settingPage, show });
+    this.sendMessage({ type: 'updateSettingPage', value: settingPage, toggle });
   }
 
   public resolveWebviewView(
@@ -267,9 +266,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
         case 'setKey': {
           await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-            if (configuration.activeEngine) {
-              configuration.setApiKey(configuration.activeEngine.label, v);
-            }
+            configuration.setApiKey(configuration.activeEngine, v);
           });
           break;
         }
@@ -282,9 +279,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
               l10n.t("Clear"))
               .then((v) => {
                 if (v === l10n.t("Clear")) {
-                  if (configuration.activeEngine) {
-                    configuration.setApiKey(label, undefined);
-                  }
+                  configuration.setApiKey(configuration.activeEngine, undefined);
                 }
               });
           }
@@ -366,27 +361,28 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       window.showErrorMessage(l10n.t("No code selected"), l10n.t("Close"));
       return;
     }
-
-    this.sendMessage({ type: 'addQuestion', value: promptClone, code, lang, send, id, streaming });
-    if (!send) {
-      return;
-    }
-
-    let prefix = "";
-    let suffix = "";
-    if (prompt.type === "custom" || prompt.type === "free chat" || prompt.type === "code Q&A") {
-      prefix = instruction;
-    } else {
-      prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nTask type: ${prompt.type}. ${instruction}\n\n### Input:\n`;
-      suffix = `\n### Response:\n`;
-    }
-
     let rs: GetCodeCompletions | IncomingMessage;
     try {
       let activeEngine: Engine | undefined = configuration.activeEngine;
       if (!activeEngine) {
         throw Error(l10n.t("Active engine not set"));
       }
+      let username = await configuration.username(activeEngine);
+      let avatar = await configuration.avatar(activeEngine);
+      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming });
+      if (!send) {
+        return;
+      }
+
+      let prefix = "";
+      let suffix = "";
+      if (prompt.type === "custom" || prompt.type === "free chat" || prompt.type === "code Q&A") {
+        prefix = instruction;
+      } else {
+        prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nTask type: ${prompt.type}. ${instruction}\n\n### Input:\n`;
+        suffix = `\n### Response:\n`;
+      }
+
       let codeStr = "";
       if (code) {
         codeStr = `\`\`\`${lang.toLowerCase()}\n${code}\n\`\`\``;

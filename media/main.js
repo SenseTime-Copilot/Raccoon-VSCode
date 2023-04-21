@@ -60,16 +60,15 @@ const vscode = acquireVsCodeApi();
 
     switch (message.type) {
       case "updateSettingPage": {
-        asklist.classList.add("hidden");
-        document.getElementById("ask-button").classList.remove("open");
-        if (message.show) {
-          if (document.getElementById('settings')) {
-            document.getElementById('settings').remove();
-          } else {
-            const sp = document.getElementById("setting-page");
-            sp.innerHTML = message.value;
-          }
-        } else {
+        if (message.toggle && document.getElementById('settings')) {
+          document.getElementById('settings').remove();
+          break;
+        }
+        if (message.toggle) {
+          asklist.classList.add("hidden");
+          document.getElementById("ask-button").classList.remove("open");
+        }
+        if (message.toggle || document.getElementById('settings')) {
           const sp = document.getElementById("setting-page");
           sp.innerHTML = message.value;
         }
@@ -80,9 +79,6 @@ const vscode = acquireVsCodeApi();
         var shortcuts = '<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>';
 
         for (var k in prompts) {
-          const labelPre = k.replace(/([A-Z])/g, " $1");
-          label = labelPre.charAt(0).toUpperCase() + labelPre.slice(1);
-
           let p = prompts[k].prompt;
           let icon = prompts[k].icon || "smart_button";
           let ellip = "";
@@ -91,7 +87,7 @@ const vscode = acquireVsCodeApi();
             ellip = "...";
             brush = false;
           }
-          promptList += `<vscode-option value="${p}">${label}${ellip}</vscode-option>`;
+          promptList += `<vscode-option value="${p}">${k}${ellip}</vscode-option>`;
           shortcuts += `  <button class="grow flex flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32 ${brush ? "with-brush" : ""}"
                                         onclick='vscode.postMessage({
                                             type: "repareQuestion",
@@ -99,7 +95,7 @@ const vscode = acquireVsCodeApi();
                                         });
                           '>
                             <span class="material-symbols-rounded text-2xl">${icon}</span>
-                            ${label}${ellip}
+                            ${k}${ellip}
                           </button>
                       `;
         }
@@ -213,9 +209,16 @@ const vscode = acquireVsCodeApi();
           e.remove();
         }
 
+        let questionTitle = `<h2 class="avatar mt-1 font-bold ${margin} flex text-xl gap-1">${questionIcon} ${message.username || l10nForUI["Question"]}</h2>`;
+        if (message.avatar && message.username) {
+          questionTitle = `<h2 class="avatar mt-1 font-bold ${margin} flex text-xl gap-1">
+                          <img src="${message.avatar}"/ class="w-8 rounded-full"> ${message.username}
+                          </h2>`;
+        }
+
         list.innerHTML +=
           `<div id="question-${id}" class="p-4 pb-8 self-end question-element-gnc relative ${edit ? "replace" : ""}">
-              <h2 class="avatar font-bold ${margin} flex text-xl gap-1 opacity-60">${questionIcon} ${l10nForUI["Question"]}</h2>
+              ${questionTitle}
               <div class="mb-4 flex items-center">
                   <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-75 rounded flex items-center absolute right-4 top-4 hidden">${pencilIcon}</button>
                   <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-0.5 absolute right-4" style="width: calc(100% - 32px);">
@@ -242,7 +245,7 @@ const vscode = acquireVsCodeApi();
             chat = document.createElement("div");
             chat.id = id;
             chat.classList.add("p-4", "self-end", "answer-element-gnc");
-            chat.innerHTML = `  <h2 class="avatar font-bold mb-4 flex flex-row-reverse text-xl gap-1 opacity-60">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
+            chat.innerHTML = `  <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
                                         <div id="response-${id}" class="response flex flex-col gap-1"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">

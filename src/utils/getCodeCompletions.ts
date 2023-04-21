@@ -16,7 +16,7 @@ export async function getCodeCompletions(
 ): Promise<GetCodeCompletions | IncomingMessage> {
   let key = engine.key;
   if (!key) {
-    let k = await configuration.getApiKey(engine.label);
+    let k = await configuration.getApiKeyRaw(engine);
     if (k) {
       key = k.split('').map(function (x) {
         return String.fromCharCode((255 + x.charCodeAt(0) - 13) % 255);
