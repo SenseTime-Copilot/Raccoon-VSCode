@@ -209,9 +209,9 @@ const vscode = acquireVsCodeApi();
           e.remove();
         }
 
-        let questionTitle = `<h2 class="avatar mt-1 font-bold ${margin} flex text-xl gap-1">${questionIcon} ${message.username || l10nForUI["Question"]}</h2>`;
+        let questionTitle = `<h2 class="avatar capitalize mt-1 font-bold ${margin} flex text-xl gap-1">${questionIcon} ${message.username || l10nForUI["Question"]}</h2>`;
         if (message.avatar && message.username) {
-          questionTitle = `<h2 class="avatar mt-1 font-bold ${margin} flex text-xl gap-1">
+          questionTitle = `<h2 class="avatar capitalize mt-1 font-bold ${margin} flex text-xl gap-1">
                           <img src="${message.avatar}"/ class="w-8 rounded-full"> ${message.username}
                           </h2>`;
         }
