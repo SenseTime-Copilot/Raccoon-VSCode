@@ -33,35 +33,6 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   async updateSettingPage(show: boolean
   ): Promise<void> {
     let activeEngine = configuration.activeEngine;
-    let es = configuration.engines;
-    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" ${activeEngine ? `value="${activeEngine.label}"` : ""}>`;
-    for (let e of es) {
-      esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
-    }
-    esList += "</vscode-dropdown>";
-    let key = await configuration.getToken(activeEngine!.label);
-    let keycfg = "";
-    if (!key) {
-      keycfg = `
-          <span class="flex">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">security</span>
-            <vscode-text-field readonly placeholder="Not set" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
-            </vscode-text-field>
-            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Set API Key")}">
-              <span id="setKey" class="material-symbols-rounded">key</span>
-            </vscode-link>
-          </span>`;
-    } else {
-      keycfg = `
-          <span class="flex">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">security</span>
-            <vscode-text-field readonly placeholder="${key.slice(0, 5)}*********${key.slice(-5)}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
-            </vscode-text-field>
-            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Clear API Key from Secret Storage")}">
-              <span id="clearKey" class="material-symbols-rounded">key_off</span>
-            </vscode-link>
-          </span>`;
-    }
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
     let printOut = configuration.printOut;
@@ -69,6 +40,52 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     let candidates = configuration.candidates;
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
+    let es = configuration.engines;
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" ${activeEngine ? `value="${activeEngine.label}"` : ""}>`;
+    for (let e of es) {
+      esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
+    }
+    esList += "</vscode-dropdown>";
+    let key = activeEngine ? (activeEngine.key || await configuration.getToken(activeEngine.label)) : undefined;
+    let keycfg = "";
+    if (!key) {
+      keycfg = `
+          <span class="flex">
+            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">privacy_tip</span>
+            <vscode-text-field readonly placeholder="Not set" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
+            </vscode-text-field>
+            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Set API Key")}">
+              <span id="setKey" class="material-symbols-rounded">key</span>
+            </vscode-link>
+          </span>`;
+    } else {
+      let len = key.length;
+      let keyMasked = '*'.repeat(len);
+      if (key.length > 10) {
+        let showCharCnt = Math.min(Math.floor(len / 4), 7);
+        let maskCharCnt = Math.min(len - (showCharCnt * 2), 12);
+        keyMasked = `${key.slice(0, showCharCnt)}${'*'.repeat(maskCharCnt)}${key.slice(-1 * showCharCnt)}`;
+      }
+      if (activeEngine?.key) {
+        keycfg = `
+          <span class="flex">
+            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("API Key that in settings is adopted")}">password</span>
+            <vscode-text-field readonly placeholder="${keyMasked}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;"></vscode-text-field>
+            <vscode-link href="${setEngineUri}" class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Reveal in settings")}">
+              <span class="material-symbols-rounded">visibility</span>
+            </vscode-link>
+          </span>`;
+      } else {
+        keycfg = `
+          <span class="flex">
+            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("API Key that in secret storage is adopted")}">security</span>
+            <vscode-text-field readonly placeholder="${keyMasked}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;"></vscode-text-field>
+            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Clear API Key from Secret Storage")}">
+              <span id="clearKey" class="material-symbols-rounded">key_off</span>
+            </vscode-link>
+          </span>`;
+      }
+    }
     let settingPage = `
     <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <h3 class="flex flex-row justify-between text-base font-bold">
@@ -90,7 +107,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       </div>
       <div class="ml-4">
         <div class="flex flex-col grow my-2 px-2 gap-2">
-          <span>${l10n.t("API Key")}</span>
+          <span>${l10n.t("API Key")}
+          </span>
           ${keycfg}
         </div>
       </div>
@@ -249,20 +267,27 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
         case 'setKey': {
           await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-            configuration.setApiKey(configuration.activeEngine!.label, v);
+            if (configuration.activeEngine) {
+              configuration.setApiKey(configuration.activeEngine.label, v);
+            }
           });
           break;
         }
         case 'clearKey': {
-          window.showWarningMessage(
-            l10n.t("Clear API Key from your Secret Storage?"),
-            { modal: true },
-            l10n.t("Clear"))
-            .then((v) => {
-              if (v === l10n.t("Clear")) {
-                configuration.setApiKey(configuration.activeEngine!.label, undefined);
-              }
-            });
+          if (configuration.activeEngine) {
+            let label = configuration.activeEngine.label;
+            window.showWarningMessage(
+              l10n.t("Clear API Key for {0} from Secret Storage?", label),
+              { modal: true },
+              l10n.t("Clear"))
+              .then((v) => {
+                if (v === l10n.t("Clear")) {
+                  if (configuration.activeEngine) {
+                    configuration.setApiKey(label, undefined);
+                  }
+                }
+              });
+          }
           break;
         }
         case 'triggerMode': {

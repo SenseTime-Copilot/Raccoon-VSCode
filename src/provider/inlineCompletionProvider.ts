@@ -443,6 +443,7 @@ Task type: code completion. Please complete the following code.
           let data = rs as GetCodeCompletions;
           // Add the generated code to the inline suggestion list
           let items = new Array<vscode.InlineCompletionItem>();
+          let ts = new Date().valueOf();
           for (let i = 0; i < data.completions.length; i++) {
             let completion = data.completions[i];
             outlog.debug(completion);
@@ -481,7 +482,18 @@ Task type: code completion. Please complete the following code.
               range: new vscode.Range(
                 position.translate(0, data.completions.length),
                 position
-              )
+              ),
+              command: {
+                title: "suggestion-accepted",
+                command: "sensecode.onSuggestionAccepted",
+                arguments: [
+                  {
+                    type: "code completion",
+                    code: textBeforeCursor,
+                    prompt: "Please complete the following code"
+                  },
+                  data.completions, "", i.toString(), ts]
+              }
             });
             trie.addWord(textBeforeCursor + data.completions[i]);
           }

@@ -34,7 +34,7 @@ export interface Prompt {
 const builtinPrompts: { [key: string]: Prompt } = {
   generation: {
     type: "code generation",
-    prompt: "code generation.",
+    prompt: "code generation",
     brush: true,
     icon: "process_chart"
   },
@@ -58,7 +58,7 @@ const builtinPrompts: { [key: string]: Prompt } = {
   },
   refactoring: {
     type: "code refactoring and optimization",
-    prompt: "code refactoring and optimization. Refactor the given code to improve readability, modularity, and maintainability",
+    prompt: "Refactor the given code to improve readability, modularity, and maintainability",
     brush: true,
     icon: "construction"
   },

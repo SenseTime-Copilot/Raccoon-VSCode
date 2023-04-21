@@ -42,6 +42,24 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (request, response, error, action, generate_at) => {
+      telemetryReporter.logUsage("suggestion-accepted",
+        {
+          event: "suggestion-accepted",
+          request,
+          response,
+          error,
+          action,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          generate_at,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          report_at: new Date().valueOf()
+        });
+    })
+  );
+
   // create a new status bar item that we can now manage
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,

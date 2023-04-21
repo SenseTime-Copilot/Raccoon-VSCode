@@ -91,6 +91,11 @@
                 "command": "sensecode.inlineSuggest.trigger",
                 "category": "SenseCode",
                 "title": "%sensecode.command.completionTrigger%"
+            },
+            {
+                "command": "sensecode.onSuggestionAccepted",
+                "category": "SenseCode",
+                "title": "%sensecode.command.onSuggestionAccepted%"
             }
         ],
         "keybindings": [

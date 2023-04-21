@@ -30,15 +30,26 @@ const vscode = acquireVsCodeApi();
   var prompts = undefined;
   var promptList = ``;
 
-  collectInfo = function (id) {
+  collectInfo = function (id, action) {
     var promptNode = document.getElementById(`prompt-${id}`);
     var responseNode = document.getElementById(`response-${id}`);
-    var prompt = promptNode.dataset.prompt;
+    var prompt = JSON.parse(promptNode.dataset.prompt);
     var code = decodeURIComponent(promptNode.dataset.code);
     var response = responseNode.dataset.response;
     var error = responseNode.dataset.error;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    return { prompt, code, response, error, generate_at: parseInt(id), report_at: new Date().valueOf() };
+    return {
+      event: "response-feedback",
+      request: {
+        type: prompt.type, prompt: prompt.prompt, code
+      },
+      response: [response],
+      error,
+      action,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      generate_at: parseInt(id),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      report_at: new Date().valueOf()
+    };
   };
 
   // Handle messages sent from the extension to the webview
@@ -312,8 +323,7 @@ const vscode = acquireVsCodeApi();
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
 
         if (message.byUser === true) {
-          var qinfo = collectInfo(message.id);
-          vscode.postMessage({ type: 'telemetry', info: { event: "stopped-by-user", ...qinfo } });
+          vscode.postMessage({ type: 'telemetry', info: collectInfo(message.id, "stopped-by-user") });
         }
         break;
       }
@@ -545,40 +555,37 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('like')) {
-      var likeInfo = collectInfo(targetButton?.dataset.id);
       const feedbackActions = targetButton.closest('.feedback');
       var unlike = feedbackActions.querySelectorAll(".unlike")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "like-cancelled", ...likeInfo } });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "like-cancelled") });
       } else {
         unlike?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "like", ...likeInfo } });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "like") });
       }
       return;
     }
 
     if (targetButton?.classList?.contains('unlike')) {
-      var unlikeInfo = collectInfo(targetButton?.dataset.id);
       const feedbackActions = targetButton.closest('.feedback');
       var like = feedbackActions.querySelectorAll(".like")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "unlike-cancelled", ...unlikeInfo } });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "unlike-cancelled") });
       } else {
         like?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: { event: "unlike", ...unlikeInfo } });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "unlike") });
       }
       return;
     }
 
     if (targetButton?.classList?.contains('bug')) {
       if (!targetButton?.classList?.contains('checked')) {
-        var bugInfo = collectInfo(targetButton?.dataset.id);
         targetButton?.classList?.add("checked", "pointer-events-none");
-        vscode.postMessage({ type: 'telemetry', info: { event: "bug-report", ...bugInfo } });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "bug-report") });
       }
       return;
     }
@@ -588,8 +595,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       const question = document.getElementById(`question-${id}`);
       sendQuestion(question);
-      var reginfo = collectInfo(id);
-      vscode.postMessage({ type: 'telemetry', info: { event: "regenerate", ...reginfo } });
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "regenerate") });
       return;
     }
 

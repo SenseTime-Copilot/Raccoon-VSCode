@@ -10,5 +10,6 @@
     "sensecode.config.prompt.item": "Prompt template",
     "sensecode.command.settings": "Settings",
     "sensecode.view.title": "Assistant",
-    "sensecode.command.completionTrigger": "Code Inline Completion Trigger"
+    "sensecode.command.completionTrigger": "Code Inline Completion Trigger",
+    "sensecode.command.onSuggestionAccepted": "Suggestion acception report"
 }
