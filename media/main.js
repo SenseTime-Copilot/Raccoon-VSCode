@@ -22,7 +22,6 @@ const vscode = acquireVsCodeApi();
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
-  const pencilIcon = `<span class="material-symbols-rounded">edit</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
   const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
@@ -51,6 +50,18 @@ const vscode = acquireVsCodeApi();
     };
   };
 
+  addError = function (message) {
+    var ew = document.getElementById('error-wrapper');
+    if (ew.querySelector(`.${message.category}`)) {
+      return;
+    }
+    ew.innerHTML += `<div class="error ${message.category}" id="error-${message.id}">${message.value}</div>`;
+    setTimeout(() => {
+      var err = document.getElementById(`error-${message.id}`);
+      err.remove();
+    }, 3000);
+  };
+
   // Handle messages sent from the extension to the webview
   window.addEventListener("message", (event) => {
     const message = event.data;
@@ -58,6 +69,22 @@ const vscode = acquireVsCodeApi();
     const asklist = document.getElementById("ask-list");
 
     switch (message.type) {
+      case 'showError': {
+        addError(message);
+        break;
+      }
+      case 'enableAsk': {
+        if (message.value) {
+          // document.getElementById("shortcuts").classList.remove("disabled");
+          // document.getElementById("ask-list").classList.remove("disabled");
+          // document.getElementById("ask-button").classList.remove("disabled");
+        } else {
+          // document.getElementById("shortcuts").classList.add("disabled");
+          // document.getElementById("ask-list").classList.add("disabled");
+          // document.getElementById("ask-button").classList.add("disabled");
+        }
+        break;
+      }
       case "updateSettingPage": {
         if (message.toggle && document.getElementById('settings')) {
           document.getElementById('settings').remove();
@@ -96,7 +123,7 @@ const vscode = acquireVsCodeApi();
                       `;
         }
         document.getElementById("ask-list").innerHTML = shortcuts +
-          `<button class="chat-shortcut grow flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32"
+          `<button class="shortcut grow flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32"
                       onclick="vscode.postMessage({
                           type: 'repareQuestion',
                           value: {type: 'code Q&A', prompt: '\${input:${l10nForUI["Question Here..."]}}'}
@@ -108,15 +135,15 @@ const vscode = acquireVsCodeApi();
         `;
 
         shortcuts += `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-                      <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
+                      <button class="shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
                               onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input:${l10nForUI["Question Here..."]}}'}});">
                         <span class="material-symbols-rounded text-2xl">chat</span>
                         ${l10nForUI["Code Q&A"]}
                       </button>
-                      <button class="chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
+                      <button class="shortcut chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
                               onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input:${l10nForUI["Question Here..."]}}'}});">
                         <span class="material-symbols-rounded text-2xl">chat_bubble</span>
-                        ${l10nForUI["FreeChat"]}
+                        ${l10nForUI["Free chat"]}
                       </button>`;
         document.getElementById("shortcuts").innerHTML = shortcuts;
 
@@ -124,6 +151,15 @@ const vscode = acquireVsCodeApi();
       }
       case "addQuestion": {
         document.getElementById('settings')?.remove();
+
+        document.getElementById("cover")?.classList?.add("hidden");
+        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
+
+        var replaceElems = document.getElementsByClassName("replace");
+        for (var e of replaceElems) {
+          e.remove();
+        }
+
         let id = message.id;
         let prompt = message.value;
         let code = message.code + "" || "";
@@ -192,19 +228,10 @@ const vscode = acquireVsCodeApi();
           });
         }
 
-        document.getElementById("cover")?.classList?.add("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
-
-        var replaceElems = document.getElementsByClassName("replace");
-        for (var e of replaceElems) {
-          e.remove();
-        }
-
         let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family);">${message.timestamp}</div>`;
         if (edit) {
           actionBtns = `
           <div class="text-sm">
-              <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-75 rounded flex items-center hidden">${pencilIcon}</button>
               <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-0.5">
                   <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-75 rounded flex items-center">${cancelIcon}</button>
                   <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-75 rounded flex items-center">${sendIcon}</button>
@@ -384,48 +411,32 @@ const vscode = acquireVsCodeApi();
   };
 
   const sendQuestion = (question) => {
-    const elements = question.getElementsByClassName("send-cancel-elements-gnc");
-    const resendElement = question.getElementsByClassName("resend-element-gnc");
-    elements[0]?.classList.add("hidden");
-    resendElement[0]?.classList.remove("hidden");
     const prompt = question.getElementsByClassName("prompt");
-    const editableElems = prompt[0].getElementsByClassName("editable");
-    Array.from(editableElems).forEach((el) => {
-      el.setAttribute("contenteditable", false);
-    });
-    var s = window.getSelection();
-    if (s.rangeCount > 0) {
-      s.removeAllRanges();
-    }
+    if (prompt[0].textContent.trim().length > 0) {
+      const elements = question.getElementsByClassName("send-cancel-elements-gnc");
+      elements[0]?.classList.add("hidden");
+      const editableElems = prompt[0].getElementsByClassName("editable");
+      Array.from(editableElems).forEach((el) => {
+        el.setAttribute("contenteditable", false);
+      });
+      var s = window.getSelection();
+      if (s.rangeCount > 0) {
+        s.removeAllRanges();
+      }
 
-    if (prompt[0].textContent.length > 0) {
       let updatedPrompt = JSON.parse(prompt[0].dataset.prompt);
       updatedPrompt.prompt = prompt[0].textContent;
       prompt[0].dataset.prompt = JSON.stringify(updatedPrompt);
+      let code = prompt[0].dataset.code;
       vscode.postMessage({
         type: "sendQuestion",
         value: updatedPrompt,
-        code: decodeURIComponent(prompt[0].dataset.code),
+        code: code ? decodeURIComponent(code) : undefined,
         lang: prompt[0].dataset.lang
       });
+    } else {
+      addError({ category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
-  };
-
-  const cancelEditQuestion = (question) => {
-    const elements = question.getElementsByClassName("send-cancel-elements-gnc");
-    const resendElement = question.getElementsByClassName("resend-element-gnc");
-    elements[0]?.classList.add("hidden");
-    resendElement[0]?.classList.remove("hidden");
-    const prompt = question.getElementsByClassName("prompt");
-    const editableElems = prompt[0].getElementsByClassName("editable");
-    Array.from(editableElems).forEach((el) => {
-      el.setAttribute("contenteditable", false);
-    });
-    var s = window.getSelection();
-    if (s.rangeCount > 0) {
-      s.removeAllRanges();
-    }
-    document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
   };
 
   document.addEventListener("change", (e) => {
@@ -443,6 +454,10 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("keydown", (e) => {
     const promptBox = e.target.closest('.prompt');
+    if (e.target.classList.contains("editable") && e.code === "Enter") {
+      e.preventDefault();
+      return;
+    }
     if (promptBox && e.ctrlKey && e.code === "Enter") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
@@ -451,7 +466,10 @@ const vscode = acquireVsCodeApi();
     if (promptBox && e.code === "Escape") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
-      cancelEditQuestion(question);
+      question.remove();
+      if (document.getElementById("qa-list").childElementCount === 0) {
+        clearQAList();
+      }
     }
   });
 
@@ -609,24 +627,6 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (targetButton?.classList?.contains("resend-element-gnc")) {
-      e.preventDefault();
-      document.getElementById("chat-button-wrapper")?.classList?.add("disabled");
-      const question = targetButton.closest(".question-element-gnc");
-      const elements = targetButton.nextElementSibling;
-      elements.classList.remove("hidden");
-      const prompt = question.getElementsByClassName("prompt");
-      const editableElems = prompt[0].getElementsByClassName("editable");
-      Array.from(editableElems).reverse().forEach((el) => {
-        el.setAttribute("contenteditable", true);
-        el.focus();
-      });
-
-      targetButton.classList.add("hidden");
-
-      return;
-    }
-
     if (targetButton?.classList?.contains("send-element-gnc")) {
       e.preventDefault();
       const question = targetButton.closest(".question-element-gnc");
@@ -637,7 +637,10 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("cancel-element-gnc")) {
       e.preventDefault();
       const question = targetButton.closest(".question-element-gnc");
-      cancelEditQuestion(question);
+      question.remove();
+      if (document.getElementById("qa-list").childElementCount === 0) {
+        clearQAList();
+      }
       return;
     }
 

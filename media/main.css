@@ -246,7 +246,7 @@ textarea::placeholder {
     background: var(--panel-view-background);
 }
 
-.chat-shortcut,
+.shortcut,
 #chat-button {
     display: none;
 }
@@ -255,6 +255,27 @@ textarea::placeholder {
     display: flex;
 }
 
+#error-wrapper {
+    height: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    z-index: 999999;
+}
+
+#error-wrapper .error {
+    padding: 0.5rem;
+    margin: 0.5rem auto;
+    max-width: 80%;
+    border-radius: 0.25rem;
+    background-color: var(--vscode-statusBarItem-errorBackground);
+    color: var(--vscode-statusBarItem-errorForeground);
+    opacity: 0.6;
+    width: fit-content;
+}
+
+button.disabled,
+#ask-list.disabled button,
+#shortcuts.disabled button:not(.chat-shortcut),
 #chat-button-wrapper.disabled button {
     pointer-events: none;
     opacity: 0.5;
@@ -272,7 +293,7 @@ textarea::placeholder {
     transform: rotateX(180deg);
 }
 
-.x-next .chat-shortcut,
+.x-next .shortcut,
 .x-next #chat-button {
     display: flex;
 }

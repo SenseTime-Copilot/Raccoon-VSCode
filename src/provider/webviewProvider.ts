@@ -28,6 +28,13 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
       })
     );
+    context.subscriptions.push(
+      window.onDidChangeTextEditorSelection(e => {
+        if (e.textEditor.document.uri.scheme === "file" || e.textEditor.document.uri.scheme === "untitled") {
+          this.sendMessage({ type: 'enableAsk', value: (e.selections[0] && !e.selections[0].isEmpty) ? true : false });
+        }
+      })
+    );
   }
 
   async updateSettingPage(toggle: boolean): Promise<void> {
@@ -226,7 +233,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           break;
         }
         case 'sendQuestion': {
-          this.sendApiRequest(data.value, data.code, data.lang || "");
+          this.sendApiRequest(data.value, data.code, data.lang);
           break;
         }
         case 'stopGenerate': {
@@ -343,7 +350,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     });
   }
 
-  public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
+  public async sendApiRequest(prompt: Prompt, code?: string, lang?: string) {
     let response: string;
     let ts = new Date();
     let id = ts.valueOf();
@@ -360,7 +367,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     promptClone.prompt = instruction;
 
     if (prompt.type !== "free chat" && (!code || code === "")) {
-      window.showErrorMessage(l10n.t("No code selected"), l10n.t("Close"));
+      this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
       return;
     }
     let rs: GetCodeCompletions | IncomingMessage;
@@ -387,7 +394,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
 
       let codeStr = "";
       if (code) {
-        codeStr = `\`\`\`${lang.toLowerCase()}\n${code}\n\`\`\``;
+        codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       }
       rs = await getCodeCompletions(activeEngine, `${prefix}\n${codeStr}\n${suffix}`, streaming);
       if (rs instanceof IncomingMessage) {
@@ -503,6 +510,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                       <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto"></div>
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
+                    <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
                         <div id="ask-list" class="hidden" style="background: var(--panel-view-background);z-index: 999999;"></div>
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
@@ -525,7 +533,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                     "SenseCode": "${l10n.t("SenseCode")}",
                     "Question Here...": "${l10n.t("Question Here...")}",
                     "Code Q&A": "${l10n.t("Code Q&A")}",
-                    "FreeChat": "${l10n.t("Free chat")}",
+                    "Free chat": "${l10n.t("Free chat")}",
                     "Edit": "${l10n.t("Edit and resend this prompt")}",
                     "Cancel": "${l10n.t("Cancel [Esc]")}",
                     "Send": "${l10n.t("Send this prompt [Ctrl+Enter]")}",
@@ -535,7 +543,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                     "Thinking...": "${l10n.t("Thinking...")}",
                     "Typing...": "${l10n.t("Typing...")}",
                     "Stop responding": "${l10n.t("Stop responding")}",
-                    "Regenerate": "${l10n.t("Regenerate")}"
+                    "Regenerate": "${l10n.t("Regenerate")}",
+                    "Empty prompt": "${l10n.t("Empty prompt")}"
                   };
                 </script>
                 <script src="${scriptUri}"></script>
