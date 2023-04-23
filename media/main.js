@@ -28,7 +28,6 @@ const vscode = acquireVsCodeApi();
   const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
   var prompts = undefined;
-  var promptList = ``;
 
   collectInfo = function (id, action) {
     var promptNode = document.getElementById(`prompt-${id}`);
@@ -77,25 +76,22 @@ const vscode = acquireVsCodeApi();
       case "promptList": {
         prompts = message.value;
         var shortcuts = '<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>';
-
-        for (var k in prompts) {
-          let p = prompts[k].prompt;
-          let icon = prompts[k].icon || "smart_button";
+        for (var p of prompts) {
+          let icon = p.icon || "smart_button";
           let ellip = "";
-          let brush = prompts[k].brush || false;
-          if (p.includes("${input")) {
+          let brush = p.brush || false;
+          if (p.prompt.includes("${input")) {
             ellip = "...";
             brush = false;
           }
-          promptList += `<vscode-option value="${p}">${k}${ellip}</vscode-option>`;
           shortcuts += `  <button class="grow flex flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32 ${brush ? "with-brush" : ""}"
                                         onclick='vscode.postMessage({
                                             type: "repareQuestion",
-                                            value: ${JSON.stringify(prompts[k])}
+                                            value: ${JSON.stringify(p)}
                                         });
                           '>
                             <span class="material-symbols-rounded text-2xl">${icon}</span>
-                            ${k}${ellip}
+                            ${p.label}${ellip}
                           </button>
                       `;
         }
@@ -159,11 +155,6 @@ const vscode = acquireVsCodeApi();
           </div>`;
         }
 
-        let margin = "";
-        if (edit && prompt.type !== 'free chat') {
-          margin = "mb-4";
-        }
-
         let prompthtml = prompt.prompt;
         if (prompt.prompt.includes("${input")) {
           prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="${edit}" data-placeholder="$2"></p>`);
@@ -209,24 +200,37 @@ const vscode = acquireVsCodeApi();
           e.remove();
         }
 
-        let questionTitle = `<h2 class="avatar capitalize mt-1 font-bold ${margin} flex text-xl gap-1">${questionIcon} ${message.username || l10nForUI["Question"]}</h2>`;
+        let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family);">${message.timestamp}</div>`;
+        if (edit) {
+          actionBtns = `
+          <div class="text-sm">
+              <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-75 rounded flex items-center hidden">${pencilIcon}</button>
+              <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-0.5">
+                  <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-75 rounded flex items-center">${cancelIcon}</button>
+                  <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-75 rounded flex items-center">${sendIcon}</button>
+              </div>
+          </div>
+          `;
+        }
+
+        let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
+                              <span class="capitalize flex gap-1 font-bold flex text-xl">
+                                ${questionIcon} ${message.username || l10nForUI["Question"]}
+                              </span>
+                              ${actionBtns}
+                            </h2>`;
         if (message.avatar && message.username) {
-          questionTitle = `<h2 class="avatar capitalize mt-1 font-bold ${margin} flex text-xl gap-1">
-                          <img src="${message.avatar}"/ class="w-8 rounded-full"> ${message.username}
+          questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
+                            <span class="capitalize flex gap-1 font-bold flex text-xl">
+                              <img src="${message.avatar}"/ class="w-8 rounded-full"> ${message.username}
+                            </span>
+                            ${actionBtns}
                           </h2>`;
         }
 
         list.innerHTML +=
           `<div id="question-${id}" class="p-4 pb-8 self-end question-element-gnc relative ${edit ? "replace" : ""}">
               ${questionTitle}
-              <div class="mb-4 flex items-center">
-                  <button title="${l10nForUI["Edit"]}" class="resend-element-gnc p-0.5 opacity-75 rounded flex items-center absolute right-4 top-4 hidden">${pencilIcon}</button>
-                  <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-0.5 absolute right-4" style="width: calc(100% - 32px);">
-                      <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-75 rounded flex items-center">${cancelIcon}</button>
-                      <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-75 rounded flex items-center">${sendIcon}</button>
-                      <vscode-dropdown style="width: 100%;--corner-radius: 4;" class="prompt-dropdown ${code === "" ? "hidden" : ""}">${promptList}</vscode-dropdown>
-                  </div>
-              </div>
               <div id="prompt-${id}" class="prompt inline-block leading-loose py-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
               ${codeSnippet}
           </div>`;
@@ -259,7 +263,7 @@ const vscode = acquireVsCodeApi();
                                               <span class="material-symbols-rounded">
                                                 thumb_down
                                               </span>
-                                            </button>                                         
+                                            </button>
                                           </span>
                                           <button class="regenerate flex rounded" data-id=${id}>
                                             <span class="material-symbols-rounded">
@@ -434,11 +438,6 @@ const vscode = acquireVsCodeApi();
     } else if (e.target.id === "engineDropdown") {
       vscode.postMessage({ type: "activeEngine", value: e.target._value });
     } else {
-      const question = e.target.closest(".question-element-gnc");
-      const ps = question.getElementsByClassName('prompt');
-      var content = e.target._value;
-      ps[0].innerHTML = content.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="true" data-placeholder="$2"></p>`);
-      ps[0].focus();
     }
   });
 

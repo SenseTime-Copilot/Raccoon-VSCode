@@ -345,7 +345,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
 
   public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
     let response: string;
-    let id = new Date().valueOf();
+    let ts = new Date();
+    let id = ts.valueOf();
+    let timestamp = ts.toLocaleString();
 
     let send = true;
     let streaming = configuration.streamResponse;
@@ -369,7 +371,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       }
       let username = await configuration.username(activeEngine);
       let avatar = await configuration.avatar(activeEngine);
-      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming });
+      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp });
       if (!send) {
         return;
       }
@@ -502,7 +504,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
                     </div>
                     <div class="flex-1 overflow-y-auto" id="qa-list"></div>
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
-                        <div id="ask-list" class="hidden" style="background: var(--panel-view-background);"></div>
+                        <div id="ask-list" class="hidden" style="background: var(--panel-view-background);z-index: 999999;"></div>
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
                             <span class="material-symbols-rounded">keyboard_double_arrow_up</span>
                             ${l10n.t("Ask")}

@@ -42,67 +42,68 @@ const builtinEngines: Engine[] = [
 ];
 
 export interface Prompt {
+  label: string;
   type: string;
   prompt: string;
   brush?: boolean;
   icon?: string;
 }
 
-const builtinPrompts: { [key: string]: Prompt } = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Generation": {
+const builtinPrompts: Prompt[] = [
+  {
+    label: "Generation",
     type: "code generation",
     prompt: "code generation",
     brush: true,
     icon: "process_chart"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Completion": {
+  {
+    label: "Completion",
     type: "code completion",
     prompt: "Please complete the following code",
     brush: true,
     icon: "gradient"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Blank Filling": {
+  {
+    label: "Blank Filling",
     type: "code blank filling",
     prompt: "Complete the following code, fill in the missing parts",
     brush: true,
     icon: "format_image_right"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Code Correction": {
+  {
+    label: "Code Correction",
     type: "code error correction",
     prompt: "Identify and correct any errors in the following code snippet",
     brush: true,
     icon: "add_task"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Refactoring": {
+  {
+    label: "Refactoring",
     type: "code refactoring and optimization",
     prompt: "Refactor the given code to improve readability, modularity, and maintainability",
     brush: true,
     icon: "construction"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Add Test": {
+  {
+    label: "Add Test",
     type: "test sample generation",
     prompt: "Generate a set of test cases and corresponding test code for the following code",
     icon: "science"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Complexity Analysis": {
+  {
+    label: "Complexity Analysis",
     type: "code complexity analysis",
     prompt: "Analyze the space and time complexity of the provided code. Provide a brief explanation of the code and the reasoning behind the complexities",
     icon: "multiline_chart"
   },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "Code Conversion": {
+  {
+    label: "Code Conversion",
     type: "code language conversion",
     prompt: "Convert the given code equivalent ${input:target language} code",
     icon: "repeat"
   }
-};
+];
 
 export class Configuration {
   private configuration: WorkspaceConfiguration;
@@ -158,14 +159,16 @@ export class Configuration {
     this.context.globalState.update("engine", engine);
   }
 
-  public get prompt(): { [key: string]: Prompt } {
+  public get prompt(): Prompt[] {
     let customPrompts: { [key: string]: string } = this.configuration.get("Prompt", {});
-    let prompts: { [key: string]: Prompt } = {};
-    for (let label in builtinPrompts) {
-      prompts[l10n.t(label)] = builtinPrompts[label];
+    let prompts: Prompt[] = [];
+    for (let bp of builtinPrompts) {
+      let bpclone = { ...bp };
+      bpclone.label = l10n.t(bp.label);
+      prompts.push(bpclone);
     }
     for (let label in customPrompts) {
-      prompts[label] = { type: "custom", prompt: customPrompts[label] };
+      prompts.push({ label, type: "custom", prompt: customPrompts[label] });
     }
     return prompts;
   }

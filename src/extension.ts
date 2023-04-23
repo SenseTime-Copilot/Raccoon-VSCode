@@ -4,11 +4,13 @@ import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
+import { SenseCodeAction } from "./provider/codeActionProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
 export let telemetryReporter: vscode.TelemetryLogger;
+export let provider: SenseCodeViewProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
@@ -81,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
-      { pattern: "**" },
+      [{ scheme: "file" }, { scheme: "untitled" }],
       inlineProvider
     )
   );
@@ -92,7 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  const provider = new SenseCodeViewProvider(context);
+  provider = new SenseCodeViewProvider(context);
 
   const view = vscode.window.registerWebviewViewProvider(
     "sensecode.view",
@@ -104,6 +106,12 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(view);
+
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      [{ scheme: "file" }, { scheme: "untitled" }],
+      new SenseCodeAction())
+  );
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 }
