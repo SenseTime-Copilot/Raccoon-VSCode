@@ -14,7 +14,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       if (p.prompt.includes('${input')) {
         ellip = "...";
       }
-      actions.push(new vscode.CodeAction("SenseCode: " + p.label + ellip, vscode.CodeActionKind.Empty));
+      actions.push(new vscode.CodeAction("SenseCode: " + p.label + ellip, vscode.CodeActionKind.QuickFix.append('sensecode')));
     }
     return actions;
   }

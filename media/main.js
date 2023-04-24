@@ -228,7 +228,7 @@ const vscode = acquireVsCodeApi();
           });
         }
 
-        let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family);">${message.timestamp}</div>`;
+        let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family); text-align: right;">${message.timestamp}</div>`;
         if (edit) {
           actionBtns = `
           <div class="text-sm">

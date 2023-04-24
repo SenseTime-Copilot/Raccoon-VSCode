@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ExtensionContext, l10n, window, workspace, WorkspaceConfiguration } from "vscode";
+import { ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
 
 export interface Engine {
   label: string;
@@ -120,6 +120,7 @@ export class Configuration {
   }
 
   public clear() {
+    this.context.globalState.update("privacy", undefined);
     this.context.globalState.update("engine", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
@@ -208,10 +209,10 @@ export class Configuration {
       });
   }
 
-  public async getApiKeyRaw(engine: Engine): Promise<string | undefined> {
+  public async getApiKeyRaw(engine: Engine): Promise<string> {
     let token = await this.getApiKey(engine);
     if (!token) {
-      return undefined;
+      return Promise.reject(Error("API Key not set"));
     }
     if (!engine.validate) {
       return token;
@@ -227,12 +228,10 @@ export class Configuration {
           if (res?.data?.name === "kestrel.guest") {
             return "FBSCRPFSAEPP=FEASBC?QNSFRB>?==A>GBD>C=PR=C=O?CCFAQBBQOB?@>=?@D?=R";
           }
-          window.showErrorMessage("Invalid API Key", l10n.t("Close"));
-          return undefined;
+          throw (new Error("Invalid API Key"));
         }
       ).catch(async (error) => {
-        window.showErrorMessage(error.message, l10n.t("Close"));
-        return undefined;
+        return Promise.reject(error);
       });
   }
 
@@ -261,7 +260,7 @@ export class Configuration {
         return;
       }
       let info = parseAuthInfo(token);
-      await axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens`,
+      return axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { "PRIVATE-TOKEN": info.token || "" }
@@ -277,11 +276,11 @@ export class Configuration {
               }
             }
             await this.setApiKey(engine, undefined);
-            window.showErrorMessage("Invalid API Key", l10n.t("Close"));
+            throw (new Error("Invalid API Key"));
           }
         ).catch(async (error) => {
           await this.setApiKey(engine, undefined);
-          window.showErrorMessage(error.message, l10n.t("Close"));
+          return Promise.reject(error);
         });
     }
   }

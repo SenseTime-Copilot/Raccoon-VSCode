@@ -273,7 +273,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
         case 'setKey': {
           await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-            configuration.setApiKey(configuration.activeEngine, v);
+            configuration.setApiKey(configuration.activeEngine, v).then(() => { }, (_err) => {
+              this.sendMessage({ type: 'showError', category: 'invalid-key', value: l10n.t("Invalid API Key"), id: new Date().valueOf() });
+            });
           });
           break;
         }
@@ -351,6 +353,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   }
 
   public async sendApiRequest(prompt: Prompt, code?: string, lang?: string) {
+    await commands.executeCommand('sensecode.view.focus');
+    await new Promise((f) => setTimeout(f, 1000));
+
     let response: string;
     let ts = new Date();
     let id = ts.valueOf();
@@ -374,7 +379,14 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     try {
       let activeEngine: Engine | undefined = configuration.activeEngine;
       if (!activeEngine) {
-        throw Error(l10n.t("Active engine not set"));
+        this.sendMessage({ type: 'showError', category: 'engin-not-set', value: l10n.t("Active engine not set"), id });
+        return;
+      }
+
+      let apikey = await configuration.getApiKey(activeEngine);
+      if (!apikey) {
+        this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
+        return;
       }
       let username = await configuration.username(activeEngine);
       let avatar = await configuration.avatar(activeEngine);
@@ -463,15 +475,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   }
 
   public async sendMessage(message: any) {
-    // If the SenseCode view is not in focus/visible; focus on it to render Q&A
-    if (!this.webView) {
-      await commands.executeCommand('sensecode.view.focus');
-      await new Promise((f) => setTimeout(f, 1000));
-    } else {
-      this.webView?.show?.(true);
-    }
     if (this.webView) {
-      this.webView?.webview.postMessage(message);
+      this.webView.webview.postMessage(message);
     }
   }
 

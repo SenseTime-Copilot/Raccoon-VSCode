@@ -214,7 +214,10 @@ export function inlineCompletionProvider(
 
       showHideStatusBtn(document, statusBarItem);
       let selection: vscode.Selection = editor.selection;
-      if (editor.selection.isEmpty) {
+      if (!editor.selection.isEmpty) {
+        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
+        return;
+      } else {
         selection = new vscode.Selection(
           0,
           0,

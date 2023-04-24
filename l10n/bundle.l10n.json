@@ -7,6 +7,8 @@
   "Cancel": "Cancel",
   "SenseCode: Input your Key...": "SenseCode: Input your Key...",
   "No code selected": "No code selected",
+  "API Key not set": "API Key not set",
+  "Invalid API Key": "Invalid API Key",
   "Empty prompt": "Empty prompt",
   "None": "None",
   "Question": "Question",
