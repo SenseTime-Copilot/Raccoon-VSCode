@@ -149,7 +149,7 @@ textarea::placeholder {
 #setting-page {
     overflow: auto;
     position: fixed;
-    background-color: var(--panel-view-background);
+    background-color: var(--vscode-sideBar-background);
     z-index: 999999;
     width: 100%;
 }
@@ -159,7 +159,6 @@ textarea::placeholder {
     border-radius: calc(var(--corner-radius) * 1px);
     border: calc(var(--border-width) * 1px) solid var(--dropdown-border);
     height: calc(var(--input-height) * 1px);
-    background: var(--input-background);
     padding: 0px 3px;
 }
 
@@ -243,7 +242,7 @@ textarea::placeholder {
 #qa-list-wrapper {
     height: calc(100vh);
     margin: 0;
-    background: var(--panel-view-background);
+    background: var(--vscode-sideBar-background);
 }
 
 .shortcut,
@@ -338,7 +337,7 @@ button.disabled,
 }
 
 .question-element-gnc {
-    background: var(--panel-view-background);
+    background: var(--vscode-sideBar-background);
 }
 
 .response pre {
@@ -401,7 +400,7 @@ button.disabled,
     float: left;
     margin: -1.2rem 0.5rem 0 -0.5rem;
     width: calc(100% + 1rem);
-    border-bottom: 10px dotted var(--panel-view-background);
+    border-bottom: 10px dotted var(--vscode-sideBar-background);
 }
 
 button.stopGenerate,

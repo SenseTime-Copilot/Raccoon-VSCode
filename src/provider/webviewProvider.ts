@@ -103,8 +103,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Service")}</b>
       <div class="flex flex-col ml-4 my-2 px-2 gap-2">
-        <p>${l10n.t("Code engine")}</p>
+        <span>${l10n.t("Code engine")}</span>
         <div class="flex flex-row">
+          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("Code engine")}">assistant</span>
           ${esList}
           <vscode-link href="${setEngineUri}" class="pt-px attach-btn-right" title="${l10n.t("Settings")}">
             <span class="material-symbols-rounded">tune</span>
@@ -113,8 +114,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       </div>
       <div class="ml-4">
         <div class="flex flex-col grow my-2 px-2 gap-2">
-          <span>${l10n.t("API Key")}
-          </span>
+          <span>${l10n.t("API Key")}</span>
           ${keycfg}
         </div>
       </div>

@@ -5,6 +5,7 @@ import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
+// import { sendTelemetryLog } from "./utils/getCodeCompletions";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -22,7 +23,10 @@ export async function activate(context: vscode.ExtensionContext) {
     sendErrorData(_error, _data) {
     },
     sendEventData(eventName, data) {
-      outlog.info(eventName, data);
+      if (data) {
+        // sendTelemetryLog("", data);
+        outlog.info(eventName, data);
+      }
     },
   };
   telemetryReporter = vscode.env.createTelemetryLogger(sender);

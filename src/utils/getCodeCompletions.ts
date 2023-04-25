@@ -4,6 +4,7 @@ import { Engine } from "../param/configures";
 import * as crypto from "crypto";
 import { configuration, outlog } from "../extension";
 import { IncomingMessage } from "http";
+import * as zlib from "zlib";
 
 export type GetCodeCompletions = {
   completions: Array<string>;
@@ -18,11 +19,6 @@ export async function getCodeCompletions(
   try {
     if (!key) {
       key = await configuration.getApiKeyRaw(engine);
-    }
-    if (key) {
-      key = key.split('').map(function (x) {
-        return String.fromCharCode((255 + x.charCodeAt(0) - 13) % 255);
-      }).join('');
     }
   } catch (e) {
     return Promise.reject(e);
@@ -55,7 +51,7 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, pr
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (key) {
-      let aksk = key.split(":");
+      let aksk = key.split("#");
       headers = generateAuthHeader(Uri.parse(engine.url), aksk[0], aksk[1]);
     }
     let payload;
@@ -129,5 +125,40 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, pr
     } catch (e) {
       reject(e);
     }
+  });
+}
+
+export async function sendTelemetryLog(apikey: string, info: Record<string, any>) {
+  if (!configuration.activeEngine) {
+    return;
+  }
+  let aksk = ["4B18D81EB5604B21BC5C29B9AB4FE8E5", "89D67FEE449B49A692B05037F0376C9A"];
+
+  let auth = generateAuthHeader(Uri.parse("http://ams.sensecoreapi.dev/studio/ams/data/logs"), aksk[0], aksk[1]);
+
+  let payload = JSON.stringify([info]);
+
+  axios.post(
+    "http://ams.sensecoreapi.dev/studio/ams/data/logs",
+    payload,
+    {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      headers: { "X-Request-Id": info["common.vscodemachineid"], ...auth },
+      proxy: false,
+      timeout: 120000,
+      transformRequest: [
+        (data, header) => {
+          if (!header) {
+            return;
+          }
+          header['Content-Encoding'] = 'gzip';
+          const w = zlib.createGzip();
+          w.end(Buffer.from(data));
+          return w;
+        }
+      ]
+    }
+  ).then(async (res) => {
+    if (res?.status === 200) { }
   });
 }

@@ -14,14 +14,40 @@ interface AuthInfo {
   id: number;
   name?: string;
   token?: string;
+  aksk?: string;
+}
+
+function demerge(m: string): string[] {
+  var a = '';
+  var b = '';
+  var t = true;
+  var flip = true;
+  for (var i = 0; i < m.length; i++) {
+    if (m[i] === ',') {
+      flip = false;
+      t = !t;
+      continue;
+    }
+    if (t) {
+      a += m[i];
+    } else {
+      b += m[i];
+    }
+    if (flip) {
+      t = !t;
+    }
+  }
+  return [a, b];
 }
 
 function parseAuthInfo(info: string): AuthInfo {
-  let p = Buffer.from(info, "base64").toString().split("#");
+  let tokenKey = demerge(info);
+  let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
   return {
-    id: parseInt(p[0]),
-    name: p[1],
-    token: p[2]
+    id: parseInt(p1[0]),
+    name: p1[1],
+    token: p1[2],
+    aksk: tokenKey[1]
   };
 }
 
@@ -225,8 +251,8 @@ export class Configuration {
       })
       .then(
         async (res) => {
-          if (res?.data?.name === "kestrel.guest") {
-            return "FBSCRPFSAEPP=FEASBC?QNSFRB>?==A>GBD>C=PR=C=O?CCFAQBBQOB?@>=?@D?=R";
+          if (res?.data?.name === "kestrel.guest" && info.aksk) {
+            return Buffer.from(info.aksk, "base64").toString();
           }
           throw (new Error("Invalid API Key"));
         }
