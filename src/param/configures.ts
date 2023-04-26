@@ -1,5 +1,6 @@
 import axios from "axios";
-import { ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
+import { authentication, ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
+import { SenseCodeAuthenticationProvider } from "../provider/authProvider";
 
 export interface Engine {
   label: string;
@@ -8,13 +9,6 @@ export interface Engine {
   key?: string;
   streamConfig?: any;
   validate?: boolean;
-}
-
-interface AuthInfo {
-  id: number;
-  name?: string;
-  token?: string;
-  aksk?: string;
 }
 
 function demerge(m: string): string[] {
@@ -40,15 +34,18 @@ function demerge(m: string): string[] {
   return [a, b];
 }
 
-function parseAuthInfo(info: string): AuthInfo {
-  let tokenKey = demerge(info);
-  let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
-  return {
-    id: parseInt(p1[0]),
-    name: p1[1],
-    token: p1[2],
-    aksk: tokenKey[1]
-  };
+async function parseAuthInfo(info: string) {
+  const u = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
+  if (u) {
+    let tokenKey = demerge(info);
+    let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
+    return {
+      id: parseInt(p1[0]),
+      name: u.account.label,
+      token: p1[1],
+      aksk: tokenKey[1]
+    };
+  }
 }
 
 const builtinEngines: Engine[] = [
@@ -210,32 +207,15 @@ export class Configuration {
     if (!token || !engine.validate) {
       return;
     }
-    let info = parseAuthInfo(token);
-    return info.name;
-  }
-
-  public async avatar(engine: Engine): Promise<string | undefined> {
-    let token = await this.getApiKey(engine);
-    if (!token || !engine.validate) {
-      return;
-    }
-    let info = parseAuthInfo(token);
-    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${info.name}`,
-      {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        headers: { "PRIVATE-TOKEN": info.token || "" }
-      })
-      .then(
-        async (res) => {
-          if (res && res.data && res.data[0]) {
-            return res.data[0].avatar_url;
-          }
-        }
-      ).catch(async (_error) => {
-      });
+    let info = await parseAuthInfo(token);
+    return info?.name;
   }
 
   public async getApiKeyRaw(engine: Engine): Promise<string> {
+    let u = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
+    if (!u) {
+      return Promise.reject(Error("Not login"));
+    }
     let token = await this.getApiKey(engine);
     if (!token) {
       return Promise.reject(Error("API Key not set"));
@@ -243,16 +223,16 @@ export class Configuration {
     if (!engine.validate) {
       return token;
     }
-    let info = parseAuthInfo(token);
+    let info = await parseAuthInfo(token);
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        headers: { "PRIVATE-TOKEN": info.token || "" }
+        headers: { "PRIVATE-TOKEN": info?.token || "" }
       })
       .then(
         async (res) => {
-          if (res?.data?.name === "kestrel.guest" && info.aksk) {
-            return Buffer.from(info.aksk, "base64").toString();
+          if (res?.data?.name === "kestrel.guest" && info?.aksk) {
+            return Buffer.from(info?.aksk, "base64").toString();
           }
           throw (new Error("Invalid API Key"));
         }
@@ -264,8 +244,12 @@ export class Configuration {
   public async getApiKey(engine: Engine): Promise<string | undefined> {
     let value = await this.context.secrets.get("sensecode.token");
     if (value) {
-      let tokens = JSON.parse(value);
-      return tokens[engine.label];
+      try {
+        let tokens = JSON.parse(value);
+        return tokens[engine.label];
+      } catch (e) {
+
+      }
     }
   }
 
@@ -276,26 +260,28 @@ export class Configuration {
     if (!token) {
       let value = await this.context.secrets.get("sensecode.token");
       if (value) {
-        let tokens = JSON.parse(value);
-        delete tokens[engine.label];
-        await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
+        try {
+          let tokens = JSON.parse(value);
+          delete tokens[engine.label];
+          await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
+        } catch (e) { };
       }
     } else {
       if (!engine.validate) {
         await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
         return;
       }
-      let info = parseAuthInfo(token);
+      let info = await parseAuthInfo(token);
       return axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { "PRIVATE-TOKEN": info.token || "" }
+          headers: { "PRIVATE-TOKEN": info?.token || "" }
         })
         .then(
           async (res) => {
             if (res && res.data) {
               for (let t of res.data) {
-                if (t.id === info.id && t.name === info.name) {
+                if (t.id === info?.id && t.name === info?.name) {
                   await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
                   return;
                 }

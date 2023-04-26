@@ -1,8 +1,10 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n } from 'vscode';
+import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, authentication } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
+import { SenseCodeAuthenticationProvider } from './authProvider';
+import { checkPrivacy } from '../utils/checkPrivacy';
 
 export class SenseCodeViewProvider implements WebviewViewProvider {
   private webView?: WebviewView;
@@ -17,17 +19,29 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           if (e.affectsConfiguration("SenseCode.Prompt")) {
             this.sendMessage({ type: 'promptList', value: configuration.prompt });
           }
-          this.updateSettingPage(false);
+          this.updateSettingPage();
         }
       })
     );
     context.subscriptions.push(
       context.secrets.onDidChange((e) => {
         if (e.key === "sensecode.token") {
-          this.updateSettingPage(false);
+          this.updateSettingPage();
         }
       })
     );
+    context.subscriptions.push(authentication.onDidChangeSessions(async (e) => {
+      if (e.provider.id === SenseCodeAuthenticationProvider.id) {
+        let u = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
+        if (u) {
+          checkPrivacy(context);
+          this.updateSettingPage("open");
+        } else {
+          this.updateSettingPage("close");
+          this.sendMessage({ type: "clearQAList" });
+        }
+      }
+    }));
     context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
         if (e.textEditor.document.uri.scheme === "file" || e.textEditor.document.uri.scheme === "untitled") {
@@ -37,13 +51,14 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     );
   }
 
-  async updateSettingPage(toggle: boolean): Promise<void> {
+  async updateSettingPage(action?: string): Promise<void> {
     let activeEngine = configuration.activeEngine;
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
     let printOut = configuration.printOut;
     let delay = configuration.delay;
     let candidates = configuration.candidates;
+    let logoutUri = Uri.parse(`command:sensecode.logout`);
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
     let es = configuration.engines;
@@ -52,6 +67,39 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
+    let accountInfo = '';
+    let u = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
+    if (u) {
+      let avatar = SenseCodeAuthenticationProvider.getAvatar(this.context);
+      let avatarItem = `<span class="material-symbols-rounded" style="font-size: 40px">account_circle</span>`;
+      if (avatar) {
+        avatarItem = `<img class="rounded-full w-10 h-10" src="${avatar}"/>`;
+      }
+      await authentication.getSession(SenseCodeAuthenticationProvider.id, []).then((info) => {
+        accountInfo = `
+        <div class="flex gap-2 items-center">
+          ${avatarItem}
+          <span class="font-bold text-base">${info?.account.label || l10n.t("Unknown")}</span>
+          <vscode-link title="${l10n.t("Logout")}" href="${logoutUri}"><span class="material-symbols-rounded">logout</span></vscode-link>
+        </div>
+        `;
+      });
+    } else {
+      this.context.secrets.delete("sensecode.token");
+      if (action === "toogle") {
+        commands.executeCommand("sensecode.login").then(account => {
+          if (!account) {
+            this.sendMessage({ type: 'showError', category: 'login-fail', value: l10n.t("Login failed"), id: new Date().valueOf() });
+          }
+        }, (_reason) => {
+          this.sendMessage({ type: 'showError', category: 'login-fail', value: l10n.t("Login failed"), id: new Date().valueOf() });
+        });
+      }
+      if (action === "close") {
+        this.sendMessage({ type: 'updateSettingPage', value: "", action });
+      }
+      return;
+    }
     let key = activeEngine ? (activeEngine.key || await configuration.getApiKey(activeEngine)) : undefined;
     let keycfg = "";
     if (!key) {
@@ -94,12 +142,14 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     }
     let settingPage = `
     <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
-      <h3 class="flex flex-row justify-between text-base font-bold">
-        ${l10n.t("Settings")}
-        <div>
-          <span id="close-settings" class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
+      <div class="fixed top-3 right-4">
+        <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
+      </div>
+      <div class="flex flex-col mt-4 px-2 gap-2">
+        <div class="flex flex-row gap-2 mx-2 items-center justify-between">
+          ${accountInfo}
         </div>
-      </h3>
+      </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Service")}</b>
       <div class="flex flex-col ml-4 my-2 px-2 gap-2">
@@ -194,7 +244,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);padding-bottom: 4rem;"></vscode-divider>
     </div>
     `;
-    this.sendMessage({ type: 'updateSettingPage', value: settingPage, toggle });
+    this.sendMessage({ type: 'updateSettingPage', value: settingPage, action });
   }
 
   public resolveWebviewView(
@@ -267,7 +317,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           let e = ae[0];
           if (configuration.activeEngine === undefined || !e || configuration.activeEngine.label !== e.label) {
             configuration.activeEngine = e;
-            this.updateSettingPage(false);
+            this.updateSettingPage();
           }
           break;
         }
@@ -297,28 +347,28 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         case 'triggerMode': {
           if (configuration.autoComplete !== (data.value === "Auto")) {
             configuration.autoComplete = (data.value === "Auto");
-            this.updateSettingPage(false);
+            this.updateSettingPage();
           }
           break;
         }
         case 'responseMode': {
           if (configuration.streamResponse !== (data.value === "Streaming")) {
             configuration.streamResponse = (data.value === "Streaming");
-            this.updateSettingPage(false);
+            this.updateSettingPage();
           }
           break;
         }
         case 'delay': {
           if (data.value !== configuration.delay) {
             configuration.delay = data.value;
-            this.updateSettingPage(false);
+            this.updateSettingPage();
           }
           break;
         }
         case 'completionMode': {
           if (configuration.printOut !== (data.value === "Print")) {
             configuration.printOut = (data.value === "Print");
-            this.updateSettingPage(false);
+            this.updateSettingPage();
           }
           break;
         }
@@ -327,13 +377,13 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             data.value = 1;
           }
           configuration.candidates = data.value;
-          this.updateSettingPage(false);
+          this.updateSettingPage();
           break;
         }
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
-            { modal: true },
+            { modal: true, detail: l10n.t("It will clear all settings, includes API Keys.") },
             l10n.t("Clear"))
             .then(v => {
               if (v === l10n.t("Clear")) {
@@ -371,25 +421,31 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     let promptClone = { ...prompt };
     promptClone.prompt = instruction;
 
-    if (prompt.type !== "free chat" && (!code || code === "")) {
-      this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
-      return;
-    }
     let rs: GetCodeCompletions | IncomingMessage;
     try {
+      let account = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
+
+      if (!account) {
+        this.sendMessage({ type: 'showError', category: 'no-account', value: l10n.t("Not login"), id });
+        return;
+      }
+
       let activeEngine: Engine | undefined = configuration.activeEngine;
       if (!activeEngine) {
         this.sendMessage({ type: 'showError', category: 'engin-not-set', value: l10n.t("Active engine not set"), id });
         return;
       }
-
       let apikey = await configuration.getApiKey(activeEngine);
       if (!apikey) {
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
       }
+      if (prompt.type !== "free chat" && (!code || code === "")) {
+        this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
+        return;
+      }
       let username = await configuration.username(activeEngine);
-      let avatar = await configuration.avatar(activeEngine);
+      let avatar = await SenseCodeAuthenticationProvider.getAvatar(this.context);
       this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp });
       if (!send) {
         return;

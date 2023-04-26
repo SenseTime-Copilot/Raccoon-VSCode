@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.14.0",
+    "version": "0.15.0",
     "preview": true,
     "engines": {
         "vscode": "^1.68.0"
@@ -81,6 +81,17 @@
             ]
         },
         "commands": [
+            {
+                "command": "sensecode.login",
+                "category": "SenseCode",
+                "title": "%sensecode.command.login%",
+                "icon": "$(account)"
+            },
+            {
+                "command": "sensecode.logout",
+                "category": "SenseCode",
+                "title": "%sensecode.command.logout%"
+            },
             {
                 "command": "sensecode.settings",
                 "category": "SenseCode",

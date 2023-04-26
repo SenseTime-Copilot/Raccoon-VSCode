@@ -8,8 +8,10 @@
     "sensecode.config.engines.engine.config": "API invoke config, do not set parameters that affect context (e.g. `prompt`, `suffix`, the extension collects them automatically) and `stream`",
     "sensecode.config.prompt": "Prompt template list",
     "sensecode.config.prompt.item": "Prompt template",
-    "sensecode.command.settings": "Settings",
     "sensecode.view.title": "Assistant",
+    "sensecode.command.login": "Login",
+    "sensecode.command.logout": "Logout",
+    "sensecode.command.settings": "Settings",
     "sensecode.command.completionTrigger": "Code Inline Completion Trigger",
     "sensecode.command.onSuggestionAccepted": "Suggestion acception report"
 }

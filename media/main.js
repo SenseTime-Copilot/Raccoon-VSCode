@@ -86,18 +86,16 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "updateSettingPage": {
-        if (message.toggle && document.getElementById('settings')) {
+        if (message.action === "close" || (message.action === "toogle" && document.getElementById('settings'))) {
           document.getElementById('settings').remove();
           break;
         }
-        if (message.toggle) {
+        if (message.action === "open" || message.action === "toogle") {
           asklist.classList.add("hidden");
           document.getElementById("ask-button").classList.remove("open");
         }
-        if (message.toggle || document.getElementById('settings')) {
-          const sp = document.getElementById("setting-page");
-          sp.innerHTML = message.value;
-        }
+        const sp = document.getElementById("setting-page");
+        sp.innerHTML = message.value;
         break;
       }
       case "promptList": {
@@ -646,6 +644,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "copy-snippet") });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
         targetButton.innerHTML = checkIcon;
 
@@ -659,6 +658,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("edit-element-gnc")) {
       e.preventDefault();
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "insert-snippet") });
       vscode.postMessage({
         type: "editCode",
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
