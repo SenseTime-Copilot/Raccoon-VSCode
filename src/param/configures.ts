@@ -1,6 +1,5 @@
 import axios from "axios";
-import { authentication, ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
-import { SenseCodeAuthenticationProvider } from "../provider/authProvider";
+import { ExtensionContext, l10n, workspace, WorkspaceConfiguration } from "vscode";
 
 export interface Engine {
   label: string;
@@ -35,17 +34,14 @@ function demerge(m: string): string[] {
 }
 
 async function parseAuthInfo(info: string) {
-  const u = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
-  if (u) {
-    let tokenKey = demerge(info);
-    let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
-    return {
-      id: parseInt(p1[0]),
-      name: u.account.label,
-      token: p1[1],
-      aksk: tokenKey[1]
-    };
-  }
+  let tokenKey = demerge(info);
+  let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
+  return {
+    id: parseInt(p1[0]),
+    name: p1[1],
+    token: p1[2],
+    aksk: tokenKey[1]
+  };
 }
 
 const builtinEngines: Engine[] = [
@@ -212,10 +208,6 @@ export class Configuration {
   }
 
   public async getApiKeyRaw(engine: Engine): Promise<string> {
-    let u = await authentication.getSession(SenseCodeAuthenticationProvider.id, []);
-    if (!u) {
-      return Promise.reject(Error("Not login"));
-    }
     let token = await this.getApiKey(engine);
     if (!token) {
       return Promise.reject(Error("API Key not set"));

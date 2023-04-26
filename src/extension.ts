@@ -5,8 +5,6 @@ import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
-import { SenseCodeAuthenticationProvider, registerAuthProvider } from "./provider/authProvider";
-// import { sendTelemetryLog } from "./utils/getCodeCompletions";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -32,14 +30,10 @@ export async function activate(context: vscode.ExtensionContext) {
   };
   telemetryReporter = vscode.env.createTelemetryLogger(sender);
 
-  registerAuthProvider(context);
   configuration = new Configuration(context);
   configuration.update();
-  await vscode.authentication.getSession(SenseCodeAuthenticationProvider.id, []).then((a) => {
-    if (a) {
-      checkPrivacy(context);
-    }
-  });
+
+  checkPrivacy(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.settings", () => {
