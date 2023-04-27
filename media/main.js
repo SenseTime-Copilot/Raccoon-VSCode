@@ -462,14 +462,15 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("keydown", (e) => {
     const promptBox = e.target.closest('.prompt');
-    if (e.target.classList.contains("editable") && e.code === "Enter") {
-      e.preventDefault();
-      return;
-    }
     if (promptBox && e.ctrlKey && e.code === "Enter") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
       sendQuestion(question);
+      return;
+    }
+    if (e.target.classList.contains("editable") && e.code === "Enter") {
+      e.preventDefault();
+      return;
     }
     if (promptBox && e.code === "Escape") {
       e.preventDefault();
