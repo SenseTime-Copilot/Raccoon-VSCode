@@ -72,13 +72,6 @@
                 }
             }
         ],
-        "customEditors": [
-            {
-                "viewType": "sensecode.correction",
-                "displayName": "Code Correction",
-                "priority": "default"
-            }
-        ],
         "menus": {
             "view/title": [
                 {
