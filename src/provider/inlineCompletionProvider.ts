@@ -287,7 +287,7 @@ export function inlineCompletionProvider(
           prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
-Task type: code completion. Please complete the following code.
+Task type: code completion. Please complete the following code, just response code only.
 
 ### Input:
 `;
@@ -480,7 +480,7 @@ Task type: code completion. Please complete the following code.
             }
             items.push({
               // insertText: completion,
-              insertText: data.completions[i],
+              insertText: data.completions[i].split("Explanation:")[0],
               // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
               range: new vscode.Range(
                 position.translate(0, data.completions.length),

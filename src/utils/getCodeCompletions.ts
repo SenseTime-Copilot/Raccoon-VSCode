@@ -128,22 +128,35 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, pr
   });
 }
 
-export async function sendTelemetryLog(apikey: string, info: Record<string, any>) {
-  if (!configuration.activeEngine) {
+export async function sendTelemetryLog(_eventName: string, info: Record<string, any>) {
+  let engine: Engine | undefined = configuration.activeEngine;
+  if (!engine) {
     return;
   }
-  let aksk = ["4B18D81EB5604B21BC5C29B9AB4FE8E5", "89D67FEE449B49A692B05037F0376C9A"];
+  let key = engine.key;
+  try {
+    if (!key) {
+      key = await configuration.getApiKeyRaw(engine);
+    }
+    if (!key) {
+      return;
+    }
+  } catch (e) {
+    return;
+  }
 
-  let auth = generateAuthHeader(Uri.parse("http://ams.sensecoreapi.dev/studio/ams/data/logs"), aksk[0], aksk[1]);
-
+  let apiUrl = "https://ams.sensecoreapi.cn/studio/ams/data/logs";
+  let aksk = key.split("#");
+  let auth = generateAuthHeader(Uri.parse(apiUrl), aksk[0], aksk[1]);
   let payload = JSON.stringify([info]);
+  let user = await configuration.username(engine);
 
   axios.post(
-    "http://ams.sensecoreapi.dev/studio/ams/data/logs",
+    apiUrl,
     payload,
     {
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      headers: { "X-Request-Id": info["common.vscodemachineid"], ...auth },
+      headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...auth },
       proxy: false,
       timeout: 120000,
       transformRequest: [

@@ -33,12 +33,13 @@ const vscode = acquireVsCodeApi();
     var responseNode = document.getElementById(`response-${id}`);
     var prompt = JSON.parse(promptNode.dataset.prompt);
     var code = decodeURIComponent(promptNode.dataset.code);
+    var language = promptNode.dataset.lang;
     var response = responseNode.dataset.response;
     var error = responseNode.dataset.error;
     return {
       event: "response-feedback",
       request: {
-        type: prompt.type, prompt: prompt.prompt, code
+        type: prompt.type, prompt: prompt.prompt, code, language
       },
       response: [response],
       error,
@@ -289,6 +290,11 @@ const vscode = acquireVsCodeApi();
                                                 thumb_down
                                               </span>
                                             </button>
+                                            <button class="correct flex rounded" title="" data-id=${id}>
+                                              <span class="material-symbols-rounded">
+                                                sentiment_dissatisfied
+                                              </span>
+                                            </button>
                                           </span>
                                           <button class="regenerate flex rounded" data-id=${id}>
                                             <span class="material-symbols-rounded">
@@ -335,12 +341,14 @@ const vscode = acquireVsCodeApi();
 
           // Create copy to clipboard button
           const copyButton = document.createElement("button");
+          copyButton.dataset.id = message.id;
           copyButton.title = l10nForUI["Copy"];
           copyButton.innerHTML = clipboardIcon;
 
           copyButton.classList.add("code-element-gnc", "rounded");
 
           const insert = document.createElement("button");
+          insert.dataset.id = message.id;
           insert.title = l10nForUI["Insert"];
           insert.innerHTML = insertIcon;
 
@@ -372,6 +380,8 @@ const vscode = acquireVsCodeApi();
           return;
         }
         const chatText = document.getElementById(`response-${message.id}`);
+        const feedback = document.getElementById(`feedback-${message.id}`)?.classList?.remove("hidden");
+        feedback.classList.add("error");
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
@@ -597,6 +607,11 @@ const vscode = acquireVsCodeApi();
         targetButton?.classList?.add("checked");
         vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "unlike") });
       }
+      return;
+    }
+
+    if (targetButton?.classList?.contains('correct')) {
+      vscode.postMessage({ type: 'correct', info: collectInfo(targetButton?.dataset.id) });
       return;
     }
 

@@ -78,6 +78,7 @@ textarea::placeholder {
 
 #Penrose,
 #Penrose-text {
+    transition: 0.6s ease-in-out;
     font-family: var(--vscode-editor-font-family);
     filter: opacity(0.3);
 }
@@ -449,6 +450,12 @@ button.stopGenerate,
 .feedback .checked .material-symbols-rounded {
     color: var(--vscode-progressBar-background);
     font-variation-settings: 'FILL' 1;
+}
+
+.feedback.error .like,
+.feedback.error .unlike,
+.feedback.error .correct {
+    display: none;
 }
 
 .stopGenerate .material-symbols-rounded,

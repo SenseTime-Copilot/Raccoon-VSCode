@@ -33,7 +33,7 @@ function demerge(m: string): string[] {
   return [a, b];
 }
 
-async function parseAuthInfo(info: string) {
+function parseAuthInfo(info: string) {
   let tokenKey = demerge(info);
   let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
   return {
@@ -52,7 +52,7 @@ const builtinEngines: Engine[] = [
       model: "penrose-411",
       n: 1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      max_tokens: 128,
+      max_tokens: 1200,
       stop: "\n\n",
       temperature: 0.8
     },
@@ -203,7 +203,7 @@ export class Configuration {
     if (!token || !engine.validate) {
       return;
     }
-    let info = await parseAuthInfo(token);
+    let info = parseAuthInfo(token);
     return info?.name;
   }
 
@@ -215,7 +215,7 @@ export class Configuration {
     if (!engine.validate) {
       return token;
     }
-    let info = await parseAuthInfo(token);
+    let info = parseAuthInfo(token);
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -263,7 +263,7 @@ export class Configuration {
         await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
         return;
       }
-      let info = await parseAuthInfo(token);
+      let info = parseAuthInfo(token);
       return axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention

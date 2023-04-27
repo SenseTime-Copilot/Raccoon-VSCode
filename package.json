@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.15.0",
+    "version": "0.16.0",
     "preview": true,
     "engines": {
         "vscode": "^1.68.0"
@@ -43,7 +43,8 @@
                             "properties": {
                                 "label": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.label%"
+                                    "description": "%sensecode.config.engines.engine.label%",
+                                    "pattern": "^(?!Penrose$)"
                                 },
                                 "url": {
                                     "type": "string",
@@ -69,6 +70,13 @@
                         }
                     }
                 }
+            }
+        ],
+        "customEditors": [
+            {
+                "viewType": "sensecode.correction",
+                "displayName": "Code Correction",
+                "priority": "default"
             }
         ],
         "menus": {
@@ -153,6 +161,7 @@
     },
     "devDependencies": {
         "@types/axios": "^0.14.0",
+        "@types/markdown-it": "^12.2.3",
         "@types/glob": "^7.2.0",
         "@types/mocha": "^9.1.1",
         "@types/node": "16.x",
@@ -168,6 +177,7 @@
         "glob": "^8.0.3",
         "mocha": "^10.0.0",
         "ts-loader": "^9.4.1",
+        "markdown-it": "^13.0.1",
         "ts-webpack": "^1.0.0",
         "typescript": "^4.9.4",
         "webpack": "^5.75.0",

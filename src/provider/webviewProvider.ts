@@ -1,5 +1,6 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n } from 'vscode';
+import * as MarkdownIt from 'markdown-it';
+import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
@@ -352,7 +353,97 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             });
           break;
         }
+        case 'correct': {
+          if (!env.isTelemetryEnabled) {
+            window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
+              if (v === "OK") {
+                commands.executeCommand("workbench.action.openGlobalSettings", { query: "telemetry.telemetryLevel" });
+              }
+            });
+            break;
+          }
+          let md = new MarkdownIt();
+          let panel = window.createWebviewPanel("sensecode.correction", "Code Correction", ViewColumn.Beside, { enableScripts: true });
+          let webview = panel.webview;
+          webview.options = {
+            enableScripts: true
+          };
+          webview.onDidReceiveMessage((msg) => {
+            switch (msg.type) {
+              case 'sendFeedback': {
+                let correction =
+                  `\`\`\`${msg.language}
+${msg.code}
+\`\`\`
+                `;
+                let info = { action: "correct", correction, ...data.info };
+                telemetryReporter.logUsage(data.info.event, info);
+                panel.dispose();
+                window.showInformationMessage("Thanks for your feedback.", "OK");
+                break;
+              }
+            }
+          });
+          const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
+          const markdownCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'markdown.css'));
+          webview.html = `
+          <html>
+          <head>
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource};  style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';" >
+          <script type="module" src="${toolkitUri}"></script>
+          <link href="${markdownCSS}" rel="stylesheet" />
+          <script>
+          const vscode = acquireVsCodeApi();
+          function send() {
+            vscode.postMessage(
+              {
+                "type": "sendFeedback",
+                "language": "${data.info.request.language}",
+                "code": document.getElementById("correction").value
+              }
+            )
+          }
+          </script>
+          </head>
+          <body>
+          <div class="markdown-body">
+            ${md.render(`
+# Sincerely apologize for any inconvenience
+
+SenseCode is still under development, questions, patches, improvement suggestions and reviews welcome, we always looking forward to your feedback.
+
+## Request
+
+${data.info.request.prompt}
+
+\`\`\`${data.info.request.language}
+${data.info.request.code}
+\`\`\`
+
+## SenseCode response
+
+${data.info.response}
+
+## Your solution
+`)}
+              <div style="display: flex;flex-direction: column;">
+                <vscode-text-area id="correction" rows="20" placeholder="Write your brilliant code here..." style="margin: 1rem 0;"></vscode-text-area>
+                <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
+              </div>
+            </div>
+          </body>
+          </html>`;
+          break;
+        }
         case 'telemetry': {
+          if (!env.isTelemetryEnabled) {
+            window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
+              if (v === "OK") {
+                commands.executeCommand("workbench.action.openGlobalSettings", { query: "telemetry.telemetryLevel" });
+              }
+            });
+            break;
+          }
           telemetryReporter.logUsage(data.info.event, data.info);
           break;
         }
@@ -428,6 +519,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           }
           let msgstr: string = v.toString();
           let msgs = msgstr.split("\n");
+          let errorFlag = false;
           for (let msg of msgs) {
             let content = "";
             if (msg.startsWith("data:")) {
@@ -436,6 +528,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
               content = msg.slice(6).trim();
               outlog.error(content);
               if (content === "error") {
+                errorFlag = true;
                 // this.sendMessage({ type: 'addError', error: "streaming interrpted", id });
                 // data.destroy();
               }
@@ -450,6 +543,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
               return;
             }
             if (content === "") {
+              continue;
+            }
+            if (errorFlag) {
+              this.sendMessage({ type: 'addError', error: content, id });
               continue;
             }
             try {
