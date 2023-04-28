@@ -245,9 +245,9 @@ export class Configuration {
     }
   }
 
-  public async setApiKey(engine: Engine | undefined, token: string | undefined) {
+  public async setApiKey(engine: Engine | undefined, token: string | undefined): Promise<Boolean> {
     if (!engine) {
-      return;
+      return false;
     }
     if (!token) {
       let value = await this.context.secrets.get("sensecode.token");
@@ -256,36 +256,50 @@ export class Configuration {
           let tokens = JSON.parse(value);
           delete tokens[engine.label];
           await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
-        } catch (e) { };
+          return true;
+        } catch (e) {
+          return false;
+        };
       }
+      return false;
     } else {
       if (!engine.validate) {
         await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
-        return;
+        return false;
       }
       let info = parseAuthInfo(token);
-      return axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens`,
+      let ok = await this.checkUserExist(info, engine);
+      if (ok) {
+        await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  private async checkUserExist(info: { id: number; name: string; token: string; aksk: string }, engine: Engine, page?: string): Promise<Boolean> {
+    try {
+      let res = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens?per_page=100${page ? `&page=${page}` : ""}`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { "PRIVATE-TOKEN": info?.token || "" }
-        })
-        .then(
-          async (res) => {
-            if (res && res.data) {
-              for (let t of res.data) {
-                if (t.id === info?.id && t.name === info?.name) {
-                  await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
-                  return;
-                }
-              }
-            }
-            await this.setApiKey(engine, undefined);
-            throw (new Error("Invalid API Key"));
-          }
-        ).catch(async (error) => {
-          await this.setApiKey(engine, undefined);
-          return Promise.reject(error);
         });
+
+      if (res && res.data) {
+        for (let t of res.data) {
+          if (t.id === info?.id && t.name === info?.name) {
+            return true;
+          }
+        }
+      }
+      if (res && res.headers["x-next-page"]) {
+        return this.checkUserExist(info, engine, res.headers["x-next-page"]);
+      } else {
+        return false;
+      }
+    } catch (err) {
+      await this.setApiKey(engine, undefined);
+      throw (new Error("Invalid API Key"));
     }
   }
 
