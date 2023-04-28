@@ -562,6 +562,9 @@ ${data.info.response}
               } else if (json.choices && json.choices[0]) {
                 let value = json.choices[0].text || json.choices[0].message?.content;
                 if (value) {
+                  if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
+                    value = "\n";
+                  }
                   this.sendMessage({ type: 'addResponse', id, value });
                 }
               }
