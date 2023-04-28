@@ -39,12 +39,13 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   }
 
   async updateSettingPage(action?: string): Promise<void> {
-    let activeEngine = configuration.activeEngine;
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
     let printOut = configuration.printOut;
     let delay = configuration.delay;
     let candidates = configuration.candidates;
+    let activeEngine = configuration.activeEngine;
+    let key = activeEngine ? (activeEngine.key || await configuration.getApiKey(activeEngine)) : undefined;
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
     let es = configuration.engines;
@@ -53,7 +54,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
-    let username = activeEngine ? await configuration.username(activeEngine) : undefined;
+    let username = activeEngine ? activeEngine.label + " User" : undefined;
+    if (!activeEngine?.key) {
+      username = activeEngine ? await configuration.username(activeEngine) : undefined;
+    }
     let accountInfo = `
         <div class="flex gap-2 items-center">
           <span class="material-symbols-rounded" style="font-size: 40px">account_circle</span>
@@ -61,7 +65,6 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         </div>
         `;
 
-    let key = activeEngine ? (activeEngine.key || await configuration.getApiKey(activeEngine)) : undefined;
     let keycfg = "";
     if (!key) {
       keycfg = `
