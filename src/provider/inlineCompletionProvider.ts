@@ -417,6 +417,9 @@ Task type: code completion. Please complete the following code, just response co
                   let value = json.choices[0].text || json.choices[0].message?.content;
                   if (value) {
                     if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
+                      if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
+                        value = "\n";
+                      }
                       await editor.edit(e => {
                         e.insert(start, value);
                       }).then(() => {
