@@ -620,9 +620,9 @@ ${data.info.response}
                       <div id="Penrose-text" class="text-2xl font-bold text-center mb-6">${l10n.t("SenseCode")}</div>
                       <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto"></div>
                     </div>
-                    <div class="flex-1 overflow-y-auto" id="qa-list"></div>
+                    <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list"></div>
                     <div id="error-wrapper"></div>
-                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center mt-2 mb-2 hidden">
+                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center py-2 hidden">
                         <div id="ask-list" class="hidden" style="background: var(--panel-view-background);z-index: 999999;"></div>
                         <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
                             <span class="material-symbols-rounded">keyboard_double_arrow_up</span>

@@ -255,7 +255,7 @@ const vscode = acquireVsCodeApi();
         }
 
         list.innerHTML +=
-          `<div id="question-${id}" class="p-4 pb-8 self-end question-element-gnc relative ${edit ? "replace" : ""}">
+          `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
               ${questionTitle}
               <div id="prompt-${id}" class="prompt inline-block leading-loose py-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
               ${codeSnippet}
@@ -274,7 +274,7 @@ const vscode = acquireVsCodeApi();
           if (!chat) {
             chat = document.createElement("div");
             chat.id = id;
-            chat.classList.add("p-4", "self-end", "answer-element-gnc");
+            chat.classList.add("p-4", "answer-element-gnc", "w-full");
             chat.innerHTML = `  <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
                                         <div id="response-${id}" class="response flex flex-col gap-1"></div>
                                         ${progress}
@@ -306,7 +306,7 @@ const vscode = acquireVsCodeApi();
             list.appendChild(chat);
           }
         }
-        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
+        list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
         break;
       }
       case "stopResponse": {

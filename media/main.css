@@ -241,9 +241,22 @@ textarea::placeholder {
 }
 
 #qa-list-wrapper {
-    height: calc(100vh);
     margin: 0;
     background: var(--vscode-sideBar-background);
+}
+
+#qa-list> :first-child {
+    border-top: 2px solid var(--panel-view-border);
+    margin-top: auto !important;
+}
+
+#qa-list> :last-child {
+    border-bottom: none;
+}
+
+#chat-button-wrapper {
+    box-shadow: 0 0 8px var(--vscode-widget-shadow);
+    background-color: var(--vscode-minimapSlider-background);
 }
 
 .shortcut,
