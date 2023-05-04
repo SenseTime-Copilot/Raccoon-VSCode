@@ -380,8 +380,9 @@ const vscode = acquireVsCodeApi();
           return;
         }
         const chatText = document.getElementById(`response-${message.id}`);
-        const feedback = document.getElementById(`feedback-${message.id}`)?.classList?.remove("hidden");
-        feedback.classList.add("error");
+        const feedback = document.getElementById(`feedback-${message.id}`);
+        feedback?.classList.remove("hidden");
+        feedback?.classList.add("error");
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>

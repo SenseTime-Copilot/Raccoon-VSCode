@@ -100,6 +100,7 @@ textarea::placeholder {
 }
 
 .x-next #Penrose-text {
+    margin: -0.5rem 0 0.5rem 0;
     color: var(--vscode-progressBar-background);
     filter: opacity(0.8);
 }
@@ -261,7 +262,9 @@ textarea::placeholder {
 
 .shortcut,
 #chat-button {
-    display: none;
+    transition: 0.6s ease-in-out;
+    visibility: hidden;
+    opacity: 0;
 }
 
 #shortcuts {
@@ -309,6 +312,8 @@ button.disabled,
 .x-next .shortcut,
 .x-next #chat-button {
     display: flex;
+    opacity: 1;
+    visibility: visible;
 }
 
 #ask-list.hidden {

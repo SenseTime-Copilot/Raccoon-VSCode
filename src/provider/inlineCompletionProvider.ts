@@ -275,7 +275,7 @@ export function inlineCompletionProvider(
             }
           );
           // TODO: AST parse to ensure truncate at appropriate postion
-          let maxTokens = activeEngine.config.max_tokens || 128;
+          let maxTokens = activeEngine.config.max_tokens || 1024;
           if (configuration.printOut && activeEngine.streamConfig && activeEngine.streamConfig.max_tokens) {
             maxTokens = activeEngine.streamConfig.max_tokens;
           }
@@ -422,10 +422,12 @@ Task type: code completion. Please complete the following code, just response co
                       }
                       await editor.edit(e => {
                         e.insert(start, value);
-                      }).then(() => {
-                        end = editor!.selection.start;
-                        editor!.revealRange(new vscode.Range(start, end));
-                        start = end;
+                      }).then((ok) => {
+                        if (ok) {
+                          end = editor!.selection.start;
+                          editor!.revealRange(new vscode.Range(start, end));
+                          start = end;
+                        }
                       });
                     } else {
                       data.destroy();

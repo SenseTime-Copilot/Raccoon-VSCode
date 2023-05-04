@@ -170,9 +170,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
               </vscode-link>
             </span>
           </vscode-radio>
-          <vscode-radio ${printOut ? "checked" : ""} class="w-32" value="Print" title="${l10n.t("Direct print completion code to editor, the cadidate number setting in `engine.config` will be ignored")}">
+          <!--vscode-radio ${printOut ? "checked" : ""} class="w-32" value="Print" title="${l10n.t("Direct print completion code to editor, the cadidate number setting in `engine.config` will be ignored")}">
             ${l10n.t("Print")}
-          </vscode-radio>
+          </vscode-radio-->
         </vscode-radio-group>
         </div>
       </div>
@@ -630,15 +630,15 @@ ${data.info.response}
                     <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center py-2 hidden">
                         <div id="ask-list" class="hidden" style="background: var(--panel-view-background);z-index: 999999;"></div>
-                        <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
+                        <button class="flex gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
                             <span class="material-symbols-rounded">keyboard_double_arrow_up</span>
                             ${l10n.t("Ask")}
                         </button>          
-                        <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
+                        <button class="flex gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
                             <span class="material-symbols-rounded">chat_bubble</span>
                             ${l10n.t("Free chat")}
                         </button>
-                        <button class="flex opacity-75 gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
+                        <button class="flex gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
                             <span class="material-symbols-rounded">delete</span>
                             ${l10n.t("Clear")}
                         </button>

@@ -328,7 +328,8 @@ export class Configuration {
   }
 
   public get printOut(): boolean {
-    return this.context.globalState.get("DirectPrintOut", false);
+    return false;
+    // return this.context.globalState.get("DirectPrintOut", false);
   }
 
   public set printOut(v: boolean) {
