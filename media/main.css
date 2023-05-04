@@ -267,6 +267,10 @@ textarea::placeholder {
     opacity: 0;
 }
 
+#chat-button {
+    display: none;
+}
+
 #shortcuts {
     display: flex;
 }
