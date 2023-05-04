@@ -287,7 +287,11 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
         case 'setKey': {
           await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-            configuration.setApiKey(configuration.activeEngine, v).then(() => { }, (_err) => {
+            configuration.setApiKey(configuration.activeEngine, v).then((ok) => {
+              if (!ok) {
+                this.sendMessage({ type: 'showError', category: 'invalid-key', value: l10n.t("Invalid API Key"), id: new Date().valueOf() });
+              }
+            }, (_err) => {
               this.sendMessage({ type: 'showError', category: 'invalid-key', value: l10n.t("Invalid API Key"), id: new Date().valueOf() });
             });
           });

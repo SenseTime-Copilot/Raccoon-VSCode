@@ -238,10 +238,18 @@ export class Configuration {
     if (value) {
       try {
         let tokens = JSON.parse(value);
-        return tokens[engine.label];
+        let token = tokens[engine.label];
+        if (token) {
+          return token;
+        }
+        if (!token && !engine.validate) {
+          return engine.key;
+        }
       } catch (e) {
 
       }
+    } else {
+      return engine.key;
     }
   }
 

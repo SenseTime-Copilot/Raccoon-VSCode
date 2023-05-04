@@ -91,12 +91,12 @@ const vscode = acquireVsCodeApi();
           document.getElementById('settings').remove();
           break;
         }
-        if (message.action === "open" || message.action === "toogle") {
+        if (message.action === "open" || message.action === "toogle" || document.getElementById('settings')) {
           asklist.classList.add("hidden");
           document.getElementById("ask-button").classList.remove("open");
+          const sp = document.getElementById("setting-page");
+          sp.innerHTML = message.value;
         }
-        const sp = document.getElementById("setting-page");
-        sp.innerHTML = message.value;
         break;
       }
       case "promptList": {

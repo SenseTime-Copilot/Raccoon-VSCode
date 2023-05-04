@@ -6,6 +6,7 @@ import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCo
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
 import { sendTelemetryLog } from "./utils/getCodeCompletions";
+//import { SenseCodeNotebook } from "./provider/notebook";
 //import { KeyCalculator } from "./provider/keyCalculator";
 
 let statusBarItem: vscode.StatusBarItem;
@@ -119,6 +120,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
-  //  new KeyCalculator();
+  // SenseCodeNotebook.rigister(context);
+
+  // new KeyCalculator();
 }
 export function deactivate() { }
