@@ -413,7 +413,7 @@ ${msg.code}
             ${md.render(`
 # Sincerely apologize for any inconvenience
 
-SenseCode is still under development, questions, patches, improvement suggestions and reviews welcome, we always looking forward to your feedback.
+SenseCode is still under development. Questions, patches, improvement suggestions and reviews welcome, we always looking forward to your feedback.
 
 ## Request
 
@@ -430,7 +430,7 @@ ${data.info.response}
 ## Your solution
 `)}
               <div style="display: flex;flex-direction: column;">
-                <vscode-text-area id="correction" rows="20" placeholder="Write your brilliant code here..." style="margin: 1rem 0;"></vscode-text-area>
+                <vscode-text-area id="correction" rows="20" placeholder="Write your brilliant answer here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
                 <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
               </div>
             </div>
