@@ -267,6 +267,14 @@ textarea::placeholder {
     opacity: 0;
 }
 
+#ask-list .shortcut {
+    display: none;
+}
+
+.x-next #ask-list .shortcut {
+    display: flex;
+}
+
 #chat-button {
     display: none;
 }
