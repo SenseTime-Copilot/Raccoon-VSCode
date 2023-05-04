@@ -35,7 +35,7 @@ function demerge(m: string): string[] {
 
 function parseAuthInfo(info: string) {
   let tokenKey = demerge(info);
-  let p1 = Buffer.from(tokenKey[0], "base64").toString().split("#");
+  let p1 = Buffer.from(tokenKey[0], "base64").toString().trim().split("#");
   return {
     id: parseInt(p1[0]),
     name: p1[1],
@@ -224,7 +224,7 @@ export class Configuration {
       .then(
         async (res) => {
           if (res?.data?.name === "kestrel.guest" && info?.aksk) {
-            return Buffer.from(info?.aksk, "base64").toString();
+            return Buffer.from(info?.aksk, "base64").toString().trim();
           }
           throw (new Error("Invalid API Key"));
         }

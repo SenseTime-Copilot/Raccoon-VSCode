@@ -1,9 +1,9 @@
 import { IncomingMessage } from 'http';
-import * as MarkdownIt from 'markdown-it';
 import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
+import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 
 export class SenseCodeViewProvider implements WebviewViewProvider {
   private webView?: WebviewView;
@@ -369,8 +369,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
             });
             break;
           }
-          let md = new MarkdownIt();
-          let panel = window.createWebviewPanel("sensecode.correction", "Code Correction", ViewColumn.Beside, { enableScripts: true });
+          let panel = window.createWebviewPanel("sensecode.correction", `Code Correction-${data.info.generate_at}`, ViewColumn.Beside, { enableScripts: true });
           let webview = panel.webview;
           webview.options = {
             enableScripts: true
@@ -391,15 +390,34 @@ ${msg.code}
               }
             }
           });
+          const vendorHighlightCss = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.css'));
+          const vendorHighlightJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.js'));
+          const vendorMarkedJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
           const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
           const markdownCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'markdown.css'));
           webview.html = `
           <html>
           <head>
           <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource};  style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';" >
+          <link href="${vendorHighlightCss}" rel="stylesheet">
+          <script src="${vendorHighlightJs}"></script>
+          <script src="${vendorMarkedJs}"></script>
           <script type="module" src="${toolkitUri}"></script>
           <link href="${markdownCSS}" rel="stylesheet" />
           <script>
+          marked.setOptions({
+            renderer: new marked.Renderer(),
+            highlight: function (code, _lang) {
+              return hljs.highlightAuto(code).value;
+            },
+            langPrefix: 'hljs language-',
+            pedantic: false,
+            gfm: true,
+            breaks: false,
+            sanitize: false,
+            smartypants: false,
+            xhtml: false
+          });
           const vscode = acquireVsCodeApi();
           function send() {
             vscode.postMessage(
@@ -410,11 +428,30 @@ ${msg.code}
               }
             )
           }
+          window.addEventListener("message", (event) => {
+            const message = event.data;
+            switch (message.type) {
+              case 'render': {
+                const content = new DOMParser().parseFromString(marked.parse(message.content), "text/html");
+                var container = document.getElementById("info");
+                container.innerHTML = content.documentElement.innerHTML;
+                break;
+              }
+            }
+          });
           </script>
           </head>
           <body>
           <div class="markdown-body">
-            ${md.render(`
+            <div id="info"></div>
+              <div style="display: flex;flex-direction: column;">
+                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${getDocumentLanguage(data.info.request.language)} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
+                <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
+              </div>
+            </div>
+          </body>
+          </html>`;
+          let content = `
 # Sincerely apologize for any inconvenience
 
 SenseCode is still under development. Questions, patches, improvement suggestions and reviews welcome, we always looking forward to your feedback.
@@ -432,14 +469,9 @@ ${data.info.request.code}
 ${data.info.response}
 
 ## Your solution
-`)}
-              <div style="display: flex;flex-direction: column;">
-                <vscode-text-area id="correction" rows="20" placeholder="Write your brilliant answer here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
-                <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
-              </div>
-            </div>
-          </body>
-          </html>`;
+`;
+          await new Promise((f) => setTimeout(f, 200));
+          webview.postMessage({ type: "render", content });
           break;
         }
         case 'telemetry': {

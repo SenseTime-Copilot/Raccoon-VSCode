@@ -276,7 +276,7 @@ const vscode = acquireVsCodeApi();
             chat.id = id;
             chat.classList.add("p-4", "answer-element-gnc", "w-full");
             chat.innerHTML = `  <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                                        <div id="response-${id}" class="response flex flex-col gap-1"></div>
+                                        <div id="response-${id}" class="response flex flex-col gap-1 markdown-body"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                           <span class="flex gap-2">
@@ -317,6 +317,9 @@ const vscode = acquireVsCodeApi();
         const chatText = document.getElementById(`response-${message.id}`);
         if (!chatText.dataset.response) {
           break;
+        }
+        if (chatText.dataset.response.split("```").length % 2 !== 1) {
+          chatText.dataset.response += "\n\n```";
         }
         const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response + "\n\n"), "text/html");
         // chatText.dataset.response = undefined;
@@ -359,7 +362,7 @@ const vscode = acquireVsCodeApi();
           preCode.parentElement.prepend(buttonWrapper);
         });
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
-        chatText.classList.add("markdown-body");
+        //chatText.classList.add("markdown-body");
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
 
         if (message.byUser === true) {
@@ -370,7 +373,11 @@ const vscode = acquireVsCodeApi();
       case "addResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
         chatText.dataset.response = (chatText.dataset.response || "") + message.value;
-        const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response + "\n\n"), "text/html");
+        let cont = chatText.dataset.response;
+        if (chatText.dataset.response.split("```").length % 2 !== 1) {
+          cont = chatText.dataset.response + "\n\n```";
+        }
+        const markedResponse = new DOMParser().parseFromString(marked.parse(cont + "\n\n"), "text/html");
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;

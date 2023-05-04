@@ -5,89 +5,15 @@ import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompleti
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { IncomingMessage } from "http";
 import { configuration, outlog } from "../extension";
+import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 
 let lastRequest = null;
 let trie = new Trie([]);
 
-function getDocumentLanguage(document: vscode.TextDocument) {
-  const documentLanguageId: string = document.languageId;
-  let lang = "";
-  switch (documentLanguageId) {
-    case "cpp":
-      lang = "C++";
-      break;
-    case "c":
-      lang = "C";
-      break;
-    case "csharp":
-      lang = "C#";
-      break;
-    case "cuda-cpp":
-      lang = "Cuda";
-      break;
-    case "objective-c":
-      lang = "Objective-C";
-      break;
-    case "objective-cpp":
-      lang = "Objective-C++";
-      break;
-    case "markdown":
-      lang = "Markdown";
-      break;
-    case "python":
-      lang = "Python";
-      break;
-    case "java":
-      lang = "Java";
-      break;
-    case "tex":
-      lang = "TeX";
-      break;
-    case "html":
-      lang = "HTML";
-      break;
-    case "php":
-      lang = "PHP";
-      break;
-    case "javascript":
-    case "javascriptreact":
-      lang = "JavaScript";
-      break;
-    case "typescript":
-    case "typescriptreact":
-      lang = "TypeScript";
-      break;
-    case "go":
-      lang = "Go";
-      break;
-    case "shellscript":
-      lang = "Shell";
-      break;
-    case "rust":
-      lang = "Rust";
-      break;
-    case "css":
-    case "less":
-    case "sass":
-    case "scss":
-      lang = "CSS";
-      break;
-    case "sql":
-      lang = "SQL";
-      break;
-    case "r":
-      lang = "R";
-      break;
-    default:
-      lang = "";
-  }
-  return lang;
-}
-
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem) {
   let lang = "";
   if (doc) {
-    lang = getDocumentLanguage(doc);
+    lang = getDocumentLanguage(doc.languageId);
   }
   if (lang === "") {
     statusBarItem.hide();
@@ -282,7 +208,7 @@ export function inlineCompletionProvider(
           if (textBeforeCursor.length > (maxTokens * 4)) {
             textBeforeCursor = textBeforeCursor.slice(-4 * maxTokens);
           }
-          let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: document.languageId })}`;
+          let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: getDocumentLanguage(document.languageId) })}`;
           let suffix = ``;
           prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 

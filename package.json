@@ -154,7 +154,6 @@
     },
     "devDependencies": {
         "@types/axios": "^0.14.0",
-        "@types/markdown-it": "^12.2.3",
         "@types/glob": "^7.2.0",
         "@types/mocha": "^9.1.1",
         "@types/node": "16.x",
@@ -170,7 +169,6 @@
         "glob": "^8.0.3",
         "mocha": "^10.0.0",
         "ts-loader": "^9.4.1",
-        "markdown-it": "^13.0.1",
         "ts-webpack": "^1.0.0",
         "typescript": "^4.9.4",
         "webpack": "^5.75.0",
