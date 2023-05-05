@@ -4,8 +4,12 @@ const vscode = acquireVsCodeApi();
 
   marked.setOptions({
     renderer: new marked.Renderer(),
-    highlight: function (code, _lang) {
-      return hljs.highlightAuto(code).value;
+    highlight: function (code, lang) {
+      if (!hljs.getLanguage(lang)) {
+        return hljs.highlightAuto(code).value;
+      } else {
+        return hljs.highlight(lang, code).value;
+      }
     },
     langPrefix: 'hljs language-',
     pedantic: false,
@@ -203,7 +207,7 @@ const vscode = acquireVsCodeApi();
         if (prompt.type === 'free chat') {
           code = "";
         } else {
-          const codehtml = new DOMParser().parseFromString(marked.parse("```\n" + code + "\n```"), "text/html");
+          const codehtml = new DOMParser().parseFromString(marked.parse("```" + lang + "\n" + code + "\n```"), "text/html");
           const preCodeList = codehtml.querySelectorAll("pre > code");
           preCodeList.forEach((preCode, _index) => {
             preCode.parentElement.dataset.lang = lang;
