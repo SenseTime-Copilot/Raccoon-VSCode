@@ -1,5 +1,5 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env } from 'vscode';
+import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
@@ -377,15 +377,21 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           webview.onDidReceiveMessage((msg) => {
             switch (msg.type) {
               case 'sendFeedback': {
-                let correction =
-                  `\`\`\`${msg.language}
+                window.withProgress({ location: ProgressLocation.Notification, title: "Feedback" }, async (progress, _) => {
+                  progress.report({ message: "Sending feedback..." });
+                  let correction =
+                    `\`\`\`${msg.language}
 ${msg.code}
 \`\`\`
                 `;
-                let info = { action: "correct", correction, ...data.info };
-                telemetryReporter.logUsage(data.info.event, info);
-                panel.dispose();
-                window.showInformationMessage("Thanks for your feedback.", "OK");
+                  let info = { action: "correct", correction, ...data.info };
+                  telemetryReporter.logUsage(data.info.event, info);
+                  await new Promise((f) => setTimeout(f, 2000));
+                  panel.dispose();
+                  progress.report({ message: "Thanks for your feedback.", increment: 100 });
+                  await new Promise((f) => setTimeout(f, 2000));
+                  return Promise.resolve();
+                });
                 break;
               }
             }
@@ -394,7 +400,7 @@ ${msg.code}
           const vendorHighlightJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.js'));
           const vendorMarkedJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
           const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
-          const markdownCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'markdown.css'));
+          const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
           webview.html = `
           <html>
           <head>
@@ -403,7 +409,7 @@ ${msg.code}
           <script src="${vendorHighlightJs}"></script>
           <script src="${vendorMarkedJs}"></script>
           <script type="module" src="${toolkitUri}"></script>
-          <link href="${markdownCSS}" rel="stylesheet" />
+          <link href="${mainCSS}" rel="stylesheet" />
           <script>
           marked.setOptions({
             renderer: new marked.Renderer(),
@@ -442,7 +448,7 @@ ${msg.code}
           </script>
           </head>
           <body>
-          <div class="markdown-body">
+          <div class="markdown-body" style="margin: 1rem 4rem;">
             <div id="info"></div>
               <div style="display: flex;flex-direction: column;">
                 <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${getDocumentLanguage(data.info.request.language)} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
