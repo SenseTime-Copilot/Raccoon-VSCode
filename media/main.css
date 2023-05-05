@@ -337,7 +337,7 @@ button.disabled,
     flex-direction: column;
     grid-gap: 0.5rem;
     position: fixed;
-    bottom: 3rem;
+    bottom: 3.3rem;
     padding-bottom: 1.5rem;
     width: 100%;
     z-index: 99999;
