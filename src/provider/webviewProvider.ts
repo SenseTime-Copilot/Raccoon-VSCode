@@ -700,6 +700,7 @@ ${data.info.response}
                     "Insert": "${l10n.t("Insert the below code to the current file")}",
                     "NewFile": "${l10n.t("Create a new file with the below code")}",
                     "Thinking...": "${l10n.t("Thinking...")}",
+                    "Connecting...": "${l10n.t("Connecting...")}",
                     "Typing...": "${l10n.t("Typing...")}",
                     "Stop responding": "${l10n.t("Stop responding")}",
                     "Regenerate": "${l10n.t("Regenerate")}",

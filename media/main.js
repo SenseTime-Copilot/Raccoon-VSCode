@@ -163,29 +163,33 @@ const vscode = acquireVsCodeApi();
         let prompt = message.value;
         let code = message.code + "" || "";
         let lang = message.lang + "" || "";
-        let progress = `<div id="progress-${id}" class="pt-6 flex justify-between items-center">
-                    <span class="flex gap-2 opacity-50">
-                      <div class="spinner">
+        let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
+                    <span class="flex items-center gap-2 opacity-50">
+                      <div class="spinner thinking">
                           <span class="material-symbols-rounded">autorenew</span>
                       </div>
-                      <div class="typing">${l10nForUI["Thinking..."]}</div>
+                      <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
                     </span>
                   </div>`;
         const edit = !message.send;
         if (message.streaming === true) {
           progress = `
-          <div id="progress-${id}" class="pt-6 flex justify-between items-center">
-            <span class="flex gap-2 opacity-50">
-              <div class="spinner">
-                  <span class="material-symbols-rounded">autorenew</span>
+          <div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
+            <span class="flex items-center gap-2 opacity-50">
+              <div class="spinner connecting">
+                <span class="material-symbols-rounded">autorenew</span>
               </div>
-              <div class="typing">${l10nForUI["Typing..."]}</div>
+              <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
+              <div class="spinner typing">
+                <span class="material-symbols-rounded">auto_mode</span>
+              </div>
+              <div class="typing-text">${l10nForUI["Typing..."]}</div>
             </span>
-            <button class="stopGenerate flex" data-id=${id}>
+            <button class="stopGenerate flex items-center" data-id=${id}>
               <span class="material-symbols-rounded">
                 stop_circle
               </span>
-              <p style="margin: 0 4px 0 6px">${l10nForUI["Stop responding"]}</p>
+              <p class="mx-1">${l10nForUI["Stop responding"]}</p>
             </button>
           </div>`;
         }
@@ -279,7 +283,7 @@ const vscode = acquireVsCodeApi();
                                         <div id="response-${id}" class="response flex flex-col gap-1 markdown-body"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
-                                          <span class="flex gap-2">
+                                          <span class="flex items-center gap-2">
                                             <button class="like flex rounded" data-id=${id}>
                                               <span class="material-symbols-rounded">
                                                 thumb_up
@@ -296,11 +300,11 @@ const vscode = acquireVsCodeApi();
                                               </span>
                                             </button>
                                           </span>
-                                          <button class="regenerate flex rounded" data-id=${id}>
+                                          <button class="regenerate flex items-center rounded" data-id=${id}>
                                             <span class="material-symbols-rounded">
                                               refresh
                                             </span>
-                                            <p style="margin: 0 4px 0 6px">${l10nForUI["Regenerate"]}</p>
+                                            <p class="mx-1">${l10nForUI["Regenerate"]}</p>
                                           </button>
                                         </div>`;
             list.appendChild(chat);
@@ -372,6 +376,8 @@ const vscode = acquireVsCodeApi();
       }
       case "addResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
+        const progText = document.getElementById(`progress-${message.id}`);
+        progText?.classList.add("started");
         chatText.dataset.response = (chatText.dataset.response || "") + message.value;
         let cont = chatText.dataset.response;
         if (chatText.dataset.response.split("```").length % 2 !== 1) {

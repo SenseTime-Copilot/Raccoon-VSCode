@@ -309,7 +309,9 @@ button.disabled,
     opacity: 0.5;
 }
 
+#clear-button,
 #ask-button {
+    transition: 0.6s ease-in-out;
     display: flex;
 }
 
@@ -344,6 +346,7 @@ button.disabled,
 }
 
 #ask-list button {
+    transition: 0.6s ease-in-out;
     flex-direction: row;
     width: 100%;
     max-width: 260px;
@@ -434,6 +437,21 @@ button.disabled,
     border-bottom: 10px dotted var(--vscode-sideBar-background);
 }
 
+.progress .typing,
+.progress .typing-text {
+    display: none;
+}
+
+.progress.started .typing,
+.progress.started .typing-text {
+    display: flex;
+}
+
+.progress.started .connecting,
+.progress.started .connecting-text {
+    display: none;
+}
+
 button.stopGenerate,
 .feedback button {
     background: transparent !important;
@@ -486,11 +504,6 @@ button.stopGenerate,
 .feedback.error .unlike,
 .feedback.error .correct {
     display: none;
-}
-
-.stopGenerate .material-symbols-rounded,
-.feedback .material-symbols-rounded {
-    margin-top: 2px;
 }
 
 .vscode-high-contrast .answer-element-gnc {
