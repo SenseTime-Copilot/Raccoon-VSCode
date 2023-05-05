@@ -465,6 +465,15 @@ button.stopGenerate,
     outline: none;
 }
 
+.regenerate.pointer-events-none {
+    transition-duration: 0.6s;
+    opacity: 0.3;
+}
+
+.regenerate.pointer-events-none span {
+    animation: rotate 0.6s linear;
+}
+
 @keyframes bouncy {
 
     from,

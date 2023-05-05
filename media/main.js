@@ -641,6 +641,7 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains('regenerate')) {
       let id = targetButton?.dataset.id;
       e.preventDefault();
+      targetButton?.classList?.add("pointer-events-none");
       const question = document.getElementById(`question-${id}`);
       sendQuestion(question);
       vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "regenerate") });
