@@ -6,13 +6,13 @@ import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCo
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
 import { sendTelemetryLog } from "./utils/getCodeCompletions";
+import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
 //import { KeyCalculator } from "./provider/keyCalculator";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
 export let telemetryReporter: vscode.TelemetryLogger;
-export let provider: SenseCodeViewProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
@@ -37,8 +37,12 @@ export async function activate(context: vscode.ExtensionContext) {
   checkPrivacy(context);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.settings", () => {
-      return provider.updateSettingPage("toogle");
+    vscode.commands.registerCommand("sensecode.openEditor", async () => {
+      let tabs = vscode.window.tabGroups.all;
+      vscode.commands.executeCommand('vscode.openWith',
+        vscode.Uri.parse("file://sensecode/assistant.sensecode"),
+        SenseCodeEidtorProvider.viewType,
+        { viewColumn: tabs.length + 1 });
     })
   );
 
@@ -98,11 +102,9 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  provider = new SenseCodeViewProvider(context);
-
   const view = vscode.window.registerWebviewViewProvider(
     "sensecode.view",
-    provider,
+    new SenseCodeViewProvider(context),
     {
       webviewOptions: {
         retainContextWhenHidden: true,
@@ -118,6 +120,11 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
+
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEidtorProvider.viewType, new SenseCodeEidtorProvider(context), {
+    supportsMultipleEditorsPerDocument: true,
+    webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
+  }));
 
   // new KeyCalculator();
 }

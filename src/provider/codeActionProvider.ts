@@ -1,6 +1,8 @@
 
 import * as vscode from 'vscode';
-import { configuration, provider } from '../extension';
+import { configuration } from '../extension';
+import { SenseCodeViewProvider } from './webviewProvider';
+import { Prompt } from '../param/configures';
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
@@ -10,11 +12,16 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     let ps = configuration.prompt;
     let actions: vscode.CodeAction[] = [];
     for (let p of ps) {
+      let custom = "";
       let ellip = "";
       if (p.prompt.includes('${input')) {
         ellip = "...";
       }
-      actions.push(new vscode.CodeAction("SenseCode: " + p.label + ellip, vscode.CodeActionKind.QuickFix.append('sensecode')));
+      if (p.type === "custom") {
+        custom = " ✨ ";
+      }
+      let name = `SenseCode: ${custom}${p.label}${ellip}`;
+      actions.push(new vscode.CodeAction(name, vscode.CodeActionKind.QuickFix.append('sensecode')));
     }
     return actions;
   }
@@ -24,9 +31,13 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     let document = vscode.window.activeTextEditor?.document;
     let ps = configuration.prompt;
     let label = codeAction.title.slice(11);
-    let prompt = undefined;
+    let prompt: Prompt | undefined = undefined;
     for (let p of ps) {
       if (p.label === label) {
+        prompt = p;
+        break;
+      }
+      if ((" ✨ " + p.label) === label) {
         prompt = p;
         break;
       }
@@ -38,11 +49,15 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
           prompt = p;
           break;
         }
+        if ((" ✨ " + p.label) === label) {
+          prompt = p;
+          break;
+        }
       }
     }
     if (prompt && document && selection && !token.isCancellationRequested) {
       let code = document.getText(selection);
-      provider.sendApiRequest(prompt, code, document.languageId);
+      SenseCodeViewProvider.ask(prompt, code, document.languageId);
     }
     return codeAction;
   }

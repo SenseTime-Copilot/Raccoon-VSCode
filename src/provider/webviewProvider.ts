@@ -1,16 +1,19 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation } from 'vscode';
+import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Engine, Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 
-export class SenseCodeViewProvider implements WebviewViewProvider {
-  private webView?: WebviewView;
+export class SenseCodeEditor extends Disposable {
   private stopList: number[];
+  private lastTextEditor?: TextEditor;
+  private disposing = false;
 
-  constructor(private context: ExtensionContext) {
+  constructor(private context: ExtensionContext, private webview: Webview) {
+    super(() => { });
     this.stopList = [];
+    this.lastTextEditor = window.activeTextEditor;
     context.subscriptions.push(
       workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("SenseCode")) {
@@ -30,12 +33,24 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       })
     );
     context.subscriptions.push(
+      window.onDidChangeActiveTextEditor((e) => {
+        if (e) {
+          this.lastTextEditor = e;
+        }
+      })
+    );
+    context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
         if (e.textEditor.document.uri.scheme === "file" || e.textEditor.document.uri.scheme === "untitled") {
           this.sendMessage({ type: 'enableAsk', value: (e.selections[0] && !e.selections[0].isEmpty) ? true : false });
         }
       })
     );
+    this.showPage();
+  }
+
+  dispose() {
+    this.disposing = true;
   }
 
   async updateSettingPage(action?: string): Promise<void> {
@@ -211,14 +226,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     this.sendMessage({ type: 'updateSettingPage', value: settingPage, action });
   }
 
-  public resolveWebviewView(
-    webviewView: WebviewView,
-    _context: WebviewViewResolveContext,
-    _token: CancellationToken,
+  public showPage(
   ) {
-    this.webView = webviewView;
-
-    webviewView.webview.options = {
+    this.webview.options = {
       enableScripts: true,
       enableCommandUris: true,
       localResourceRoots: [
@@ -226,8 +236,8 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       ]
     };
 
-    webviewView.webview.html = this.getWebviewHtml(webviewView.webview);
-    webviewView.webview.onDidReceiveMessage(async data => {
+    this.webview.html = this.getWebviewHtml(this.webview);
+    this.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
         case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: configuration.prompt });
@@ -235,7 +245,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
         case 'repareQuestion': {
           let selection: string = "";
-          const editor = window.activeTextEditor;
+          const editor = this.lastTextEditor;
           let lang = "";
           if (editor) {
             selection = editor.document.getText(editor.selection);
@@ -257,9 +267,9 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
           break;
         }
         case 'editCode': {
-          let docUri = window.activeTextEditor?.document.uri;
+          let docUri = this.lastTextEditor?.document.uri;
           if (docUri) {
-            window.activeTextEditor?.insertSnippet(new SnippetString(data.value)).then(async (_v) => {
+            this.lastTextEditor?.insertSnippet(new SnippetString(data.value)).then(async (_v) => {
               await new Promise((f) => setTimeout(f, 200));
               commands.executeCommand("editor.action.formatDocument", docUri);
             });
@@ -499,9 +509,6 @@ ${data.info.response}
   }
 
   public async sendApiRequest(prompt: Prompt, code?: string, lang?: string) {
-    await commands.executeCommand('sensecode.view.focus');
-    await new Promise((f) => setTimeout(f, 1000));
-
     let response: string;
     let ts = new Date();
     let id = ts.valueOf();
@@ -557,7 +564,7 @@ ${data.info.response}
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
-          if (this.stopList.includes(id)) {
+          if (this.stopList.includes(id) || this.disposing) {
             this.stopList = this.stopList.filter(item => item !== id);
             data.destroy();
             return;
@@ -629,8 +636,8 @@ ${data.info.response}
   }
 
   public async sendMessage(message: any) {
-    if (this.webView) {
-      this.webView.webview.postMessage(message);
+    if (this.webview) {
+      this.webview.postMessage(message);
     }
   }
 
@@ -710,5 +717,32 @@ ${data.info.response}
                 <script src="${scriptUri}"></script>
             </body>
             </html>`;
+  }
+}
+
+export class SenseCodeViewProvider implements WebviewViewProvider {
+  private static eidtor?: SenseCodeEditor;
+  constructor(private context: ExtensionContext) {
+    context.subscriptions.push(
+      commands.registerCommand("sensecode.settings", () => {
+        return SenseCodeViewProvider.eidtor?.updateSettingPage("toogle");
+      })
+    );
+  }
+
+  public resolveWebviewView(
+    webviewView: WebviewView,
+    _context: WebviewViewResolveContext,
+    _token: CancellationToken,
+  ) {
+    SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
+  }
+
+  public static async ask(prompt: Prompt, code?: string, lang?: string) {
+    commands.executeCommand('sensecode.view.focus');
+    while (!SenseCodeViewProvider.eidtor) {
+      await new Promise((f) => setTimeout(f, 1000));
+    }
+    return SenseCodeViewProvider.eidtor?.sendApiRequest(prompt, code, lang);
   }
 }

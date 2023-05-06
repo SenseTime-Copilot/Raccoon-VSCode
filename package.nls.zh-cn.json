@@ -9,8 +9,7 @@
     "sensecode.config.prompt": "提示模板列表",
     "sensecode.config.prompt.item": "提示模板",
     "sensecode.view.title": "代码助手",
-    "sensecode.command.login": "登录",
-    "sensecode.command.logout": "注销",
+    "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 编码助手实例",
     "sensecode.command.settings": "设置",
     "sensecode.command.completionTrigger": "触发代码补全",
     "sensecode.command.onSuggestionAccepted": "补全建议接受事件上报"

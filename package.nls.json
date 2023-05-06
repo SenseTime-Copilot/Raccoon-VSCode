@@ -9,8 +9,7 @@
     "sensecode.config.prompt": "Prompt template list",
     "sensecode.config.prompt.item": "Prompt template",
     "sensecode.view.title": "Assistant",
-    "sensecode.command.login": "Login",
-    "sensecode.command.logout": "Logout",
+    "sensecode.command.openEditor": "Open new SenseCode Assistant instance in editor",
     "sensecode.command.settings": "Settings",
     "sensecode.command.completionTrigger": "Code Inline Completion Trigger",
     "sensecode.command.onSuggestionAccepted": "Suggestion acception report"
