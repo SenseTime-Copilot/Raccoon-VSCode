@@ -79,6 +79,14 @@ export class SenseCodeEditor extends Disposable {
           <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
         </div>
         `;
+    if (activeEngine?.avatar) {
+      accountInfo = `
+        <div class="flex gap-2 items-center">
+          <img class="w-10 h-10 rounded-full" src="${activeEngine.avatar}" />
+          <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
+        </div>
+        `;
+    }
 
     let keycfg = "";
     if (!key) {
@@ -541,7 +549,7 @@ ${data.info.response}
         return;
       }
       let username = await configuration.username(activeEngine);
-      let avatar = undefined;
+      let avatar = activeEngine.avatar;
       this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp });
       if (!send) {
         return;

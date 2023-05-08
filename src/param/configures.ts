@@ -6,7 +6,7 @@ export interface Engine {
   url: string;
   config: any;
   key?: string;
-  streamConfig?: any;
+  avatar?: string;
   validate?: boolean;
 }
 
@@ -136,6 +136,7 @@ export class Configuration {
       this.context.globalState.update("lastVersion", context.extension.packageJSON.version);
     }
     this.update();
+    this.checkApiKey(this.activeEngine);
   }
 
   public clear() {
@@ -253,11 +254,12 @@ export class Configuration {
     }
   }
 
-  public async setApiKey(engine: Engine | undefined, token: string | undefined): Promise<Boolean> {
+  public async setApiKey(engine: Engine | undefined, token: string | undefined): Promise<boolean> {
     if (!engine) {
       return false;
     }
     if (!token) {
+      engine.avatar = undefined;
       let value = await this.context.secrets.get("sensecode.token");
       if (value) {
         try {
@@ -273,7 +275,7 @@ export class Configuration {
     } else {
       if (!engine.validate) {
         await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
-        return false;
+        return true;
       }
       let info = parseAuthInfo(token);
       let ok = await this.checkUserExist(info, engine);
@@ -285,7 +287,21 @@ export class Configuration {
     }
   }
 
-  private async checkUserExist(info: { id: number; name: string; token: string; aksk: string }, engine: Engine, page?: string): Promise<Boolean> {
+  private async checkApiKey(engine?: Engine): Promise<boolean> {
+    if (!engine) {
+      return false;
+    }
+    if (!engine.validate) {
+      return true;
+    }
+    let token = await this.getApiKey(engine);
+    if (!token) {
+      return false;
+    }
+    return this.checkUserExist(parseAuthInfo(token), engine);
+  }
+
+  private async checkUserExist(info: { id: number; name: string; token: string; aksk: string }, engine: Engine, page?: string): Promise<boolean> {
     try {
       let res = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens?per_page=100${page ? `&page=${page}` : ""}`,
         {
@@ -296,6 +312,20 @@ export class Configuration {
       if (res && res.data) {
         for (let t of res.data) {
           if (t.id === info?.id && t.name === info?.name) {
+            engine.avatar = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${t.name}`,
+              {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                headers: { "PRIVATE-TOKEN": info?.token || "" }
+              })
+              .then(
+                (res1) => {
+                  if (res1?.status === 200 && res1.data[0]) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    return res1.data[0].avatar_url;
+                  }
+                }
+              ).catch(async (_error) => {
+              });
             return true;
           }
         }

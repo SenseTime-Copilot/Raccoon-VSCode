@@ -60,13 +60,8 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, pr
     let config = { ...engine.config };
     config.n = configuration.candidates;
     if (stream) {
-      if (engine.streamConfig) {
-        config = engine.streamConfig;
-      } else {
-        config.max_tokens = 2048;
-        config.stop = undefined;
-        config.n = 1;
-      }
+      config.stop = undefined;
+      config.n = 1;
       config.stream = true;
       responseType = "stream";
     }

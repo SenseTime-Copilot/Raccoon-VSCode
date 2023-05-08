@@ -1,5 +1,5 @@
 {
-    "sensecode.description": "SenseCode 是一款基于 AI 的编码助手",
+    "sensecode.description": "SenseCode 是一款基于 AI 的代码助手",
     "sensecode.config.engines.description": "AI 后端引擎配置列表",
     "sensecode.config.engines.engine.description": "AI 后端引擎配置",
     "sensecode.config.engines.engine.label": "后端引擎名称，用于在 UI 上显示",
@@ -9,7 +9,7 @@
     "sensecode.config.prompt": "提示模板列表",
     "sensecode.config.prompt.item": "提示模板",
     "sensecode.view.title": "代码助手",
-    "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 编码助手实例",
+    "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 代码助手实例",
     "sensecode.command.settings": "设置",
     "sensecode.command.completionTrigger": "触发代码补全",
     "sensecode.command.onSuggestionAccepted": "补全建议接受事件上报"

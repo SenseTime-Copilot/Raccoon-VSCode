@@ -91,23 +91,27 @@
                 "command": "sensecode.settings",
                 "category": "SenseCode",
                 "title": "%sensecode.command.settings%",
-                "icon": "$(gear)"
-            },
-            {
-                "command": "sensecode.inlineSuggest.trigger",
-                "category": "SenseCode",
-                "title": "%sensecode.command.completionTrigger%"
-            },
-            {
-                "command": "sensecode.onSuggestionAccepted",
-                "category": "SenseCode",
-                "title": "%sensecode.command.onSuggestionAccepted%"
+                "icon": "$(gear)",
+                "enablement": "view == sensecode.view"
             },
             {
                 "command": "sensecode.openEditor",
                 "category": "SenseCode",
                 "title": "%sensecode.command.openEditor%",
-                "icon": "$(multiple-windows)"
+                "icon": "$(multiple-windows)",
+                "enablement": "view == sensecode.view"
+            },
+            {
+                "command": "sensecode.inlineSuggest.trigger",
+                "category": "SenseCode",
+                "title": "%sensecode.command.completionTrigger%",
+                "enablement": "editorTextFocus && !editorReadonly"
+            },
+            {
+                "command": "sensecode.onSuggestionAccepted",
+                "category": "SenseCode",
+                "title": "%sensecode.command.onSuggestionAccepted%",
+                "enablement": "editorTextFocus && !editorReadonly"
             }
         ],
         "keybindings": [

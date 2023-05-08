@@ -202,9 +202,6 @@ export function inlineCompletionProvider(
           );
           // TODO: AST parse to ensure truncate at appropriate postion
           let maxTokens = activeEngine.config.max_tokens || 1024;
-          if (configuration.printOut && activeEngine.streamConfig && activeEngine.streamConfig.max_tokens) {
-            maxTokens = activeEngine.streamConfig.max_tokens;
-          }
           if (textBeforeCursor.length > (maxTokens * 4)) {
             textBeforeCursor = textBeforeCursor.slice(-4 * maxTokens);
           }
