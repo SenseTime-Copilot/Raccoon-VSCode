@@ -575,7 +575,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (e.target.id === 'candidates') {
-      vscode.postMessage({ type: "candidates", value: (parseInt(e.target.dataset.value) + 2) % 6 });
+      vscode.postMessage({ type: "candidates", value: (parseInt(e.target.dataset.value) + 2) % 4 });
       return;
     }
 

@@ -56,7 +56,7 @@ export class SenseCodeEditor extends Disposable {
   async updateSettingPage(action?: string): Promise<void> {
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
-    let printOut = configuration.printOut;
+    let completeLine = configuration.completeLine;
     let delay = configuration.delay;
     let candidates = configuration.candidates;
     let activeEngine = configuration.activeEngine;
@@ -185,18 +185,25 @@ export class SenseCodeEditor extends Disposable {
         <div>
         <vscode-radio-group id="completionModeRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Completion Mode")}</label>
-          <vscode-radio ${printOut ? "" : "checked"} class="w-32" value="Snippets" title="${l10n.t("Show completion suggestions as inline completion snippets")}">
-            ${l10n.t("Snippets")}
-            <span id="candidatesBtn" class="${printOut ? "hidden" : ""}">
-              <vscode-link style="margin: -4px 0;" title="${l10n.t("Show {0} candidate snippet(s)", candidates)}">
-                <span id="candidates" class="material-symbols-rounded" data-value=${candidates}>${candidates === 1 ? "looks_one" : `filter_${candidates}`}</span>
-              </vscode-link>
-            </span>
+          <vscode-radio ${completeLine ? "checked" : ""} class="w-32" value="Line" title="${l10n.t("Complete current line")}">
+            ${l10n.t("Line")}
           </vscode-radio>
-          <!--vscode-radio ${printOut ? "checked" : ""} class="w-32" value="Print" title="${l10n.t("Direct print completion code to editor, the cadidate number setting in `engine.config` will be ignored")}">
-            ${l10n.t("Print")}
-          </vscode-radio-->
+          <vscode-radio ${completeLine ? "" : "checked"} class="w-32" value="Block" title="${l10n.t("Complete code block")}">
+            ${l10n.t("Block")}
+          </vscode-radio>
         </vscode-radio-group>
+        </div>
+      </div>
+      <div class="ml-6 my-2">
+        <label slot="label">${l10n.t("Suggestion Settings")}</label>
+        <div checked class="w-64 my-2">
+          <span id="candidates" class="material-symbols-rounded mx-1">format_list_numbered</span>
+          ${l10n.t("Candidate Number")}
+          <span id="candidatesBtn">
+            <vscode-link style="margin: -4px 0;" title="${l10n.t("Show {0} candidate snippet(s)", candidates)}">
+              <span id="candidates" class="material-symbols-rounded" data-value=${candidates}>${candidates === 1 ? "looks_one" : `filter_${candidates}`}</span>
+            </vscode-link>
+          </span>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -352,8 +359,8 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'completionMode': {
-          if (configuration.printOut !== (data.value === "Print")) {
-            configuration.printOut = (data.value === "Print");
+          if (configuration.completeLine !== (data.value === "Line")) {
+            configuration.completeLine = (data.value === "Line");
             this.updateSettingPage();
           }
           break;
@@ -568,7 +575,7 @@ ${data.info.response}
       if (code) {
         codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       }
-      rs = await getCodeCompletions(activeEngine, `${prefix}\n${codeStr}\n${suffix}`, streaming);
+      rs = await getCodeCompletions(activeEngine, `${prefix}\n${codeStr}\n${suffix}`, 1, streaming);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {

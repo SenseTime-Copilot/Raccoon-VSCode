@@ -145,7 +145,7 @@ export class Configuration {
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
-    this.context.globalState.update("DirectPrintOut", undefined);
+    this.context.globalState.update("CompleteLine", undefined);
     this.context.globalState.update("delay", undefined);
     this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
@@ -365,13 +365,12 @@ export class Configuration {
     this.context.globalState.update("Candidates", v);
   }
 
-  public get printOut(): boolean {
-    return false;
-    // return this.context.globalState.get("DirectPrintOut", false);
+  public set completeLine(v: boolean) {
+    this.context.globalState.update("CompleteLine", v);
   }
 
-  public set printOut(v: boolean) {
-    this.context.globalState.update("DirectPrintOut", v);
+  public get completeLine(): boolean {
+    return this.context.globalState.get("CompleteLine", true);
   }
 
   public get delay(): number {

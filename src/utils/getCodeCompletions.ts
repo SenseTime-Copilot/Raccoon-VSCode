@@ -13,6 +13,7 @@ export type GetCodeCompletions = {
 export async function getCodeCompletions(
   engine: Engine,
   prompt: string,
+  n: number,
   stream: boolean
 ): Promise<GetCodeCompletions | IncomingMessage> {
   let key = engine.key;
@@ -23,7 +24,7 @@ export async function getCodeCompletions(
   } catch (e) {
     return Promise.reject(e);
   }
-  return getCodeCompletionsSenseCode(engine, key, prompt, stream);
+  return getCodeCompletionsSenseCode(engine, key, n, prompt, stream);
 }
 
 function hmacSHA256(key: Buffer, data: Buffer): string {
@@ -47,7 +48,7 @@ function generateAuthHeader(url: Uri, ak: string, sk: string) {
   };
 }
 
-function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
+function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n: number, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (key) {
@@ -58,12 +59,13 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, pr
     let p = prompt;
     let responseType: ResponseType | undefined = undefined;
     let config = { ...engine.config };
-    config.n = configuration.candidates;
+    config.n = n;
     if (stream) {
       config.stop = undefined;
-      config.n = 1;
       config.stream = true;
       responseType = "stream";
+    } else {
+      config.stream = false;
     }
     if (engine.url.includes("/chat/")) {
       payload = {

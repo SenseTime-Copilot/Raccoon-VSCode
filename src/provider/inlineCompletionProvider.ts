@@ -131,7 +131,7 @@ export function inlineCompletionProvider(
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        await new Promise((f) => setTimeout(f, configuration.delay * 1000));
+        await new Promise((f) => setTimeout(f, (configuration.delay - 1) * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }
@@ -205,6 +205,11 @@ export function inlineCompletionProvider(
           if (textBeforeCursor.length > (maxTokens * 4)) {
             textBeforeCursor = textBeforeCursor.slice(-4 * maxTokens);
           }
+          let engine = { ...activeEngine };
+          engine.config = { ...activeEngine.config };
+          if (configuration.completeLine) {
+            engine.config.max_tokens = 32;
+          }
           let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: getDocumentLanguage(document.languageId) })}`;
           let suffix = ``;
           prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
@@ -216,9 +221,10 @@ Task type: code completion. Please complete the following code, just response co
 `;
           suffix = `### Response:
 `;
-          rs = await getCodeCompletions(activeEngine,
+          rs = await getCodeCompletions(engine,
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
-            configuration.printOut);
+            configuration.candidates,
+            false);
         } catch (err: any) {
           let errInfo = err.message || err.response?.data?.error;
           outlog.error(errInfo);
@@ -257,119 +263,7 @@ Task type: code completion. Please complete the following code, just response co
         }
 
         if (rs instanceof IncomingMessage) {
-          let data = rs as IncomingMessage;
-          let start = editor.selection.start;
-          let end = editor.selection.start;
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(pencil)",
-              tooltip: vscode.l10n.t("Typing..."),
-              keep: true
-            }
-          );
-          data.on("data", async (v: any) => {
-            let msgstr: string = v.toString();
-            let msgs = msgstr.split("\n");
-            for (let msg of msgs) {
-              if (cancel.isCancellationRequested) {
-                data.destroy();
-                updateStatusBarItem(
-                  statusBarItem,
-                  {
-                    text: "$(circle-slash)",
-                    tooltip: vscode.l10n.t("User cancelled")
-                  }
-                );
-                return;
-              }
-              if (msg === "") {
-                continue;
-              }
-              let content = "";
-              if (msg.startsWith("data:")) {
-                content = msg.slice(5).trim();
-              } else if (msg.startsWith("event:")) {
-                content = msg.slice(6).trim();
-                outlog.error(content);
-                if (content === "error") {
-                  updateStatusBarItem(
-                    statusBarItem,
-                    {
-                      text: "$(alert)",
-                      tooltip: new vscode.MarkdownString(msgs[1])
-                    }
-                  );
-                  data.destroy();
-                }
-                return;
-              } else {
-                updateStatusBarItem(
-                  statusBarItem,
-                  {
-                    text: "$(alert)",
-                    tooltip: msg
-                  }
-                );
-                data.destroy();
-                return;
-              }
-              if (content === '[DONE]') {
-                updateStatusBarItem(
-                  statusBarItem,
-                  {
-                    text: "$(pass)",
-                    tooltip: vscode.l10n.t("Done")
-                  }
-                );
-                outlog.debug(content);
-                data.destroy();
-                return;
-              }
-              if (content === "") {
-                continue;
-              }
-              try {
-                let json = JSON.parse(content);
-                outlog.debug(JSON.stringify(json, undefined, 2));
-                if (json.error) {
-                  vscode.window.showErrorMessage(`${json.error.type}: ${json.error.message}`, vscode.l10n.t("Close"));
-                  data.destroy();
-                  return;
-                } else if (json.choices && json.choices[0]) {
-                  let value = json.choices[0].text || json.choices[0].message?.content;
-                  if (value) {
-                    if (editor && editor.selection && start === editor.selection.active && !cancel.isCancellationRequested) {
-                      if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
-                        value = "\n";
-                      }
-                      await editor.edit(e => {
-                        e.insert(start, value);
-                      }).then((ok) => {
-                        if (ok) {
-                          end = editor!.selection.start;
-                          editor!.revealRange(new vscode.Range(start, end));
-                          start = end;
-                        }
-                      });
-                    } else {
-                      data.destroy();
-                      updateStatusBarItem(
-                        statusBarItem,
-                        {
-                          text: "$(circle-slash)",
-                          tooltip: vscode.l10n.t("User cancelled")
-                        }
-                      );
-                      return;
-                    }
-                  }
-                }
-              } catch (e) {
-                outlog.error(content);
-              }
-            }
-          });
+
         } else {
           let data = rs as GetCodeCompletions;
           // Add the generated code to the inline suggestion list
@@ -406,25 +300,50 @@ Task type: code completion. Please complete the following code, just response co
                   .substring(0, completion.length - 1);
               }
             }
+            let insertText = data.completions[i].split("Explanation:")[0];
+            if (configuration.completeLine) {
+              insertText = "";
+              let lines = data.completions[i].split('\n');
+              let ln = 0;
+              for (let line of lines) {
+                if (line.trim() === "") {
+                  insertText += "\n";
+                  ln++;
+                  continue;
+                }
+                if (editor.selection.anchor.character === 0) {
+                  insertText = line;
+                } else {
+                  if (ln === 0) {
+                    insertText = line.trim();
+                  } else {
+                    insertText += line;
+                  }
+                }
+                break;
+              }
+            }
+            let command = {
+              title: "suggestion-accepted",
+              command: "sensecode.onSuggestionAccepted",
+              arguments: [
+                {
+                  type: "code completion",
+                  code: textBeforeCursor,
+                  prompt: "Please complete the following code"
+                },
+                data.completions, "", i.toString(), ts]
+            };
+
             items.push({
               // insertText: completion,
-              insertText: data.completions[i].split("Explanation:")[0],
+              insertText,
               // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
               range: new vscode.Range(
                 position.translate(0, data.completions.length),
                 position
               ),
-              command: {
-                title: "suggestion-accepted",
-                command: "sensecode.onSuggestionAccepted",
-                arguments: [
-                  {
-                    type: "code completion",
-                    code: textBeforeCursor,
-                    prompt: "Please complete the following code"
-                  },
-                  data.completions, "", i.toString(), ts]
-              }
+              command
             });
             trie.addWord(textBeforeCursor + data.completions[i]);
           }
