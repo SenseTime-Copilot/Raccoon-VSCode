@@ -91,15 +91,31 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "updateSettingPage": {
-        if (message.action === "close" || (message.action === "toogle" && document.getElementById('settings'))) {
-          document.getElementById('settings').remove();
+        var settings = document.getElementById('settings');
+        if (message.action === "close" || (message.action === "toogle" && settings)) {
+          settings.remove();
           break;
         }
-        if (message.action === "open" || message.action === "toogle" || document.getElementById('settings')) {
+        if (message.action === "open" || message.action === "toogle" || settings) {
           asklist.classList.add("hidden");
           document.getElementById("ask-button").classList.remove("open");
-          const sp = document.getElementById("setting-page");
-          sp.innerHTML = message.value;
+          if (!settings) {
+            const sp = document.getElementById("setting-page");
+            sp.innerHTML = message.value;
+          } else {
+            var sn = new DOMParser().parseFromString(message.value, "text/html").getElementById("settings");
+            for (let i = sn.childNodes.length - 1; i >= 0; i--) {
+              if (sn.childNodes[i].classList?.contains("immutable")) {
+                sn.removeChild(sn.childNodes[i]);
+              }
+            }
+            for (let i = settings.childNodes.length - 1; i >= 0; i--) {
+              if (!settings.childNodes[i].classList?.contains("immutable")) {
+                settings.removeChild(settings.childNodes[i]);
+              }
+            }
+            settings.append(...sn.childNodes);
+          }
         }
         break;
       }
@@ -174,6 +190,12 @@ const vscode = acquireVsCodeApi();
                       </div>
                       <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
                     </span>
+                    <button class="stopGenerate flex items-center" data-id=${id}>
+                      <span class="material-symbols-rounded">
+                        stop_circle
+                      </span>
+                      <p class="mx-1">${l10nForUI["Stop responding"]}</p>
+                    </button>
                   </div>`;
         const edit = !message.send;
         if (message.streaming === true) {
@@ -284,7 +306,7 @@ const vscode = acquireVsCodeApi();
             chat.id = id;
             chat.classList.add("p-4", "answer-element-gnc", "w-full");
             chat.innerHTML = `  <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                                        <div id="response-${id}" class="response flex flex-col gap-1 markdown-body"></div>
+                                        <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                           <span class="flex items-center gap-2">
@@ -323,6 +345,9 @@ const vscode = acquireVsCodeApi();
         document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
 
         const chatText = document.getElementById(`response-${message.id}`);
+        if (chatText.classList.contains("empty")) {
+          document.getElementById(`feedback-${message.id}`)?.classList?.add("empty");
+        }
         if (!chatText.dataset.response) {
           break;
         }
@@ -380,6 +405,7 @@ const vscode = acquireVsCodeApi();
       }
       case "addResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
+        chatText?.classList.remove("empty");
         const progText = document.getElementById(`progress-${message.id}`);
         progText?.classList.add("started");
         chatText.dataset.response = (chatText.dataset.response || "") + message.value;

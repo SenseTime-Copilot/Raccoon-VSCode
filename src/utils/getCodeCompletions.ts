@@ -14,7 +14,8 @@ export async function getCodeCompletions(
   engine: Engine,
   prompt: string,
   n: number,
-  stream: boolean
+  stream: boolean,
+  cancel: AbortSignal
 ): Promise<GetCodeCompletions | IncomingMessage> {
   let key = engine.key;
   try {
@@ -24,7 +25,7 @@ export async function getCodeCompletions(
   } catch (e) {
     return Promise.reject(e);
   }
-  return getCodeCompletionsSenseCode(engine, key, n, prompt, stream);
+  return getCodeCompletionsSenseCode(engine, key, n, prompt, stream, cancel);
 }
 
 function hmacSHA256(key: Buffer, data: Buffer): string {
@@ -48,7 +49,7 @@ function generateAuthHeader(url: Uri, ak: string, sk: string) {
   };
 }
 
-function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n: number, prompt: string, stream: boolean): Promise<GetCodeCompletions | IncomingMessage> {
+function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n: number, prompt: string, stream: boolean, signal: AbortSignal): Promise<GetCodeCompletions | IncomingMessage> {
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (key) {
@@ -81,7 +82,7 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n:
     outlog.debug(`POST to [${engine.label}](${engine.url})\n` + JSON.stringify(payload, undefined, 2));
     try {
       axios
-        .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType })
+        .post(engine.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
         .then(async (res) => {
           if (res?.status === 200) {
             if (responseType === "stream") {

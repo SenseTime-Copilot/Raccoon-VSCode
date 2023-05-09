@@ -6,13 +6,13 @@ import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompleti
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 
 export class SenseCodeEditor extends Disposable {
-  private stopList: number[];
+  private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
   private disposing = false;
 
   constructor(private context: ExtensionContext, private webview: Webview) {
     super(() => { });
-    this.stopList = [];
+    this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     context.subscriptions.push(
       workspace.onDidChangeConfiguration((e) => {
@@ -129,10 +129,10 @@ export class SenseCodeEditor extends Disposable {
     }
     let settingPage = `
     <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
-      <div class="fixed top-3 right-4">
+      <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
       </div>
-      <div class="flex flex-col mt-4 px-2 gap-2">
+      <div class="immutable flex flex-col mt-4 px-2 gap-2">
         <div class="flex flex-row gap-2 mx-2 items-center justify-between">
           ${accountInfo}
         </div>
@@ -161,12 +161,6 @@ export class SenseCodeEditor extends Disposable {
         <div>
         <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Trigger Mode")}</label>
-          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
-            ${l10n.t("Manual")}
-            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
-              <span class="material-symbols-rounded">keyboard</span>
-            </vscode-link>
-          </vscode-radio>
           <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
             ${l10n.t("Auto")}
             <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
@@ -177,6 +171,12 @@ export class SenseCodeEditor extends Disposable {
                 <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
               </vscode-link>
             </span>
+          </vscode-radio>
+          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
+            ${l10n.t("Manual")}
+            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
+              <span class="material-symbols-rounded">keyboard</span>
+            </vscode-link>
           </vscode-radio>
         </vscode-radio-group>
         </div>
@@ -276,9 +276,8 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'stopGenerate': {
-          let id = parseInt(data.id);
-          this.stopList.push(id);
-          this.sendMessage({ type: 'stopResponse', id, byUser: true });
+          this.stopList[data.id].abort();
+          this.sendMessage({ type: 'stopResponse', id: data.id, byUser: true });
           break;
         }
         case 'editCode': {
@@ -575,12 +574,13 @@ ${data.info.response}
       if (code) {
         codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       }
-      rs = await getCodeCompletions(activeEngine, `${prefix}\n${codeStr}\n${suffix}`, 1, streaming);
+      this.stopList[id] = new AbortController();
+      rs = await getCodeCompletions(activeEngine, `${prefix}\n${codeStr}\n${suffix}`, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
-          if (this.stopList.includes(id) || this.disposing) {
-            this.stopList = this.stopList.filter(item => item !== id);
+          if (this.stopList[id].signal.aborted || this.disposing) {
+            delete this.stopList[id];
             data.destroy();
             return;
           }
@@ -606,6 +606,7 @@ ${data.info.response}
             if (content === '[DONE]') {
               this.sendMessage({ type: 'stopResponse', id });
               outlog.debug(content);
+              delete this.stopList[id];
               data.destroy();
               return;
             }
@@ -621,6 +622,7 @@ ${data.info.response}
               outlog.debug(JSON.stringify(json, undefined, 2));
               if (json.error) {
                 this.sendMessage({ type: 'addError', error: json.error, id });
+                delete this.stopList[id];
                 data.destroy();
                 return;
               } else if (json.choices && json.choices[0]) {
@@ -644,6 +646,11 @@ ${data.info.response}
         this.sendMessage({ type: 'stopResponse', id });
       }
     } catch (err: any) {
+      if (err.message === "canceled") {
+        delete this.stopList[id];
+        this.sendMessage({ type: 'stopResponse', id });
+        return;
+      }
       let errInfo = err.message || err.response.data.error;
       outlog.error(errInfo);
       this.sendMessage({ type: 'addError', error: errInfo, id });

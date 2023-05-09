@@ -114,7 +114,9 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
+      const controller = new AbortController();
       cancel.onCancellationRequested(_e => {
+        controller.abort();
         updateStatusBarItem(
           statusBarItem,
           {
@@ -224,8 +226,11 @@ Task type: code completion. Please complete the following code, just response co
           rs = await getCodeCompletions(engine,
             `${prefix}\n${textBeforeCursor}\n${suffix}`,
             configuration.candidates,
-            false);
+            false, controller.signal);
         } catch (err: any) {
+          if (err.message === "canceled") {
+            return;
+          }
           let errInfo = err.message || err.response?.data?.error;
           outlog.error(errInfo);
           if (!cancel.isCancellationRequested) {

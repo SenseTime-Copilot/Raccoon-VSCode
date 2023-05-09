@@ -342,7 +342,7 @@ export class Configuration {
   }
 
   public get autoComplete(): boolean {
-    return this.context.globalState.get("CompletionAutomatically", false);
+    return this.context.globalState.get("CompletionAutomatically", true);
   }
 
   public set autoComplete(v: boolean) {

@@ -509,6 +509,9 @@ button.stopGenerate,
     font-variation-settings: 'FILL' 1;
 }
 
+.feedback.empty .like,
+.feedback.empty .unlike,
+.feedback.empty .correct,
 .feedback.error .like,
 .feedback.error .unlike,
 .feedback.error .correct {
