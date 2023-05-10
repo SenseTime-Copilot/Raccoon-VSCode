@@ -99,7 +99,7 @@ const vscode = acquireVsCodeApi();
         if (message.action === "open" || message.action === "toogle" || settings) {
           asklist.classList.add("hidden");
           document.getElementById("ask-button").classList.remove("open");
-          if (!settings) {
+          if (!settings || message.action === "full") {
             const sp = document.getElementById("setting-page");
             sp.innerHTML = message.value;
           } else {

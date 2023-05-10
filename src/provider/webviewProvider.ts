@@ -21,14 +21,17 @@ export class SenseCodeEditor extends Disposable {
           if (e.affectsConfiguration("SenseCode.Prompt")) {
             this.sendMessage({ type: 'promptList', value: configuration.prompt });
           }
-          this.updateSettingPage();
+          if (e.affectsConfiguration("SenseCode.Engines")) {
+            this.updateSettingPage("full");
+          }
         }
       })
     );
     context.subscriptions.push(
       context.secrets.onDidChange((e) => {
         if (e.key === "sensecode.token") {
-          this.updateSettingPage();
+          configuration.update();
+          this.updateSettingPage("full");
         }
       })
     );
@@ -196,7 +199,7 @@ export class SenseCodeEditor extends Disposable {
       </div>
       <div class="ml-6 my-2">
         <label slot="label">${l10n.t("Suggestion Settings")}</label>
-        <div checked class="w-64 my-2">
+        <div class="select-none w-64 my-2">
           <span id="candidates" class="material-symbols-rounded mx-1">format_list_numbered</span>
           ${l10n.t("Candidate Number")}
           <span id="candidatesBtn">
@@ -224,13 +227,13 @@ export class SenseCodeEditor extends Disposable {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Advanced")}</b>
       <div class="ml-4">
-        <div class="flex flex-row my-2 px-2 gap-2">
+        <div class="flex flex-row my-2 px-2 gap-2 select-none">
           <span>${l10n.t("Custom prompt")}</span>
           <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">auto_fix</span></vscode-link>
         </div>
       </div>
       <div class="ml-4">
-        <div class="flex flex-row my-2 px-2 gap-2">
+        <div class="flex flex-row my-2 px-2 gap-2 select-none">
           <span>${l10n.t("Clear all settings")}</span>
           <vscode-link style="margin: -1px 0;"><span id="clearAll" class="material-symbols-rounded">settings_power</span></vscode-link>
         </div>
@@ -305,7 +308,7 @@ export class SenseCodeEditor extends Disposable {
           let e = ae[0];
           if (configuration.activeEngine === undefined || !e || configuration.activeEngine.label !== e.label) {
             configuration.activeEngine = e;
-            this.updateSettingPage();
+            this.updateSettingPage("full");
           }
           break;
         }
@@ -747,6 +750,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   constructor(private context: ExtensionContext) {
     context.subscriptions.push(
       commands.registerCommand("sensecode.settings", () => {
+        configuration.update();
         return SenseCodeViewProvider.eidtor?.updateSettingPage("toogle");
       })
     );

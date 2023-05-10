@@ -136,7 +136,7 @@ export class Configuration {
       this.context.globalState.update("lastVersion", context.extension.packageJSON.version);
     }
     this.update();
-    this.checkApiKey(this.activeEngine);
+    this.updateEngine();
   }
 
   public clear() {
@@ -150,6 +150,7 @@ export class Configuration {
     this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
     this.context.secrets.delete("sensecode.token");
+    this.updateEngine();
   }
 
   public update() {
@@ -178,6 +179,18 @@ export class Configuration {
       engine = engines[0];
     }
     this.context.globalState.update("engine", engine);
+  }
+
+  private async updateEngine() {
+    let engine = this.activeEngine;
+    if (engine && engine.validate) {
+      let token = await this.getApiKey(engine);
+      if (!token) {
+        return;
+      }
+      await this.checkUserExist(parseAuthInfo(token), engine);
+    }
+    this.activeEngine = engine;
   }
 
   public get prompt(): Prompt[] {
@@ -287,21 +300,10 @@ export class Configuration {
     }
   }
 
-  private async checkApiKey(engine?: Engine): Promise<boolean> {
-    if (!engine) {
-      return false;
-    }
-    if (!engine.validate) {
-      return true;
-    }
-    let token = await this.getApiKey(engine);
-    if (!token) {
-      return false;
-    }
-    return this.checkUserExist(parseAuthInfo(token), engine);
-  }
-
   private async checkUserExist(info: { id: number; name: string; token: string; aksk: string }, engine: Engine, page?: string): Promise<boolean> {
+    if (info.aksk.length !== 87 && info.aksk.length !== 88) {
+      return false;
+    }
     try {
       let res = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens?per_page=100${page ? `&page=${page}` : ""}`,
         {
@@ -325,6 +327,7 @@ export class Configuration {
                   }
                 }
               ).catch(async (_error) => {
+                throw new Error();
               });
             return true;
           }
@@ -337,6 +340,7 @@ export class Configuration {
       }
     } catch (err) {
       await this.setApiKey(engine, undefined);
+      engine.avatar = undefined;
       throw (new Error("Invalid API Key"));
     }
   }
