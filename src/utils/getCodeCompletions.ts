@@ -20,7 +20,7 @@ export async function getCodeCompletions(
   let key = engine.key;
   try {
     if (!key) {
-      key = await configuration.getApiKeyRaw(engine);
+      key = await configuration.getApiKeyRaw(engine.label);
     }
   } catch (e) {
     return Promise.reject(e);
@@ -99,7 +99,7 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n:
             for (let i = 0; i < codeArray.length; i++) {
               const completion = codeArray[i];
               let tmpstr: string = completion.text || completion.message?.content || "";
-              if (tmpstr.trim() === "") {
+              if (!tmpstr.trim()) {
                 continue;
               }
               if (completions.includes(tmpstr)) {
@@ -127,14 +127,11 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n:
 }
 
 export async function sendTelemetryLog(_eventName: string, info: Record<string, any>) {
-  let engine: Engine | undefined = configuration.activeEngine;
-  if (!engine) {
-    return;
-  }
+  const engine: Engine = configuration.getActiveEngineInfo();
   let key = engine.key;
   try {
     if (!key) {
-      key = await configuration.getApiKeyRaw(engine);
+      key = await configuration.getApiKeyRaw(engine.label);
     }
     if (!key) {
       return;
@@ -147,7 +144,7 @@ export async function sendTelemetryLog(_eventName: string, info: Record<string, 
   let aksk = key.split("#");
   let auth = generateAuthHeader(Uri.parse(apiUrl), aksk[0], aksk[1]);
   let payload = JSON.stringify([info]);
-  let user = await configuration.username(engine);
+  let user = await configuration.username(engine.label);
 
   axios.post(
     apiUrl,

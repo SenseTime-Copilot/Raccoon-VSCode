@@ -44,7 +44,7 @@
                                 "label": {
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.label%",
-                                    "pattern": "^(?!Penrose$)"
+                                    "pattern": "^(?!Penrose.*$)"
                                 },
                                 "url": {
                                     "type": "string",

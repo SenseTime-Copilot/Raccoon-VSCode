@@ -15,7 +15,7 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
   if (doc) {
     lang = getDocumentLanguage(doc.languageId);
   }
-  if (lang === "") {
+  if (!lang) {
     statusBarItem.hide();
   } else {
     statusBarItem.show();
@@ -171,7 +171,7 @@ export function inlineCompletionProvider(
         }
         textBeforeCursor = str + textBeforeCursor;
       }
-      if (textBeforeCursor.trim() === "") {
+      if (!textBeforeCursor.trim()) {
         updateStatusBarItem(statusBarItem);
         return;
       }
@@ -189,11 +189,7 @@ export function inlineCompletionProvider(
         }
         let rs: GetCodeCompletions | any;
         try {
-          let activeEngine: Engine | undefined = configuration.activeEngine;
-          if (!activeEngine) {
-            vscode.window.showErrorMessage(vscode.l10n.t("Active engine not set"), vscode.l10n.t("Close"));
-            throw Error(vscode.l10n.t("Active engine not set"));
-          }
+          const activeEngine: Engine = configuration.getActiveEngineInfo();
           updateStatusBarItem(
             statusBarItem,
             {
@@ -311,7 +307,7 @@ Task type: code completion. Please complete the following code, just response co
               let lines = data.completions[i].split('\n');
               let ln = 0;
               for (let line of lines) {
-                if (line.trim() === "") {
+                if (!line.trim()) {
                   insertText += "\n";
                   ln++;
                   continue;

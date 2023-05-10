@@ -7,7 +7,7 @@ export interface Engine {
   config: any;
   key?: string;
   avatar?: string;
-  validate?: boolean;
+  sensetimeOnly?: boolean;
 }
 
 function demerge(m: string): string[] {
@@ -56,7 +56,19 @@ const builtinEngines: Engine[] = [
       stop: "\n\n",
       temperature: 0.8
     },
-    validate: true
+    sensetimeOnly: true
+  },
+  {
+    label: "Penrose-GA",
+    url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
+    config: {
+      model: "penrose-411",
+      n: 1,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      max_tokens: 1200,
+      stop: "\n\n",
+      temperature: 0.8
+    }
   }
 ];
 
@@ -136,12 +148,11 @@ export class Configuration {
       this.context.globalState.update("lastVersion", context.extension.packageJSON.version);
     }
     this.update();
-    this.updateEngine();
   }
 
   public clear() {
     this.context.globalState.update("privacy", undefined);
-    this.context.globalState.update("engine", undefined);
+    this.context.globalState.update("ActiveEngine", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
@@ -150,47 +161,49 @@ export class Configuration {
     this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
     this.context.secrets.delete("sensecode.token");
-    this.updateEngine();
   }
 
   public update() {
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
-    this.activeEngine = this.context.globalState.get("engine");
   }
 
-  public get activeEngine(): Engine | undefined {
-    let ae = this.context.globalState.get<Engine>("engine");
-    if (!ae) {
-      this.activeEngine = this.engines[0];
-      return this.activeEngine;
+  public getActiveEngine(): string {
+    const ae = this.getActiveEngineInfo();
+    return ae.label;
+  }
+
+  private getEngineInfo(engine?: string): Engine | undefined {
+    if (!engine) {
+      return undefined;
     }
-    return ae;
+    let es = this.engines.filter((e) => {
+      return e.label === engine;
+    });
+    return es[0];
   }
 
-  public set activeEngine(engine: Engine | undefined) {
+  public getActiveEngineInfo(): Engine {
+    let ae = this.context.globalState.get<string>("ActiveEngine");
+    let e = this.getEngineInfo(ae);
+    if (!e) {
+      this.setActiveEngine(this.engines[0].label);
+      return this.engines[0];
+    }
+    return e;
+  }
+
+  public async setActiveEngine(engine: string | undefined) {
     let engines = this.engines;
     if (engine) {
       let es = engines.filter((e) => {
-        return e.label === engine!.label;
+        return e.label === engine;
       });
-      engine = es[0];
+      engine = es[0].label;
     }
     if (!engine) {
-      engine = engines[0];
+      engine = engines[0].label;
     }
-    this.context.globalState.update("engine", engine);
-  }
-
-  private async updateEngine() {
-    let engine = this.activeEngine;
-    if (engine && engine.validate) {
-      let token = await this.getApiKey(engine);
-      if (!token) {
-        return;
-      }
-      await this.checkUserExist(parseAuthInfo(token), engine);
-    }
-    this.activeEngine = engine;
+    await this.context.globalState.update("ActiveEngine", engine);
   }
 
   public get prompt(): Prompt[] {
@@ -212,72 +225,95 @@ export class Configuration {
     return builtinEngines.concat(es);
   }
 
-  public async username(engine: Engine): Promise<string | undefined> {
+  public async username(engine: string): Promise<string | undefined> {
     let token = await this.getApiKey(engine);
-    if (!token || !engine.validate) {
+    if (!token) {
+      return;
+    }
+    const engineInfo = this.getEngineInfo(engine);
+    if (!engineInfo || !engineInfo.sensetimeOnly) {
       return;
     }
     let info = parseAuthInfo(token);
     return info?.name;
   }
 
-  public async getApiKeyRaw(engine: Engine): Promise<string> {
+  public async avatar(engine: string): Promise<string | undefined> {
+    const engineInfo = this.getEngineInfo(engine);
+    if (!engineInfo || !engineInfo.sensetimeOnly) {
+      return;
+    }
+    if (engineInfo.avatar !== undefined) {
+      return engineInfo.avatar;
+    }
+    let token = await this.getApiKey(engine);
+    if (!token) {
+      return;
+    }
+    let info = parseAuthInfo(token);
+    await this.checkUserExist(info, engineInfo);
+    return engineInfo.avatar;
+  }
+
+  public async getApiKeyRaw(engine: string): Promise<string> {
     let token = await this.getApiKey(engine);
     if (!token) {
       return Promise.reject(Error("API Key not set"));
     }
-    if (!engine.validate) {
-      return token;
-    }
-    let info = parseAuthInfo(token);
-    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
-      {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        headers: { "PRIVATE-TOKEN": info?.token || "" }
-      })
-      .then(
-        async (res) => {
-          if (res?.data?.name === "kestrel.guest" && info?.aksk) {
-            return Buffer.from(info?.aksk, "base64").toString().trim();
+    const engineInfo = this.getEngineInfo(engine);
+    if (engineInfo && engineInfo.sensetimeOnly) {
+      let info = parseAuthInfo(token);
+      return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
+        {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          headers: { "PRIVATE-TOKEN": info?.token || "" }
+        })
+        .then(
+          async (res) => {
+            if (res?.data?.name === "kestrel.guest" && info?.aksk) {
+              return Buffer.from(info?.aksk, "base64").toString().trim();
+            }
+            throw (new Error("Invalid API Key"));
           }
-          throw (new Error("Invalid API Key"));
-        }
-      ).catch(async (error) => {
-        return Promise.reject(error);
-      });
+        ).catch(async (error) => {
+          return Promise.reject(error);
+        });
+    }
+    return token;
   }
 
-  public async getApiKey(engine: Engine): Promise<string | undefined> {
+  public async getApiKey(engine: string): Promise<string | undefined> {
     let value = await this.context.secrets.get("sensecode.token");
     if (value) {
       try {
         let tokens = JSON.parse(value);
-        let token = tokens[engine.label];
+        let token = tokens[engine];
         if (token) {
           return token;
         }
-        if (!token && !engine.validate) {
-          return engine.key;
+        if (!token) {
+          return this.getEngineInfo(engine)?.key;
         }
       } catch (e) {
 
       }
     } else {
-      return engine.key;
+      return this.getEngineInfo(engine)?.key;
     }
   }
 
-  public async setApiKey(engine: Engine | undefined, token: string | undefined): Promise<boolean> {
-    if (!engine) {
+  public async setApiKey(engine: string | undefined, token: string | undefined): Promise<boolean> {
+    let engineInfo = this.getEngineInfo(engine);
+    if (!engineInfo) {
       return false;
     }
     if (!token) {
-      engine.avatar = undefined;
+      engineInfo.avatar = undefined;
       let value = await this.context.secrets.get("sensecode.token");
       if (value) {
         try {
           let tokens = JSON.parse(value);
-          delete tokens[engine.label];
+          delete tokens[engineInfo.label];
           await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
           return true;
         } catch (e) {
@@ -286,17 +322,27 @@ export class Configuration {
       }
       return false;
     } else {
-      if (!engine.validate) {
-        await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
-        return true;
+      if (engineInfo.sensetimeOnly) {
+        let info = parseAuthInfo(token);
+        let ok = await this.checkUserExist(info, engineInfo);
+        if (!ok) {
+          return false;
+        }
       }
-      let info = parseAuthInfo(token);
-      let ok = await this.checkUserExist(info, engine);
-      if (ok) {
-        await this.context.secrets.store("sensecode.token", `{"${engine.label}": "${token}"}`);
-        return true;
+      let value = await this.context.secrets.get("sensecode.token");
+      if (!value) {
+        await this.context.secrets.store("sensecode.token", `{"${engineInfo.label}": "${token}"}`);
+      } else {
+        try {
+          let tokens = JSON.parse(value);
+          tokens[engineInfo.label] = token;
+          await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
+          return true;
+        } catch (e) {
+          return false;
+        };
       }
-      return false;
+      return true;
     }
   }
 
@@ -321,9 +367,13 @@ export class Configuration {
               })
               .then(
                 (res1) => {
-                  if (res1?.status === 200 && res1.data[0]) {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    return res1.data[0].avatar_url;
+                  if (res1?.status === 200) {
+                    if (res1.data[0]) {
+                      // eslint-disable-next-line @typescript-eslint/naming-convention
+                      return res1.data[0].avatar_url || "";
+                    } else {
+                      return "";
+                    }
                   }
                 }
               ).catch(async (_error) => {
@@ -339,8 +389,7 @@ export class Configuration {
         return false;
       }
     } catch (err) {
-      await this.setApiKey(engine, undefined);
-      engine.avatar = undefined;
+      await this.setApiKey(engine.label, undefined);
       throw (new Error("Invalid API Key"));
     }
   }

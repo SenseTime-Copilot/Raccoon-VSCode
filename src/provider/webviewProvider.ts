@@ -62,19 +62,19 @@ export class SenseCodeEditor extends Disposable {
     let completeLine = configuration.completeLine;
     let delay = configuration.delay;
     let candidates = configuration.candidates;
-    let activeEngine = configuration.activeEngine;
-    let key = activeEngine ? (activeEngine.key || await configuration.getApiKey(activeEngine)) : undefined;
+    const activeEngine = configuration.getActiveEngineInfo();
+    let key = activeEngine.key || await configuration.getApiKey(activeEngine.label);
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
     let es = configuration.engines;
-    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" ${activeEngine ? `value="${activeEngine.label}"` : ""}>`;
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${activeEngine.label}">`;
     for (let e of es) {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
-    let username = activeEngine ? activeEngine.label + " User" : undefined;
-    if (!activeEngine?.key) {
-      username = activeEngine ? await configuration.username(activeEngine) : undefined;
+    let username: string | undefined = await configuration.username(activeEngine.label);
+    if (!username && key) {
+      username = l10n.t("{0} User", activeEngine.label);
     }
     let accountInfo = `
         <div class="flex gap-2 items-center">
@@ -82,10 +82,11 @@ export class SenseCodeEditor extends Disposable {
           <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
         </div>
         `;
-    if (activeEngine?.avatar) {
+    let avatar = await configuration.avatar(activeEngine.label);
+    if (avatar) {
       accountInfo = `
         <div class="flex gap-2 items-center">
-          <img class="w-10 h-10 rounded-full" src="${activeEngine.avatar}" />
+          <img class="w-10 h-10 rounded-full" src="${avatar}" />
           <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
         </div>
         `;
@@ -110,7 +111,7 @@ export class SenseCodeEditor extends Disposable {
         let maskCharCnt = Math.min(len - (showCharCnt * 2), 12);
         keyMasked = `${key.slice(0, showCharCnt)}${'*'.repeat(maskCharCnt)}${key.slice(-1 * showCharCnt)}`;
       }
-      if (activeEngine?.key) {
+      if (activeEngine.key) {
         keycfg = `
           <span class="flex">
             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("API Key that in settings is adopted")}">password</span>
@@ -302,19 +303,13 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'activeEngine': {
-          let ae = configuration.engines.filter((e) => {
-            return e.label === data.value;
-          });
-          let e = ae[0];
-          if (configuration.activeEngine === undefined || !e || configuration.activeEngine.label !== e.label) {
-            configuration.activeEngine = e;
-            this.updateSettingPage("full");
-          }
+          configuration.setActiveEngine(data.value);
+          this.updateSettingPage("full");
           break;
         }
         case 'setKey': {
           await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-            configuration.setApiKey(configuration.activeEngine, v).then((ok) => {
+            configuration.setApiKey(configuration.getActiveEngine(), v).then((ok) => {
               if (!ok) {
                 this.sendMessage({ type: 'showError', category: 'invalid-key', value: l10n.t("Invalid API Key"), id: new Date().valueOf() });
               }
@@ -325,18 +320,16 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'clearKey': {
-          if (configuration.activeEngine) {
-            let label = configuration.activeEngine.label;
-            window.showWarningMessage(
-              l10n.t("Clear API Key for {0} from Secret Storage?", label),
-              { modal: true },
-              l10n.t("Clear"))
-              .then((v) => {
-                if (v === l10n.t("Clear")) {
-                  configuration.setApiKey(configuration.activeEngine, undefined);
-                }
-              });
-          }
+          let ae = configuration.getActiveEngine();
+          window.showWarningMessage(
+            l10n.t("Clear API Key for {0} from Secret Storage?", ae),
+            { modal: true },
+            l10n.t("Clear"))
+            .then((v) => {
+              if (v === l10n.t("Clear")) {
+                configuration.setApiKey(ae, undefined);
+              }
+            });
           break;
         }
         case 'triggerMode': {
@@ -543,23 +536,19 @@ ${data.info.response}
 
     let rs: GetCodeCompletions | IncomingMessage;
     try {
-      let activeEngine: Engine | undefined = configuration.activeEngine;
-      if (!activeEngine) {
-        this.sendMessage({ type: 'showError', category: 'engin-not-set', value: l10n.t("Active engine not set"), id });
-        return;
-      }
+      let activeEngine = configuration.getActiveEngine();
       let apikey = await configuration.getApiKey(activeEngine);
       if (!apikey) {
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
       }
-      if (prompt.type !== "free chat" && (!code || code === "")) {
+      if (prompt.type !== "free chat" && (!code)) {
         this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
         return;
       }
       let username = await configuration.username(activeEngine);
-      let avatar = activeEngine.avatar;
-      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp });
+      let avatar = await configuration.avatar(activeEngine);
+      this.sendMessage({ type: 'addQuestion', username, avatar: avatar || undefined, value: promptClone, code, lang, send, id, streaming, timestamp });
       if (!send) {
         return;
       }
@@ -578,7 +567,7 @@ ${data.info.response}
         codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       }
       this.stopList[id] = new AbortController();
-      rs = await getCodeCompletions(activeEngine, `${prefix}\n${codeStr}\n${suffix}`, 1, streaming, this.stopList[id].signal);
+      rs = await getCodeCompletions(configuration.getActiveEngineInfo(), `${prefix}\n${codeStr}\n${suffix}`, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
@@ -613,7 +602,7 @@ ${data.info.response}
               data.destroy();
               return;
             }
-            if (content === "") {
+            if (!content) {
               continue;
             }
             if (errorFlag) {
