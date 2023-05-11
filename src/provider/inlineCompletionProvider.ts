@@ -154,23 +154,6 @@ export function inlineCompletionProvider(
         );
       }
       let textBeforeCursor = document.getText(selection);
-      if (
-        position.character === 0 &&
-        textBeforeCursor[textBeforeCursor.length - 1] !== "\n"
-      ) {
-        textBeforeCursor += "\n";
-      }
-      if (vscode.window.activeNotebookEditor) {
-        const cells =
-          vscode.window.activeNotebookEditor.notebook.getCells();
-        const currentCell =
-          vscode.window.activeNotebookEditor.selection.start;
-        let str = "";
-        for (let i = 0; i < currentCell; i++) {
-          str += cells[i].document.getText().trimEnd() + "\n";
-        }
-        textBeforeCursor = str + textBeforeCursor;
-      }
       if (!textBeforeCursor.trim()) {
         updateStatusBarItem(statusBarItem);
         return;
@@ -181,7 +164,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      if (textBeforeCursor.length > 8 || context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
+      if (textBeforeCursor.length > 0 || context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
         let requestId = new Date().getTime();
         lastRequest = requestId;
         if (lastRequest !== requestId) {
@@ -198,10 +181,34 @@ export function inlineCompletionProvider(
               keep: true
             }
           );
-          // TODO: AST parse to ensure truncate at appropriate postion
+          let foldings: vscode.FoldingRange[] = await vscode.commands.executeCommand("vscode.executeFoldingRangeProvider", document.uri);
+          let cutLinePoints = [0];
+          if (foldings) {
+            let cursorY = position.line;
+            let lastEnd = foldings[0].end;
+            for (let r of foldings) {
+              if (r.start < cursorY && r.end >= cursorY) {
+                cutLinePoints.push(r.start);
+              }
+              if (r.start > lastEnd) {
+                cutLinePoints.push(r.start);
+                lastEnd = r.end;
+              }
+            }
+          }
           let maxTokens = activeEngine.config.max_tokens || 1024;
-          if (textBeforeCursor.length > (maxTokens * 4)) {
-            textBeforeCursor = textBeforeCursor.slice(-4 * maxTokens);
+          let pos = 1;
+          let start = cutLinePoints.length > pos ? cutLinePoints[pos] : 1;
+          while (textBeforeCursor.length > (maxTokens * 4)) {
+            let subsec = new vscode.Selection(
+              start,
+              0,
+              position.line,
+              position.character
+            );
+            textBeforeCursor = document.getText(subsec);
+            pos++;
+            start = cutLinePoints.length > pos ? cutLinePoints[pos] : start + 1;
           }
           let engine = { ...activeEngine };
           engine.config = { ...activeEngine.config };
@@ -256,7 +263,7 @@ Task type: code completion. Please complete the following code, just response co
           updateStatusBarItem(
             statusBarItem,
             {
-              text: "$(bracket)",
+              text: "$(array)",
               tooltip: vscode.l10n.t("No completion suggestion")
             }
           );
@@ -303,8 +310,8 @@ Task type: code completion. Please complete the following code, just response co
             }
             let insertText = data.completions[i].split("Explanation:")[0];
             if (configuration.completeLine) {
+              let lines = insertText.split('\n');
               insertText = "";
-              let lines = data.completions[i].split('\n');
               let ln = 0;
               for (let line of lines) {
                 if (!line.trim()) {
@@ -324,6 +331,9 @@ Task type: code completion. Please complete the following code, just response co
                 break;
               }
             }
+            if (!insertText.trim()) {
+              continue;
+            }
             let command = {
               title: "suggestion-accepted",
               command: "sensecode.onSuggestionAccepted",
@@ -341,18 +351,18 @@ Task type: code completion. Please complete the following code, just response co
               insertText,
               // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
               range: new vscode.Range(
-                position.translate(0, data.completions.length),
+                position.translate(0, insertText.length),
                 position
               ),
               command
             });
-            trie.addWord(textBeforeCursor + data.completions[i]);
+            trie.addWord(textBeforeCursor + insertText);
           }
-          if (data.completions.length === 0) {
+          if (items.length === 0) {
             updateStatusBarItem(
               statusBarItem,
               {
-                text: "$(bracket)",
+                text: "$(array)",
                 tooltip: vscode.l10n.t("No completion suggestion")
               }
             );

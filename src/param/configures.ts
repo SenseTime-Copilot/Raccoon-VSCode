@@ -258,7 +258,7 @@ export class Configuration {
   public async getApiKeyRaw(engine: string): Promise<string> {
     let token = await this.getApiKey(engine);
     if (!token) {
-      return Promise.reject(Error("API Key not set"));
+      return Promise.reject(Error(l10n.t("API Key not set")));
     }
     const engineInfo = this.getEngineInfo(engine);
     if (engineInfo && engineInfo.sensetimeOnly) {
@@ -273,7 +273,7 @@ export class Configuration {
             if (res?.data?.name === "kestrel.guest" && info?.aksk) {
               return Buffer.from(info?.aksk, "base64").toString().trim();
             }
-            throw (new Error("Invalid API Key"));
+            throw (new Error(l10n.t("Invalid API Key")));
           }
         ).catch(async (error) => {
           return Promise.reject(error);
@@ -390,7 +390,7 @@ export class Configuration {
       }
     } catch (err) {
       await this.setApiKey(engine.label, undefined);
-      throw (new Error("Invalid API Key"));
+      throw (new Error(l10n.t("Invalid API Key")));
     }
   }
 
