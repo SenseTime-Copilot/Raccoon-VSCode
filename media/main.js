@@ -184,7 +184,7 @@ const vscode = acquireVsCodeApi();
         let code = message.code + "" || "";
         let lang = message.lang + "" || "";
         let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-                    <span class="flex items-center gap-2 opacity-50">
+                    <span class="flex items-center gap-2 opacity-30">
                       <div class="spinner thinking">
                           <span class="material-symbols-rounded">autorenew</span>
                       </div>
@@ -201,13 +201,13 @@ const vscode = acquireVsCodeApi();
         if (message.streaming === true) {
           progress = `
           <div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-            <span class="flex items-center gap-2 opacity-50">
+            <span class="flex items-center gap-2 opacity-30">
               <div class="spinner connecting">
                 <span class="material-symbols-rounded">autorenew</span>
               </div>
               <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
               <div class="spinner typing">
-                <span class="material-symbols-rounded">auto_mode</span>
+                <span class="material-symbols-rounded">magic_exchange</span>
               </div>
               <div class="typing-text">${l10nForUI["Typing..."]}</div>
             </span>
@@ -601,7 +601,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (e.target.id === 'candidates') {
-      vscode.postMessage({ type: "candidates", value: (parseInt(e.target.dataset.value) + 2) % 4 });
+      vscode.postMessage({ type: "candidates", value: (parseInt(e.target.dataset.value) + 1) % 4 });
       return;
     }
 

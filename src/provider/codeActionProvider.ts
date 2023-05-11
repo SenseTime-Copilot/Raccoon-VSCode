@@ -23,6 +23,16 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       let name = `SenseCode: ${custom}${p.label}${ellip}`;
       actions.push(new vscode.CodeAction(name, vscode.CodeActionKind.QuickFix.append('sensecode')));
     }
+    /*
+    let diagnostics = vscode.languages.getDiagnostics(document.uri);
+    for (let diagnostic of diagnostics) {
+      if ((diagnostic.severity === vscode.DiagnosticSeverity.Error || diagnostic.severity === vscode.DiagnosticSeverity.Warning) && range.intersection(diagnostic.range)) {
+        let a = new vscode.CodeAction(`SenseCode: Help to ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append('sensecode.diagnostic'));
+        a.diagnostics = [diagnostic];
+        actions.push(a);
+      }
+    }
+    */
     return actions;
   }
 
@@ -32,6 +42,11 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     let ps = configuration.prompt;
     let label = codeAction.title.slice(11);
     let prompt: Prompt | undefined = undefined;
+    /*
+    if (codeAction.kind?.contains(vscode.CodeActionKind.QuickFix.append('sensecode.diagnostic'))) {
+
+    }
+    */
     for (let p of ps) {
       if (p.label === label) {
         prompt = p;

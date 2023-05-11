@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
-import { Engine, Prompt } from '../param/configures';
+import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 
@@ -78,7 +78,7 @@ export class SenseCodeEditor extends Disposable {
     }
     let accountInfo = `
         <div class="flex gap-2 items-center">
-          <span class="material-symbols-rounded" style="font-size: 40px">account_circle</span>
+          <span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>
           <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
         </div>
         `;
@@ -132,7 +132,7 @@ export class SenseCodeEditor extends Disposable {
       }
     }
     let settingPage = `
-    <div id="settings" class="h-screen flex flex-col gap-2 mx-auto p-4 max-w-sm">
+    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
       </div>
@@ -200,7 +200,7 @@ export class SenseCodeEditor extends Disposable {
       </div>
       <div class="ml-6 my-2">
         <label slot="label">${l10n.t("Suggestion Settings")}</label>
-        <div class="select-none w-64 my-2">
+        <div class="w-64 my-2">
           <span id="candidates" class="material-symbols-rounded mx-1">format_list_numbered</span>
           ${l10n.t("Candidate Number")}
           <span id="candidatesBtn">
@@ -228,13 +228,13 @@ export class SenseCodeEditor extends Disposable {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Advanced")}</b>
       <div class="ml-4">
-        <div class="flex flex-row my-2 px-2 gap-2 select-none">
+        <div class="flex flex-row my-2 px-2 gap-2">
           <span>${l10n.t("Custom prompt")}</span>
           <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">auto_fix</span></vscode-link>
         </div>
       </div>
       <div class="ml-4">
-        <div class="flex flex-row my-2 px-2 gap-2 select-none">
+        <div class="flex flex-row my-2 px-2 gap-2">
           <span>${l10n.t("Clear all settings")}</span>
           <vscode-link style="margin: -1px 0;"><span id="clearAll" class="material-symbols-rounded">settings_power</span></vscode-link>
         </div>
@@ -285,12 +285,24 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'editCode': {
+          let found = false;
           let docUri = this.lastTextEditor?.document.uri;
           if (docUri) {
-            this.lastTextEditor?.insertSnippet(new SnippetString(data.value)).then(async (_v) => {
-              await new Promise((f) => setTimeout(f, 200));
-              commands.executeCommand("editor.action.formatDocument", docUri);
-            });
+            let tgs = window.tabGroups.all;
+            for (let tg of tgs) {
+              for (let t of tg.tabs) {
+                if (t.isActive && (t.input instanceof TabInputText || t.input instanceof TabInputNotebook) && t.input.uri.toString() === docUri.toString()) {
+                  found = true;
+                  this.lastTextEditor?.insertSnippet(new SnippetString(data.value)).then(async (_v) => {
+                    await new Promise((f) => setTimeout(f, 200));
+                    commands.executeCommand("editor.action.formatDocument", docUri);
+                  }, () => { });
+                }
+              }
+            }
+          }
+          if (!found) {
+            this.sendMessage({ type: 'showError', category: 'no-active-editor', value: l10n.t("No active editor found"), id: new Date().valueOf() });
           }
           break;
         }
@@ -684,7 +696,7 @@ ${data.info.response}
             <body class="overflow-hidden">
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
-                    <div id="cover" class="flex flex-col gap-2 overflow-auto">
+                    <div id="cover" class="flex flex-col gap-2 overflow-auto select-none">
                       <div id="Penrose" style="-webkit-mask-image: url(${logo});"></div>
                       <div id="Penrose-text" class="text-2xl font-bold text-center mb-6">${l10n.t("SenseCode")}</div>
                       <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto"></div>
@@ -718,7 +730,7 @@ ${data.info.response}
                     "Cancel": "${l10n.t("Cancel [Esc]")}",
                     "Send": "${l10n.t("Send this prompt [Ctrl+Enter]")}",
                     "Copy": "${l10n.t("Copy to clipboard")}",
-                    "Insert": "${l10n.t("Insert the below code to the current file")}",
+                    "Insert": "${l10n.t("Insert the below code at cursor")}",
                     "NewFile": "${l10n.t("Create a new file with the below code")}",
                     "Thinking...": "${l10n.t("Thinking...")}",
                     "Connecting...": "${l10n.t("Connecting...")}",

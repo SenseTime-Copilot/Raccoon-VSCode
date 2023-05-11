@@ -142,6 +142,7 @@ textarea::placeholder {
 .avatar {
     color: var(--vscode-icon-foreground);
     align-items: center;
+    user-select: none;
 }
 
 .avatar .material-symbols-rounded {
@@ -256,6 +257,7 @@ textarea::placeholder {
 }
 
 #chat-button-wrapper {
+    user-select: none;
     box-shadow: 0 0 8px var(--vscode-widget-shadow);
     background-color: var(--vscode-minimapSlider-background);
 }
@@ -281,6 +283,10 @@ textarea::placeholder {
 
 #shortcuts {
     display: flex;
+}
+
+#shortcuts .material-symbols-rounded {
+    font-variation-settings: 'opsz' 48;
 }
 
 #error-wrapper {
@@ -437,6 +443,10 @@ button.disabled,
     border-bottom: 10px dotted var(--vscode-sideBar-background);
 }
 
+.progress {
+    user-select: none;
+}
+
 .progress .typing,
 .progress .typing-text {
     display: none;
@@ -454,9 +464,10 @@ button.disabled,
 
 button.stopGenerate,
 .feedback button {
+    user-select: none;
     background: transparent !important;
     border: none;
-    opacity: 0.5;
+    opacity: 0.3;
 }
 
 .stopGenerate:focus,
@@ -467,7 +478,7 @@ button.stopGenerate,
 
 .regenerate.pointer-events-none {
     transition-duration: 0.6s;
-    opacity: 0.3;
+    opacity: 0.15;
 }
 
 .regenerate.pointer-events-none span {
@@ -1276,6 +1287,7 @@ button.stopGenerate,
     display: flex;
     justify-content: flex-end;
     transition-duration: 0.2s;
+    user-select: none;
 }
 
 .code-actions-wrapper button {
