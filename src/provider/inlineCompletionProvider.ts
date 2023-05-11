@@ -196,10 +196,15 @@ export function inlineCompletionProvider(
               }
             }
           }
-          let maxTokens = activeEngine.config.max_tokens || 1024;
+          let engine = { ...activeEngine };
+          engine.config = { ...activeEngine.config };
+          if (configuration.completeLine) {
+            engine.config.max_tokens = 32;
+          }
+          let maxLength = Math.max(engine.config.max_tokens * 4 || 4096, 1024);
           let pos = 1;
           let start = cutLinePoints.length > pos ? cutLinePoints[pos] : 1;
-          while (textBeforeCursor.length > (maxTokens * 4)) {
+          while (textBeforeCursor.length > (maxLength)) {
             let subsec = new vscode.Selection(
               start,
               0,
@@ -209,11 +214,6 @@ export function inlineCompletionProvider(
             textBeforeCursor = document.getText(subsec);
             pos++;
             start = cutLinePoints.length > pos ? cutLinePoints[pos] : start + 1;
-          }
-          let engine = { ...activeEngine };
-          engine.config = { ...activeEngine.config };
-          if (configuration.completeLine) {
-            engine.config.max_tokens = 32;
           }
           let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: getDocumentLanguage(document.languageId) })}`;
           let suffix = ``;
