@@ -183,7 +183,7 @@ export function inlineCompletionProvider(
           );
           let foldings: vscode.FoldingRange[] = await vscode.commands.executeCommand("vscode.executeFoldingRangeProvider", document.uri);
           let cutLinePoints = [0];
-          if (foldings) {
+          if (foldings && foldings.length > 0) {
             let cursorY = position.line;
             let lastEnd = foldings[0].end;
             for (let r of foldings) {
