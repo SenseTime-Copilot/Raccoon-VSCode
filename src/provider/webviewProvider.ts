@@ -62,6 +62,7 @@ export class SenseCodeEditor extends Disposable {
     let completeLine = configuration.completeLine;
     let delay = configuration.delay;
     let candidates = configuration.candidates;
+    let tokenPropensity = configuration.tokenPropensity;
     const activeEngine = configuration.getActiveEngineInfo();
     let key = activeEngine.key || await configuration.getApiKey(activeEngine.label);
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
@@ -199,15 +200,26 @@ export class SenseCodeEditor extends Disposable {
         </div>
       </div>
       <div class="ml-6 my-2">
-        <label slot="label">${l10n.t("Suggestion Settings")}</label>
+        <b>${l10n.t("Suggestion Settings")}</b>
         <div class="w-64 my-2">
-          <span id="candidates" class="material-symbols-rounded mx-1">format_list_numbered</span>
-          ${l10n.t("Candidate Number")}
-          <span id="candidatesBtn">
-            <vscode-link style="margin: -4px 0;" title="${l10n.t("Show {0} candidate snippet(s)", candidates)}">
-              <span id="candidates" class="material-symbols-rounded" data-value=${candidates}>${candidates === 1 ? "looks_one" : `filter_${candidates}`}</span>
-            </vscode-link>
-          </span>
+          <div class="flex flex-row my-2 px-2 gap-2">
+            <span class="material-symbols-rounded mx-1">format_list_numbered</span>
+            ${l10n.t("Candidate Number")}
+            <span id="candidatesBtn" class="flex items-center">
+              <vscode-link style="margin: -4px 0;" title="${l10n.t("Show {0} candidate snippet(s)", candidates)}">
+                <span id="candidates" class="material-symbols-rounded" data-value=${candidates}>${candidates === 1 ? "looks_one" : `filter_${candidates}`}</span>
+              </vscode-link>
+            </span>
+          </div>
+          <div class="flex flex-row my-2 px-2 gap-2">
+            <span class="material-symbols-rounded mx-1">generating_tokens</span>
+            ${l10n.t("Token Propensity")}
+            <span id="tokenPropensityBtn" class="flex items-center">
+              <vscode-link style="margin: -4px 0;" title="${l10n.t("Use {0}% tokens to prompt, {1}% tokens to generate response", tokenPropensity, 100 - tokenPropensity)}">
+                <span id="tokenPropensity" class="material-symbols-rounded" data-value=${tokenPropensity}>clock_loader_${tokenPropensity}</span>
+              </vscode-link>
+            </span>
+          </div>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -232,8 +244,6 @@ export class SenseCodeEditor extends Disposable {
           <span>${l10n.t("Custom prompt")}</span>
           <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">auto_fix</span></vscode-link>
         </div>
-      </div>
-      <div class="ml-4">
         <div class="flex flex-row my-2 px-2 gap-2">
           <span>${l10n.t("Clear all settings")}</span>
           <vscode-link style="margin: -1px 0;"><span id="clearAll" class="material-symbols-rounded">settings_power</span></vscode-link>
@@ -377,6 +387,17 @@ export class SenseCodeEditor extends Disposable {
             data.value = 1;
           }
           configuration.candidates = data.value;
+          this.updateSettingPage();
+          break;
+        }
+        case 'tokenPropensity': {
+          if (data.value <= 0) {
+            data.value = 20;
+          }
+          if (data.value >= 100) {
+            data.value = 80;
+          }
+          configuration.tokenPropensity = Math.floor(data.value / 20) * 20;
           this.updateSettingPage();
           break;
         }
@@ -530,7 +551,7 @@ ${data.info.response}
     });
   }
 
-  public async sendApiRequest(prompt: Prompt, code?: string, lang?: string) {
+  public async sendApiRequest(prompt: Prompt, code: string, lang?: string) {
     let response: string;
     let ts = new Date();
     let id = ts.valueOf();
@@ -545,6 +566,13 @@ ${data.info.response}
 
     let promptClone = { ...prompt };
     promptClone.prompt = instruction;
+
+    let engine = configuration.getActiveEngineInfo();
+
+    if (code.length > configuration.tokenForPrompt(engine.label) * 3) {
+      this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
+      return;
+    }
 
     let rs: GetCodeCompletions | IncomingMessage;
     try {
@@ -579,7 +607,7 @@ ${data.info.response}
         codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       }
       this.stopList[id] = new AbortController();
-      rs = await getCodeCompletions(configuration.getActiveEngineInfo(), `${prefix}\n${codeStr}\n${suffix}`, 1, streaming, this.stopList[id].signal);
+      rs = await getCodeCompletions(engine, `${prefix}\n${codeStr}\n${suffix}`, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
@@ -765,7 +793,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
   }
 
-  public static async ask(prompt: Prompt, code?: string, lang?: string) {
+  public static async ask(prompt: Prompt, code: string, lang?: string) {
     commands.executeCommand('sensecode.view.focus');
     while (!SenseCodeViewProvider.eidtor) {
       await new Promise((f) => setTimeout(f, 1000));

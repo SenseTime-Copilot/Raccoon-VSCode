@@ -5,6 +5,8 @@ export interface Engine {
   label: string;
   url: string;
   config: any;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  token_limit: number;
   key?: string;
   avatar?: string;
   sensetimeOnly?: boolean;
@@ -56,6 +58,8 @@ const builtinEngines: Engine[] = [
       stop: "\n\n",
       temperature: 0.8
     },
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    token_limit: 2048,
     sensetimeOnly: true
   },
   {
@@ -68,7 +72,9 @@ const builtinEngines: Engine[] = [
       max_tokens: 1200,
       stop: "\n\n",
       temperature: 0.8
-    }
+    },
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    token_limit: 2048,
   }
 ];
 
@@ -156,6 +162,7 @@ export class Configuration {
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
+    this.context.globalState.update("tokenPropensity", undefined);
     this.context.globalState.update("CompleteLine", undefined);
     this.context.globalState.update("delay", undefined);
     this.configuration.update("Engines", undefined, true);
@@ -416,6 +423,24 @@ export class Configuration {
 
   public set candidates(v: number) {
     this.context.globalState.update("Candidates", v);
+  }
+
+  public get tokenPropensity(): number {
+    return this.context.globalState.get("tokenPropensity", 60);
+  }
+
+  public set tokenPropensity(v: number) {
+    this.context.globalState.update("tokenPropensity", v);
+  }
+
+  public tokenForPrompt(engine?: string): number {
+    let e = this.getEngineInfo(engine);
+    if (e) {
+      let mt = e.token_limit;
+      let r = this.tokenPropensity;
+      return Math.max(24, Math.floor(mt * r / 100));
+    }
+    return 0;
   }
 
   public set completeLine(v: boolean) {

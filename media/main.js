@@ -605,6 +605,11 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
+    if (e.target.id === 'tokenPropensity') {
+      vscode.postMessage({ type: "tokenPropensity", value: (parseInt(e.target.dataset.value) + 20) % 100 });
+      return;
+    }
+
     if (e.target.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
       return;

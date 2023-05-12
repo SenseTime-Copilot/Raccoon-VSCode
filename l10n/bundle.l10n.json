@@ -51,6 +51,8 @@
   "Suggestion Settings": "Suggestion Settings",
   "Candidate Number": "Candidate Number",
   "Show {0} candidate snippet(s)": "Show {0} candidate snippet(s)",
+  "Token Propensity": "Token Propensity",
+  "Use {0}% tokens to prompt, {1}% tokens to generate response": "Use {0}% tokens to prompt, {1}% tokens to generate response",
   "Print": "Print",
   "Direct print completion code to editor, the cadidate number setting in `engine.config` will be ignored": "Direct print completion code to editor, the cadidate number setting in `engine.config` will be ignored",
   "Code assistant": "Code assistant",

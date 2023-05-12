@@ -54,6 +54,11 @@
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.key%"
                                 },
+                                "token_limit": {
+                                    "type": "number",
+                                    "minimum": 1,
+                                    "description": "%sensecode.config.engines.engine.token_limit%"
+                                },
                                 "config": {
                                     "type": "object",
                                     "description": "%sensecode.config.engines.engine.config%"

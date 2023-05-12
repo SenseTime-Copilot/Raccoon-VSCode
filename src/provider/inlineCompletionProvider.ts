@@ -141,21 +141,16 @@ export function inlineCompletionProvider(
       }
 
       showHideStatusBtn(document, statusBarItem);
-      let selection: vscode.Selection = editor.selection;
+
+      const activeEngine: Engine = configuration.getActiveEngineInfo();
+      let engine = { ...activeEngine };
+      engine.config = { ...activeEngine.config };
+      if (configuration.completeLine) {
+        engine.config.max_tokens = 32;
+      }
+
       if (!editor.selection.isEmpty) {
         vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
-        return;
-      } else {
-        selection = new vscode.Selection(
-          0,
-          0,
-          position.line,
-          position.character
-        );
-      }
-      let textBeforeCursor = document.getText(selection);
-      if (!textBeforeCursor.trim()) {
-        updateStatusBarItem(statusBarItem);
         return;
       }
 
@@ -164,6 +159,13 @@ export function inlineCompletionProvider(
         return;
       }
 
+      let maxLength = configuration.tokenForPrompt(engine.label) * 3;
+      let textBeforeCursor = await captureCode(document, new vscode.Selection(0, 0, position.line, position.character), maxLength);
+
+      if (!textBeforeCursor) {
+        updateStatusBarItem(statusBarItem);
+        return;
+      }
       if (textBeforeCursor.length > 0 || context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
         let requestId = new Date().getTime();
         lastRequest = requestId;
@@ -172,7 +174,6 @@ export function inlineCompletionProvider(
         }
         let rs: GetCodeCompletions | any;
         try {
-          const activeEngine: Engine = configuration.getActiveEngineInfo();
           updateStatusBarItem(
             statusBarItem,
             {
@@ -181,40 +182,6 @@ export function inlineCompletionProvider(
               keep: true
             }
           );
-          let foldings: vscode.FoldingRange[] = await vscode.commands.executeCommand("vscode.executeFoldingRangeProvider", document.uri);
-          let cutLinePoints = [0];
-          if (foldings && foldings.length > 0) {
-            let cursorY = position.line;
-            let lastEnd = foldings[0].end;
-            for (let r of foldings) {
-              if (r.start < cursorY && r.end >= cursorY) {
-                cutLinePoints.push(r.start);
-              }
-              if (r.start > lastEnd) {
-                cutLinePoints.push(r.start);
-                lastEnd = r.end;
-              }
-            }
-          }
-          let engine = { ...activeEngine };
-          engine.config = { ...activeEngine.config };
-          if (configuration.completeLine) {
-            engine.config.max_tokens = 32;
-          }
-          let maxLength = Math.max(engine.config.max_tokens * 4 || 4096, 1024);
-          let pos = 1;
-          let start = cutLinePoints.length > pos ? cutLinePoints[pos] : 1;
-          while (textBeforeCursor.length > (maxLength)) {
-            let subsec = new vscode.Selection(
-              start,
-              0,
-              position.line,
-              position.character
-            );
-            textBeforeCursor = document.getText(subsec);
-            pos++;
-            start = cutLinePoints.length > pos ? cutLinePoints[pos] : start + 1;
-          }
           let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: getDocumentLanguage(document.languageId) })}`;
           let suffix = ``;
           prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
@@ -382,3 +349,44 @@ Task type: code completion. Please complete the following code, just response co
   };
   return provider;
 }
+
+export async function captureCode(document: vscode.TextDocument, selection: vscode.Selection, maxLength: number) {
+  let text = document.getText(selection);
+  if (!text.trim()) {
+    return;
+  }
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  let foldings: vscode.FoldingRange[] = await vscode.commands.executeCommand("vscode.executeFoldingRangeProvider", document.uri);
+  let cutLinePoints = [0];
+  if (foldings && foldings.length > 0) {
+    let cursorY = selection.end.line;
+    let lastEnd = foldings[0].end;
+    for (let r of foldings) {
+      if (r.start < cursorY && r.end >= cursorY) {
+        cutLinePoints.push(r.start);
+      }
+      if (r.start > lastEnd) {
+        cutLinePoints.push(r.start);
+        lastEnd = r.end;
+      }
+    }
+  }
+  let pos = 1;
+  let start = cutLinePoints.length > pos ? cutLinePoints[pos] : 1;
+  while (text.length > (maxLength)) {
+    let subsec = new vscode.Selection(
+      start,
+      0,
+      selection.end.line,
+      selection.end.character
+    );
+    text = document.getText(subsec);
+    pos++;
+    start = cutLinePoints.length > pos ? cutLinePoints[pos] : start + 1;
+  }
+  return text;
+}
+
