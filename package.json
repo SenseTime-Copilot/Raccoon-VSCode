@@ -183,6 +183,7 @@
         "@vscode/test-electron": "^2.1.5",
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
+        "jwt-decode": "^3.1.2",
         "axios": "^0.24.0",
         "crypto": "^1.0.1",
         "eslint": "^8.20.0",

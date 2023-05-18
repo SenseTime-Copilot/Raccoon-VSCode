@@ -24,13 +24,14 @@ const vscode = acquireVsCodeApi();
   const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
-  const cancelIcon = `<span class="material-symbols-rounded">cancel</span>`;
-  const sendIcon = `<span class="material-symbols-rounded">send</span>`;
+  const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
   const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
   var prompts = undefined;
+
+  document.getElementById("question-input").disabled = true;
 
   collectInfo = function (id, action) {
     var promptNode = document.getElementById(`prompt-${id}`);
@@ -71,23 +72,10 @@ const vscode = acquireVsCodeApi();
   window.addEventListener("message", (event) => {
     const message = event.data;
     const list = document.getElementById("qa-list");
-    const asklist = document.getElementById("ask-list");
 
     switch (message.type) {
       case 'showError': {
         addError(message);
-        break;
-      }
-      case 'enableAsk': {
-        if (message.value) {
-          // document.getElementById("shortcuts").classList.remove("disabled");
-          // document.getElementById("ask-list").classList.remove("disabled");
-          // document.getElementById("ask-button").classList.remove("disabled");
-        } else {
-          // document.getElementById("shortcuts").classList.add("disabled");
-          // document.getElementById("ask-list").classList.add("disabled");
-          // document.getElementById("ask-button").classList.add("disabled");
-        }
         break;
       }
       case "updateSettingPage": {
@@ -97,8 +85,6 @@ const vscode = acquireVsCodeApi();
           break;
         }
         if (message.action === "open" || message.action === "toogle" || settings) {
-          asklist.classList.add("hidden");
-          document.getElementById("ask-button").classList.remove("open");
           if (!settings || message.action === "full") {
             const sp = document.getElementById("setting-page");
             sp.innerHTML = message.value;
@@ -121,7 +107,7 @@ const vscode = acquireVsCodeApi();
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>';
+        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:workbench.action.openGlobalSettings?%7B%22query%22%3A%22SenseCode.Prompt%22%7D"><span class="material-symbols-rounded">add</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
           let ellip = "";
@@ -130,50 +116,27 @@ const vscode = acquireVsCodeApi();
             ellip = "...";
             brush = false;
           }
-          shortcuts += `  <button class="grow flex flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32 ${brush ? "with-brush" : ""}"
+          shortcuts += `  <button class="flex gap-2 items-center ${brush ? "with-brush" : ""}"
+                                        title='${p.type !== "custom" ? p.prompt + ": ${code}" : p.prompt}'
                                         onclick='vscode.postMessage({
-                                            type: "repareQuestion",
+                                            type: "prepareQuestion",
                                             value: ${JSON.stringify(p)}
                                         });
                           '>
-                            <span class="material-symbols-rounded text-2xl">${icon}</span>
+                            <span class="material-symbols-rounded">${icon}</span>
                             ${p.label}${ellip}
                           </button>
                       `;
         }
-        document.getElementById("ask-list").innerHTML = shortcuts +
-          `<button class="shortcut grow flex-col gap-2 justify-center items-center rounded-lg m-2 p-2 w-32"
-                      onclick="vscode.postMessage({
-                          type: 'repareQuestion',
-                          value: {type: 'code Q&A', prompt: '\${input:${l10nForUI["Question Here..."]}}'}
-                      });"
-            >
-          <span class="material-symbols-rounded text-2xl">chat</span>
-          ${l10nForUI["Code Q&A"]}
-        </button>
-        `;
-
-        shortcuts += `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-                      <button class="shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
-                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'code Q&A', prompt: '\${input:${l10nForUI["Question Here..."]}}'}});">
-                        <span class="material-symbols-rounded text-2xl">chat</span>
-                        ${l10nForUI["Code Q&A"]}
-                      </button>
-                      <button class="shortcut chat-shortcut gap-2 justify-center items-center rounded-lg m-2 p-2 w-full"
-                              onclick="vscode.postMessage({type: 'repareQuestion', value: {type: 'free chat', prompt: '\${input:${l10nForUI["Question Here..."]}}'}});">
-                        <span class="material-symbols-rounded text-2xl">chat_bubble</span>
-                        ${l10nForUI["Free chat"]}
-                      </button>`;
-        document.getElementById("shortcuts").innerHTML = shortcuts;
-
+        document.getElementById("ask-list").innerHTML = shortcuts;
+        document.getElementById("question-input").disabled = false;
+        document.getElementById("question-input").focus();
         break;
       }
       case "addQuestion": {
         document.getElementById('settings')?.remove();
-
-        document.getElementById("cover")?.classList?.add("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("hidden");
-
+        document.getElementById("ask-list").classList.add("hidden");
+        document.getElementById("question-input").value = "";
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
           e.remove();
@@ -226,9 +189,7 @@ const vscode = acquireVsCodeApi();
         }
 
         let codeSnippet = "";
-        if (prompt.type === 'free chat') {
-          code = "";
-        } else {
+        if (code.trim()) {
           const codehtml = new DOMParser().parseFromString(marked.parse("```" + lang + "\n" + code + "\n```"), "text/html");
           const preCodeList = codehtml.querySelectorAll("pre > code");
           preCodeList.forEach((preCode, _index) => {
@@ -259,14 +220,7 @@ const vscode = acquireVsCodeApi();
 
         let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family); text-align: right;">${message.timestamp}</div>`;
         if (edit) {
-          actionBtns = `
-          <div class="text-sm">
-              <div class="${edit ? "" : "hidden"} send-cancel-elements-gnc flex flex-row-reverse gap-0.5">
-                  <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc p-0.5 opacity-75 rounded flex items-center">${cancelIcon}</button>
-                  <button title="${l10nForUI["Send"]}" class="send-element-gnc p-0.5 opacity-75 rounded flex items-center">${sendIcon}</button>
-              </div>
-          </div>
-          `;
+          actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-8 -mr-2">${cancelIcon}</button>`;
         }
 
         let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
@@ -292,6 +246,8 @@ const vscode = acquireVsCodeApi();
           </div>`;
 
         if (edit) {
+          document.getElementById("chat-button-wrapper")?.classList?.add("editing");
+          document.getElementById("question-input").disabled = true;
           var promptText = document.getElementById(`prompt-${id}`);
           const editableElems = promptText.getElementsByClassName("editable");
           Array.from(editableElems).reverse().forEach((el) => {
@@ -299,7 +255,8 @@ const vscode = acquireVsCodeApi();
             el.focus();
           });
         } else {
-          document.getElementById("chat-button-wrapper")?.classList?.add("disabled");
+          document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
+          document.getElementById("question-input").disabled = true;
           var chat = document.getElementById(id);
           if (!chat) {
             chat = document.createElement("div");
@@ -315,7 +272,7 @@ const vscode = acquireVsCodeApi();
                                                 thumb_up
                                               </span>
                                             </button>
-                                            <button class="unlike flex rounded" data-id=${id}>
+                                            <button class="dislike flex rounded" data-id=${id}>
                                               <span class="material-symbols-rounded">
                                                 thumb_down
                                               </span>
@@ -342,7 +299,9 @@ const vscode = acquireVsCodeApi();
       case "stopResponse": {
         document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
         document.getElementById(`feedback-${message.id}`)?.classList?.remove("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
+        document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+        document.getElementById("question-input").disabled = false;
+        document.getElementById("question-input").focus();
 
         const chatText = document.getElementById(`response-${message.id}`);
         if (chatText.classList.contains("empty")) {
@@ -440,13 +399,11 @@ const vscode = acquireVsCodeApi();
                                     </div>`;
 
         document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("disabled");
+        document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+        document.getElementById("question-input").disabled = false;
+        document.getElementById("question-input").focus();
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
-      case "clearQAList": {
-        clearQAList();
-        break;
-      }
       default:
         break;
     }
@@ -454,19 +411,9 @@ const vscode = acquireVsCodeApi();
 
   vscode.postMessage({ type: "listPrompt" });
 
-  const clearQAList = () => {
-    document.getElementById("qa-list").innerHTML = "";
-    document.getElementById("ask-list").classList.add("hidden");
-    document.getElementById("ask-button").classList.remove("open");
-    document.getElementById("cover")?.classList?.remove("hidden");
-    document.getElementById("chat-button-wrapper")?.classList?.add("hidden");
-  };
-
   const sendQuestion = (question) => {
     const prompt = question.getElementsByClassName("prompt");
     if (prompt[0].textContent.trim().length > 0) {
-      const elements = question.getElementsByClassName("send-cancel-elements-gnc");
-      elements[0]?.classList.add("hidden");
       const editableElems = prompt[0].getElementsByClassName("editable");
       Array.from(editableElems).forEach((el) => {
         el.setAttribute("contenteditable", false);
@@ -491,8 +438,25 @@ const vscode = acquireVsCodeApi();
     }
   };
 
+  function toggleAskList() {
+    var q = document.getElementById('question-input');
+    var list = document.getElementById("ask-list");
+    if (q.value === '/') {
+      list.classList.remove("hidden");
+      var btns = list.querySelectorAll("button");
+      btns.forEach((btn, _index) => {
+        btn.classList.remove('selected');
+      });
+      btns[0].classList.add('selected');
+    } else {
+      list.classList.add("hidden");
+    }
+  }
+
   document.addEventListener("change", (e) => {
-    if (e.target.id === "triggerModeRadio") {
+    if (e.target.id === "question-input") {
+      toggleAskList();
+    } else if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
     } else if (e.target.id === "completionModeRadio") {
       vscode.postMessage({ type: "completionMode", value: e.target._value });
@@ -504,76 +468,187 @@ const vscode = acquireVsCodeApi();
     }
   });
 
+  document.getElementById("question-input").addEventListener("input", ()=>{toggleAskList();});
+
   document.addEventListener("keydown", (e) => {
+    var list = document.getElementById("ask-list");
+    if (!list.classList.contains("hidden")) {
+      var btns = list.querySelectorAll("button");
+      if (e.code === "Enter") {
+        e.preventDefault();
+        for (let i = 0; i < btns.length; i++) {
+          if (btns[i].classList.contains('selected')) {
+            btns[i].click();
+            break;
+          }
+        }
+      } else if (e.code === "ArrowDown") {
+        e.preventDefault();
+        for (let i = 0; i < btns.length; i++) {
+          if (btns[i].classList.contains('selected')) {
+            btns[i].classList.remove('selected');
+            if (i < btns.length - 1) {
+              btns[i + 1].classList.add('selected');
+            } else {
+              btns[0].classList.add('selected');
+            }
+            break;
+          }
+        }
+      } else if (e.code === "ArrowUp") {
+        e.preventDefault();
+        for (let i = 0; i < btns.length; i++) {
+          if (btns[i].classList.contains('selected')) {
+            btns[i].classList.remove('selected');
+            if (i > 0) {
+              btns[i - 1].classList.add('selected');
+            } else {
+              btns[btns.length - 1].classList.add('selected');
+            }
+            break;
+          }
+        };
+      }
+    }
+    if (e.target.id === "question-input" && e.target.value.trim()) {
+      if (e.ctrlKey && e.code === "Enter") {
+        e.preventDefault();
+        vscode.postMessage({
+          type: "prepareQuestion",
+          value: {
+            label: "",
+            type: "free chat",
+            prompt: e.target.value.trim()
+          }
+        });
+      }
+      return;
+    }
+
     const promptBox = e.target.closest('.prompt');
     if (promptBox && e.ctrlKey && e.code === "Enter") {
       e.preventDefault();
+      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
       const question = e.target.closest('.question-element-gnc');
       sendQuestion(question);
       return;
     }
-    if (e.target.classList.contains("editable") && e.code === "Enter") {
-      e.preventDefault();
-      return;
-    }
+
     if (promptBox && e.code === "Escape") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
       question.remove();
-      if (document.getElementById("qa-list").childElementCount === 0) {
-        clearQAList();
+      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
+      return;
+    }
+
+    if (e.ctrlKey && e.code === "Enter") {
+      e.preventDefault();
+      var readyQuestion = document.getElementsByClassName("replace");
+      if (readyQuestion.length > 0) {
+        document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+        document.getElementById("question-input").disabled = false;
+        document.getElementById("question-input").focus();
+        const question = readyQuestion[readyQuestion.length - 1].closest(".question-element-gnc");
+        sendQuestion(question);
       }
+      return;
+    }
+
+    if (e.code === "Escape") {
+      e.preventDefault();
+      var replaceElems = document.getElementsByClassName("replace");
+      for (var p of replaceElems) {
+        p.remove();
+      }
+      vscode.postMessage({ type: 'stopGenerate' });
+      document.getElementById("chat-button-wrapper")?.classList?.remove("editing", "responsing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
+      return;
+    }
+
+    if (e.code === "Slash") {
+      document.getElementById("question-input").focus();
+      return;
+    }
+
+    if (e.target.classList.contains("editable") && e.code === "Enter") {
+      e.preventDefault();
     }
   });
 
-  var checkMengxiStart = false;
-  var clickMengxiCount = 0;
-  var timer;
-  const checkMengxi = function (elem) {
-    if (elem.id === "Penrose") {
-      if (checkMengxiStart === false) {
-        checkMengxiStart = true;
-        clickMengxiCount++;
-        timer = setTimeout(() => {
-          checkMengxiStart = false;
-          clickMengxiCount = 0;
-          clearTimeout(timer);
-        }, 1500);
-      } else {
-        clickMengxiCount++;
-      }
-      if ((!document.body.classList.contains("x-next") && clickMengxiCount >= 8) ||
-        (document.body.classList.contains("x-next") && clickMengxiCount >= 4)) {
-        checkMengxiStart = false;
-        clickMengxiCount = 0;
-        clearTimeout(timer);
-        return true;
-      }
-    } else {
-      checkMengxiStart = false;
-      clickMengxiCount = 0;
-    }
-    return false;
-  };
-
   document.addEventListener("click", (e) => {
-    if (checkMengxi(e.target)) {
-      document.body.classList.toggle('x-next');
-      return;
-    }
     const targetButton = e.target.closest('button');
 
-    if (targetButton?.id === "ask-button") {
-      e.preventDefault();
-      document.getElementById("ask-list").classList.toggle("hidden");
-      targetButton.classList.toggle("open");
+    if (targetButton?.id === "send-button") {
+      var list = document.getElementById("ask-list");
+      if (list.classList.contains("hidden")) {
+        var prompt = document.getElementById("question-input").value.trim();
+        if (prompt) {
+          vscode.postMessage({
+            type: "prepareQuestion",
+            value: {
+              label: "",
+              type: "free chat",
+              prompt
+            }
+          });
+        } else {
+          var readyQuestion = document.getElementsByClassName("replace");
+          if (readyQuestion.length > 0) {
+            document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+            document.getElementById("question-input").disabled = false;
+            document.getElementById("question-input").focus();
+            const question = readyQuestion[readyQuestion.length - 1].closest(".question-element-gnc");
+            sendQuestion(question);
+          }
+        }
+      } else {
+        var activebtn = document.getElementById("ask-list").querySelectorAll("button.selected");
+        activebtn[0].click();
+      }
       return;
     }
 
-    var list = document.getElementById("ask-list");
-    if (!list.classList.contains("hidden")) {
-      list.classList.add("hidden");
-      document.getElementById("ask-button").classList.remove("open");
+    if (targetButton?.id === "clear-button") {
+      document.getElementById('question-input').value = '';
+      toggleAskList();
+      return;
+    }
+
+    if (targetButton?.id === "stop-button") {
+      vscode.postMessage({ type: 'stopGenerate' });
+      return;
+    }
+
+    if (targetButton?.id === "remove-button") {
+      var replaceElems = document.getElementsByClassName("replace");
+      e.preventDefault();
+      for (var p of replaceElems) {
+        p.remove();
+      }
+      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
+      return;
+    }
+
+    if (targetButton?.closest('#ask-list')) {
+      var list1 = document.getElementById("ask-list");
+      var btns = list1.querySelectorAll("button");
+      btns.forEach((btn, _index) => {
+        btn.classList.remove('selected');
+      });
+      targetButton.classList.add('selected');
+      return;
+    }
+    if (e.target.id === "pin-ask-list") {
+      document.getElementById("ask-list").classList.toggle("pin");
     }
 
     if (e.target.id === "setKey") {
@@ -615,18 +690,6 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (targetButton?.id === "clear-button") {
-      e.preventDefault();
-      clearQAList();
-      return;
-    }
-
-    if (targetButton?.id === "chat-button") {
-      e.preventDefault();
-      vscode.postMessage({ type: 'repareQuestion', value: { type: 'free chat', prompt: `\${input:${l10nForUI["Question Here..."]}}` } });
-      return;
-    }
-
     if (targetButton?.classList?.contains('stopGenerate')) {
       vscode.postMessage({ type: 'stopGenerate', id: targetButton.dataset.id });
       return;
@@ -634,28 +697,28 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains('like')) {
       const feedbackActions = targetButton.closest('.feedback');
-      var unlike = feedbackActions.querySelectorAll(".unlike")[0];
+      var dislike = feedbackActions.querySelectorAll(".dislike")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
         vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "like-cancelled") });
       } else {
-        unlike?.classList.remove("checked");
+        dislike?.classList.remove("checked");
         targetButton?.classList?.add("checked");
         vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "like") });
       }
       return;
     }
 
-    if (targetButton?.classList?.contains('unlike')) {
+    if (targetButton?.classList?.contains('dislike')) {
       const feedbackActions = targetButton.closest('.feedback');
       var like = feedbackActions.querySelectorAll(".like")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "unlike-cancelled") });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "dislike-cancelled") });
       } else {
         like?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "unlike") });
+        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "dislike") });
       }
       return;
     }
@@ -693,6 +756,9 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("send-element-gnc")) {
       e.preventDefault();
+      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
       const question = targetButton.closest(".question-element-gnc");
       sendQuestion(question);
       return;
@@ -701,10 +767,10 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("cancel-element-gnc")) {
       e.preventDefault();
       const question = targetButton.closest(".question-element-gnc");
+      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
       question.remove();
-      if (document.getElementById("qa-list").childElementCount === 0) {
-        clearQAList();
-      }
       return;
     }
 
@@ -734,5 +800,4 @@ const vscode = acquireVsCodeApi();
     }
 
   });
-
 })();

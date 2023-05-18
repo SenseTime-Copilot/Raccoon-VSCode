@@ -77,18 +77,25 @@ export class SenseCodeEditor extends Disposable {
     if (!username && key) {
       username = l10n.t("{0} User", activeEngine.label);
     }
+    let sensetimeFlag = configuration.sensetimeEnv && activeEngine.sensetimeOnly;
     let accountInfo = `
-        <div class="flex gap-2 items-center">
+        <div class="flex gap-2 items-center w-full">
           <span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>
-          <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
+          <span class="grow capitalize font-bold text-base">${l10n.t("Unknown")}</span>
+          ${sensetimeFlag ? `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
+              <span class="material-symbols-rounded">login</span>
+            </vscode-link>` : ``}
         </div>
         `;
     let avatar = await configuration.avatar(activeEngine.label);
     if (avatar) {
       accountInfo = `
-        <div class="flex gap-2 items-center">
+        <div class="flex gap-2 items-center w-full">
           <img class="w-10 h-10 rounded-full" src="${avatar}" />
-          <span class="capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
+          <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
+          ${sensetimeFlag ? `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
+          <span id="clearKey" class="material-symbols-rounded">logout</span>
+        </vscode-link>` : ``}
         </div>
         `;
     }
@@ -126,7 +133,7 @@ export class SenseCodeEditor extends Disposable {
           <span class="flex">
             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("API Key that in secret storage is adopted")}">security</span>
             <vscode-text-field readonly placeholder="${keyMasked}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;"></vscode-text-field>
-            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Clear API Key from Secret Storage")}">
+            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Logout & clear API Key from Secret Storage")}">
               <span id="clearKey" class="material-symbols-rounded">key_off</span>
             </vscode-link>
           </span>`;
@@ -200,7 +207,7 @@ export class SenseCodeEditor extends Disposable {
         </div>
       </div>
       <div class="ml-6 my-2">
-        <b>${l10n.t("Suggestion Settings")}</b>
+        <span>${l10n.t("Suggestion Settings")}</span>
         <div class="w-64 my-2">
           <div class="flex flex-row my-2 px-2 gap-2">
             <span class="material-symbols-rounded mx-1">format_list_numbered</span>
@@ -255,7 +262,7 @@ export class SenseCodeEditor extends Disposable {
     this.sendMessage({ type: 'updateSettingPage', value: settingPage, action });
   }
 
-  public showPage(
+  public async showPage(
   ) {
     this.webview.options = {
       enableScripts: true,
@@ -265,20 +272,25 @@ export class SenseCodeEditor extends Disposable {
       ]
     };
 
-    this.webview.html = this.getWebviewHtml(this.webview);
+    this.webview.html = await this.getWebviewHtml(this.webview);
     this.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
         case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: configuration.prompt });
           break;
         }
-        case 'repareQuestion': {
+        case 'prepareQuestion': {
           let selection: string = "";
           const editor = this.lastTextEditor;
           let lang = "";
+          let promptType = data.value?.type;
+          let prompt = data.value?.prompt;
           if (editor) {
-            selection = editor.document.getText(editor.selection);
-            lang = editor.document.languageId;
+            if (promptType === "custom" && !prompt.includes("${code}")) {
+            } else {
+              selection = editor.document.getText(editor.selection);
+              lang = editor.document.languageId;
+            }
           }
           if (data.value) {
             this.sendApiRequest(data.value, selection, lang);
@@ -286,12 +298,19 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'sendQuestion': {
-          this.sendApiRequest(data.value, data.code, data.lang);
+          this.sendApiRequest(data.value, data.code || "", data.lang);
           break;
         }
         case 'stopGenerate': {
-          this.stopList[data.id].abort();
-          this.sendMessage({ type: 'stopResponse', id: data.id, byUser: true });
+          if (data.id) {
+            this.stopList[data.id].abort();
+            this.sendMessage({ type: 'stopResponse', id: data.id, byUser: true });
+          } else {
+            for (let id in this.stopList) {
+              this.stopList[id].abort();
+              this.sendMessage({ type: 'stopResponse', id, byUser: true });
+            }
+          }
           break;
         }
         case 'editCode': {
@@ -344,11 +363,11 @@ export class SenseCodeEditor extends Disposable {
         case 'clearKey': {
           let ae = configuration.getActiveEngine();
           window.showWarningMessage(
-            l10n.t("Clear API Key for {0} from Secret Storage?", ae),
+            l10n.t("Logout & clear API Key for {0} from Secret Storage?", ae),
             { modal: true },
-            l10n.t("Clear"))
+            l10n.t("OK"))
             .then((v) => {
-              if (v === l10n.t("Clear")) {
+              if (v === l10n.t("OK")) {
                 configuration.setApiKey(ae, undefined);
               }
             });
@@ -405,9 +424,9 @@ export class SenseCodeEditor extends Disposable {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
             { modal: true, detail: l10n.t("It will clear all settings, includes API Keys.") },
-            l10n.t("Clear"))
+            l10n.t("OK"))
             .then(v => {
-              if (v === l10n.t("Clear")) {
+              if (v === l10n.t("OK")) {
                 configuration.clear();
               }
             });
@@ -558,21 +577,20 @@ ${data.info.response}
     let timestamp = ts.toLocaleString();
 
     let send = true;
+    let requireCode = true;
     let streaming = configuration.streamResponse;
     let instruction = prompt.prompt;
     if (instruction.includes("${input")) {
       send = false;
     }
+    if (prompt.type === "free chat" || (prompt.type === "custom" && !instruction.includes("${code}"))) {
+      requireCode = false;
+    }
 
     let promptClone = { ...prompt };
-    promptClone.prompt = instruction;
+    promptClone.prompt = instruction.replace("${code}", "");
 
     let engine = configuration.getActiveEngineInfo();
-
-    if (code.length > configuration.tokenForPrompt(engine.label) * 3) {
-      this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
-      return;
-    }
 
     let rs: GetCodeCompletions | IncomingMessage;
     try {
@@ -582,10 +600,17 @@ ${data.info.response}
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
       }
-      if (prompt.type !== "free chat" && (!code)) {
+
+      if (requireCode && !code) {
         this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
         return;
+      } else {
+        if (code.length > configuration.tokenForPrompt(engine.label) * 3) {
+          this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
+          return;
+        }
       }
+
       let username = await configuration.username(activeEngine);
       let avatar = await configuration.avatar(activeEngine);
       this.sendMessage({ type: 'addQuestion', username, avatar: avatar || undefined, value: promptClone, code, lang, send, id, streaming, timestamp });
@@ -593,21 +618,22 @@ ${data.info.response}
         return;
       }
 
-      let prefix = "";
-      let suffix = "";
-      if (prompt.type === "custom" || prompt.type === "free chat" || prompt.type === "code Q&A") {
-        prefix = instruction;
-      } else {
-        prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nTask type: ${prompt.type}. ${instruction}\n\n### Input:\n`;
-        suffix = `\n### Response:\n`;
-      }
-
       let codeStr = "";
       if (code) {
         codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       }
+
+      let msg = "";
+      if (prompt.type === "custom") {
+        msg = instruction.replace("${code}", codeStr);
+      } else if (prompt.type === "free chat") {
+        msg = instruction + codeStr;
+      } else {
+        msg = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nTask type: ${prompt.type}. ${instruction}\n\n### Input:\n${codeStr}\n### Response:\n`;
+      }
+
       this.stopList[id] = new AbortController();
-      rs = await getCodeCompletions(engine, `${prefix}\n${codeStr}\n${suffix}`, 1, streaming, this.stopList[id].signal);
+      rs = await getCodeCompletions(engine, msg, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
@@ -695,7 +721,7 @@ ${data.info.response}
     }
   }
 
-  private getWebviewHtml(webview: Webview) {
+  private async getWebviewHtml(webview: Webview) {
     const scriptUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.js'));
     const stylesMainUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
 
@@ -705,8 +731,19 @@ ${data.info.response}
     const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
-    const logo = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'logo1.svg'));
 
+    let welcomMsg = "";
+    const activeEngine = configuration.getActiveEngineInfo();
+    let key = activeEngine.key || await configuration.getApiKey(activeEngine.label);
+    let username: string | undefined = await configuration.username(activeEngine.label);
+    if (!username && key) {
+      username = l10n.t("{0} User", activeEngine.label);
+    }
+    welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+    if (!username) {
+      let settingsUri = Uri.parse(`command:sensecode.settings`);
+      welcomMsg += "<br/><br/>" + l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", activeEngine.label, `${settingsUri}`);
+    }
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -724,42 +761,39 @@ ${data.info.response}
             <body class="overflow-hidden">
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
-                    <div id="cover" class="flex flex-col gap-2 overflow-auto select-none">
-                      <div id="Penrose" style="-webkit-mask-image: url(${logo});"></div>
-                      <div id="Penrose-text" class="text-2xl font-bold text-center mb-6">${l10n.t("SenseCode")}</div>
-                      <div id="shortcuts" class="flex flex-wrap self-center mx-8 overflow-auto"></div>
-                    </div>
-                    <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list"></div>
+                  <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
+                    <div class="p-4 answer-element-gncw-full">
+                      <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1"><span class="material-symbols-rounded">assistant</span> ${l10n.t("SenseCode")}</h2>
+                      <div id="welcome">
+                        ${welcomMsg}
+                      </div>
+                  </div>
+                  </div>
                     <div id="error-wrapper"></div>
-                    <div id="chat-button-wrapper" class="w-full flex gap-4 justify-center items-center py-2 hidden">
-                        <div id="ask-list" class="hidden" style="background: var(--panel-view-background);z-index: 999999;"></div>
-                        <button class="flex gap-2 justify-center items-center rounded-lg p-2" id="ask-button">
-                            <span class="material-symbols-rounded">keyboard_double_arrow_up</span>
-                            ${l10n.t("Ask")}
-                        </button>          
-                        <button class="flex gap-2 justify-center items-center rounded-lg p-2" id="chat-button">
-                            <span class="material-symbols-rounded">chat_bubble</span>
-                            ${l10n.t("Free chat")}
+                    <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
+                      <div id="ask-list" class="flex flex-col hidden"></div>
+                      <div id="question" class="w-full flex justify-center items-center">
+                        <input id="question-input" placeholder="${l10n.t("Ask SenseCode a question or type '/' for prompts")}"></input>
+                        <button id="clear-button">
+                          <span class="material-symbols-rounded">cancel</span>
                         </button>
-                        <button class="flex gap-2 justify-center items-center rounded-lg p-2" id="clear-button">
-                            <span class="material-symbols-rounded">delete</span>
-                            ${l10n.t("Clear")}
+                        <button id="send-button" title="${l10n.t("Send [Ctrl+Enter]")}">
+                            <span class="material-symbols-rounded">send</span>
                         </button>
+                        <button id="stop-button" title="${l10n.t("Stop [Esc]")}">
+                            <span class="material-symbols-rounded">stop</span>
+                        </button>
+                      </div>
                     </div>
                 </div>
                 <script>
                   const l10nForUI = {
                     "Question": "${l10n.t("Question")}",
                     "SenseCode": "${l10n.t("SenseCode")}",
-                    "Question Here...": "${l10n.t("Question Here...")}",
-                    "Code Q&A": "${l10n.t("Code Q&A")}",
-                    "Free chat": "${l10n.t("Free chat")}",
-                    "Edit": "${l10n.t("Edit and resend this prompt")}",
                     "Cancel": "${l10n.t("Cancel [Esc]")}",
                     "Send": "${l10n.t("Send this prompt [Ctrl+Enter]")}",
                     "Copy": "${l10n.t("Copy to clipboard")}",
                     "Insert": "${l10n.t("Insert the below code at cursor")}",
-                    "NewFile": "${l10n.t("Create a new file with the below code")}",
                     "Thinking...": "${l10n.t("Thinking...")}",
                     "Connecting...": "${l10n.t("Connecting...")}",
                     "Typing...": "${l10n.t("Typing...")}",

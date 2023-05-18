@@ -166,7 +166,7 @@ export function inlineCompletionProvider(
         updateStatusBarItem(statusBarItem);
         return;
       }
-      if (textBeforeCursor.length > 0 || context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
+      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
         let requestId = new Date().getTime();
         lastRequest = requestId;
         if (lastRequest !== requestId) {
@@ -307,6 +307,7 @@ Task type: code completion. Please complete the following code, just response co
               arguments: [
                 {
                   type: "code completion",
+                  language: getDocumentLanguage(document.languageId),
                   code: textBeforeCursor,
                   prompt: "Please complete the following code"
                 },

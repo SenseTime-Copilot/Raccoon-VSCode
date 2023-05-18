@@ -145,8 +145,11 @@ const builtinPrompts: Prompt[] = [
 export class Configuration {
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
+  private isSensetimeEnv: boolean;
   constructor(context: ExtensionContext) {
+    this.isSensetimeEnv = false;
     this.context = context;
+    this.checkSensetimeEnv();
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
     let lastVersion = this.context.globalState.get<string>("lastVersion");
     if (!lastVersion) {
@@ -154,6 +157,18 @@ export class Configuration {
       this.context.globalState.update("lastVersion", context.extension.packageJSON.version);
     }
     this.update();
+  }
+
+  private async checkSensetimeEnv() {
+    await axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`).catch(e => {
+      if (e.response.status === 401) {
+        this.isSensetimeEnv = true;
+      }
+    });
+  }
+
+  public get sensetimeEnv(): boolean {
+    return this.isSensetimeEnv;
   }
 
   public clear() {
@@ -366,7 +381,7 @@ export class Configuration {
 
       if (res && res.data) {
         for (let t of res.data) {
-          if (t.id === info?.id && t.name === info?.name) {
+          if ((info?.id === 0 || t.id === info?.id) && t.name === info?.name) {
             engine.avatar = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${t.name}`,
               {
                 // eslint-disable-next-line @typescript-eslint/naming-convention

@@ -7,12 +7,39 @@ import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
 import { sendTelemetryLog } from "./utils/getCodeCompletions";
 import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
+import jwt_decode from "jwt-decode";
+
 //import { KeyCalculator } from "./provider/keyCalculator";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
 export let telemetryReporter: vscode.TelemetryLogger;
+
+class SenseCodeUriHandler implements vscode.UriHandler {
+  handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
+    if (uri.query) {
+      let decoded:any = jwt_decode(uri.query);
+      let s1 = Buffer.from(`0#${decoded.username}#67pnbtbheuJyBZmsx9rz`).toString('base64');
+      let s2 = ["O","T","V","G","N","k","V","D","O","U","Y","0","O","E","N","D","M","D","k","4","N","E","Y","1","N","j","J","E","Q","U","Y","5","R","T","U","x","M","j","A","w","N","D","E","j","N","T","c","x","N","j","B","D","R","T","A","2","M","E","I","y","N","j","Y","5","N","E","Q","1","N","U","R","C","N","T","I","z","M","T","A","y","M","z","c","y","M","E","U"];
+      s1 = s1.split("=")[0];
+      let len = Math.max(s1.length, s2.length);
+      let key = '';
+      for (let i = 0; i < len; i++) {
+        if (i < s1.length) {
+          key += s1[i];
+        }
+        if (i === s1.length) {
+          key += ',';
+        }
+        if (i < s2.length) {
+          key += s2[i];
+        }
+      }
+      configuration.setApiKey(configuration.getActiveEngineInfo().label, key);
+    }
+  }
+}
 
 export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
@@ -35,6 +62,8 @@ export async function activate(context: vscode.ExtensionContext) {
   configuration.update();
 
   checkPrivacy(context);
+
+  context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.openEditor", async () => {
