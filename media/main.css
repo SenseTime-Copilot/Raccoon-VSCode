@@ -42,10 +42,6 @@ button {
     color: var(--vscode-checkbox-foreground);
 }
 
-button:hover {
-    /* background: var(--vscode-toolbar-hoverBackground) !important; */
-}
-
 button:hover svg {
     stroke: var(--vscode-button-foreground) !important;
 }
@@ -216,18 +212,14 @@ textarea::placeholder {
     background: var(--vscode-sideBar-background);
 }
 
-#qa-list> :first-child {
-    border-bottom: 2px solid var(--panel-view-border);
-}
-
 #qa-list> :last-child {
     border-bottom: none;
 }
 
 #chat-button-wrapper {
     user-select: none;
-    box-shadow: 0 0 8px var(--vscode-widget-shadow);
-    background-color: var(--vscode-minimapSlider-background);
+    background-color: var(--input-background);
+    border-top: 1px solid var(--panel-view-border);
 }
 
 #error-wrapper {
@@ -249,14 +241,19 @@ textarea::placeholder {
 }
 
 #question-input {
-    height: 2rem;
-    flex-grow: 1;
-    padding-right: 28px;
-    border-right: none;
-    border-radius: calc(var(--corner-radius) * 1px);
-    border: calc(var(--border-width) * 1px) solid var(--dropdown-border);
-    border-top-left-radius: 0.25rem;
-    border-bottom-left-radius: 0.25rem;
+    width: auto;
+    min-width: 1em;
+    font: inherit;
+    padding: 0.25em;
+    margin: 0;
+    resize: none;
+    background: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    grid-area: 2/1;
+    outline: none;
 }
 
 #question-input::placeholder {
@@ -265,33 +262,56 @@ textarea::placeholder {
 }
 
 #question button {
-    color: var(--panel-tab-foreground);
+    color: var(--input-placeholder-foreground);
     font-size: 1rem;
-    padding: 2px 2px;
-    height: auto;
-    border-radius: calc(var(--corner-radius) * 1px);
-    border: calc(var(--border-width) * 1px) solid var(--dropdown-border);
-    border-left: none;
-    border-top-right-radius: 0.25rem;
-    border-bottom-right-radius: 0.25rem;
-    background: var(--vscode-toolbar-activeBackground) !important;
-}
-
-#question #clear-button {
-    font-size: 0.8rem;
     border: none;
-    background-color: transparent !important;
-    margin-left: -28px;
-    padding: 5px;
+}
+
+#question button:hover {
+    color: var(--input-foreground);
+}
+
+#question-sizer {
+    display: inline-grid;
+    vertical-align: top;
+    align-items: stretch;
+    position: relative;
+    margin: 5px;
+    width: 100%;
+}
+
+#question-sizer[data-value=""]:before {
+    content: attr(data-placeholder);
+    position: fixed;
+    width: calc(100% - 3rem);
+    line-height: 2;
+    margin-left: 5px;
+    color: var(--input-placeholder-foreground);
     opacity: 0.6;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
-#question-input:placeholder-shown + #clear-button {
-    display: none;
+#ask-list.pin + #question > #question-sizer[data-value=""]:before {
+    content: attr(data-placeholder-short);
 }
 
-#question #clear-button .material-symbols-rounded {
-    font-variation-settings: 'opsz' 20;
+#question-sizer:after {
+    content: attr(data-value) " ";
+    visibility: hidden;
+    white-space: pre-wrap;
+    width: auto;
+    min-width: 1em;
+    font: inherit;
+    padding: 0.25em;
+    margin: 0;
+    resize: none;
+    background: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    grid-area: 2/1;
 }
 
 #question button .material-symbols-rounded {
@@ -318,12 +338,11 @@ button.disabled,
 
 #ask-list {
     position: fixed;
-    bottom: 40px;
-    width: calc(100% - 0.5rem);
+    bottom: 45px;
+    width: 100%;
     padding-bottom: 5px;
     background-color: var(--input-background);
-    border-radius: 6px;
-    box-shadow: 0 0 3px var(--vscode-widget-shadow);
+    border-radius: 6px 6px 0 0;
     z-index: 99999;
 }
 
@@ -337,6 +356,8 @@ button.disabled,
     bottom: auto;
     flex-wrap: wrap;
     flex-direction: row;
+    border-bottom: 1px solid var(--vscode-tab-border);
+    justify-content: space-around;
 }
 
 #ask-list #pin-ask-list {
@@ -365,12 +386,19 @@ button.disabled,
     border-bottom: 1px solid var(--vscode-tab-border);
 }
 
+#ask-list.pin .toolbar {
+    padding: 0;
+    padding-bottom: 0.25rem;
+}
+
 #ask-list.hidden {
     display: none;
 }
 
 #ask-list.pin.hidden {
     display: flex;
+    border-bottom: 1px solid var(--vscode-tab-border);
+    justify-content: space-evenly;
 }
 
 #ask-list button {
@@ -381,11 +409,18 @@ button.disabled,
 }
 
 #ask-list.pin button {
-    min-width: 145px;
+    min-width: 150px;
     width: auto;
+    padding: 0.25rem;
+}
+
+.vscode-high-contrast #ask-list.pin button.selected,
+#ask-list.pin button.selected {
+    background: none !important;
 }
 
 #ask-list button.selected,
+#ask-list.pin button:hover,
 #ask-list button:hover,
 #ask-list button:focus {
     outline: none !important;
@@ -397,11 +432,6 @@ button.disabled,
 .vscode-high-contrast #ask-list button:hover,
 .vscode-high-contrast #ask-list button:focus {
     background: var(--vscode-list-hoverBackground) !important;
-}
-
-.vscode-high-contrast #ask-list.pin button.selected,
-#ask-list.pin button.selected {
-    background: none !important;
 }
 
 .question-element-gnc {
@@ -455,6 +485,10 @@ button.disabled,
 
 .question-element-gnc .pre-code-element::-webkit-scrollbar {
     display: none;
+}
+
+.message-element-gnc {
+    background-color: var(--vscode-minimapSlider-background);
 }
 
 .answer-element-gnc {
@@ -1347,6 +1381,10 @@ button.stopGenerate,
     color: var(--panel-tab-active-foreground);
     background-color: transparent;
     border: 0;
+}
+
+.markdown-body pre code.whitespace-pre-wrap {
+    white-space: pre-wrap;
 }
 
 .markdown-body .csv-data td,

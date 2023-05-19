@@ -55,7 +55,6 @@ const builtinEngines: Engine[] = [
       n: 1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
       max_tokens: 1200,
-      stop: "\n\n",
       temperature: 0.8
     },
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -70,7 +69,6 @@ const builtinEngines: Engine[] = [
       n: 1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
       max_tokens: 1200,
-      stop: "\n\n",
       temperature: 0.8
     },
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -95,20 +93,6 @@ const builtinPrompts: Prompt[] = [
     icon: "process_chart"
   },
   {
-    label: "Completion",
-    type: "code completion",
-    prompt: "Please complete the following code",
-    brush: true,
-    icon: "gradient"
-  },
-  {
-    label: "Blank Filling",
-    type: "code blank filling",
-    prompt: "Complete the following code, fill in the missing parts",
-    brush: true,
-    icon: "format_image_right"
-  },
-  {
     label: "Code Correction",
     type: "code error correction",
     prompt: "Identify and correct any errors in the following code snippet",
@@ -129,15 +113,9 @@ const builtinPrompts: Prompt[] = [
     icon: "science"
   },
   {
-    label: "Complexity Analysis",
-    type: "code complexity analysis",
-    prompt: "Analyze the space and time complexity of the provided code. Provide a brief explanation of the code and the reasoning behind the complexities",
-    icon: "multiline_chart"
-  },
-  {
     label: "Code Conversion",
     type: "code language conversion",
-    prompt: "Convert the given code equivalent ${input:target language} code",
+    prompt: "Convert the given code to equivalent ${input:target language} code",
     icon: "repeat"
   }
 ];

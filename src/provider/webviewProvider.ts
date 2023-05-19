@@ -32,12 +32,23 @@ export class SenseCodeEditor extends Disposable {
         if (e.key === "sensecode.token") {
           configuration.update();
           this.updateSettingPage("full");
+          let engine = configuration.getActiveEngine();
+          configuration.getApiKeyRaw(engine).then(async (key) => {
+            let username: string | undefined = await configuration.username(engine);
+            if (!username && key) {
+              username = l10n.t("{0} User", engine);
+            }
+            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+            this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg });
+          }, () => {
+            this.sendMessage({ type: 'addMessage', category: "no-account", value: l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", engine, `${Uri.parse(`command:sensecode.settings`)}`) });
+          });
         }
       })
     );
     context.subscriptions.push(
       window.onDidChangeActiveTextEditor((e) => {
-        if (e) {
+        if (e && e.document.uri.scheme === "file") {
           this.lastTextEditor = e;
         }
       })
@@ -597,6 +608,7 @@ ${data.info.response}
       let activeEngine = configuration.getActiveEngine();
       let apikey = await configuration.getApiKey(activeEngine);
       if (!apikey) {
+        this.sendMessage({ type: 'addMessage', category: "no-account", value: l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", activeEngine, `${Uri.parse(`command:sensecode.settings`)}`) });
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
       }
@@ -611,6 +623,19 @@ ${data.info.response}
         }
       }
 
+      let instructionMsg = `Task type: ${prompt.type}. ${instruction}`;
+      if (prompt.type === "custom" || prompt.type === "free chat") {
+        instructionMsg = `Task type: Answer question. ${instruction.replace("${code}", '')}`;
+      }
+
+      let codeStr = "";
+      if (code) {
+        codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
+      } else {
+        codeStr = instruction;
+        lang = "";
+      }
+
       let username = await configuration.username(activeEngine);
       let avatar = await configuration.avatar(activeEngine);
       this.sendMessage({ type: 'addQuestion', username, avatar: avatar || undefined, value: promptClone, code, lang, send, id, streaming, timestamp });
@@ -618,22 +643,18 @@ ${data.info.response}
         return;
       }
 
-      let codeStr = "";
-      if (code) {
-        codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
-      }
+      let promptMsg = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
-      let msg = "";
-      if (prompt.type === "custom") {
-        msg = instruction.replace("${code}", codeStr);
-      } else if (prompt.type === "free chat") {
-        msg = instruction + codeStr;
-      } else {
-        msg = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nTask type: ${prompt.type}. ${instruction}\n\n### Input:\n${codeStr}\n### Response:\n`;
-      }
+### Instruction:
+${instructionMsg}
+
+### Input:
+${codeStr}
+
+### Response:\n`;
 
       this.stopList[id] = new AbortController();
-      rs = await getCodeCompletions(engine, msg, 1, streaming, this.stopList[id].signal);
+      rs = await getCodeCompletions(engine, promptMsg, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
         data.on("data", async (v: any) => {
@@ -739,8 +760,10 @@ ${data.info.response}
     if (!username && key) {
       username = l10n.t("{0} User", activeEngine.label);
     }
+    let category = "welcome";
     welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
     if (!username) {
+      category = "no-account";
       let settingsUri = Uri.parse(`command:sensecode.settings`);
       welcomMsg += "<br/><br/>" + l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", activeEngine.label, `${settingsUri}`);
     }
@@ -762,21 +785,20 @@ ${data.info.response}
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
                   <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
-                    <div class="p-4 answer-element-gncw-full">
+                    <div class="p-4 w-full message-element-gnc ${category}">
                       <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1"><span class="material-symbols-rounded">assistant</span> ${l10n.t("SenseCode")}</h2>
                       <div id="welcome">
                         ${welcomMsg}
                       </div>
-                  </div>
+                    </div>
                   </div>
                     <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                       <div id="ask-list" class="flex flex-col hidden"></div>
                       <div id="question" class="w-full flex justify-center items-center">
-                        <input id="question-input" placeholder="${l10n.t("Ask SenseCode a question or type '/' for prompts")}"></input>
-                        <button id="clear-button">
-                          <span class="material-symbols-rounded">cancel</span>
-                        </button>
+                        <label id="question-sizer" data-value data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"  data-placeholder-short="${l10n.t("Ask SenseCode a question")}">
+                          <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
+                        </label>
                         <button id="send-button" title="${l10n.t("Send [Ctrl+Enter]")}">
                             <span class="material-symbols-rounded">send</span>
                         </button>
@@ -792,6 +814,7 @@ ${data.info.response}
                     "SenseCode": "${l10n.t("SenseCode")}",
                     "Cancel": "${l10n.t("Cancel [Esc]")}",
                     "Send": "${l10n.t("Send this prompt [Ctrl+Enter]")}",
+                    "ToggleWrap": "${l10n.t("Toggle line wrap")}",
                     "Copy": "${l10n.t("Copy to clipboard")}",
                     "Insert": "${l10n.t("Insert the below code at cursor")}",
                     "Thinking...": "${l10n.t("Thinking...")}",

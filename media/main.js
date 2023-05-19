@@ -26,6 +26,7 @@ const vscode = acquireVsCodeApi();
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
+  const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
   const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
   const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
@@ -137,6 +138,7 @@ const vscode = acquireVsCodeApi();
         document.getElementById('settings')?.remove();
         document.getElementById("ask-list").classList.add("hidden");
         document.getElementById("question-input").value = "";
+        document.getElementById("question-sizer").dataset.value = "";
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
           e.remove();
@@ -262,8 +264,14 @@ const vscode = acquireVsCodeApi();
             chat = document.createElement("div");
             chat.id = id;
             chat.classList.add("p-4", "answer-element-gnc", "w-full");
+            let outlang = lang;
+            let exp = /Convert the given code to equivalent (.+) code/mg;
+            let matches = exp.exec(prompt.prompt);
+            if (matches) {
+              outlang = matches[1];
+            }
             chat.innerHTML = `  <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                                        <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body"></div>
+                                        <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body" data-lang="${outlang}"></div>
                                         ${progress}
                                         <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                           <span class="flex items-center gap-2">
@@ -329,10 +337,16 @@ const vscode = acquireVsCodeApi();
             preCode.parentElement.classList.add("mb-8");
           }
 
-          preCode.classList.add("inline", "whitespace-pre", "overflow-x-scroll", "overflow-y-auto");
-
           const buttonWrapper = document.createElement("div");
           buttonWrapper.classList.add("code-actions-wrapper");
+
+          // Create wrap to clipboard button
+          const wrapButton = document.createElement("button");
+          wrapButton.dataset.id = message.id;
+          wrapButton.title = l10nForUI["ToggleWrap"];
+          wrapButton.innerHTML = wrapIcon;
+
+          wrapButton.classList.add("wrap-element-gnc", "rounded");
 
           // Create copy to clipboard button
           const copyButton = document.createElement("button");
@@ -349,7 +363,7 @@ const vscode = acquireVsCodeApi();
 
           insert.classList.add("edit-element-gnc", "rounded");
 
-          buttonWrapper.append(copyButton, insert);
+          buttonWrapper.append(wrapButton, copyButton, insert);
 
           preCode.parentElement.prepend(buttonWrapper);
         });
@@ -362,9 +376,28 @@ const vscode = acquireVsCodeApi();
         }
         break;
       }
+      case "addMessage": {
+        if (list.lastElementChild.classList.contains(message.category)) {
+
+        } else {
+          list.innerHTML += `<div class="p-4 w-full message-element-gnc ${message.category || ""}">
+                    <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
+                    <div>
+                      ${message.value}
+                    </div>
+                  </div>`;
+          list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
+        }
+        break;
+      }
       case "addResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
-        chatText?.classList.remove("empty");
+        if (chatText?.classList.contains("empty")) {
+          chatText?.classList.remove("empty");
+          if (message.value !== '```') {
+            chatText.dataset.response = '```' + chatText.dataset.lang + '\n';
+          }
+        }
         const progText = document.getElementById(`progress-${message.id}`);
         progText?.classList.add("started");
         chatText.dataset.response = (chatText.dataset.response || "") + message.value;
@@ -468,7 +501,9 @@ const vscode = acquireVsCodeApi();
     }
   });
 
-  document.getElementById("question-input").addEventListener("input", ()=>{toggleAskList();});
+  document.getElementById("question-input").addEventListener("input", () => {
+    toggleAskList();
+  });
 
   document.addEventListener("keydown", (e) => {
     var list = document.getElementById("ask-list");
@@ -615,12 +650,6 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (targetButton?.id === "clear-button") {
-      document.getElementById('question-input').value = '';
-      toggleAskList();
-      return;
-    }
-
     if (targetButton?.id === "stop-button") {
       vscode.postMessage({ type: 'stopGenerate' });
       return;
@@ -649,6 +678,7 @@ const vscode = acquireVsCodeApi();
     }
     if (e.target.id === "pin-ask-list") {
       document.getElementById("ask-list").classList.toggle("pin");
+      document.getElementById("question-input").focus();
     }
 
     if (e.target.id === "setKey") {
@@ -771,6 +801,12 @@ const vscode = acquireVsCodeApi();
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       question.remove();
+      return;
+    }
+
+    if (targetButton?.classList?.contains("wrap-element-gnc")) {
+      e.preventDefault();
+      targetButton.parentElement?.parentElement?.lastElementChild.classList.toggle('whitespace-pre-wrap');
       return;
     }
 

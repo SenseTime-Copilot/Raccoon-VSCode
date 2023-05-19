@@ -145,6 +145,7 @@ export function inlineCompletionProvider(
       const activeEngine: Engine = configuration.getActiveEngineInfo();
       let engine = { ...activeEngine };
       engine.config = { ...activeEngine.config };
+      engine.config.stop = "\nExplanation:";
       if (configuration.completeLine) {
         engine.config.max_tokens = 32;
       }
@@ -275,7 +276,7 @@ Task type: code completion. Please complete the following code, just response co
                   .substring(0, completion.length - 1);
               }
             }
-            let insertText = data.completions[i].split("Explanation:")[0];
+            let insertText = data.completions[i];
             if (configuration.completeLine) {
               let lines = insertText.split('\n');
               insertText = "";
