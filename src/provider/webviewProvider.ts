@@ -38,7 +38,7 @@ export class SenseCodeEditor extends Disposable {
             if (!username && key) {
               username = l10n.t("{0} User", engine);
             }
-            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
             this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg });
           }, () => {
             this.sendMessage({ type: 'addMessage', category: "no-account", value: l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", engine, `${Uri.parse(`command:sensecode.settings`)}`) });
@@ -761,7 +761,7 @@ ${codeStr}
       username = l10n.t("{0} User", activeEngine.label);
     }
     let category = "welcome";
-    welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+    welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
     if (!username) {
       category = "no-account";
       let settingsUri = Uri.parse(`command:sensecode.settings`);

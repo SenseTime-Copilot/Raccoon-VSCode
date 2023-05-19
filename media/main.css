@@ -278,6 +278,7 @@ textarea::placeholder {
     position: relative;
     margin: 5px;
     width: 100%;
+    cursor: text;
 }
 
 #question-sizer[data-value=""]:before {

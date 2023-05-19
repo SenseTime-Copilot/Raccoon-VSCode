@@ -7,7 +7,7 @@
   "Cancel": "Cancel",
   "Login": "Login",
   "Logout": "Logout",
-  "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.": "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.",
+  "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.": "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.",
   "It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.": "It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.",
   "SenseCode: Input your Key...": "SenseCode: Input your Key...",
   "No code selected": "No code selected",

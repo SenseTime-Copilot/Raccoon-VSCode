@@ -7,7 +7,7 @@
   "Cancel": "取消",
   "Login": "登录",
   "Logout": "退出当前账号",
-  "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical quesion, or ask me to helping you with your code.": "欢迎您<b>{0}</b>, 我是 <b>{1}</b>, 您的编程助手. 您可以向我询问任何技术问题, 或让我与您一起编写代码.",
+  "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.": "欢迎您<b>{0}</b>, 我是 <b>{1}</b>, 您的编程助手. 您可以向我询问任何技术问题, 或让我与您一起编写代码.",
   "It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.": "看起来您还没有设置 <b>{0}</b> 的账号, 可以在 <vscode-link href=\"{1}\">配置页面</vscode-link> 中进行设置.",
   "SenseCode: Input your Key...": "SenseCode: 请输入你的密钥...",
   "No code selected": "未选择有效的代码段",
