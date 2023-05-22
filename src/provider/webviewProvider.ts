@@ -48,7 +48,7 @@ export class SenseCodeEditor extends Disposable {
     );
     context.subscriptions.push(
       window.onDidChangeActiveTextEditor((e) => {
-        if (e && e.document.uri.scheme === "file") {
+        if (e && (e.document.uri.scheme === "file" || e.document.uri.scheme === "untitled")) {
           this.lastTextEditor = e;
         }
       })
@@ -84,6 +84,14 @@ export class SenseCodeEditor extends Disposable {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
+    let loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
+                    <span class="material-symbols-rounded">login</span>
+                  </vscode-link>`;
+    if (key) {
+      loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
+                    <span id="clearKey" class="material-symbols-rounded">logout</span>
+                  </vscode-link>`;
+    }
     let username: string | undefined = await configuration.username(activeEngine.label);
     if (!username && key) {
       username = l10n.t("{0} User", activeEngine.label);
@@ -92,10 +100,8 @@ export class SenseCodeEditor extends Disposable {
     let accountInfo = `
         <div class="flex gap-2 items-center w-full">
           <span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>
-          <span class="grow capitalize font-bold text-base">${l10n.t("Unknown")}</span>
-          ${sensetimeFlag ? `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
-              <span class="material-symbols-rounded">login</span>
-            </vscode-link>` : ``}
+          <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
+          ${sensetimeFlag ? loginout : ``}
         </div>
         `;
     let avatar = await configuration.avatar(activeEngine.label);
@@ -104,9 +110,7 @@ export class SenseCodeEditor extends Disposable {
         <div class="flex gap-2 items-center w-full">
           <img class="w-10 h-10 rounded-full" src="${avatar}" />
           <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
-          ${sensetimeFlag ? `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
-          <span id="clearKey" class="material-symbols-rounded">logout</span>
-        </vscode-link>` : ``}
+          ${sensetimeFlag ? loginout : ``}
         </div>
         `;
     }

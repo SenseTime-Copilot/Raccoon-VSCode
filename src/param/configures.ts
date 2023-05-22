@@ -251,7 +251,7 @@ export class Configuration {
       return;
     }
     let info = parseAuthInfo(token);
-    await this.checkUserExist(info, engineInfo);
+    await this.getUserAvatar(info, engineInfo);
     return engineInfo.avatar;
   }
 
@@ -322,13 +322,6 @@ export class Configuration {
       }
       return false;
     } else {
-      if (engineInfo.sensetimeOnly) {
-        let info = parseAuthInfo(token);
-        let ok = await this.checkUserExist(info, engineInfo);
-        if (!ok) {
-          return false;
-        }
-      }
       let value = await this.context.secrets.get("sensecode.token");
       if (!value) {
         await this.context.secrets.store("sensecode.token", `{"${engineInfo.label}": "${token}"}`);
@@ -337,61 +330,40 @@ export class Configuration {
           let tokens = JSON.parse(value);
           tokens[engineInfo.label] = token;
           await this.context.secrets.store("sensecode.token", JSON.stringify(tokens));
-          return true;
         } catch (e) {
           return false;
         };
+      }
+      if (engineInfo.sensetimeOnly) {
+        let info = parseAuthInfo(token);
+        await this.getUserAvatar(info, engineInfo);
       }
       return true;
     }
   }
 
-  private async checkUserExist(info: { id: number; name: string; token: string; aksk: string }, engine: Engine, page?: string): Promise<boolean> {
-    if (info.aksk.length !== 87 && info.aksk.length !== 88) {
-      return false;
+  private async getUserAvatar(info: { id: number; name: string; token: string; aksk: string }, engine: Engine): Promise<string | undefined> {
+    if (!engine.sensetimeOnly) {
+      return;
     }
-    try {
-      let res = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/personal_access_tokens?per_page=100${page ? `&page=${page}` : ""}`,
-        {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { "PRIVATE-TOKEN": info?.token || "" }
-        });
-
-      if (res && res.data) {
-        for (let t of res.data) {
-          if ((info?.id === 0 || t.id === info?.id) && t.name === info?.name) {
-            engine.avatar = await axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${t.name}`,
-              {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                headers: { "PRIVATE-TOKEN": info?.token || "" }
-              })
-              .then(
-                (res1) => {
-                  if (res1?.status === 200) {
-                    if (res1.data[0]) {
-                      // eslint-disable-next-line @typescript-eslint/naming-convention
-                      return res1.data[0].avatar_url || "";
-                    } else {
-                      return "";
-                    }
-                  }
-                }
-              ).catch(async (_error) => {
-                throw new Error();
-              });
-            return true;
+    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${info.name}`,
+      {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        headers: { "PRIVATE-TOKEN": info?.token || "" }
+      })
+      .then(
+        (res1) => {
+          if (res1?.status === 200) {
+            if (res1.data[0]) {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              engine.avatar = res1.data[0].avatar_url;
+              return engine.avatar;
+            }
           }
         }
-      }
-      if (res && res.headers["x-next-page"]) {
-        return this.checkUserExist(info, engine, res.headers["x-next-page"]);
-      } else {
-        return false;
-      }
-    } catch (err) {
-      await this.setApiKey(engine.label, undefined);
-      throw (new Error(l10n.t("Invalid API Key")));
-    }
+      ).catch(async (_error) => {
+        throw new Error();
+      });
   }
 
   public get autoComplete(): boolean {
