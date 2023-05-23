@@ -212,10 +212,6 @@ textarea::placeholder {
     background: var(--vscode-sideBar-background);
 }
 
-#qa-list> :last-child {
-    border-bottom: none;
-}
-
 #chat-button-wrapper {
     user-select: none;
     background-color: var(--input-background);
@@ -538,16 +534,12 @@ button.disabled,
 }
 
 .message-element-gnc {
-    background-color: var(--vscode-minimapSlider-background);
+    background-color: var(--panel-view-background);
     border-bottom: 2px solid var(--panel-view-border);
 }
 
-.message-element-gnc:last-child {
-    border-bottom: none;
-}
-
 .answer-element-gnc {
-    background-color: var(--vscode-minimapSlider-background);
+    background-color: var(--panel-view-background);
     border-bottom: 2px solid var(--panel-view-border);
 }
 

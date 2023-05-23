@@ -10,7 +10,7 @@ const guide = `
       <ol>
       <li>
         ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts SenseCode thinking")}:
-        <div class="flex leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+        <div class="flex leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
           <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
@@ -18,7 +18,7 @@ const guide = `
       </li>
       <li>
       ${l10n.t("When multi candidates generated, use <code>Alt+[</code> or <code>Alt+]</code> to switch between them")}:
-        <div class="flex leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+        <div class="flex leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
           <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
@@ -26,7 +26,7 @@ const guide = `
       </li>
       <li>
       ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
-        <div class="flex leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+        <div class="flex leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
@@ -40,7 +40,7 @@ const guide = `
       <ol>
       <li>
       ${l10n.t("Select code in editor")}:
-        <div class="leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+        <div class="leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
         <div  class="flex" style="width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
@@ -54,15 +54,15 @@ const guide = `
       <li>
       ${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), and send them to ask SenseCode")}:
           <a onclick="document.getElementById('question-input').focus();" style="text-decoration: none;cursor: pointer;">
-            <div class="flex p-1 px-2 my-2 text-xs flex-row-reverse" style="width: calc(100% - 2em);border: 1px solid var(--vscode-editorWidget-border);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
+            <div class="flex p-1 px-2 my-2 text-xs flex-row-reverse" style="width: calc(100% - 2em);border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
           </a>
       </li>
       <li>
       ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>Alt+/</code>)")}:
-            <div class="flex flex-col my-2 text-xs" style="width: calc(100% - 2em); border: 1px solid var(--vscode-editorWidget-border);">
-            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--button-icon-hover-background);width: 70%;"></span></div>
-            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--button-icon-hover-background);width: 50%;" class="animate-pulse"></span></div>
-            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--button-icon-hover-background);width: 60%;"></span></div>
+            <div class="flex flex-col my-2 text-xs" style="width: calc(100% - 2em); border: 1px solid var(--vscode-editorSuggestWidget-border);background-color: var(--vscode-editorSuggestWidget-background);">
+            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
+            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
+            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
       </li>
       </ol>
       <p>
