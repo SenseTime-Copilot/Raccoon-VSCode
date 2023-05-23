@@ -534,6 +534,7 @@ button.disabled,
 }
 
 .message-element-gnc {
+    user-select: none;
     background-color: var(--panel-view-background);
     border-bottom: 2px solid var(--panel-view-border);
 }
