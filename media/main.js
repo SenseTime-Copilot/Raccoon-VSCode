@@ -79,10 +79,18 @@ const vscode = acquireVsCodeApi();
         addError(message);
         break;
       }
+      case 'codeReady': {
+        if (message.value) {
+          document.getElementById("question").classList.add("code-ready");
+        } else {
+          document.getElementById("question").classList.remove("code-ready");
+        }
+      }
       case "updateSettingPage": {
         var settings = document.getElementById('settings');
         if (message.action === "close" || (message.action === "toogle" && settings)) {
           settings.remove();
+          document.getElementById("question-input").focus();
           break;
         }
         if (message.action === "open" || message.action === "toogle" || settings) {
@@ -139,6 +147,7 @@ const vscode = acquireVsCodeApi();
         document.getElementById("ask-list").classList.add("hidden");
         document.getElementById("question-input").value = "";
         document.getElementById("question-sizer").dataset.value = "";
+        toggleAskList();
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
           e.remove();
@@ -473,6 +482,11 @@ const vscode = acquireVsCodeApi();
 
   function toggleAskList() {
     var q = document.getElementById('question-input');
+    if (q.value) {
+      document.getElementById("question").classList.add("prompt-ready");
+    } else {
+      document.getElementById("question").classList.remove("prompt-ready");
+    }
     var list = document.getElementById("ask-list");
     if (q.value === '/') {
       list.classList.remove("hidden");
@@ -491,8 +505,6 @@ const vscode = acquireVsCodeApi();
       toggleAskList();
     } else if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
-    } else if (e.target.id === "completionModeRadio") {
-      vscode.postMessage({ type: "completionMode", value: e.target._value });
     } else if (e.target.id === "responseModeRadio") {
       vscode.postMessage({ type: "responseMode", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
@@ -652,18 +664,6 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "stop-button") {
       vscode.postMessage({ type: 'stopGenerate' });
-      return;
-    }
-
-    if (targetButton?.id === "remove-button") {
-      var replaceElems = document.getElementsByClassName("replace");
-      e.preventDefault();
-      for (var p of replaceElems) {
-        p.remove();
-      }
-      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
-      document.getElementById("question-input").disabled = false;
-      document.getElementById("question-input").focus();
       return;
     }
 

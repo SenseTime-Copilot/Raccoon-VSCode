@@ -5,6 +5,71 @@ import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 
+const guide = `
+      <h3>${l10n.t("Coding with SenseCode")}</h3>
+      <ol>
+      <li>
+        ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts SenseCode thinking")}:
+        <div class="flex leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+          <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
+          <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
+        </div>
+      </li>
+      <li>
+      ${l10n.t("When multi candidates generated, use <code>Alt+[</code> or <code>Alt+]</code> to switch between them")}:
+        <div class="flex leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+          <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
+          <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
+        </div>
+      </li>
+      <li>
+      ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
+        <div class="flex leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
+          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">,</span>
+          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+        </div>
+      </li>
+      </ol>
+      <h3>${l10n.t("Ask SenseCode")}</h3>
+      <ol>
+      <li>
+      ${l10n.t("Select code in editor")}:
+        <div class="leading-4 p-2 m-2" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-hoverHighlightBackground);">
+        <div  class="flex" style="width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
+          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
+          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">,</span>
+          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+        </div>
+        </div>
+      </li>
+      <li>
+      ${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), and send them to ask SenseCode")}:
+          <a onclick="document.getElementById('question-input').focus();" style="text-decoration: none;cursor: pointer;">
+            <div class="flex p-1 px-2 my-2 text-xs flex-row-reverse" style="width: calc(100% - 2em);border: 1px solid var(--vscode-editorWidget-border);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
+          </a>
+      </li>
+      <li>
+      ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>Alt+/</code>)")}:
+            <div class="flex flex-col my-2 text-xs" style="width: calc(100% - 2em); border: 1px solid var(--vscode-editorWidget-border);">
+            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--button-icon-hover-background);width: 70%;"></span></div>
+            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--button-icon-hover-background);width: 50%;" class="animate-pulse"></span></div>
+            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--button-icon-hover-background);width: 60%;"></span></div>
+      </li>
+      </ol>
+      <p>
+      ${l10n.t("Read SenseCode document for more information")} <a href="vscode:extension/sensetime.sensecode"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></a>
+      </p>
+      `;
+
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
@@ -39,7 +104,7 @@ export class SenseCodeEditor extends Disposable {
               username = l10n.t("{0} User", engine);
             }
             let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
-            this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg });
+            this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg + guide });
           }, () => {
             this.sendMessage({ type: 'addMessage', category: "no-account", value: l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", engine, `${Uri.parse(`command:sensecode.settings`)}`) });
           });
@@ -48,15 +113,15 @@ export class SenseCodeEditor extends Disposable {
     );
     context.subscriptions.push(
       window.onDidChangeActiveTextEditor((e) => {
-        if (e && (e.document.uri.scheme === "file" || e.document.uri.scheme === "untitled")) {
+        if (e && (e.document.uri.scheme === "file" || e.document.uri.scheme === "git" || e.document.uri.scheme === "untitled")) {
           this.lastTextEditor = e;
         }
       })
     );
     context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
-        if (e.textEditor.document.uri.scheme === "file" || e.textEditor.document.uri.scheme === "untitled") {
-          this.sendMessage({ type: 'enableAsk', value: (e.selections[0] && !e.selections[0].isEmpty) ? true : false });
+        if (e.textEditor.document.uri.scheme === "file" || e.textEditor.document.uri.scheme === "git" || e.textEditor.document.uri.scheme === "untitled") {
+          this.sendMessage({ type: 'codeReady', value: (e.selections[0] && !e.selections[0].isEmpty) ? true : false });
         }
       })
     );
@@ -70,7 +135,6 @@ export class SenseCodeEditor extends Disposable {
   async updateSettingPage(action?: string): Promise<void> {
     let autoComplete = configuration.autoComplete;
     let streamResponse = configuration.streamResponse;
-    let completeLine = configuration.completeLine;
     let delay = configuration.delay;
     let candidates = configuration.candidates;
     let tokenPropensity = configuration.tokenPropensity;
@@ -157,7 +221,7 @@ export class SenseCodeEditor extends Disposable {
     let settingPage = `
     <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <div class="immutable fixed top-3 right-4">
-        <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();">close</span>
+        <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
       </div>
       <div class="immutable flex flex-col mt-4 px-2 gap-2">
         <div class="flex flex-row gap-2 mx-2 items-center justify-between">
@@ -204,19 +268,6 @@ export class SenseCodeEditor extends Disposable {
             <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
               <span class="material-symbols-rounded">keyboard</span>
             </vscode-link>
-          </vscode-radio>
-        </vscode-radio-group>
-        </div>
-      </div>
-      <div class="ml-4">
-        <div>
-        <vscode-radio-group id="completionModeRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Completion Mode")}</label>
-          <vscode-radio ${completeLine ? "checked" : ""} class="w-32" value="Line" title="${l10n.t("Complete current line")}">
-            ${l10n.t("Line")}
-          </vscode-radio>
-          <vscode-radio ${completeLine ? "" : "checked"} class="w-32" value="Block" title="${l10n.t("Complete code block")}">
-            ${l10n.t("Block")}
           </vscode-radio>
         </vscode-radio-group>
         </div>
@@ -405,13 +456,6 @@ export class SenseCodeEditor extends Disposable {
         case 'delay': {
           if (data.value !== configuration.delay) {
             configuration.delay = data.value;
-            this.updateSettingPage();
-          }
-          break;
-        }
-        case 'completionMode': {
-          if (configuration.completeLine !== (data.value === "Line")) {
-            configuration.completeLine = (data.value === "Line");
             this.updateSettingPage();
           }
           break;
@@ -605,7 +649,7 @@ ${data.info.response}
     let promptClone = { ...prompt };
     promptClone.prompt = instruction.replace("${code}", "");
 
-    let engine = configuration.getActiveEngineInfo();
+    let engine = { ...configuration.getActiveEngineInfo() };
 
     let rs: GetCodeCompletions | IncomingMessage;
     try {
@@ -636,7 +680,7 @@ ${data.info.response}
       if (code) {
         codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
       } else {
-        codeStr = instruction;
+        // codeStr = instruction;
         lang = "";
       }
 
@@ -650,7 +694,7 @@ ${data.info.response}
       let promptMsg = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
-${instructionMsg}
+Answer this question: ${instructionMsg}
 
 ### Input:
 ${codeStr}
@@ -658,6 +702,7 @@ ${codeStr}
 ### Response:\n`;
 
       this.stopList[id] = new AbortController();
+      engine.config.max_tokens = configuration.maxTokenForResponse(activeEngine);
       rs = await getCodeCompletions(engine, promptMsg, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
@@ -770,7 +815,10 @@ ${codeStr}
       category = "no-account";
       let settingsUri = Uri.parse(`command:sensecode.settings`);
       welcomMsg += "<br/><br/>" + l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", activeEngine.label, `${settingsUri}`);
+    } else {
+      welcomMsg += guide;
     }
+    let codeEmpty = this.lastTextEditor?.selection?.isEmpty;
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -789,7 +837,7 @@ ${codeStr}
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
                   <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
-                    <div class="p-4 w-full message-element-gnc ${category}">
+                    <div class="p-4 w-full message-element-gnc markdown-body ${category}">
                       <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1"><span class="material-symbols-rounded">assistant</span> ${l10n.t("SenseCode")}</h2>
                       <div id="welcome">
                         ${welcomMsg}
@@ -799,8 +847,12 @@ ${codeStr}
                     <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                       <div id="ask-list" class="flex flex-col hidden"></div>
-                      <div id="question" class="w-full flex justify-center items-center">
-                        <label id="question-sizer" data-value data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"  data-placeholder-short="${l10n.t("Ask SenseCode a question")}">
+                      <div id="question" class="${codeEmpty ? "" : "code-ready"} w-full flex justify-center items-center">
+                        <label id="question-sizer" data-value
+                          data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
+                          data-hint="${l10n.t("Pick one prompt to send [Enter]")}"
+                          data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
+                          >
                           <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                         </label>
                         <button id="send-button" title="${l10n.t("Send [Ctrl+Enter]")}">

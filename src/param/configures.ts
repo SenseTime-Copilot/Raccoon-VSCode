@@ -52,9 +52,6 @@ const builtinEngines: Engine[] = [
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
     config: {
       model: "penrose-411",
-      n: 1,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      max_tokens: 1200,
       temperature: 0.8
     },
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -66,9 +63,6 @@ const builtinEngines: Engine[] = [
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
     config: {
       model: "penrose-411",
-      n: 1,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      max_tokens: 1200,
       temperature: 0.8
     },
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -93,6 +87,18 @@ const builtinPrompts: Prompt[] = [
     icon: "process_chart"
   },
   {
+    label: "Add Test",
+    type: "test sample generation",
+    prompt: "Generate a set of test cases and corresponding test code for the following code",
+    icon: "science"
+  },
+  {
+    label: "Code Conversion",
+    type: "code language conversion",
+    prompt: "Convert the given code to equivalent ${input:target language} code",
+    icon: "repeat"
+  },
+  {
     label: "Code Correction",
     type: "code error correction",
     prompt: "Identify and correct any errors in the following code snippet",
@@ -105,18 +111,6 @@ const builtinPrompts: Prompt[] = [
     prompt: "Refactor the given code to improve readability, modularity, and maintainability",
     brush: true,
     icon: "construction"
-  },
-  {
-    label: "Add Test",
-    type: "test sample generation",
-    prompt: "Generate a set of test cases and corresponding test code for the following code",
-    icon: "science"
-  },
-  {
-    label: "Code Conversion",
-    type: "code language conversion",
-    prompt: "Convert the given code to equivalent ${input:target language} code",
-    icon: "repeat"
   }
 ];
 
@@ -391,7 +385,7 @@ export class Configuration {
   }
 
   public get tokenPropensity(): number {
-    return this.context.globalState.get("tokenPropensity", 60);
+    return this.context.globalState.get("tokenPropensity", 80);
   }
 
   public set tokenPropensity(v: number) {
@@ -408,12 +402,14 @@ export class Configuration {
     return 0;
   }
 
-  public set completeLine(v: boolean) {
-    this.context.globalState.update("CompleteLine", v);
-  }
-
-  public get completeLine(): boolean {
-    return this.context.globalState.get("CompleteLine", true);
+  public maxTokenForResponse(engine?: string): number {
+    let e = this.getEngineInfo(engine);
+    if (e) {
+      let mt = e.token_limit;
+      let r = this.tokenPropensity;
+      return Math.min(mt, Math.floor(mt * (100 - r) / 100));
+    }
+    return 0;
   }
 
   public get delay(): number {

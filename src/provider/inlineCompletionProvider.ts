@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { Engine } from "../param/configures";
-import { Trie } from "./trie";
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { IncomingMessage } from "http";
@@ -8,7 +7,6 @@ import { configuration, outlog } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 
 let lastRequest = null;
-let trie = new Trie([]);
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem) {
   let lang = "";
@@ -146,9 +144,7 @@ export function inlineCompletionProvider(
       let engine = { ...activeEngine };
       engine.config = { ...activeEngine.config };
       engine.config.stop = "\nExplanation:";
-      if (configuration.completeLine) {
-        engine.config.max_tokens = 32;
-      }
+      engine.config.max_tokens = 48;
 
       if (!editor.selection.isEmpty) {
         vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
@@ -160,10 +156,10 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let maxLength = configuration.tokenForPrompt(engine.label) * 3;
-      let textBeforeCursor = await captureCode(document, new vscode.Selection(0, 0, position.line, position.character), maxLength);
+      let maxLength = configuration.tokenForPrompt(engine.label) * 2;
+      let codeSnippets = await captureCode(document, position, maxLength);
 
-      if (!textBeforeCursor) {
+      if (codeSnippets.prefix.length === 0 && codeSnippets.suffix.length === 0) {
         updateStatusBarItem(statusBarItem);
         return;
       }
@@ -188,14 +184,15 @@ export function inlineCompletionProvider(
           prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
-Task type: code completion. Please complete the following code, just response code only.
+Task type: code completion. Please complete the following ${getDocumentLanguage(document.languageId)} code, just response code only.
 
 ### Input:
+${codeSnippets.prefix}
 `;
           suffix = `### Response:
 `;
           rs = await getCodeCompletions(engine,
-            `${prefix}\n${textBeforeCursor}\n${suffix}`,
+            `${prefix}\n${suffix}`,
             configuration.candidates,
             false, controller.signal);
         } catch (err: any) {
@@ -246,7 +243,7 @@ Task type: code completion. Please complete the following code, just response co
           let items = new Array<vscode.InlineCompletionItem>();
           let ts = new Date().valueOf();
           for (let i = 0; i < data.completions.length; i++) {
-            let completion = data.completions[i];
+            let completion = data.completions[i].split("\nExplanation")[0];
             outlog.debug(completion);
             if (isAtTheMiddleOfLine(position, document)) {
               let currentLine = document?.lineAt(position.line);
@@ -276,29 +273,36 @@ Task type: code completion. Please complete the following code, just response co
                   .substring(0, completion.length - 1);
               }
             }
-            let insertText = data.completions[i];
-            if (configuration.completeLine) {
-              let lines = insertText.split('\n');
-              insertText = "";
-              let ln = 0;
-              for (let line of lines) {
-                if (!line.trim()) {
-                  insertText += "\n";
-                  ln++;
-                  continue;
+
+            let lines = completion.split("\n");
+            let insertText = "";
+            let replace: vscode.Range | undefined;
+            for (let line = 0; line < lines.length; line++) {
+              if (lines[line].trim()) {
+                let leadingWs = lines[line].length - lines[line].trimStart().length;
+                let nextLineIndent = 0;
+                if (line < lines.length - 1) {
+                  nextLineIndent = (lines[line + 1].length - lines[line + 1].trimStart().length) - leadingWs;
                 }
-                if (editor.selection.anchor.character === 0) {
-                  insertText = line;
+                let curLine = document.lineAt(position.line);
+                if (curLine.isEmptyOrWhitespace) {
+                  let curleadingWs = position.character;
+                  replace = new vscode.Range(
+                    new vscode.Position(position.line, position.character),
+                    curLine.range.end
+                  );
+                  leadingWs = Math.max(0, (leadingWs - curleadingWs));
+                }
+                if (line === lines.length - 1) {
+                  insertText = ' '.repeat(leadingWs) + lines[line].trimStart() + '\n';
                 } else {
-                  if (ln === 0) {
-                    insertText = line.trim();
-                  } else {
-                    insertText += line;
-                  }
+                  let leading = position.character + nextLineIndent;
+                  insertText = ' '.repeat(leadingWs) + lines[line].trimStart() + '\n' + ' '.repeat(leading);
                 }
                 break;
               }
             }
+
             if (!insertText.trim()) {
               continue;
             }
@@ -309,23 +313,12 @@ Task type: code completion. Please complete the following code, just response co
                 {
                   type: "code completion",
                   language: getDocumentLanguage(document.languageId),
-                  code: textBeforeCursor,
+                  code: [codeSnippets.prefix, codeSnippets.suffix],
                   prompt: "Please complete the following code"
                 },
-                data.completions, "", i.toString(), ts]
+                insertText, "", i.toString(), ts]
             };
-
-            items.push({
-              // insertText: completion,
-              insertText,
-              // range: new vscode.Range(endPosition.translate(0, rs.completions.length), endPosition),
-              range: new vscode.Range(
-                position.translate(0, insertText.length),
-                position
-              ),
-              command
-            });
-            trie.addWord(textBeforeCursor + insertText);
+            items.push({ insertText, range: replace, command });
           }
           if (items.length === 0) {
             updateStatusBarItem(
@@ -352,43 +345,82 @@ Task type: code completion. Please complete the following code, just response co
   return provider;
 }
 
-export async function captureCode(document: vscode.TextDocument, selection: vscode.Selection, maxLength: number) {
-  let text = document.getText(selection);
-  if (!text.trim()) {
-    return;
-  }
-  if (text.length <= maxLength) {
-    return text;
-  }
-
+export async function captureCode(document: vscode.TextDocument, position: vscode.Position, maxLength: number) {
   let foldings: vscode.FoldingRange[] = await vscode.commands.executeCommand("vscode.executeFoldingRangeProvider", document.uri);
-  let cutLinePoints = [0];
+  let cursorX = position.character;
+  let cursorY = position.line;
+  let foldingPoints = [new vscode.FoldingRange(0, document.lineCount - 1)];
+  let preCutLines: number[] = [];
+  let postCutLines: number[] = [];
   if (foldings && foldings.length > 0) {
-    let cursorY = selection.end.line;
-    let lastEnd = foldings[0].end;
     for (let r of foldings) {
       if (r.start < cursorY && r.end >= cursorY) {
-        cutLinePoints.push(r.start);
-      }
-      if (r.start > lastEnd) {
-        cutLinePoints.push(r.start);
-        lastEnd = r.end;
+        foldingPoints.push(r);
+      } else if (r.end < cursorY) {
+        preCutLines.push(r.end + 1);
+      } else if (r.start > cursorY) {
+        postCutLines = [r.start - 1, ...postCutLines];
       }
     }
   }
-  let pos = 1;
-  let start = cutLinePoints.length > pos ? cutLinePoints[pos] : 1;
-  while (text.length > (maxLength)) {
-    let subsec = new vscode.Selection(
-      start,
+  let pos = 0;
+  let prefix = document.getText(new vscode.Selection(
+    0,
+    0,
+    cursorY,
+    cursorX
+  ));
+  let suffix = document.getText(new vscode.Selection(
+    cursorY,
+    cursorX,
+    document.lineCount - 1,
+    document.lineAt(document.lineCount - 1).text.length
+  ));
+  let folding = foldingPoints[pos];
+  while ((prefix.length + suffix.length) > maxLength) {
+    if (foldingPoints.length > pos) {
+      folding = foldingPoints[pos];
+      pos++;
+    } else {
+      let preIdx = 0;
+      let postIdx = 0;
+      for (preIdx = 0; preIdx < preCutLines.length; preIdx++) {
+        if (preCutLines[preIdx] > folding.start) {
+          break;
+        }
+      }
+      for (postIdx = 0; postIdx < postCutLines.length; postIdx++) {
+        if (postCutLines[postIdx] < folding.end) {
+          break;
+        }
+      }
+      if (prefix.length > suffix.length) {
+        if (preIdx < preCutLines.length) {
+          folding.start = preCutLines[preIdx];
+        } else {
+          folding.start = Math.min(cursorY, folding.start + 1);
+        }
+      } else {
+        if (postIdx < postCutLines.length) {
+          folding.end = postCutLines[preIdx];
+        } else {
+          folding.end = Math.max(cursorY, folding.end - 1);
+        }
+      }
+    }
+    prefix = document.getText(new vscode.Selection(
+      folding.start,
       0,
-      selection.end.line,
-      selection.end.character
-    );
-    text = document.getText(subsec);
-    pos++;
-    start = cutLinePoints.length > pos ? cutLinePoints[pos] : start + 1;
+      cursorY,
+      cursorX
+    ));
+    suffix = document.getText(new vscode.Selection(
+      cursorY,
+      cursorX,
+      folding.end,
+      document.lineAt(folding.end).text.length
+    ));
   }
-  return text;
+  return { prefix, suffix };
 }
 

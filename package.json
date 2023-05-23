@@ -1,7 +1,7 @@
 {
     "publisher": "SenseTime",
     "name": "sensecode",
-    "displayName": "Sense Code",
+    "displayName": "SenseCode",
     "description": "%sensecode.description%",
     "homepage": "https://sensecore.cn",
     "repository": {
@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.18.0",
+    "version": "0.20.0",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"

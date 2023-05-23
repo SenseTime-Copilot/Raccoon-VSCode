@@ -96,7 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           report_at: new Date().valueOf()
         });
-      if (configuration.autoComplete || configuration.completeLine) {
+      if (configuration.autoComplete) {
         setTimeout(() => {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }, 1000);
