@@ -52,7 +52,7 @@ const guide = `
         </div>
       </li>
       <li>
-      ${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), and send them to ask SenseCode")}:
+      ${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask SenseCode")}:
           <a onclick="document.getElementById('question-input').focus();" style="text-decoration: none;cursor: pointer;">
             <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
           </a>
@@ -886,7 +886,7 @@ ${codeStr}
                           >
                           <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                         </label>
-                        <button id="send-button" title="${l10n.t("Send [Ctrl+Enter]")}">
+                        <button id="send-button" title="${l10n.t("Send [Enter]")}">
                             <span class="material-symbols-rounded">send</span>
                         </button>
                         <button id="stop-button" title="${l10n.t("Stop [Esc]")}">
@@ -900,7 +900,7 @@ ${codeStr}
                     "Question": "${l10n.t("Question")}",
                     "SenseCode": "${l10n.t("SenseCode")}",
                     "Cancel": "${l10n.t("Cancel [Esc]")}",
-                    "Send": "${l10n.t("Send this prompt [Ctrl+Enter]")}",
+                    "Send": "${l10n.t("Send [Enter]")}",
                     "ToggleWrap": "${l10n.t("Toggle line wrap")}",
                     "Copy": "${l10n.t("Copy to clipboard")}",
                     "Insert": "${l10n.t("Insert the below code at cursor")}",

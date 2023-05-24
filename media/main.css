@@ -46,8 +46,9 @@ button:hover svg {
     stroke: var(--vscode-button-foreground) !important;
 }
 
+button:hover,
 button:focus {
-    outline-color: var(--vscode-focusBorder);
+    color: var(--progress-background);
 }
 
 input:not([type='checkbox']),
@@ -70,7 +71,12 @@ textarea::placeholder {
     outline: none;
 }
 
+.prompt .editable:empty {
+    padding-left: 1ch;
+}
+
 .prompt .editable {
+    min-width: 6ch;
     transition-property: border;
     transition-duration: 0.5s;
     border: 1px solid var(--vscode-progressBar-background);
@@ -251,6 +257,11 @@ textarea::placeholder {
     border: none;
     grid-area: 2/1;
     outline: none;
+    cursor: text;
+}
+
+#question-sizer:has(#question-input[disabled]) {
+    cursor: not-allowed;
 }
 
 #question-input::placeholder {
@@ -264,10 +275,6 @@ textarea::placeholder {
     opacity: 0.4;
     font-size: 1rem;
     border: none;
-}
-
-#question button:disabled {
-    cursor: help;
 }
 
 #question button:hover {
@@ -286,7 +293,7 @@ textarea::placeholder {
 
 #question-sizer:before {
     position: fixed;
-    width: calc(100% - 3rem);
+    width: calc(100% - 3rem + 1ch);
     line-height: 2;
     margin-left: 0.5ch;
     color: var(--input-placeholder-foreground);
@@ -548,9 +555,9 @@ button.disabled,
 .answer-element-gnc:before {
     content: " ";
     float: left;
-    margin: -1.2rem 0.5rem 0 -0.5rem;
+    margin: -1.3rem 0.5rem 0 -0.5rem;
     width: calc(100% + 1rem);
-    border-bottom: 10px dotted var(--vscode-sideBar-background);
+    border-bottom: 0.65rem dotted var(--vscode-sideBar-background);
 }
 
 .progress {

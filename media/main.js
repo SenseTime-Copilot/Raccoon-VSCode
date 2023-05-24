@@ -1,7 +1,6 @@
 const vscode = acquireVsCodeApi();
 
 (function () {
-
   marked.setOptions({
     renderer: new marked.Renderer(),
     highlight: function (code, lang) {
@@ -25,6 +24,7 @@ const vscode = acquireVsCodeApi();
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
+  const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
   const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
@@ -230,8 +230,10 @@ const vscode = acquireVsCodeApi();
         }
 
         let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family); text-align: right;">${message.timestamp}</div>`;
+        let sendBtn = ``;
         if (edit) {
           actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-8 -mr-2">${cancelIcon}</button>`;
+          sendBtn = `<div class="grow text-right mr-1"><button tabindex="0" class="send-element-gnc text-base border-none bg-transparent rounded" title="${l10nForUI["Send"]}">${sendIcon}</button></div>`;
         }
 
         let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
@@ -252,7 +254,7 @@ const vscode = acquireVsCodeApi();
         list.innerHTML +=
           `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
               ${questionTitle}
-              <div id="prompt-${id}" class="prompt inline-block leading-loose py-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
+              <div id="prompt-${id}" class="prompt flex leading-loose py-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}${sendBtn}</div>
               ${codeSnippet}
           </div>`;
 
@@ -327,8 +329,14 @@ const vscode = acquireVsCodeApi();
         if (!chatText.dataset.response) {
           break;
         }
+        if (!chatText.dataset.response.startsWith('```')) {
+          let res = hljs.highlightAuto(chatText.dataset.response);
+          if (res.language !== "vbnet" && res.relevance >= 5) {
+            chatText.dataset.response = "```" + res.language + "\n" + chatText.dataset.response;
+          }
+        }
         if (chatText.dataset.response.split("```").length % 2 !== 1) {
-          chatText.dataset.response += "\n\n```";
+          chatText.dataset.response += "\n```";
         }
         const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response + "\n\n"), "text/html");
         // chatText.dataset.response = undefined;
@@ -403,16 +411,16 @@ const vscode = acquireVsCodeApi();
         const chatText = document.getElementById(`response-${message.id}`);
         if (chatText?.classList.contains("empty")) {
           chatText?.classList.remove("empty");
-          if (message.value !== '```') {
-            chatText.dataset.response = '```' + chatText.dataset.lang + '\n';
-          }
         }
         const progText = document.getElementById(`progress-${message.id}`);
         progText?.classList.add("started");
         chatText.dataset.response = (chatText.dataset.response || "") + message.value;
         let cont = chatText.dataset.response;
+        if (!cont.startsWith('```')) {
+          cont = "```\n" + cont;
+        }
         if (chatText.dataset.response.split("```").length % 2 !== 1) {
-          cont = chatText.dataset.response + "\n\n```";
+          cont = chatText.dataset.response + "\n```";
         }
         const markedResponse = new DOMParser().parseFromString(marked.parse(cont + "\n\n"), "text/html");
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
@@ -556,9 +564,8 @@ const vscode = acquireVsCodeApi();
           }
         };
       }
-    }
-    if (e.target.id === "question-input" && e.target.value.trim()) {
-      if (e.ctrlKey && e.code === "Enter") {
+    } else if (e.target.id === "question-input" && e.target.value.trim()) {
+      if (!e.isComposing && e.code === "Enter") {
         e.preventDefault();
         vscode.postMessage({
           type: "prepareQuestion",
