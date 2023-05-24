@@ -9,8 +9,6 @@ import { sendTelemetryLog } from "./utils/getCodeCompletions";
 import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
 import jwt_decode from "jwt-decode";
 
-//import { KeyCalculator } from "./provider/keyCalculator";
-
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let configuration: Configuration;
@@ -159,7 +157,5 @@ export async function activate(context: vscode.ExtensionContext) {
     supportsMultipleEditorsPerDocument: true,
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
-
-  // new KeyCalculator();
 }
 export function deactivate() { }

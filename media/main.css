@@ -216,6 +216,7 @@ textarea::placeholder {
     user-select: none;
     background-color: var(--input-background);
     border-top: 1px solid var(--panel-view-border);
+    margin-top: -1px;
 }
 
 #error-wrapper {
@@ -1424,7 +1425,7 @@ button.stopGenerate,
 
 .markdown-body pre code {
     overflow: auto;
-    padding: .5rem .5rem 2rem .5rem;
+    padding: .5rem;
     margin: 0;
     color: var(--panel-tab-active-foreground);
     background-color: transparent;
