@@ -216,7 +216,7 @@ textarea::placeholder {
     user-select: none;
     background-color: var(--input-background);
     border-top: 1px solid var(--panel-view-border);
-    margin-top: -1px;
+    margin-top: -2px;
 }
 
 #error-wrapper {
@@ -1406,6 +1406,18 @@ button.stopGenerate,
     margin: 1px 0 2px 0;
     background: none !important;
     color: var(--badge-foreground);
+}
+
+.code-actions-wrapper button:focus {
+    outline: none;
+}
+
+.code-actions-wrapper button:hover {
+    transform: scale(1.1);
+}
+
+.code-actions-wrapper button:active {
+    transform: scale(1);
 }
 
 .pre-code-element:hover::before,

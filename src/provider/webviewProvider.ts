@@ -1,5 +1,5 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
@@ -74,6 +74,19 @@ export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
   private disposing = false;
+
+  private static insertDecorationType = window.createTextEditorDecorationType({
+    backgroundColor: new ThemeColor("diffEditor.insertedLineBackground"),
+    isWholeLine: true,
+    overviewRulerColor: new ThemeColor("minimapGutter.addedBackground"),
+    overviewRulerLane: OverviewRulerLane.Full,
+    after: {
+      contentText: "⁣⁣⁣⁣　SenseCode⁣⁣⁣⁣　",
+      backgroundColor: new ThemeColor("activityBarBadge.background"),
+      color: new ThemeColor("activityBarBadge.foreground"),
+      borderColor: new ThemeColor("activityBar.activeBorder")
+    }
+  });
 
   constructor(private context: ExtensionContext, private webview: Webview) {
     super(() => { });
@@ -388,9 +401,27 @@ export class SenseCodeEditor extends Disposable {
               for (let t of tg.tabs) {
                 if (t.isActive && (t.input instanceof TabInputText || t.input instanceof TabInputNotebook) && t.input.uri.toString() === docUri.toString()) {
                   found = true;
-                  this.lastTextEditor?.insertSnippet(new SnippetString(data.value)).then(async (_v) => {
+                  let content: string = data.value;
+                  let start = this.lastTextEditor?.selection.start.line;
+                  this.lastTextEditor?.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
                     await new Promise((f) => setTimeout(f, 200));
-                    commands.executeCommand("editor.action.formatDocument", docUri);
+                    commands.executeCommand("editor.action.formatDocument", docUri).then(() => {
+                      let end = this.lastTextEditor?.selection.anchor.line;
+                      if (start && end) {
+                        let remover = workspace.onDidChangeTextDocument((e) => {
+                          if (e.document.uri.path === this.lastTextEditor?.document.uri.path) {
+                            this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
+                          }
+                        });
+                        this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, [{
+                          range: new Range(start, 0, end, 0)
+                        }]);
+                        setTimeout(() => {
+                          remover.dispose();
+                          this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
+                        }, 5000);
+                      }
+                    });
                   }, () => { });
                 }
               }
