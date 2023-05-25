@@ -201,6 +201,12 @@ const vscode = acquireVsCodeApi();
 
         let codeSnippet = "";
         if (code.trim()) {
+          if (!lang) {
+            let res = hljs.highlightAuto(code);
+            if (res.language !== "vbnet" && res.relevance >= 5) {
+              lang = res.language;
+            }
+          }
           const codehtml = new DOMParser().parseFromString(marked.parse("```" + lang + "\n" + code + "\n```"), "text/html");
           const preCodeList = codehtml.querySelectorAll("pre > code");
           preCodeList.forEach((preCode, _index) => {
@@ -233,7 +239,7 @@ const vscode = acquireVsCodeApi();
         let sendBtn = ``;
         if (edit) {
           actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-8 -mr-2">${cancelIcon}</button>`;
-          sendBtn = `<div class="grow text-right mr-1"><button tabindex="0" class="send-element-gnc text-base border-none bg-transparent rounded" title="${l10nForUI["Send"]}">${sendIcon}</button></div>`;
+          sendBtn = `<div class="flex mx-2 my-4 -mb-4 justify-end" style="color: var(--panel-tab-foreground);"><button tabindex="0" class="send-element-gnc text-base border-none bg-transparent rounded" title="${l10nForUI["Send"]}">${sendIcon}</button></div>`;
         }
 
         let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
@@ -254,8 +260,9 @@ const vscode = acquireVsCodeApi();
         list.innerHTML +=
           `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
               ${questionTitle}
-              <div id="prompt-${id}" class="prompt flex leading-loose py-2" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}${sendBtn}</div>
+              <div id="prompt-${id}" class="prompt inline-block leading-loose py-2 w-full" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
               ${codeSnippet}
+              ${sendBtn}
           </div>`;
 
         if (edit) {
@@ -329,15 +336,7 @@ const vscode = acquireVsCodeApi();
         if (!chatText.dataset.response) {
           break;
         }
-        if (!chatText.dataset.response.startsWith('```')) {
-          let res = hljs.highlightAuto(chatText.dataset.response);
-          if (res.language !== "vbnet" && res.relevance >= 5) {
-            chatText.dataset.response = "```" + res.language + "\n" + chatText.dataset.response;
-          }
-        }
-        if (chatText.dataset.response.split("```").length % 2 !== 1) {
-          chatText.dataset.response += "\n```";
-        }
+        chatText.dataset.response = wrapCode(chatText.dataset.response, chatText.dataset.lang);
         const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response + "\n\n"), "text/html");
         // chatText.dataset.response = undefined;
         const preCodeList = markedResponse.querySelectorAll("pre > code");
@@ -415,13 +414,7 @@ const vscode = acquireVsCodeApi();
         const progText = document.getElementById(`progress-${message.id}`);
         progText?.classList.add("started");
         chatText.dataset.response = (chatText.dataset.response || "") + message.value;
-        let cont = chatText.dataset.response;
-        if (!cont.startsWith('```')) {
-          cont = "```\n" + cont;
-        }
-        if (chatText.dataset.response.split("```").length % 2 !== 1) {
-          cont = chatText.dataset.response + "\n```";
-        }
+        let cont = wrapCode(chatText.dataset.response, chatText.dataset.lang);
         const markedResponse = new DOMParser().parseFromString(marked.parse(cont + "\n\n"), "text/html");
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
@@ -844,3 +837,22 @@ const vscode = acquireVsCodeApi();
 
   });
 })();
+function wrapCode(cont, defaultLang) {
+  if (!cont.startsWith('```')) {
+    let res = hljs.highlightAuto(cont);
+    let guesslang = (res.language && res.language !== "vbnet") ? res.language : undefined;
+    let relevance = res.relevance;
+    if (guesslang) {
+      if (relevance >= 5) {
+        cont = "```" + guesslang + "\n" + cont;
+      } else if (defaultLang) {
+        cont = "```" + defaultLang + "\n" + cont;
+      }
+    }
+  }
+  if (cont.split("```").length % 2 !== 1) {
+    cont = cont + "\n```";
+  }
+  return cont;
+}
+

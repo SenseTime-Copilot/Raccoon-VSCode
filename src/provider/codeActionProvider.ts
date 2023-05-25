@@ -72,7 +72,11 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     }
     if (prompt && document && selection && !token.isCancellationRequested) {
       let code = document.getText(selection);
-      SenseCodeViewProvider.ask(prompt, code, document.languageId);
+      let lang = '';
+      if (document.languageId !== "plaintext") {
+        lang = document.languageId;
+      }
+      SenseCodeViewProvider.ask(prompt, code, lang);
     }
     return codeAction;
   }

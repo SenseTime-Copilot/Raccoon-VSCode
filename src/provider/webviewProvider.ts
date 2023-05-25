@@ -368,7 +368,9 @@ export class SenseCodeEditor extends Disposable {
             if (promptType === "custom" && !prompt.includes("${code}")) {
             } else {
               selection = editor.document.getText(editor.selection);
-              lang = editor.document.languageId;
+              if (editor.document.languageId !== "plaintext") {
+                lang = editor.document.languageId;
+              }
             }
           }
           if (data.value) {
@@ -660,7 +662,7 @@ ${data.info.response}
     });
   }
 
-  public async sendApiRequest(prompt: Prompt, code: string, lang?: string) {
+  public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
     let response: string;
     let ts = new Date();
     let id = ts.valueOf();
@@ -937,7 +939,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
   }
 
-  public static async ask(prompt: Prompt, code: string, lang?: string) {
+  public static async ask(prompt: Prompt, code: string, lang: string) {
     commands.executeCommand('sensecode.view.focus');
     while (!SenseCodeViewProvider.eidtor) {
       await new Promise((f) => setTimeout(f, 1000));
