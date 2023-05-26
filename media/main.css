@@ -600,6 +600,12 @@ button.stopGenerate,
     opacity: 0.3;
 }
 
+button.stopGenerate:hover,
+.feedback button:hover {
+    opacity: 0.8;
+    text-shadow: 0 0 1px var(--progress-background);
+}
+
 .stopGenerate:focus,
 .feedback button:focus,
 #question button:focus,
