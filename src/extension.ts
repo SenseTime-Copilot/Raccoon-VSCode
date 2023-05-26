@@ -42,7 +42,7 @@ class SenseCodeUriHandler implements vscode.UriHandler {
 
   private saveApiKey(jwt: string) {
     let decoded: any = jwt_decode(jwt);
-    let name = decoded.id_token.username;
+    let name = decoded.id_token?.username || decoded.username;
     let s1 = Buffer.from(`0#${name}#67pnbtbheuJyBZmsx9rz`).toString('base64');
     let s2 = ["O", "T", "V", "G", "N", "k", "V", "D", "O", "U", "Y", "0", "O", "E", "N", "D", "M", "D", "k", "4", "N", "E", "Y", "1", "N", "j", "J", "E", "Q", "U", "Y", "5", "R", "T", "U", "x", "M", "j", "A", "w", "N", "D", "E", "j", "N", "T", "c", "x", "N", "j", "B", "D", "R", "T", "A", "2", "M", "E", "I", "y", "N", "j", "Y", "5", "N", "E", "Q", "1", "N", "U", "R", "C", "N", "T", "I", "z", "M", "T", "A", "y", "M", "z", "c", "y", "M", "E", "U"];
     s1 = s1.split("=")[0];

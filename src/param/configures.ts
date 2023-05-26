@@ -57,16 +57,6 @@ const builtinEngines: Engine[] = [
     // eslint-disable-next-line @typescript-eslint/naming-convention
     token_limit: 2048,
     sensetimeOnly: true
-  },
-  {
-    label: "Penrose-GA",
-    url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
-    config: {
-      model: "penrose-411",
-      temperature: 0.8
-    },
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    token_limit: 2048,
   }
 ];
 
