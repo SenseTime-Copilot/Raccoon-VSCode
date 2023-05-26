@@ -260,6 +260,23 @@ textarea::placeholder {
     cursor: text;
 }
 
+#question.flash {
+    animation: flash .4s ease-in-out 3;
+    outline-color: var(--focus-border);
+}
+
+@keyframes flash {
+    0% {
+        outline: 2px solid transparent;
+    }
+    50% {
+        outline: 2px solid var(--vscode-list-focusOutline);
+    }
+    100% {
+        outline: 2px solid transparent;
+    }
+}
+
 #question-sizer:has(#question-input[disabled]) {
     cursor: not-allowed;
 }
@@ -458,11 +475,7 @@ button.disabled,
     padding: 0.25rem;
 }
 
-#ask-list.pin button:last-child {
-    flex-grow: 1;
-}
-
-@media (max-width: 320px) {
+@media (max-width: calc(320px + 0.5rem)) {
     #ask-list.pin button {
         flex-grow: 1;
     }
