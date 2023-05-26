@@ -722,7 +722,10 @@ export class SenseCodeEditor extends Disposable {
     );
     context.subscriptions.push(
       window.onDidChangeActiveTextEditor((e) => {
-        if (e && (e.document.uri.scheme === "file" || e.document.uri.scheme === "git" || e.document.uri.scheme === "untitled")) {
+        if (!e) {
+          this.lastTextEditor = undefined;
+          this.sendMessage({ type: 'codeReady', value: false });
+        } else if (e.document.uri.scheme === "file" || e.document.uri.scheme === "git" || e.document.uri.scheme === "untitled") {
           this.lastTextEditor = e;
         }
       })

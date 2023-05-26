@@ -31,6 +31,7 @@ const vscode = acquireVsCodeApi();
   const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
   var prompts = undefined;
+  var history = [];
 
   document.getElementById("question-input").disabled = true;
 
@@ -275,6 +276,9 @@ const vscode = acquireVsCodeApi();
             el.focus();
           });
         } else {
+          if (prompt.type === 'free chat') {
+            history = [prompt.prompt, ...history];
+          }
           document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
           document.getElementById("question-input").disabled = true;
           var chat = document.getElementById(id);
@@ -518,6 +522,11 @@ const vscode = acquireVsCodeApi();
     toggleAskList();
   });
 
+  var historyIdx = -1;
+  document.getElementById("question-input").addEventListener("blur", () => {
+    historyIdx = -1;
+  });
+
   document.addEventListener("keydown", (e) => {
     var list = document.getElementById("ask-list");
     if (!list.classList.contains("hidden")) {
@@ -557,8 +566,8 @@ const vscode = acquireVsCodeApi();
           }
         };
       }
-    } else if (e.target.id === "question-input" && e.target.value.trim()) {
-      if (!e.isComposing && e.code === "Enter") {
+    } else if (e.target.id === "question-input") {
+      if (e.target.value.trim() && !e.isComposing && e.code === "Enter") {
         e.preventDefault();
         vscode.postMessage({
           type: "prepareQuestion",
@@ -568,6 +577,23 @@ const vscode = acquireVsCodeApi();
             prompt: e.target.value.trim()
           }
         });
+      } else if (e.code === "ArrowDown") {
+        e.preventDefault();
+        if (historyIdx > 0) {
+          historyIdx--;
+          e.target.value = history[historyIdx];
+        } else {
+          historyIdx = -1;
+          e.target.value = "";
+        }
+        document.getElementById("question-sizer").dataset.value = e.target.value;
+      } else if (e.code === "ArrowUp") {
+        e.preventDefault();
+        if (historyIdx < history.length - 1 ) {
+          historyIdx++;
+          e.target.value = history[historyIdx];
+          document.getElementById("question-sizer").dataset.value = e.target.value;
+        }
       }
       return;
     }
