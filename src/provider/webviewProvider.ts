@@ -4,6 +4,7 @@ import { configuration, outlog, telemetryReporter } from '../extension';
 import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
+import * as crypto from "crypto";
 
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -65,10 +66,20 @@ const guide = `
             <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
       </li>
       </ol>
-      <p>
-      ${l10n.t("Read SenseCode document for more information")} <a href="vscode:extension/sensetime.sensecode"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></a>
-      </p>
+      <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+      <span class="material-symbols-rounded">question_mark</span>
+      <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
+      <vscode-link href="vscode:extension/sensetime.sensecode" class="grow justify-end"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+      </div>
       `;
+
+const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+            <span class='material-symbols-rounded'>priority_high</span>
+            <div class='inline-block leading-loose'>
+              ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> or <b>set API Key</b> in settings first.", l10n.t("SenseCode"))}
+            </div>
+            <vscode-link href="${Uri.parse(`command:sensecode.settings`)}" class="grow justify-end"><span class="material-symbols-rounded">settings</span></vscode-link>
+          </div>`;
 
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
@@ -109,17 +120,18 @@ export class SenseCodeEditor extends Disposable {
       context.secrets.onDidChange((e) => {
         if (e.key === "sensecode.token") {
           configuration.update();
-          this.updateSettingPage("full");
+          this.sendMessage({ type: 'updateSettingPage', action: "close" });
           let engine = configuration.getActiveEngine();
           configuration.getApiKeyRaw(engine).then(async (key) => {
             let username: string | undefined = await configuration.username(engine);
             if (!username && key) {
               username = l10n.t("{0} User", engine);
             }
-            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
             this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg + guide });
           }, () => {
-            this.sendMessage({ type: 'addMessage', category: "no-account", value: l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", engine, `${Uri.parse(`command:sensecode.settings`)}`) });
+            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", "", l10n.t("SenseCode"));
+            this.sendMessage({ type: 'addMessage', category: "no-account", value: welcomMsg + guide + loginHint });
           });
         }
       })
@@ -161,24 +173,33 @@ export class SenseCodeEditor extends Disposable {
       esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
-    let loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
+    let username: string | undefined = await configuration.username(activeEngine.label);
+    let loginout = ``;
+    if (!key) {
+      if (!activeEngine.sensetimeOnly) {
+        let challenge = crypto.createHash('sha256').update(env.machineId).digest("base64url");
+        let loginUrl = `https://signin.sensecore.dev/oauth2/auth?response_type=code&client_id=52090a1b-1f3b-48be-8808-cb0e7a685dbd&code_challenge_method=S256&code_challenge=${challenge}&state=sensecode&scope=openid`;
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="${loginUrl}">
+                                  <span class="material-symbols-rounded">login</span>
+                                </vscode-link>`;
+      } else if (configuration.sensetimeEnv) {
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
                     <span class="material-symbols-rounded">login</span>
                   </vscode-link>`;
-    if (key) {
+      }
+    } else {
+      if (!username) {
+        username = l10n.t("{0} User", activeEngine.label);
+      }
       loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
                     <span id="clearKey" class="material-symbols-rounded">logout</span>
                   </vscode-link>`;
     }
-    let username: string | undefined = await configuration.username(activeEngine.label);
-    if (!username && key) {
-      username = l10n.t("{0} User", activeEngine.label);
-    }
-    let sensetimeFlag = configuration.sensetimeEnv && activeEngine.sensetimeOnly;
     let accountInfo = `
         <div class="flex gap-2 items-center w-full">
           <span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>
           <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
-          ${sensetimeFlag ? loginout : ``}
+          ${loginout}
         </div>
         `;
     let avatar = await configuration.avatar(activeEngine.label);
@@ -187,7 +208,7 @@ export class SenseCodeEditor extends Disposable {
         <div class="flex gap-2 items-center w-full">
           <img class="w-10 h-10 rounded-full" src="${avatar}" />
           <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
-          ${sensetimeFlag ? loginout : ``}
+          ${loginout}
         </div>
         `;
     }
@@ -689,7 +710,7 @@ ${data.info.response}
       let activeEngine = configuration.getActiveEngine();
       let apikey = await configuration.getApiKey(activeEngine);
       if (!apikey) {
-        this.sendMessage({ type: 'addMessage', category: "no-account", value: l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", activeEngine, `${Uri.parse(`command:sensecode.settings`)}`) });
+        this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
       }
@@ -843,11 +864,10 @@ ${codeStr}
       username = l10n.t("{0} User", activeEngine.label);
     }
     let category = "welcome";
-    welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me any technical question, or ask me to help you with your code.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+    welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
     if (!username) {
       category = "no-account";
-      let settingsUri = Uri.parse(`command:sensecode.settings`);
-      welcomMsg += "<br/><br/>" + l10n.t("It seems that you have not had an account to <b>{0}</b>, set it in <vscode-link href=\"{1}\">setting page</vscode-link>.", activeEngine.label, `${settingsUri}`);
+      welcomMsg += guide + loginHint;
     } else {
       welcomMsg += guide;
     }

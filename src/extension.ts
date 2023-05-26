@@ -8,6 +8,8 @@ import { SenseCodeAction } from "./provider/codeActionProvider";
 import { sendTelemetryLog } from "./utils/getCodeCompletions";
 import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
 import jwt_decode from "jwt-decode";
+import FormData = require("form-data");
+import axios from "axios";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -15,26 +17,63 @@ export let configuration: Configuration;
 export let telemetryReporter: vscode.TelemetryLogger;
 
 class SenseCodeUriHandler implements vscode.UriHandler {
-  handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    if (uri.query) {
-      let decoded:any = jwt_decode(uri.query);
-      let s1 = Buffer.from(`0#${decoded.username}#67pnbtbheuJyBZmsx9rz`).toString('base64');
-      let s2 = ["O","T","V","G","N","k","V","D","O","U","Y","0","O","E","N","D","M","D","k","4","N","E","Y","1","N","j","J","E","Q","U","Y","5","R","T","U","x","M","j","A","w","N","D","E","j","N","T","c","x","N","j","B","D","R","T","A","2","M","E","I","y","N","j","Y","5","N","E","Q","1","N","U","R","C","N","T","I","z","M","T","A","y","M","z","c","y","M","E","U"];
-      s1 = s1.split("=")[0];
-      let len = Math.max(s1.length, s2.length);
-      let key = '';
-      for (let i = 0; i < len; i++) {
-        if (i < s1.length) {
-          key += s1[i];
+  private async getToken(code: string, state: string) {
+    var data = new FormData();
+    data.append('client_id', '52090a1b-1f3b-48be-8808-cb0e7a685dbd');
+    data.append('redirect_uri', 'vscode://sensetime.sensecode/login');
+    data.append('grant_type', 'authorization_code');
+    data.append('code_verifier', vscode.env.machineId);
+    data.append('code', code);
+    data.append('state', state);
+
+    return await axios.post("https://signin.sensecore.dev/oauth2/token",
+      data.getBuffer(),
+      {
+        headers: data.getHeaders()
+      })
+      .then((resp) => {
+        if (resp && resp.status === 200) {
+          return resp.data.id_token;
         }
-        if (i === s1.length) {
-          key += ',';
-        }
-        if (i < s2.length) {
-          key += s2[i];
-        }
+      }).catch((err) => {
+        console.log(err);
+      });
+  }
+
+  private saveApiKey(jwt: string) {
+    let decoded: any = jwt_decode(jwt);
+    let name = decoded.id_token.username;
+    let s1 = Buffer.from(`0#${name}#67pnbtbheuJyBZmsx9rz`).toString('base64');
+    let s2 = ["O", "T", "V", "G", "N", "k", "V", "D", "O", "U", "Y", "0", "O", "E", "N", "D", "M", "D", "k", "4", "N", "E", "Y", "1", "N", "j", "J", "E", "Q", "U", "Y", "5", "R", "T", "U", "x", "M", "j", "A", "w", "N", "D", "E", "j", "N", "T", "c", "x", "N", "j", "B", "D", "R", "T", "A", "2", "M", "E", "I", "y", "N", "j", "Y", "5", "N", "E", "Q", "1", "N", "U", "R", "C", "N", "T", "I", "z", "M", "T", "A", "y", "M", "z", "c", "y", "M", "E", "U"];
+    s1 = s1.split("=")[0];
+    let len = Math.max(s1.length, s2.length);
+    let key = '';
+    for (let i = 0; i < len; i++) {
+      if (i < s1.length) {
+        key += s1[i];
       }
-      configuration.setApiKey(configuration.getActiveEngineInfo().label, key);
+      if (i === s1.length) {
+        key += ',';
+      }
+      if (i < s2.length) {
+        key += s2[i];
+      }
+    }
+    configuration.setApiKey(configuration.getActiveEngineInfo().label, key);
+  }
+
+  handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
+    if (uri.path === "/login") {
+      let data = JSON.parse('{"' + decodeURI(uri.query).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
+      this.getToken(data.code, data.state).then((jwt) => {
+        if (jwt) {
+          this.saveApiKey(jwt);
+        }
+      });
+      return;
+    }
+    if (uri.query) {
+      this.saveApiKey(uri.query);
     }
   }
 }

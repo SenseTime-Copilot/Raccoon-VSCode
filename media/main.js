@@ -396,7 +396,7 @@ const vscode = acquireVsCodeApi();
         if (list.lastElementChild.classList.contains(message.category)) {
 
         } else {
-          list.innerHTML += `<div class="p-4 w-full message-element-gnc ${message.category || ""}">
+          list.innerHTML = `<div class="p-4 w-full message-element-gnc markdown-body ${message.category || ""}">
                     <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
                     <div>
                       ${message.value}

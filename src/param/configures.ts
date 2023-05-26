@@ -225,7 +225,7 @@ export class Configuration {
       return;
     }
     const engineInfo = this.getEngineInfo(engine);
-    if (!engineInfo || !engineInfo.sensetimeOnly) {
+    if (!engineInfo) {
       return;
     }
     let info = parseAuthInfo(token);
@@ -255,8 +255,8 @@ export class Configuration {
       return Promise.reject(Error(l10n.t("API Key not set")));
     }
     const engineInfo = this.getEngineInfo(engine);
+    let info = parseAuthInfo(token);
     if (engineInfo && engineInfo.sensetimeOnly) {
-      let info = parseAuthInfo(token);
       return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -273,7 +273,7 @@ export class Configuration {
           return Promise.reject(error);
         });
     }
-    return token;
+    return Buffer.from(info?.aksk, "base64").toString().trim();
   }
 
   public async getApiKey(engine: string): Promise<string | undefined> {
