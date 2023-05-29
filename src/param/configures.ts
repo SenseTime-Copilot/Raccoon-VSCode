@@ -138,6 +138,10 @@ export class Configuration {
     this.context.globalState.update("delay", undefined);
     this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
+    for (let e of builtinEngines) {
+      e.avatar = undefined;
+      e.key = undefined;
+    }
     this.context.secrets.delete("sensecode.token");
   }
 
