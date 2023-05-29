@@ -1357,7 +1357,6 @@ button.stopGenerate:hover,
     white-space: break-spaces;
     color: var(--vscode-minimap-findMatchHighlight);
     background-color: var(--vscode-editor-findRangeHighlightBackground);
-    border-radius: 4px;
 }
 
 .markdown-body code br,

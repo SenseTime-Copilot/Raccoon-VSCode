@@ -1027,7 +1027,7 @@ export class SenseCodeEditor extends Disposable {
                     await new Promise((f) => setTimeout(f, 200));
                     commands.executeCommand("editor.action.formatDocument", docUri).then(() => {
                       let end = this.lastTextEditor?.selection.anchor.line;
-                      if (start && end) {
+                      if (start !== undefined && end !== undefined) {
                         let remover = workspace.onDidChangeTextDocument((e) => {
                           if (e.document.uri.path === this.lastTextEditor?.document.uri.path) {
                             this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
