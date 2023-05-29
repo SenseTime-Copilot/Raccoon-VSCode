@@ -222,7 +222,6 @@ textarea::placeholder {
     user-select: none;
     background-color: var(--input-background);
     border-top: 1px solid var(--panel-view-border);
-    margin-top: -2px;
 }
 
 #error-wrapper {

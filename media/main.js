@@ -589,7 +589,7 @@ const vscode = acquireVsCodeApi();
         document.getElementById("question-sizer").dataset.value = e.target.value;
       } else if (e.code === "ArrowUp") {
         e.preventDefault();
-        if (historyIdx < history.length - 1 ) {
+        if (historyIdx < history.length - 1) {
           historyIdx++;
           e.target.value = history[historyIdx];
           document.getElementById("question-sizer").dataset.value = e.target.value;
@@ -865,14 +865,27 @@ const vscode = acquireVsCodeApi();
 })();
 function wrapCode(cont, defaultLang) {
   if (!cont.startsWith('```')) {
+    let lines = cont.split('\n');
+    let maxLength = 0;
+    for (let line of lines) {
+      if (line.length > maxLength) {
+        maxLength = line.length;
+      }
+    }
     let res = hljs.highlightAuto(cont);
     let guesslang = (res.language && res.language !== "vbnet") ? res.language : undefined;
     let relevance = res.relevance;
     if (guesslang) {
-      if (relevance >= 5) {
+      if (maxLength < 200 && relevance > 8) {
+        cont = "```" + guesslang + "\n" + cont;
+      } else if (maxLength < 160 && relevance > 7) {
+        cont = "```" + guesslang + "\n" + cont;
+      } else if (maxLength < 120 && relevance > 6) {
+        cont = "```" + guesslang + "\n" + cont;
+      } else if (maxLength < 100 && relevance > 5) {
         cont = "```" + guesslang + "\n" + cont;
       } else if (defaultLang) {
-        cont = "```" + defaultLang + "\n" + cont;
+        // cont = "```" + defaultLang + "\n" + cont;
       }
     }
   }
@@ -881,4 +894,3 @@ function wrapCode(cont, defaultLang) {
   }
   return cont;
 }
-
