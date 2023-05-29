@@ -590,46 +590,44 @@ const guide = `
       <ol>
       <li>
         ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts SenseCode thinking")}:
-        <div class="flex leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
+        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
           <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
-        </div>
+        </code>
       </li>
       <li>
       ${l10n.t("When multi candidates generated, use <code>Alt+[</code> or <code>Alt+]</code> to switch between them")}:
-        <div class="flex leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
+        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
           <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
-        </div>
+        </code>
       </li>
       <li>
       ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
-        <div class="flex leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
+        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">,</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
-        </div>
+        </code>
       </li>
       </ol>
       <h3>${l10n.t("Ask SenseCode")}</h3>
       <ol>
       <li>
       ${l10n.t("Select code in editor")}:
-        <div class="leading-4 p-2 m-2 rounded" style="font-family: var(--vscode-editor-font-family);background-color: var(--vscode-editor-background);border: 1px solid var(--vscode-editor-lineHighlightBorder);">
-        <div  class="flex" style="width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
+        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">,</span>
+          <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
-        </div>
-        </div>
+        </code>
       </li>
       <li>
       ${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask SenseCode")}:

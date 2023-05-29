@@ -116,8 +116,8 @@ export class Configuration {
   }
 
   private async checkSensetimeEnv() {
-    await axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`).catch(e => {
-      if (e.response.status === 401) {
+    await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
+      if (e.response.status === 500) {
         this.isSensetimeEnv = true;
       }
     });
