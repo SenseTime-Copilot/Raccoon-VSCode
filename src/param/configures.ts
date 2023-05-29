@@ -349,7 +349,7 @@ export class Configuration {
           }
         }
       ).catch(async (_error) => {
-        throw new Error();
+        return "";
       });
   }
 
