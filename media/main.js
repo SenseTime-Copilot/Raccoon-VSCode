@@ -240,7 +240,7 @@ const vscode = acquireVsCodeApi();
         let sendBtn = ``;
         if (edit) {
           actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-8 -mr-2">${cancelIcon}</button>`;
-          sendBtn = `<div class="flex mx-2 my-4 -mb-4 justify-end" style="color: var(--panel-tab-foreground);"><button tabindex="0" class="send-element-gnc text-base border-none bg-transparent rounded" title="${l10nForUI["Send"]}">${sendIcon}</button></div>`;
+          sendBtn = `<div class="flex mx-2 my-4 -mb-4 justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]}">${sendIcon}</vscode-button></div>`;
         }
 
         let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
