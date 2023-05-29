@@ -34,7 +34,6 @@ code {
 }
 
 button {
-    border: 1px solid var(--vscode-button-border);
     padding: var(--input-padding-vertical) var(--input-padding-horizontal);
     text-align: center;
     outline: 1px solid transparent;
@@ -295,7 +294,6 @@ textarea::placeholder {
     color: var(--input-placeholder-foreground);
     opacity: 0.4;
     font-size: 1rem;
-    border: none;
 }
 
 #question button:hover {
@@ -478,7 +476,6 @@ button.disabled,
 #ask-list button {
     padding: 0.25rem 1rem;
     width: 100%;
-    border: none;
     background: none !important;
 }
 
@@ -503,7 +500,6 @@ button.disabled,
 #ask-list button:hover,
 #ask-list button:focus {
     outline: none !important;
-    border: none;
     background: var(--button-icon-hover-background) !important;
 }
 
@@ -608,7 +604,6 @@ button.stopGenerate,
 .feedback button {
     user-select: none;
     background: transparent !important;
-    border: none;
     opacity: 0.3;
 }
 
