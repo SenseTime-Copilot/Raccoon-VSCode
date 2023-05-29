@@ -90,7 +90,7 @@ const vscode = acquireVsCodeApi();
       case "updateSettingPage": {
         var settings = document.getElementById('settings');
         if (message.action === "close" || (message.action === "toogle" && settings)) {
-          settings.remove();
+          settings?.remove();
           document.getElementById("question-input").focus();
           break;
         }
@@ -100,17 +100,21 @@ const vscode = acquireVsCodeApi();
             sp.innerHTML = message.value;
           } else {
             var sn = new DOMParser().parseFromString(message.value, "text/html").getElementById("settings");
-            for (let i = sn.childNodes.length - 1; i >= 0; i--) {
-              if (sn.childNodes[i].classList?.contains("immutable")) {
-                sn.removeChild(sn.childNodes[i]);
+            if (sn) {
+              for (let i = sn.childNodes.length - 1; i >= 0; i--) {
+                if (sn.childNodes[i].classList?.contains("immutable")) {
+                  sn.removeChild(sn.childNodes[i]);
+                }
               }
-            }
-            for (let i = settings.childNodes.length - 1; i >= 0; i--) {
-              if (!settings.childNodes[i].classList?.contains("immutable")) {
-                settings.removeChild(settings.childNodes[i]);
+              for (let i = settings.childNodes.length - 1; i >= 0; i--) {
+                if (!settings.childNodes[i].classList?.contains("immutable")) {
+                  settings.removeChild(settings.childNodes[i]);
+                }
               }
+              settings.append(...sn.childNodes);
+            } else {
+              console.log(message.value);
             }
-            settings.append(...sn.childNodes);
           }
         }
         break;
@@ -599,7 +603,7 @@ const vscode = acquireVsCodeApi();
           document.getElementById("question-sizer").dataset.value = e.target.value;
         }
       } else {
-        if(document.getElementById("question").classList.contains("history")) {
+        if (document.getElementById("question").classList.contains("history")) {
           if (e.code !== "Tab") {
             e.target.value = "";
           } else {

@@ -258,6 +258,7 @@ export class Configuration {
             throw (new Error(l10n.t("Invalid API Key")));
           }
         ).catch(async (error) => {
+          this.setApiKey(engine, undefined);
           return Promise.reject(error);
         });
     }
@@ -318,6 +319,9 @@ export class Configuration {
       }
       if (engineInfo.sensetimeOnly) {
         let info = parseAuthInfo(token);
+        if (!info.name) {
+          return false;
+        }
         await this.getUserAvatar(info, engineInfo);
       }
       return true;
@@ -325,7 +329,7 @@ export class Configuration {
   }
 
   private async getUserAvatar(info: { id: number; name: string; token: string; aksk: string }, engine: Engine): Promise<string | undefined> {
-    if (!engine.sensetimeOnly) {
+    if (!engine.sensetimeOnly || !info.name) {
       return;
     }
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${info.name}`,
