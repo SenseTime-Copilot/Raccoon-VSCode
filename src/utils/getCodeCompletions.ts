@@ -53,8 +53,14 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n:
   return new Promise(async (resolve, reject) => {
     let headers = undefined;
     if (key) {
-      let aksk = key.split("#");
-      headers = generateAuthHeader(Uri.parse(engine.url), aksk[0], aksk[1]);
+      if (key.includes("#")) {
+        let aksk = key.split("#");
+        headers = generateAuthHeader(Uri.parse(engine.url), aksk[0], aksk[1]);
+      } else {
+        headers = {
+          authorization: `Bearer ${key}`,
+        };
+      }
     }
     let payload;
     let p = prompt;

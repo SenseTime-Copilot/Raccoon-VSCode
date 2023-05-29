@@ -100,6 +100,11 @@
                 "enablement": "view == sensecode.view"
             },
             {
+                "command": "sensecode.settings.reset",
+                "category": "SenseCode",
+                "title": "%sensecode.command.settingsReset%"
+            },
+            {
                 "command": "sensecode.openEditor",
                 "category": "SenseCode",
                 "title": "%sensecode.command.openEditor%",

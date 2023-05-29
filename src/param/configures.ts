@@ -113,12 +113,6 @@ export class Configuration {
     this.context = context;
     this.checkSensetimeEnv();
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
-    let lastVersion = this.context.globalState.get<string>("lastVersion");
-    if (!lastVersion) {
-      this.clear();
-      this.context.globalState.update("lastVersion", context.extension.packageJSON.version);
-    }
-    this.update();
   }
 
   private async checkSensetimeEnv() {

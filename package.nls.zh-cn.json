@@ -12,6 +12,7 @@
     "sensecode.view.title": "代码助手",
     "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 代码助手实例",
     "sensecode.command.settings": "设置",
+    "sensecode.command.settingsReset": "重置所有配置项",
     "sensecode.command.completionTrigger": "触发代码补全",
     "sensecode.command.onSuggestionAccepted": "补全建议接受事件上报"
 }

@@ -435,10 +435,11 @@ const vscode = acquireVsCodeApi();
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
-                                        <div class="grow">
-                                            <p>An error occurred</p><p>${message.error}</p>
+                                        <div class="grow py-4">
+                                            <div>An error occurred</div>
+                                            <div>${message.error}</div>
                                         </div>
-                                        <button class="bug rounded border-0 mx-4 opacity-50 focus:outline-none" data-id=${message.id}>
+                                        <button class="bug rounded border-0 mx-4 opacity-80 focus:outline-none" data-id=${message.id}>
                                           <span class="material-symbols-rounded">
                                             bug_report
                                           </span>

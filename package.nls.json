@@ -12,6 +12,7 @@
     "sensecode.view.title": "Assistant",
     "sensecode.command.openEditor": "Open new SenseCode Assistant instance in editor",
     "sensecode.command.settings": "Settings",
+    "sensecode.command.settingsReset": "Reset all settings",
     "sensecode.command.completionTrigger": "Code Inline Completion Trigger",
     "sensecode.command.onSuggestionAccepted": "Suggestion acception report"
 }
