@@ -568,14 +568,14 @@ const vscode = acquireVsCodeApi();
         };
       }
     } else if (e.target.id === "question-input") {
-      if (e.target.value.trim() && !e.isComposing && e.code === "Enter") {
+      if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.code === "Enter") {
         e.preventDefault();
         vscode.postMessage({
           type: "prepareQuestion",
           value: {
             label: "",
             type: "free chat",
-            prompt: e.target.value.trim()
+            prompt: e.target.value
           }
         });
       } else if (e.code === "ArrowDown") {
@@ -583,9 +583,11 @@ const vscode = acquireVsCodeApi();
         if (historyIdx > 0) {
           historyIdx--;
           e.target.value = history[historyIdx];
+          document.getElementById("question").classList.add("history");
         } else {
           historyIdx = -1;
           e.target.value = "";
+          document.getElementById("question").classList.remove("history");
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
       } else if (e.code === "ArrowUp") {
@@ -593,7 +595,20 @@ const vscode = acquireVsCodeApi();
         if (historyIdx < history.length - 1) {
           historyIdx++;
           e.target.value = history[historyIdx];
+          document.getElementById("question").classList.add("history");
           document.getElementById("question-sizer").dataset.value = e.target.value;
+        }
+      } else {
+        if(document.getElementById("question").classList.contains("history")) {
+          if (e.code !== "Tab") {
+            e.target.value = "";
+          } else {
+            e.preventDefault();
+            document.getElementById("question").classList.add("prompt-ready");
+          }
+          historyIdx = -1;
+          document.getElementById("question").classList.remove("history");
+          document.getElementById("question-input").focus();
         }
       }
       return;

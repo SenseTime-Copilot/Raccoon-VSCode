@@ -259,6 +259,11 @@ textarea::placeholder {
     cursor: text;
 }
 
+#question.history #question-input {
+    caret-color: transparent;
+    color: var(--input-placeholder-foreground);
+}
+
 #question.flash {
     animation: flash .4s ease-in-out 3;
     outline-color: var(--focus-border);
@@ -366,6 +371,14 @@ textarea::placeholder {
     display: block;
     color: var(--progress-background);
     opacity: 1;
+}
+
+.material-symbols-rounded.history-icon {
+    display: none;
+}
+
+#question.history .material-symbols-rounded.history-icon {
+    display: block;
 }
 
 #question.prompt-ready #send-button {

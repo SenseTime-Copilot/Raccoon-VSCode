@@ -648,7 +648,9 @@ const guide = `
       <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
       <span class="material-symbols-rounded">question_mark</span>
       <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
-      <vscode-link href="vscode:extension/sensetime.sensecode" class="grow justify-end"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+      <div class="flex grow justify-end">
+        <vscode-link href="vscode:extension/sensetime.sensecode"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+      </div>
       </div>
       `;
 
@@ -657,7 +659,9 @@ const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rou
             <div class='inline-block leading-loose'>
               ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> or <b>set API Key</b> in settings first.", l10n.t("SenseCode"))}
             </div>
-            <vscode-link href="${Uri.parse(`command:sensecode.settings`)}" class="grow justify-end"><span class="material-symbols-rounded">settings</span></vscode-link>
+            <div class="flex grow justify-end">
+              <vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>
+            </div>
           </div>`;
 
 export class SenseCodeEditor extends Disposable {
@@ -1501,6 +1505,7 @@ ${codeStr}
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                       <div id="ask-list" class="flex flex-col hidden"></div>
                       <div id="question" class="${codeEmpty ? "" : "code-ready"} w-full flex justify-center items-center">
+                        <span class="material-symbols-rounded opacity-40 history-icon">history</span>
                         <label id="question-sizer" data-value
                           data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
                           data-hint="${l10n.t("Pick one prompt to send [Enter]")}"
