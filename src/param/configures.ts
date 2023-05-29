@@ -117,7 +117,7 @@ export class Configuration {
 
   private async checkSensetimeEnv() {
     await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
-      if (e.response.status === 500) {
+      if (e.response?.status === 500) {
         this.isSensetimeEnv = true;
       }
     });
@@ -146,6 +146,7 @@ export class Configuration {
   }
 
   public update() {
+    this.checkSensetimeEnv();
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
   }
 
