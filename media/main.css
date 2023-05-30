@@ -361,7 +361,8 @@ textarea::placeholder {
 }
 
 #send-button,
-#stop-button {
+#stop-button,
+#search-button {
     display: none;
 }
 
@@ -379,10 +380,15 @@ textarea::placeholder {
     display: block;
 }
 
-#question.prompt-ready #send-button {
+#question.prompt-ready #send-button,
+#question.prompt-ready.search #search-button {
     display: block;
     color: var(--progress-background);
     opacity: 1;
+}
+
+#question.prompt-ready.search #send-button {
+    display: none;
 }
 
 #question.code-ready #send-button:after {

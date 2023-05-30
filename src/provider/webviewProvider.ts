@@ -1517,6 +1517,9 @@ ${codeStr}
                         <button id="stop-button" title="${l10n.t("Stop [Esc]")}">
                             <span class="material-symbols-rounded">stop</span>
                         </button>
+                        <button id="search-button" title="${l10n.t("Search [Enter]")}">
+                          <span class="material-symbols-rounded">search</span>
+                        </button>
                       </div>
                     </div>
                 </div>

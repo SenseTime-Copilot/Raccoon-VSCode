@@ -497,6 +497,12 @@ const vscode = acquireVsCodeApi();
     } else {
       document.getElementById("question").classList.remove("prompt-ready");
     }
+    if (q.value.startsWith('?') || q.value.startsWith('？')) {
+      document.getElementById("question").classList.add("search");
+      return;
+    } else {
+      document.getElementById("question").classList.remove("search");
+    }
     var list = document.getElementById("ask-list");
     if (q.value === '/') {
       list.classList.remove("hidden");

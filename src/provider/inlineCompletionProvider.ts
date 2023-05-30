@@ -402,7 +402,7 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
         }
       } else {
         if (postIdx < postCutLines.length) {
-          folding.end = postCutLines[preIdx];
+          folding.end = postCutLines[postIdx];
         } else {
           folding.end = Math.max(cursorY, folding.end - 1);
         }
