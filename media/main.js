@@ -150,20 +150,24 @@ const vscode = acquireVsCodeApi();
       case "addSearch": {
         document.getElementById('settings')?.remove();
         document.getElementById("ask-list").classList.add("hidden");
+        document.getElementById("search-list").classList.add("hidden");
         document.getElementById("question-input").value = "";
         document.getElementById("question-sizer").dataset.value = "";
         document.getElementById("question").classList.remove("history");
         toggleAskList();
+        toggleSearchList();
         history = [message.value, ...history];
         break;
       }
       case "addQuestion": {
         document.getElementById('settings')?.remove();
         document.getElementById("ask-list").classList.add("hidden");
+        document.getElementById("search-list").classList.add("hidden");
         document.getElementById("question-input").value = "";
         document.getElementById("question-sizer").dataset.value = "";
         document.getElementById("question").classList.remove("history");
         toggleAskList();
+        toggleSearchList();
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
           e.remove();
@@ -527,9 +531,22 @@ const vscode = acquireVsCodeApi();
     }
   }
 
+  function toggleSearchList() {
+    var q = document.getElementById('question-input');
+    var list = document.getElementById("search-list");
+    if (q.value.startsWith('?') || q.value.startsWith('？')) {
+      document.getElementById("question").classList.add("search");
+      list.classList.remove("hidden");
+    } else {
+      document.getElementById("question").classList.remove("search");
+      list.classList.add("hidden");
+    }
+  }
+
   document.addEventListener("change", (e) => {
     if (e.target.id === "question-input") {
       toggleAskList();
+      toggleSearchList();
     } else if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
     } else if (e.target.id === "responseModeRadio") {
@@ -542,6 +559,7 @@ const vscode = acquireVsCodeApi();
 
   document.getElementById("question-input").addEventListener("input", () => {
     toggleAskList();
+    toggleSearchList();    
   });
 
   var historyIdx = -1;
@@ -591,15 +609,19 @@ const vscode = acquireVsCodeApi();
     } else if (e.target.id === "question-input") {
       if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.code === "Enter") {
         e.preventDefault();
-        vscode.postMessage({
-          type: "prepareQuestion",
-          value: {
-            label: "",
-            type: "free chat",
-            prompt: e.target.value
-          }
-        });
-      } else if (e.code === "ArrowDown") {
+        if (document.getElementById("question").classList.contains("search")) {
+          sendSearchQuery(e.target.value.slice(1).trim());
+        } else {
+          vscode.postMessage({
+            type: "prepareQuestion",
+            value: {
+              label: "",
+              type: "free chat",
+              prompt: e.target.value
+            }
+          });
+        }
+      } else if (e.code === "ArrowDown" && document.getElementById("question").classList.contains("history")) {
         e.preventDefault();
         if (historyIdx > 0) {
           historyIdx--;
@@ -618,6 +640,8 @@ const vscode = acquireVsCodeApi();
           document.getElementById("question").classList.remove("search");
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
+        toggleAskList();
+        toggleSearchList();
       } else if (e.code === "ArrowUp") {
         e.preventDefault();
         if (historyIdx < history.length - 1) {
@@ -630,6 +654,8 @@ const vscode = acquireVsCodeApi();
           } else {
             document.getElementById("question").classList.remove("search");
           }
+          toggleAskList();
+          toggleSearchList();
         }
       } else {
         if (document.getElementById("question").classList.contains("history")) {
@@ -708,7 +734,12 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button');
 
-    if (targetButton?.id === "send-button" || targetButton?.id === "search-button") {
+    if (targetButton?.id === "search-button") {
+      sendSearchQuery(document.getElementById("question-input").value.slice(1).trim());
+      return;
+    }
+
+    if (targetButton?.id === "send-button") {
       var list = document.getElementById("ask-list");
       if (list.classList.contains("hidden")) {
         var prompt = document.getElementById("question-input").value.trim();
@@ -912,35 +943,54 @@ const vscode = acquireVsCodeApi();
     }
 
   });
+
+  function sendSearchQuery(query) {
+    var urls = document.getElementById("search-list").querySelectorAll('vscode-checkbox');
+    var searchUrl = [];
+    urls.forEach((ele, _idx, _arr) => {
+      if (ele._checked) {
+        searchUrl.push(ele.dataset.query);
+      }
+    });
+    if (searchUrl.length > 0 && query) {
+      vscode.postMessage({
+        type: "searchQuery",
+        query,
+        searchUrl
+      });
+    }
+  }
+
+  function wrapCode(cont, defaultLang) {
+    if (!cont.startsWith('```')) {
+      let lines = cont.split('\n');
+      let maxLength = 0;
+      for (let line of lines) {
+        if (line.length > maxLength) {
+          maxLength = line.length;
+        }
+      }
+      let res = hljs.highlightAuto(cont);
+      let guesslang = (res.language && res.language !== "vbnet") ? res.language : undefined;
+      let relevance = res.relevance;
+      if (guesslang) {
+        if (maxLength < 200 && relevance > 8) {
+          cont = "```" + guesslang + "\n" + cont;
+        } else if (maxLength < 160 && relevance > 7) {
+          cont = "```" + guesslang + "\n" + cont;
+        } else if (maxLength < 120 && relevance > 6) {
+          cont = "```" + guesslang + "\n" + cont;
+        } else if (maxLength < 100 && relevance > 5) {
+          cont = "```" + guesslang + "\n" + cont;
+        } else if (defaultLang) {
+          // cont = "```" + defaultLang + "\n" + cont;
+        }
+      }
+    }
+    if (cont.split("```").length % 2 !== 1) {
+      cont = cont + "\n```";
+    }
+    return cont;
+  }
 })();
-function wrapCode(cont, defaultLang) {
-  if (!cont.startsWith('```')) {
-    let lines = cont.split('\n');
-    let maxLength = 0;
-    for (let line of lines) {
-      if (line.length > maxLength) {
-        maxLength = line.length;
-      }
-    }
-    let res = hljs.highlightAuto(cont);
-    let guesslang = (res.language && res.language !== "vbnet") ? res.language : undefined;
-    let relevance = res.relevance;
-    if (guesslang) {
-      if (maxLength < 200 && relevance > 8) {
-        cont = "```" + guesslang + "\n" + cont;
-      } else if (maxLength < 160 && relevance > 7) {
-        cont = "```" + guesslang + "\n" + cont;
-      } else if (maxLength < 120 && relevance > 6) {
-        cont = "```" + guesslang + "\n" + cont;
-      } else if (maxLength < 100 && relevance > 5) {
-        cont = "```" + guesslang + "\n" + cont;
-      } else if (defaultLang) {
-        // cont = "```" + defaultLang + "\n" + cont;
-      }
-    }
-  }
-  if (cont.split("```").length % 2 !== 1) {
-    cont = cont + "\n```";
-  }
-  return cont;
-}
+

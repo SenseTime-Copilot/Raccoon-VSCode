@@ -620,13 +620,15 @@ const guide = `
       <ol>
       <li>
       ${l10n.t("Select code in editor")}:
-        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+        <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+        <div class="flex" style="display: flex; padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
           <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
           <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
           <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+        </div>
         </code>
       </li>
       <li>
@@ -758,10 +760,11 @@ export class SenseCodeEditor extends Disposable {
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
     let es = configuration.engines;
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${activeEngine.label}">`;
+    let sensetimeEnv = configuration.sensetimeEnv;
     for (let e of es) {
-      if (configuration.sensetimeEnv && e.sensetimeOnly) {
+      if (sensetimeEnv && e.sensetimeOnly) {
         esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
-      } else if (!configuration.sensetimeEnv && !e.sensetimeOnly) {
+      } else if (!sensetimeEnv && !e.sensetimeOnly) {
         esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
       } else {
         esList += `<vscode-option value="${e.label}" class="hidden">${e.label}</vscode-option>`;
@@ -777,10 +780,14 @@ export class SenseCodeEditor extends Disposable {
         loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="${loginUrl}">
                                   <span class="material-symbols-rounded">login</span>
                                 </vscode-link>`;
-      } else if (configuration.sensetimeEnv) {
+      } else if (sensetimeEnv) {
         loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
                     <span class="material-symbols-rounded">login</span>
                   </vscode-link>`;
+      } else {
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [!SenseTime Env not detected]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
+                              <span class="material-symbols-rounded">login</span>
+                            </vscode-link>`;
       }
     } else {
       if (!username) {
@@ -972,6 +979,14 @@ export class SenseCodeEditor extends Disposable {
       switch (data.type) {
         case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: configuration.prompt });
+          break;
+        }
+        case 'searchQuery': {
+          this.sendMessage({ type: 'addSearch', value: '?'+data.query });
+          for (let url of data.searchUrl) {
+            let q = url.replace('${query}', encodeURIComponent(data.query));
+            commands.executeCommand("vscode.open", q);
+          }
           break;
         }
         case 'prepareQuestion': {
@@ -1295,12 +1310,6 @@ ${data.info.response}
       }
     }
 
-    if (instruction.startsWith("?") || instruction.startsWith("？")) {
-      commands.executeCommand("vscode.open", `https://www.google.com/search?q=site%3Astackoverflow.com+${encodeURIComponent(instruction.slice(1))}`);
-      this.sendMessage({ type: 'addSearch', value: instruction });
-      return;
-    }
-
     if (instruction.includes("${input")) {
       send = false;
     }
@@ -1356,7 +1365,7 @@ ${data.info.response}
       let promptMsg = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
-Answer this question: ${instructionMsg}
+${l10n.t("Answer this question")}: ${instructionMsg}
 
 ### Input:
 ${codeStr}
@@ -1508,6 +1517,26 @@ ${codeStr}
                     <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                       <div id="ask-list" class="flex flex-col hidden"></div>
+                      <div id="search-list" class="flex flex-col w-full py-2 hidden">
+                        <vscode-checkbox class="mx-2" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
+                          StackOverflow [DuckDuckGo]
+                        </vscode-checkbox>
+                        <vscode-checkbox class="mx-2" title='Search in Quora' data-query='https://www.quora.com/search?q=\${query}'>
+                          Quora
+                        </vscode-checkbox>
+                        <vscode-checkbox class="mx-2" title='Search in Zhihu' data-query='https://www.zhihu.com/search?q=\${query}'>
+                          Zhihu
+                        </vscode-checkbox>
+                        <vscode-checkbox class="mx-2" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Adocs.python.org+\${query}'>
+                          Python Reference [DuckDuckGo]
+                        </vscode-checkbox>
+                        <vscode-checkbox class="mx-2" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Acppreference.com+\${query}'>
+                          C++ Reference [DuckDuckGo]
+                        </vscode-checkbox>
+                        <vscode-checkbox class="mx-2" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
+                          MDN Web Docs
+                        </vscode-checkbox>
+                      </div>
                       <div id="question" class="${codeReady ? "code-ready" : ""} w-full flex justify-center items-center">
                         <span class="material-symbols-rounded opacity-40 history-icon">history</span>
                         <label id="question-sizer" data-value
@@ -1569,6 +1598,14 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
+    webviewView.onDidChangeVisibility(()=>{
+      if (!webviewView.visible) {
+        SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+      }
+    });
+    webviewView.onDidDispose(()=>{
+      SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+    });
   }
 
   public static async ask(prompt: Prompt, code: string, lang: string) {

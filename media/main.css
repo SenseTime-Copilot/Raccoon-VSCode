@@ -416,6 +416,7 @@ button.disabled,
     opacity: 0.5;
 }
 
+#search-list,
 #ask-list {
     position: fixed;
     bottom: 45px;
