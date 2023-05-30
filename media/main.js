@@ -147,11 +147,22 @@ const vscode = acquireVsCodeApi();
         document.getElementById("question-input").focus();
         break;
       }
+      case "addSearch": {
+        document.getElementById('settings')?.remove();
+        document.getElementById("ask-list").classList.add("hidden");
+        document.getElementById("question-input").value = "";
+        document.getElementById("question-sizer").dataset.value = "";
+        document.getElementById("question").classList.remove("history");
+        toggleAskList();
+        history = [message.value, ...history];
+        break;
+      }
       case "addQuestion": {
         document.getElementById('settings')?.remove();
         document.getElementById("ask-list").classList.add("hidden");
         document.getElementById("question-input").value = "";
         document.getElementById("question-sizer").dataset.value = "";
+        document.getElementById("question").classList.remove("history");
         toggleAskList();
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
@@ -594,10 +605,17 @@ const vscode = acquireVsCodeApi();
           historyIdx--;
           e.target.value = history[historyIdx];
           document.getElementById("question").classList.add("history");
+          if (e.target.value.startsWith('?') || e.target.value.startsWith('？')) {
+            document.getElementById("question").classList.add("search");
+          } else {
+            document.getElementById("question").classList.remove("search");
+          }
         } else {
           historyIdx = -1;
           e.target.value = "";
+          document.getElementById("question").classList.remove("prompt-ready");
           document.getElementById("question").classList.remove("history");
+          document.getElementById("question").classList.remove("search");
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
       } else if (e.code === "ArrowUp") {
@@ -607,11 +625,17 @@ const vscode = acquireVsCodeApi();
           e.target.value = history[historyIdx];
           document.getElementById("question").classList.add("history");
           document.getElementById("question-sizer").dataset.value = e.target.value;
+          if (e.target.value.startsWith('?') || e.target.value.startsWith('？')) {
+            document.getElementById("question").classList.add("search");
+          } else {
+            document.getElementById("question").classList.remove("search");
+          }
         }
       } else {
         if (document.getElementById("question").classList.contains("history")) {
           if (e.code !== "Tab") {
             e.target.value = "";
+            document.getElementById("question").classList.remove("search");
           } else {
             e.preventDefault();
             document.getElementById("question").classList.add("prompt-ready");
@@ -684,7 +708,7 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button');
 
-    if (targetButton?.id === "send-button") {
+    if (targetButton?.id === "send-button" || targetButton?.id === "search-button") {
       var list = document.getElementById("ask-list");
       if (list.classList.contains("hidden")) {
         var prompt = document.getElementById("question-input").value.trim();

@@ -1295,6 +1295,12 @@ ${data.info.response}
       }
     }
 
+    if (instruction.startsWith("?") || instruction.startsWith("？")) {
+      commands.executeCommand("vscode.open", `https://www.google.com/search?q=site%3Astackoverflow.com+${encodeURIComponent(instruction.slice(1))}`);
+      this.sendMessage({ type: 'addSearch', value: instruction });
+      return;
+    }
+
     if (instruction.includes("${input")) {
       send = false;
     }
@@ -1473,7 +1479,7 @@ ${codeStr}
     } else {
       welcomMsg += guide;
     }
-    let codeEmpty = this.lastTextEditor?.selection?.isEmpty;
+    let codeReady = this.lastTextEditor?.selection?.isEmpty === false;
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -1502,7 +1508,7 @@ ${codeStr}
                     <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                       <div id="ask-list" class="flex flex-col hidden"></div>
-                      <div id="question" class="${codeEmpty ? "" : "code-ready"} w-full flex justify-center items-center">
+                      <div id="question" class="${codeReady ? "code-ready" : ""} w-full flex justify-center items-center">
                         <span class="material-symbols-rounded opacity-40 history-icon">history</span>
                         <label id="question-sizer" data-value
                           data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
