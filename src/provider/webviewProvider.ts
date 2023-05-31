@@ -1373,7 +1373,7 @@ ${codeStr}
 ### Response:\n`;
 
       this.stopList[id] = new AbortController();
-      engine.config.max_tokens = configuration.maxTokenForResponse(activeEngine);
+      engine.config.max_tokens = engine.token_limit;
       rs = await getCodeCompletions(engine, promptMsg, 1, streaming, this.stopList[id].signal);
       if (rs instanceof IncomingMessage) {
         let data = rs as IncomingMessage;
@@ -1518,22 +1518,22 @@ ${codeStr}
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                       <div id="ask-list" class="flex flex-col hidden"></div>
                       <div id="search-list" class="flex flex-col w-full py-2 hidden">
-                        <vscode-checkbox class="mx-2" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
+                        <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
                           StackOverflow [DuckDuckGo]
                         </vscode-checkbox>
-                        <vscode-checkbox class="mx-2" title='Search in Quora' data-query='https://www.quora.com/search?q=\${query}'>
+                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in Quora' data-query='https://www.quora.com/search?q=\${query}'>
                           Quora
                         </vscode-checkbox>
-                        <vscode-checkbox class="mx-2" title='Search in Zhihu' data-query='https://www.zhihu.com/search?q=\${query}'>
+                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in Zhihu' data-query='https://www.zhihu.com/search?q=\${query}'>
                           Zhihu
                         </vscode-checkbox>
-                        <vscode-checkbox class="mx-2" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Adocs.python.org+\${query}'>
+                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Adocs.python.org+\${query}'>
                           Python Reference [DuckDuckGo]
                         </vscode-checkbox>
-                        <vscode-checkbox class="mx-2" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Acppreference.com+\${query}'>
+                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Acppreference.com+\${query}'>
                           C++ Reference [DuckDuckGo]
                         </vscode-checkbox>
-                        <vscode-checkbox class="mx-2" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
+                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
                           MDN Web Docs
                         </vscode-checkbox>
                       </div>

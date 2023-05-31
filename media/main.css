@@ -427,6 +427,10 @@ button.disabled,
     z-index: 99999;
 }
 
+#search-list vscode-checkbox.selected {
+    background: var(--button-icon-hover-background) !important;
+}
+
 .vscode-high-contrast #ask-list {
     border: 1px solid var(--vscode-button-border);
 }

@@ -316,7 +316,7 @@ ${codeSnippets.prefix}
                   code: [codeSnippets.prefix, codeSnippets.suffix],
                   prompt: "Please complete the following code"
                 },
-                insertText, "", i.toString(), ts]
+                data.completions, "", i.toString(), ts]
             };
             items.push({ insertText, range: replace, command });
           }

@@ -539,6 +539,10 @@ const vscode = acquireVsCodeApi();
       list.classList.remove("hidden");
     } else {
       document.getElementById("question").classList.remove("search");
+      var urls = list.querySelectorAll("vscode-checkbox");
+      for (let i = 0; i < urls.length; i++) {
+        urls[i].classList.remove("selected");
+      }
       list.classList.add("hidden");
     }
   }
@@ -559,7 +563,7 @@ const vscode = acquireVsCodeApi();
 
   document.getElementById("question-input").addEventListener("input", () => {
     toggleAskList();
-    toggleSearchList();    
+    toggleSearchList();
   });
 
   var historyIdx = -1;
@@ -569,6 +573,7 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("keydown", (e) => {
     var list = document.getElementById("ask-list");
+    var search = document.getElementById("search-list");
     if (!list.classList.contains("hidden")) {
       var btns = list.querySelectorAll("button");
       if (e.code === "Enter") {
@@ -606,7 +611,53 @@ const vscode = acquireVsCodeApi();
           }
         };
       }
-    } else if (e.target.id === "question-input") {
+      return;
+    } else if (!search.classList.contains("hidden")) {
+      var urls = search.querySelectorAll("vscode-checkbox");
+      var curIdx = -1;
+      for (let i = 0; i < urls.length; i++) {
+        if (urls[i].classList.contains("selected")) {
+          curIdx = i;
+          break;
+        }
+      }
+      if (e.code === "Enter" || e.code === "Space") {
+        if (curIdx >= 0) {
+          e.preventDefault();
+          urls[curIdx].checked = !urls[curIdx].checked;
+        }
+      } else if (e.code === "ArrowDown") {
+        e.preventDefault();
+        if (curIdx < 0) {
+          curIdx = 0;
+          urls[0].classList.add("selected");
+        } else {
+          urls[curIdx].classList.remove("selected");
+          if (curIdx < urls.length - 1) {
+            urls[curIdx + 1].classList.add("selected");
+          }
+        }
+      } else if (e.code === "ArrowUp") {
+        e.preventDefault();
+        if (curIdx < 0) {
+          curIdx = urls.length - 1;
+          urls[urls.length - 1].classList.add("selected");
+        } else {
+          urls[curIdx].classList.remove("selected");
+          if (curIdx > 0) {
+            urls[curIdx - 1].classList.add("selected");
+          }
+        }
+      } else {
+        for (let i = 0; i < urls.length; i++) {
+          urls[i].classList.remove("selected");
+        }
+      }
+      if (curIdx >= 0) {
+        return;
+      }
+    } 
+    if (e.target.id === "question-input") {
       if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.code === "Enter") {
         e.preventDefault();
         if (document.getElementById("question").classList.contains("search")) {
@@ -948,7 +999,7 @@ const vscode = acquireVsCodeApi();
     var urls = document.getElementById("search-list").querySelectorAll('vscode-checkbox');
     var searchUrl = [];
     urls.forEach((ele, _idx, _arr) => {
-      if (ele._checked) {
+      if (ele.checked) {
         searchUrl.push(ele.dataset.query);
       }
     });
