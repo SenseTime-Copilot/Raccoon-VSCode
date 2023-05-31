@@ -70,6 +70,11 @@ textarea::placeholder {
     outline: none;
 }
 
+.prompt {
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
 .prompt .editable:empty {
     padding-left: 1ch;
 }
@@ -973,6 +978,7 @@ button.stopGenerate:hover,
 .markdown-body p {
     margin-top: 0;
     margin-bottom: 10px;
+    white-space: pre-wrap;
 }
 
 .markdown-body blockquote {

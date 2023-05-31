@@ -561,6 +561,19 @@ const vscode = acquireVsCodeApi();
     }
   });
 
+  document.getElementById("question").addEventListener("dragover", (event) => {
+    event.preventDefault();
+  });
+
+  document.getElementById("question").addEventListener("drop", (event) => {
+    event.preventDefault();
+    const data = event.dataTransfer.getData("text/plain");
+    document.getElementById("question-input").value = data;
+    document.getElementById("question-sizer").dataset.value = data;
+    toggleAskList();
+    toggleSearchList();
+  });
+
   document.getElementById("question-input").addEventListener("input", () => {
     toggleAskList();
     toggleSearchList();
@@ -783,7 +796,7 @@ const vscode = acquireVsCodeApi();
   });
 
   document.addEventListener("click", (e) => {
-    const targetButton = e.target.closest('button');
+    const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
 
     if (targetButton?.id === "search-button") {
       sendSearchQuery(document.getElementById("question-input").value.slice(1).trim());

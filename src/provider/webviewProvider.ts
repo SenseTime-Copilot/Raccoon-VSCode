@@ -150,7 +150,6 @@ const swords: string[] = [
   "5q+b5aSq5LiK",
   "6YSn5bCP5bmz",
   "5LiT5pS/",
-  "5Lit5YWx",
   "5Y+w5rm+54us56uL",
   "5Y+w54us",
   "5a6Y5Lmf5LiN5a65",
