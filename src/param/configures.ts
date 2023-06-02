@@ -226,15 +226,13 @@ export class Configuration {
     if (!engineInfo || !engineInfo.sensetimeOnly) {
       return;
     }
-    if (engineInfo.avatar !== undefined) {
-      return engineInfo.avatar;
+    if (!engineInfo.avatar) {
+      let token = await this.getApiKey(engine);
+      if (!token) {
+        return;
+      }
+      await this.getUserAvatar(token, engineInfo);
     }
-    let token = await this.getApiKey(engine);
-    if (!token) {
-      return;
-    }
-    let info = parseAuthInfo(token);
-    await this.getUserAvatar(info, engineInfo);
     return engineInfo.avatar;
   }
 
@@ -245,7 +243,7 @@ export class Configuration {
     }
     const engineInfo = this.getEngineInfo(engine);
     let info = parseAuthInfo(token);
-    if (engineInfo && engineInfo.sensetimeOnly) {
+    if (engineInfo && engineInfo.sensetimeOnly && info.id !== 0) {
       return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -318,18 +316,13 @@ export class Configuration {
           return false;
         };
       }
-      if (engineInfo.sensetimeOnly) {
-        let info = parseAuthInfo(token);
-        if (!info.name) {
-          return false;
-        }
-        await this.getUserAvatar(info, engineInfo);
-      }
+      await this.getUserAvatar(token, engineInfo);
       return true;
     }
   }
 
-  private async getUserAvatar(info: { id: number; name: string; token: string; aksk: string }, engine: Engine): Promise<string | undefined> {
+  private async getUserAvatar(token: string, engine: Engine): Promise<string | undefined> {
+    let info = parseAuthInfo(token);
     if (!engine.sensetimeOnly || !info.name) {
       return;
     }

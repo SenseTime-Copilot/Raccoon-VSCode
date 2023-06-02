@@ -80,14 +80,31 @@
         "menus": {
             "view/title": [
                 {
-                    "command": "sensecode.openEditor",
+                    "command": "sensecode.clear",
                     "group": "navigation@0",
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.settings",
+                    "command": "sensecode.openEditor",
                     "group": "navigation@1",
                     "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.settings",
+                    "group": "navigation@2",
+                    "when": "view == sensecode.view"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "sensecode.clear",
+                    "group": "navigation@0",
+                    "when": "resourceScheme == sensecode"
+                },
+                {
+                    "command": "sensecode.openEditor",
+                    "group": "navigation@1",
+                    "when": "resourceScheme == sensecode"
                 }
             ]
         },
@@ -100,6 +117,13 @@
                 "enablement": "view == sensecode.view"
             },
             {
+                "command": "sensecode.clear",
+                "category": "SenseCode",
+                "title": "%sensecode.command.clear%",
+                "icon": "$(clear-all)",
+                "enablement": "view == sensecode.view || resourceScheme == sensecode"
+            },
+            {
                 "command": "sensecode.settings.reset",
                 "category": "SenseCode",
                 "title": "%sensecode.command.settingsReset%"
@@ -108,8 +132,8 @@
                 "command": "sensecode.openEditor",
                 "category": "SenseCode",
                 "title": "%sensecode.command.openEditor%",
-                "icon": "$(multiple-windows)",
-                "enablement": "view == sensecode.view"
+                "icon": "$(empty-window)",
+                "enablement": "view == sensecode.view || resourceScheme == sensecode"
             },
             {
                 "command": "sensecode.inlineSuggest.trigger",

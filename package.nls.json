@@ -10,6 +10,7 @@
     "sensecode.config.prompt": "Custom prompt list, support `${input:<placeholder>}` to ask for user input, and `${code}` to require code selection",
     "sensecode.config.prompt.item": "Prompt template",
     "sensecode.view.title": "Assistant",
+    "sensecode.command.clear": "Clear chat list",
     "sensecode.command.openEditor": "Open new SenseCode Assistant instance in editor",
     "sensecode.command.settings": "Settings",
     "sensecode.command.settingsReset": "Reset all settings",

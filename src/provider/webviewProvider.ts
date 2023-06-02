@@ -5,6 +5,7 @@ import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import * as crypto from "crypto";
+import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 
 const swords: string[] = [
   "5Lq65YW9",
@@ -150,6 +151,9 @@ const swords: string[] = [
   "5q+b5aSq5LiK",
   "6YSn5bCP5bmz",
   "5LiT5pS/",
+  "5Y+w5rm+",
+  "6Ie65rm+",
+  "6Ie654Gj",
   "5Y+w5rm+54us56uL",
   "5Y+w54us",
   "5a6Y5Lmf5LiN5a65",
@@ -706,20 +710,7 @@ export class SenseCodeEditor extends Disposable {
     context.subscriptions.push(
       context.secrets.onDidChange((e) => {
         if (e.key === "sensecode.token") {
-          configuration.update();
-          this.sendMessage({ type: 'updateSettingPage', action: "close" });
-          let engine = configuration.getActiveEngine();
-          configuration.getApiKeyRaw(engine).then(async (key) => {
-            let username: string | undefined = await configuration.username(engine);
-            if (!username && key) {
-              username = l10n.t("{0} User", engine);
-            }
-            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
-            this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg + guide });
-          }, () => {
-            let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", "", l10n.t("SenseCode"));
-            this.sendMessage({ type: 'addMessage', category: "no-account", value: welcomMsg + guide + loginHint });
-          });
+          this.showWelcome();
         }
       })
     );
@@ -743,6 +734,23 @@ export class SenseCodeEditor extends Disposable {
     this.showPage();
   }
 
+  private showWelcome() {
+    configuration.update();
+    this.sendMessage({ type: 'updateSettingPage', action: "close" });
+    let engine = configuration.getActiveEngine();
+    configuration.getApiKeyRaw(engine).then(async (key) => {
+      let username: string | undefined = await configuration.username(engine);
+      if (!username && key) {
+        username = l10n.t("{0} User", engine);
+      }
+      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
+      this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg + guide });
+    }, () => {
+      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", "", l10n.t("SenseCode"));
+      this.sendMessage({ type: 'addMessage', category: "no-account", value: welcomMsg + guide + loginHint });
+    });
+  }
+
   dispose() {
     this.disposing = true;
   }
@@ -761,12 +769,10 @@ export class SenseCodeEditor extends Disposable {
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${activeEngine.label}">`;
     let sensetimeEnv = configuration.sensetimeEnv;
     for (let e of es) {
-      if (sensetimeEnv && e.sensetimeOnly) {
-        esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
-      } else if (!sensetimeEnv && !e.sensetimeOnly) {
-        esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
+      if (e.sensetimeOnly) {
+        esList += `<vscode-option value="${e.label}">${e.label} ∞</vscode-option>`;
       } else {
-        esList += `<vscode-option value="${e.label}" class="hidden">${e.label}</vscode-option>`;
+        esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
       }
     }
     esList += "</vscode-dropdown>";
@@ -1290,6 +1296,7 @@ ${data.info.response}
           break;
       }
     });
+    this.showWelcome();
   }
 
   public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
@@ -1461,6 +1468,11 @@ ${codeStr}
     }
   }
 
+  public async clear() {
+    this.webview.html = await this.getWebviewHtml(this.webview);
+    this.showWelcome();
+  }
+
   private async getWebviewHtml(webview: Webview) {
     const scriptUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.js'));
     const stylesMainUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
@@ -1472,21 +1484,6 @@ ${codeStr}
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
 
-    let welcomMsg = "";
-    const activeEngine = configuration.getActiveEngineInfo();
-    let key = activeEngine.key || await configuration.getApiKey(activeEngine.label);
-    let username: string | undefined = await configuration.username(activeEngine.label);
-    if (!username && key) {
-      username = l10n.t("{0} User", activeEngine.label);
-    }
-    let category = "welcome";
-    welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
-    if (!username) {
-      category = "no-account";
-      welcomMsg += guide + loginHint;
-    } else {
-      welcomMsg += guide;
-    }
     let codeReady = this.lastTextEditor?.selection?.isEmpty === false;
     return `<!DOCTYPE html>
             <html lang="en">
@@ -1506,12 +1503,6 @@ ${codeStr}
                 <div id="setting-page"></div>
                 <div class="flex flex-col h-screen" id="qa-list-wrapper">
                   <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
-                    <div class="p-4 w-full message-element-gnc markdown-body ${category}">
-                      <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1"><span class="material-symbols-rounded">assistant</span> ${l10n.t("SenseCode")}</h2>
-                      <div id="welcome">
-                        ${welcomMsg}
-                      </div>
-                    </div>
                   </div>
                     <div id="error-wrapper"></div>
                     <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
@@ -1587,6 +1578,16 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
       commands.registerCommand("sensecode.settings", () => {
         configuration.update();
         return SenseCodeViewProvider.eidtor?.updateSettingPage("toogle");
+      })
+    );
+    context.subscriptions.push(
+      commands.registerCommand("sensecode.clear", async (uri) => {
+        if (!uri) {
+          SenseCodeViewProvider.eidtor?.clear();
+        } else {
+          let editor = SenseCodeEidtorProvider.getEditor(uri);
+          editor?.clear();
+        }
       })
     );
   }

@@ -109,8 +109,9 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.openEditor", async () => {
       let tabs = vscode.window.tabGroups.all;
+      let id = new Date().valueOf();
       vscode.commands.executeCommand('vscode.openWith',
-        vscode.Uri.parse("file://sensecode/assistant.sensecode"),
+        vscode.Uri.parse(`sensecode://sensecode/assistant.sensecode?${id}`),
         SenseCodeEidtorProvider.viewType,
         { viewColumn: tabs.length + 1 });
     })
@@ -203,7 +204,6 @@ export async function activate(context: vscode.ExtensionContext) {
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEidtorProvider.viewType, new SenseCodeEidtorProvider(context), {
-    supportsMultipleEditorsPerDocument: true,
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 }

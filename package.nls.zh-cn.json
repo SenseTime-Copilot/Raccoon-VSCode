@@ -10,6 +10,7 @@
     "sensecode.config.prompt": "自定义提示列表, 支持 `${input:<placeholder>}` 提示用户输入, 以及 `${code}` 要求选择附加代码",
     "sensecode.config.prompt.item": "提示模板",
     "sensecode.view.title": "代码助手",
+    "sensecode.command.clear": "清空聊天信息",
     "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 代码助手实例",
     "sensecode.command.settings": "设置",
     "sensecode.command.settingsReset": "重置所有配置项",
