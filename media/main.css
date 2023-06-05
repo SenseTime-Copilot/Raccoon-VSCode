@@ -277,9 +277,11 @@ textarea::placeholder {
     0% {
         outline: 2px solid transparent;
     }
+
     50% {
         outline: 2px solid var(--vscode-list-focusOutline);
     }
+
     100% {
         outline: 2px solid transparent;
     }
@@ -446,7 +448,7 @@ button.disabled,
     bottom: auto;
     flex-wrap: wrap;
     flex-direction: row;
-    border-bottom: 1px solid var(--vscode-tab-border);
+    border-bottom: 1px solid var(--panel-view-border);
 }
 
 #ask-list #pin-ask-list {
@@ -472,7 +474,7 @@ button.disabled,
 }
 
 #ask-list .toolbar {
-    border-bottom: 1px solid var(--vscode-tab-border);
+    border-bottom: 1px solid var(--panel-view-border);
 }
 
 #ask-list.pin .toolbar {
@@ -480,13 +482,14 @@ button.disabled,
     padding-bottom: 0.25rem;
 }
 
+#search-list:not(.hidden)+#ask-list,
 #ask-list.hidden {
     display: none;
 }
 
 #ask-list.pin.hidden {
     display: flex;
-    border-bottom: 1px solid var(--vscode-tab-border);
+    border-bottom: 1px solid var(--panel-view-border);
 }
 
 #ask-list button {

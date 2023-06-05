@@ -1513,8 +1513,6 @@ ${codeStr}
                 <div id="error-wrapper">
                 </div>
                 <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
-                  <div id="ask-list" class="flex flex-col hidden">
-                  </div>
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
                     <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
                       StackOverflow [DuckDuckGo]
@@ -1534,6 +1532,8 @@ ${codeStr}
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
                       MDN Web Docs
                     </vscode-checkbox>
+                  </div>
+                  <div id="ask-list" class="flex flex-col hidden">
                   </div>
                   <div id="question" class="${codeReady ? "code-ready" : ""} w-full flex justify-center items-center">
                     <span class="material-symbols-rounded opacity-40 history-icon">
