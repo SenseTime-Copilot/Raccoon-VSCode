@@ -982,6 +982,10 @@ export class SenseCodeEditor extends Disposable {
     this.webview.html = await this.getWebviewHtml(this.webview);
     this.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
+        case 'welcome': {
+          this.showWelcome();
+          break;
+        }
         case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: configuration.prompt });
           break;
@@ -1294,7 +1298,6 @@ ${data.info.response}
           break;
       }
     });
-    this.showWelcome();
   }
 
   public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
@@ -1502,7 +1505,9 @@ ${codeStr}
               <div class="flex flex-col h-screen" id="qa-list-wrapper">
                 <vscode-panels class="grow">
                   <vscode-panel-view id="view-1" class="p-0 m-0">
-                    <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list"></div>
+                    <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
+                      <vscode-progress-ring class="w-full content-center mt-32"></vscode-progress-ring>
+                    </div>
                   </vscode-panel-view>
                 </vscode-panels>
                 <div id="error-wrapper">

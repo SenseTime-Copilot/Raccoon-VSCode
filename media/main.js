@@ -474,6 +474,7 @@ const vscode = acquireVsCodeApi();
     }
   });
 
+  vscode.postMessage({ type: "welcome" });
   vscode.postMessage({ type: "listPrompt" });
 
   const sendQuestion = (question) => {
