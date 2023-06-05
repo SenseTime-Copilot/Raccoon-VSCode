@@ -987,7 +987,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'searchQuery': {
-          this.sendMessage({ type: 'addSearch', value: '?'+data.query });
+          this.sendMessage({ type: 'addSearch', value: '?' + data.query });
           for (let url of data.searchUrl) {
             let q = url.replace('${query}', encodeURIComponent(data.query));
             commands.executeCommand("vscode.open", q);
@@ -1043,23 +1043,21 @@ export class SenseCodeEditor extends Disposable {
                   let start = this.lastTextEditor?.selection.start.line;
                   this.lastTextEditor?.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
                     await new Promise((f) => setTimeout(f, 200));
-                    commands.executeCommand("editor.action.formatDocument", docUri).then(() => {
-                      let end = this.lastTextEditor?.selection.anchor.line;
-                      if (start !== undefined && end !== undefined) {
-                        let remover = workspace.onDidChangeTextDocument((e) => {
-                          if (e.document.uri.path === this.lastTextEditor?.document.uri.path) {
-                            this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
-                          }
-                        });
-                        this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, [{
-                          range: new Range(start, 0, end, 0)
-                        }]);
-                        setTimeout(() => {
-                          remover.dispose();
+                    let end = this.lastTextEditor?.selection.anchor.line;
+                    if (start !== undefined && end !== undefined) {
+                      let remover = workspace.onDidChangeTextDocument((e) => {
+                        if (e.document.uri.path === this.lastTextEditor?.document.uri.path) {
                           this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
-                        }, 5000);
-                      }
-                    });
+                        }
+                      });
+                      this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, [{
+                        range: new Range(start, 0, end, 0)
+                      }]);
+                      setTimeout(() => {
+                        remover.dispose();
+                        this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
+                      }, 5000);
+                    }
                   }, () => { });
                 }
               }
@@ -1500,72 +1498,79 @@ ${codeStr}
                 <script type="module" src="${toolkitUri}"></script>
             </head>
             <body class="overflow-hidden">
-                <div id="setting-page"></div>
-                <div class="flex flex-col h-screen" id="qa-list-wrapper">
-                  <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
+              <div id="setting-page"></div>
+              <div class="flex flex-col h-screen" id="qa-list-wrapper">
+                <vscode-panels class="grow">
+                  <vscode-panel-view id="view-1" class="p-0 m-0">
+                    <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list"></div>
+                  </vscode-panel-view>
+                </vscode-panels>
+                <div id="error-wrapper">
+                </div>
+                <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
+                  <div id="ask-list" class="flex flex-col hidden">
                   </div>
-                    <div id="error-wrapper"></div>
-                    <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
-                      <div id="ask-list" class="flex flex-col hidden"></div>
-                      <div id="search-list" class="flex flex-col w-full py-2 hidden">
-                        <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
-                          StackOverflow [DuckDuckGo]
-                        </vscode-checkbox>
-                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in Quora' data-query='https://www.quora.com/search?q=\${query}'>
-                          Quora
-                        </vscode-checkbox>
-                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in Zhihu' data-query='https://www.zhihu.com/search?q=\${query}'>
-                          Zhihu
-                        </vscode-checkbox>
-                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Adocs.python.org+\${query}'>
-                          Python Reference [DuckDuckGo]
-                        </vscode-checkbox>
-                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Acppreference.com+\${query}'>
-                          C++ Reference [DuckDuckGo]
-                        </vscode-checkbox>
-                        <vscode-checkbox class="px-2 py-1 m-0" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
-                          MDN Web Docs
-                        </vscode-checkbox>
-                      </div>
-                      <div id="question" class="${codeReady ? "code-ready" : ""} w-full flex justify-center items-center">
-                        <span class="material-symbols-rounded opacity-40 history-icon">history</span>
-                        <label id="question-sizer" data-value
+                  <div id="search-list" class="flex flex-col w-full py-2 hidden">
+                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
+                      StackOverflow [DuckDuckGo]
+                    </vscode-checkbox>
+                    <vscode-checkbox class="px-2 py-1 m-0" title='Search in Quora' data-query='https://www.quora.com/search?q=\${query}'>
+                      Quora
+                    </vscode-checkbox>
+                    <vscode-checkbox class="px-2 py-1 m-0" title='Search in Zhihu' data-query='https://www.zhihu.com/search?q=\${query}'>
+                      Zhihu
+                    </vscode-checkbox>
+                    <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Adocs.python.org+\${query}'>
+                      Python Reference [DuckDuckGo]
+                    </vscode-checkbox>
+                    <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Acppreference.com+\${query}'>
+                      C++ Reference [DuckDuckGo]
+                    </vscode-checkbox>
+                    <vscode-checkbox class="px-2 py-1 m-0" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
+                      MDN Web Docs
+                    </vscode-checkbox>
+                  </div>
+                  <div id="question" class="${codeReady ? "code-ready" : ""} w-full flex justify-center items-center">
+                    <span class="material-symbols-rounded opacity-40 history-icon">
+                      history
+                    </span>
+                    <label id="question-sizer" data-value
                           data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
                           data-hint="${l10n.t("Pick one prompt to send [Enter]")}"
                           data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
-                          >
-                          <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
-                        </label>
-                        <button id="send-button" title="${l10n.t("Send [Enter]")}">
-                            <span class="material-symbols-rounded">send</span>
-                        </button>
-                        <button id="stop-button" title="${l10n.t("Stop [Esc]")}">
-                            <span class="material-symbols-rounded">stop</span>
-                        </button>
-                        <button id="search-button" title="${l10n.t("Search [Enter]")}">
-                          <span class="material-symbols-rounded">search</span>
-                        </button>
-                      </div>
-                    </div>
+                    >
+                      <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
+                    </label>
+                    <button id="send-button" title="${l10n.t("Send [Enter]")}">
+                      <span class="material-symbols-rounded">send</span>
+                    </button>
+                    <button id="stop-button" title="${l10n.t("Stop [Esc]")}">
+                      <span class="material-symbols-rounded">stop</span>
+                    </button>
+                    <button id="search-button" title="${l10n.t("Search [Enter]")}">
+                      <span class="material-symbols-rounded">search</span>
+                    </button>
+                  </div>
                 </div>
-                <script>
-                  const l10nForUI = {
-                    "Question": "${l10n.t("Question")}",
-                    "SenseCode": "${l10n.t("SenseCode")}",
-                    "Cancel": "${l10n.t("Cancel [Esc]")}",
-                    "Send": "${l10n.t("Send [Enter]")}",
-                    "ToggleWrap": "${l10n.t("Toggle line wrap")}",
-                    "Copy": "${l10n.t("Copy to clipboard")}",
-                    "Insert": "${l10n.t("Insert the below code at cursor")}",
-                    "Thinking...": "${l10n.t("Thinking...")}",
-                    "Connecting...": "${l10n.t("Connecting...")}",
-                    "Typing...": "${l10n.t("Typing...")}",
-                    "Stop responding": "${l10n.t("Stop responding")}",
-                    "Regenerate": "${l10n.t("Regenerate")}",
-                    "Empty prompt": "${l10n.t("Empty prompt")}"
-                  };
-                </script>
-                <script src="${scriptUri}"></script>
+              </div>
+              <script>
+                const l10nForUI = {
+                  "Question": "${l10n.t("Question")}",
+                  "SenseCode": "${l10n.t("SenseCode")}",
+                  "Cancel": "${l10n.t("Cancel [Esc]")}",
+                  "Send": "${l10n.t("Send [Enter]")}",
+                  "ToggleWrap": "${l10n.t("Toggle line wrap")}",
+                  "Copy": "${l10n.t("Copy to clipboard")}",
+                  "Insert": "${l10n.t("Insert the below code at cursor")}",
+                  "Thinking...": "${l10n.t("Thinking...")}",
+                  "Connecting...": "${l10n.t("Connecting...")}",
+                  "Typing...": "${l10n.t("Typing...")}",
+                  "Stop responding": "${l10n.t("Stop responding")}",
+                  "Regenerate": "${l10n.t("Regenerate")}",
+                  "Empty prompt": "${l10n.t("Empty prompt")}"
+                };
+              </script>
+              <script src="${scriptUri}"></script>
             </body>
             </html>`;
   }
@@ -1598,12 +1603,12 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
-    webviewView.onDidChangeVisibility(()=>{
+    webviewView.onDidChangeVisibility(() => {
       if (!webviewView.visible) {
         SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
       }
     });
-    webviewView.onDidDispose(()=>{
+    webviewView.onDidDispose(() => {
       SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
     });
   }

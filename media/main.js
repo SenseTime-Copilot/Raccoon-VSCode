@@ -154,8 +154,7 @@ const vscode = acquireVsCodeApi();
         document.getElementById("question-input").value = "";
         document.getElementById("question-sizer").dataset.value = "";
         document.getElementById("question").classList.remove("history");
-        toggleAskList();
-        toggleSearchList();
+        toggleSubMenuList();
         history = [message.value, ...history];
         break;
       }
@@ -166,8 +165,7 @@ const vscode = acquireVsCodeApi();
         document.getElementById("question-input").value = "";
         document.getElementById("question-sizer").dataset.value = "";
         document.getElementById("question").classList.remove("history");
-        toggleAskList();
-        toggleSearchList();
+        toggleSubMenuList();
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
           e.remove();
@@ -505,18 +503,12 @@ const vscode = acquireVsCodeApi();
     }
   };
 
-  function toggleAskList() {
+  function _toggleAskList() {
     var q = document.getElementById('question-input');
     if (q.value) {
       document.getElementById("question").classList.add("prompt-ready");
     } else {
       document.getElementById("question").classList.remove("prompt-ready");
-    }
-    if (q.value.startsWith('?') || q.value.startsWith('？')) {
-      document.getElementById("question").classList.add("search");
-      return;
-    } else {
-      document.getElementById("question").classList.remove("search");
     }
     var list = document.getElementById("ask-list");
     if (q.value === '/') {
@@ -531,7 +523,7 @@ const vscode = acquireVsCodeApi();
     }
   }
 
-  function toggleSearchList() {
+  function _toggleSearchList() {
     var q = document.getElementById('question-input');
     var list = document.getElementById("search-list");
     if (q.value.startsWith('?') || q.value.startsWith('？')) {
@@ -547,10 +539,14 @@ const vscode = acquireVsCodeApi();
     }
   }
 
+  function toggleSubMenuList() {
+    _toggleAskList();
+    _toggleSearchList();
+  }
+
   document.addEventListener("change", (e) => {
     if (e.target.id === "question-input") {
-      toggleAskList();
-      toggleSearchList();
+      toggleSubMenuList();
     } else if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
     } else if (e.target.id === "responseModeRadio") {
@@ -570,13 +566,11 @@ const vscode = acquireVsCodeApi();
     const data = event.dataTransfer.getData("text/plain");
     document.getElementById("question-input").value = data;
     document.getElementById("question-sizer").dataset.value = data;
-    toggleAskList();
-    toggleSearchList();
+    toggleSubMenuList();
   });
 
   document.getElementById("question-input").addEventListener("input", () => {
-    toggleAskList();
-    toggleSearchList();
+    toggleSubMenuList();
   });
 
   var historyIdx = -1;
@@ -587,7 +581,7 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("keydown", (e) => {
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
-    if (!list.classList.contains("hidden")) {
+    if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
       var btns = list.querySelectorAll("button");
       if (e.code === "Enter") {
         e.preventDefault();
@@ -625,7 +619,7 @@ const vscode = acquireVsCodeApi();
         };
       }
       return;
-    } else if (!search.classList.contains("hidden")) {
+    } else if (!search.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
       var urls = search.querySelectorAll("vscode-checkbox");
       var curIdx = -1;
       for (let i = 0; i < urls.length; i++) {
@@ -665,6 +659,7 @@ const vscode = acquireVsCodeApi();
         for (let i = 0; i < urls.length; i++) {
           urls[i].classList.remove("selected");
         }
+        toggleSubMenuList();
       }
       if (curIdx >= 0) {
         return;
@@ -704,8 +699,7 @@ const vscode = acquireVsCodeApi();
           document.getElementById("question").classList.remove("search");
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
-        toggleAskList();
-        toggleSearchList();
+        toggleSubMenuList();
       } else if (e.code === "ArrowUp") {
         e.preventDefault();
         if (historyIdx < history.length - 1) {
@@ -718,8 +712,7 @@ const vscode = acquireVsCodeApi();
           } else {
             document.getElementById("question").classList.remove("search");
           }
-          toggleAskList();
-          toggleSearchList();
+          toggleSubMenuList();
         }
       } else {
         if (document.getElementById("question").classList.contains("history")) {
@@ -734,6 +727,7 @@ const vscode = acquireVsCodeApi();
           document.getElementById("question").classList.remove("history");
           document.getElementById("question-input").focus();
         }
+        toggleSubMenuList();
       }
       return;
     }
