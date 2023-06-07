@@ -19,7 +19,7 @@ const vscode = acquireVsCodeApi();
     xhtml: false
   });
 
-  const aiIcon = `<span class="material-symbols-rounded">assistant</span>`;
+  const aiIcon = `<div class="sensecode-avatar"></div>`;
   const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
@@ -344,6 +344,7 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "stopResponse": {
+        document.getElementById(message.id)?.classList.remove("responsing");
         document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
         document.getElementById(`feedback-${message.id}`)?.classList?.remove("hidden");
         document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
@@ -428,6 +429,7 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addResponse": {
+        document.getElementById(message.id)?.classList.add("responsing");
         const chatText = document.getElementById(`response-${message.id}`);
         if (chatText?.classList.contains("empty")) {
           chatText?.classList.remove("empty");

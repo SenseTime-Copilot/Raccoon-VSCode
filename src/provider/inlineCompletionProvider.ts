@@ -144,7 +144,7 @@ export function inlineCompletionProvider(
       let engine = { ...activeEngine };
       engine.config = { ...activeEngine.config };
       engine.config.stop = "\nExplanation:";
-      engine.config.max_tokens = 48;
+      engine.config.max_tokens = 64;
 
       if (!editor.selection.isEmpty) {
         vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
@@ -187,8 +187,7 @@ export function inlineCompletionProvider(
 Task type: code completion. Please complete the following ${getDocumentLanguage(document.languageId)} code, just response code only.
 
 ### Input:
-${codeSnippets.prefix}
-`;
+${codeSnippets.prefix}`;
           suffix = `### Response:
 `;
           rs = await getCodeCompletions(engine,
@@ -274,35 +273,8 @@ ${codeSnippets.prefix}
               }
             }
 
-            let lines = completion.split("\n");
-            let insertText = "";
+            let insertText = completion;
             let replace: vscode.Range | undefined;
-            for (let line = 0; line < lines.length; line++) {
-              if (lines[line].trim()) {
-                let leadingWs = lines[line].length - lines[line].trimStart().length;
-                let nextLineIndent = 0;
-                if (line < lines.length - 1) {
-                  nextLineIndent = (lines[line + 1].length - lines[line + 1].trimStart().length) - leadingWs;
-                }
-                let curLine = document.lineAt(position.line);
-                if (curLine.isEmptyOrWhitespace) {
-                  let curleadingWs = position.character;
-                  replace = new vscode.Range(
-                    new vscode.Position(position.line, position.character),
-                    curLine.range.end
-                  );
-                  leadingWs = Math.max(0, (leadingWs - curleadingWs));
-                }
-                if (line === lines.length - 1) {
-                  insertText = ' '.repeat(leadingWs) + lines[line].trimStart() + '\n';
-                } else {
-                  let leading = position.character + nextLineIndent;
-                  insertText = ' '.repeat(leadingWs) + lines[line].trimStart() + '\n' + ' '.repeat(leading);
-                }
-                break;
-              }
-            }
-
             if (!insertText.trim()) {
               continue;
             }

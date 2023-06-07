@@ -1484,6 +1484,7 @@ ${codeStr}
     const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
+    const avatarUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'sensecode-logo.png'));
 
     let codeReady = this.lastTextEditor?.selection?.isEmpty === false;
     return `<!DOCTYPE html>
@@ -1491,7 +1492,6 @@ ${codeStr}
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
                 <link href="${stylesMainUri}" rel="stylesheet">
                 <link href="${vendorHighlightCss}" rel="stylesheet">
                 <link href="${iconUri}" rel="stylesheet" />
@@ -1499,6 +1499,13 @@ ${codeStr}
                 <script src="${vendorMarkedJs}"></script>
                 <script src="${vendorTailwindJs}"></script>
                 <script type="module" src="${toolkitUri}"></script>
+                <style>
+                .sensecode-avatar {
+                  background-image: url("${avatarUri}");
+                  -webkit-mask: url("${avatarUri}");
+                  -webkit-mask-size: contain;
+                }
+                </style>
             </head>
             <body class="overflow-hidden">
               <div id="setting-page"></div>

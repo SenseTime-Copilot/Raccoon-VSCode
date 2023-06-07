@@ -120,6 +120,31 @@ textarea::placeholder {
     user-select: none;
 }
 
+.sensecode-avatar {
+    width: 1.4em;
+    height: 1.4em;
+    background: transparent;
+    background-size: contain;
+}
+
+.vscode-high-contrast .avatar {
+    color: var(--vscode-button-border);
+}
+
+
+.answer-element-gnc.responsing .sensecode-avatar {
+    animation: flash 2s linear infinite;
+}
+
+@keyframes flash {
+	10% {
+		background-size: 100% 100%;
+	}
+	90% {
+		background-size: 100% 100%;
+	}
+}
+
 .avatar .material-symbols-rounded {
     font-variation-settings: "FILL" 1;
 }
@@ -146,10 +171,6 @@ textarea::placeholder {
 
 .attach-btn-right {
     border-left: none;
-}
-
-.vscode-high-contrast .avatar {
-    color: var(--vscode-button-border);
 }
 
 .spinner>span {
