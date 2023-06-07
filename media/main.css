@@ -125,6 +125,7 @@ textarea::placeholder {
     height: 1.4em;
     background: transparent;
     background-size: contain;
+    background-position-y: 50%;
 }
 
 .vscode-high-contrast .avatar {
@@ -133,14 +134,29 @@ textarea::placeholder {
 
 
 .answer-element-gnc.responsing .sensecode-avatar {
-    animation: flash 2s linear infinite;
+    animation: wink 2s linear infinite;
 }
 
-@keyframes flash {
+@keyframes wink {
 	10% {
 		background-size: 100% 100%;
 	}
-	90% {
+    15% {
+		background-size: 100% 1%;
+	}
+    20% {
+		background-size: 100% 100%;
+	}
+    30% {
+		background-size: 100% 100%;
+	}
+    35% {
+		background-size: 100% 1%;
+	}
+    40% {
+		background-size: 100% 100%;
+	}
+	100% {
 		background-size: 100% 100%;
 	}
 }

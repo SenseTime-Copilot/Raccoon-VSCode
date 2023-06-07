@@ -1,5 +1,5 @@
 import { IncomingMessage } from 'http';
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor, TextDocument } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
 import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
@@ -716,11 +716,33 @@ export class SenseCodeEditor extends Disposable {
     );
     context.subscriptions.push(
       window.onDidChangeActiveTextEditor((e) => {
-        if (!e) {
+        let doc: TextDocument | undefined = undefined;
+        if (e) {
+          doc = e.document;
+        } else {
+          let docs = workspace.textDocuments;
+          for (let d of docs) {
+            if (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled") {
+              return;
+            }
+          }
+        }
+        if (!doc) {
           this.lastTextEditor = undefined;
           this.sendMessage({ type: 'codeReady', value: false });
-        } else if (e.document.uri.scheme === "file" || e.document.uri.scheme === "git" || e.document.uri.scheme === "untitled") {
+          return;
+        } else if (doc.uri.scheme === "file" || doc.uri.scheme === "git" || doc.uri.scheme === "untitled") {
           this.lastTextEditor = e;
+        }
+      })
+    );
+    context.subscriptions.push(
+      workspace.onDidCloseTextDocument((e) => {
+        if (this.lastTextEditor) {
+          if (this.lastTextEditor.document.uri.path === e.uri.path) {
+            this.lastTextEditor = undefined;
+            this.sendMessage({ type: 'codeReady', value: false });
+          }
         }
       })
     );
@@ -779,20 +801,25 @@ export class SenseCodeEditor extends Disposable {
     let username: string | undefined = await configuration.username(activeEngine.label);
     let loginout = ``;
     if (!key) {
+      let authUrl = 'https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime';
       if (!activeEngine.sensetimeOnly) {
+        let apiUrl = Uri.parse(activeEngine.url);
+        if (apiUrl.authority === "ams.sensecoreapi.cn") {
+          authUrl = 'https://signin.sensecore.cn';
+        } else if (apiUrl.authority === "ams.sensecoreapi.tech") {
+          authUrl = 'https://signin.sensecore.tech';
+        } else if (apiUrl.authority === "ams.sensecoreapi.dev") {
+          authUrl = 'https://signin.sensecore.dev';
+        }
         let challenge = crypto.createHash('sha256').update(env.machineId).digest("base64url");
-        let loginUrl = `https://signin.sensecore.dev/oauth2/auth?response_type=code&client_id=52090a1b-1f3b-48be-8808-cb0e7a685dbd&code_challenge_method=S256&code_challenge=${challenge}&state=sensecode&scope=openid`;
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="${loginUrl}">
-                                  <span class="material-symbols-rounded">login</span>
-                                </vscode-link>`;
-      } else if (sensetimeEnv) {
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")}" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
-                    <span class="material-symbols-rounded">login</span>
-                  </vscode-link>`;
+        let loginUrl = `${authUrl}/oauth2/auth?response_type=code&client_id=52090a1b-1f3b-48be-8808-cb0e7a685dbd&code_challenge_method=S256&code_challenge=${challenge}&state=${authUrl}&scope=openid`;
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${authUrl}]" href="${loginUrl}">
+                      <span class="material-symbols-rounded">login</span>
+                    </vscode-link>`;
       } else {
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [!SenseTime Env not detected]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
-                              <span class="material-symbols-rounded">login</span>
-                            </vscode-link>`;
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [https://sso.sensetime.com]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
+                      <span class="material-symbols-rounded">login</span>
+                    </vscode-link>`;
       }
     } else {
       if (!username) {

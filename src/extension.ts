@@ -39,16 +39,16 @@ class SenseCodeUriHandler implements vscode.UriHandler {
     configuration.setApiKey(configuration.getActiveEngineInfo().label, key);
   }
 
-  private async getToken(code: string, state: string) {
+  private async getToken(code: string, authUrl: string) {
     var data = new FormData();
     data.append('client_id', '52090a1b-1f3b-48be-8808-cb0e7a685dbd');
     data.append('redirect_uri', 'vscode://sensetime.sensecode/login');
     data.append('grant_type', 'authorization_code');
     data.append('code_verifier', vscode.env.machineId);
     data.append('code', code);
-    data.append('state', state);
+    data.append('state', authUrl);
 
-    return await axios.post("https://signin.sensecore.dev/oauth2/token",
+    return await axios.post(`${authUrl}/oauth2/token`,
       data.getBuffer(),
       {
         headers: data.getHeaders()

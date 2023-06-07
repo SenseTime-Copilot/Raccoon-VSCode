@@ -302,7 +302,7 @@ const vscode = acquireVsCodeApi();
           if (!chat) {
             chat = document.createElement("div");
             chat.id = id;
-            chat.classList.add("p-4", "answer-element-gnc", "w-full");
+            chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
             let outlang = lang;
             let exp = /Convert the given code to equivalent (.+) code/mg;
             let matches = exp.exec(prompt.prompt);
@@ -429,7 +429,6 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addResponse": {
-        document.getElementById(message.id)?.classList.add("responsing");
         const chatText = document.getElementById(`response-${message.id}`);
         if (chatText?.classList.contains("empty")) {
           chatText?.classList.remove("empty");
