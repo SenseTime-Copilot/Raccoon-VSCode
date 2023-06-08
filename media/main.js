@@ -19,7 +19,7 @@ const vscode = acquireVsCodeApi();
     xhtml: false
   });
 
-  const aiIcon = `<div class="sensecode-avatar"></div>`;
+  const aiIcon = `<div class="sensecode-avatar w-8 h-8"></div>`;
   const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
@@ -148,23 +148,13 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addSearch": {
-        document.getElementById('settings')?.remove();
-        document.getElementById("ask-list").classList.add("hidden");
-        document.getElementById("search-list").classList.add("hidden");
-        document.getElementById("question-input").value = "";
-        document.getElementById("question-sizer").dataset.value = "";
-        document.getElementById("question").classList.remove("history");
+        updateChatBoxStatus("start");
         toggleSubMenuList();
         history = [message.value, ...history];
         break;
       }
       case "addQuestion": {
-        document.getElementById('settings')?.remove();
-        document.getElementById("ask-list").classList.add("hidden");
-        document.getElementById("search-list").classList.add("hidden");
-        document.getElementById("question-input").value = "";
-        document.getElementById("question-sizer").dataset.value = "";
-        document.getElementById("question").classList.remove("history");
+        updateChatBoxStatus("start");
         toggleSubMenuList();
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
@@ -253,23 +243,35 @@ const vscode = acquireVsCodeApi();
           });
         }
 
-        let actionBtns = `<div class="text-xs opacity-30" style="font-family: var(--vscode-editor-font-family); text-align: right;">${message.timestamp}</div>`;
+        let actionBtns = ``;
         let sendBtn = ``;
         if (edit) {
-          actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-8 -mr-2">${cancelIcon}</button>`;
+          actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-6 ml-2">${cancelIcon}</button>`;
           sendBtn = `<div class="flex mx-2 my-4 -mb-4 justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]}">${sendIcon}</vscode-button></div>`;
         }
 
-        let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
-                              <span class="capitalize flex gap-1 font-bold flex text-xl">
-                                ${questionIcon} ${message.username || l10nForUI["Question"]}
+        let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 -mx-2 flex flex-row-reverse">
+                              <span class="capitalize flex gap-2 flex flex-row-reverse text-xl">
+                                ${questionIcon}
+                                <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
+                                  <b class="text-sm">${message.username || l10nForUI["Question"]}</b>
+                                  <div class="opacity-30 leading-3">
+                                    ${message.timestamp}
+                                  </div>
+                                </span>
                               </span>
                               ${actionBtns}
                             </h2>`;
         if (message.avatar && message.username) {
-          questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 flex">
-                            <span class="capitalize flex gap-1 font-bold flex text-xl">
-                              <img src="${message.avatar}"/ class="w-8 rounded-full"> ${message.username}
+          questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 -mx-2 flex flex-row-reverse">
+                            <span class="capitalize flex gap-2 flex flex-row-reverse text-xl">
+                              <img src="${message.avatar}"/ class="w-8 h-8 rounded-full">
+                              <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
+                                <b class="text-sm">${message.username}</b>
+                                <div class="opacity-30 leading-3">
+                                  ${message.timestamp}
+                                </div>
+                              </span>
                             </span>
                             ${actionBtns}
                           </h2>`;
@@ -309,34 +311,46 @@ const vscode = acquireVsCodeApi();
             if (matches) {
               outlang = matches[1];
             }
-            chat.innerHTML = `  <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                                        <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body" data-lang="${outlang}"></div>
-                                        ${progress}
-                                        <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
-                                          <span class="flex items-center gap-2">
-                                            <button class="like flex rounded" data-id=${id}>
-                                              <span class="material-symbols-rounded">
-                                                thumb_up
-                                              </span>
-                                            </button>
-                                            <button class="dislike flex rounded" data-id=${id}>
-                                              <span class="material-symbols-rounded">
-                                                thumb_down
-                                              </span>
-                                            </button>
-                                            <button class="correct flex rounded" title="" data-id=${id}>
-                                              <span class="material-symbols-rounded">
-                                                sentiment_dissatisfied
-                                              </span>
-                                            </button>
-                                          </span>
-                                          <button class="regenerate flex items-center rounded" data-id=${id}>
-                                            <span class="material-symbols-rounded">
-                                              refresh
-                                            </span>
-                                            <p class="mx-1">${l10nForUI["Regenerate"]}</p>
-                                          </button>
-                                        </div>`;
+            chat.innerHTML = `  <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
+                                  <span class="capitalize flex gap-2 flex text-xl">
+                                    ${aiIcon}
+                                    <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
+                                      <b class="text-sm">${l10nForUI["SenseCode"]}</b>
+                                      <div class="opacity-30 leading-3">
+                                        ${message.timestamp}
+                                      </div>
+                                    </span>
+                                  </span>
+                                </h2>
+                                <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body" data-lang="${outlang}"></div>
+                                ${progress}
+                                <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
+                                  <span class="flex items-center gap-2">
+                                    <button class="like flex rounded" data-id=${id}>
+                                      <span class="material-symbols-rounded">
+                                        thumb_up
+                                      </span>
+                                    </button>
+                                    <button class="dislike flex rounded" data-id=${id}>
+                                      <span class="material-symbols-rounded">
+                                        thumb_down
+                                      </span>
+                                    </button>
+                                    <button class="correct flex rounded" title="" data-id=${id}>
+                                      <span class="material-symbols-rounded">
+                                        sentiment_dissatisfied
+                                      </span>
+                                    </button>
+                                  </span>
+                                  <span class="flex items-center gap-2">
+                                    <button class="regenerate flex items-center rounded" data-id=${id}>
+                                      <span class="material-symbols-rounded">
+                                        refresh
+                                      </span>
+                                      <p class="mx-1">${l10nForUI["Regenerate"]}</p>
+                                    </button>
+                                  </span>
+                                </div>`;
             list.appendChild(chat);
           }
         }
@@ -344,13 +358,7 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "stopResponse": {
-        document.getElementById(message.id)?.classList.remove("responsing");
-        document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
-        document.getElementById(`feedback-${message.id}`)?.classList?.remove("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
-        document.getElementById("question-input").disabled = false;
-        document.getElementById("question-input").focus();
-
+        updateChatBoxStatus("stop", message.id);
         const chatText = document.getElementById(`response-${message.id}`);
         if (chatText.classList.contains("empty")) {
           document.getElementById(`feedback-${message.id}`)?.classList?.add("empty");
@@ -446,10 +454,9 @@ const vscode = acquireVsCodeApi();
         if (!list.innerHTML) {
           return;
         }
+        updateChatBoxStatus("stop", message.id);
+        document.getElementById(`feedback-${message.id}`)?.classList.add("error");
         const chatText = document.getElementById(`response-${message.id}`);
-        const feedback = document.getElementById(`feedback-${message.id}`);
-        feedback?.classList.remove("hidden");
-        feedback?.classList.add("error");
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
@@ -463,11 +470,6 @@ const vscode = acquireVsCodeApi();
                                           </span>
                                         </button>
                                     </div>`;
-
-        document.getElementById(`progress-${message.id}`)?.classList?.add("hidden");
-        document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
-        document.getElementById("question-input").disabled = false;
-        document.getElementById("question-input").focus();
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       default:
@@ -504,6 +506,25 @@ const vscode = acquireVsCodeApi();
       addError({ category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
   };
+
+  function updateChatBoxStatus(status, id) {
+    if (status === "stop") {
+      document.getElementById(id)?.classList.remove("responsing");
+      document.getElementById(`progress-${id}`)?.classList?.add("hidden");
+      document.getElementById(`feedback-${id}`)?.classList?.remove("hidden");
+      document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
+    }
+    if (status === "start") {
+      document.getElementById('settings')?.remove();
+      document.getElementById("ask-list").classList.add("hidden");
+      document.getElementById("search-list").classList.add("hidden");
+      document.getElementById("question-input").value = "";
+      document.getElementById("question-sizer").dataset.value = "";
+      document.getElementById("question").classList.remove("history");
+    }
+  }
 
   function _toggleAskList() {
     var q = document.getElementById('question-input');
@@ -666,7 +687,7 @@ const vscode = acquireVsCodeApi();
       if (curIdx >= 0) {
         return;
       }
-    } 
+    }
     if (e.target.id === "question-input") {
       if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.code === "Enter") {
         e.preventDefault();

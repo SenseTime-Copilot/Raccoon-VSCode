@@ -121,8 +121,6 @@ textarea::placeholder {
 }
 
 .sensecode-avatar {
-    width: 1.4em;
-    height: 1.4em;
     background: transparent;
     background-size: contain;
     background-position-y: 50%;
@@ -634,7 +632,7 @@ button.disabled,
     float: left;
     margin: -1.3rem 0.5rem 0 -0.5rem;
     width: calc(100% + 1rem);
-    border-bottom: 0.65rem dotted var(--vscode-sideBar-background);
+    border-bottom: 0.65rem dotted var(--panel-view-background);
 }
 
 .progress {

@@ -749,7 +749,14 @@ export class SenseCodeEditor extends Disposable {
     context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
         if (e.textEditor.document.uri.scheme === "file" || e.textEditor.document.uri.scheme === "git" || e.textEditor.document.uri.scheme === "untitled") {
-          this.sendMessage({ type: 'codeReady', value: (e.selections[0] && !e.selections[0].isEmpty) ? true : false });
+          if (e.selections[0]) {
+            let text = e.textEditor.document.getText(e.selections[0]);
+            if (text.trim()) {
+              this.sendMessage({ type: 'codeReady', value: true });
+              return;
+            }
+          }
+          this.sendMessage({ type: 'codeReady', value: false });
         }
       })
     );
