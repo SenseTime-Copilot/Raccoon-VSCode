@@ -76,6 +76,18 @@ const vscode = acquireVsCodeApi();
     const list = document.getElementById("qa-list");
 
     switch (message.type) {
+      case 'focus': {
+        document.getElementById('settings')?.remove();
+        document.getElementById("question-input").focus();
+        document.getElementById('question').classList.remove('flash');
+        void document.getElementById('question').offsetHeight;
+        document.getElementById('question').classList.add('flash');
+        break;
+      }
+      case 'clear': {
+        list.innerHTML = "";
+        break;
+      }
       case 'showError': {
         addError(message);
         break;
@@ -243,10 +255,17 @@ const vscode = acquireVsCodeApi();
           });
         }
 
-        let actionBtns = ``;
+        let actionBtns = `
+          <div class="-mt-6 ml-1">
+            <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
+          </div>
+        `;
         let sendBtn = ``;
         if (edit) {
-          actionBtns = `<button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc border-none bg-transparent -mt-6 ml-2">${cancelIcon}</button>`;
+          actionBtns = `
+          <div class="-mt-6 ml-1">
+            <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
+          </div>`;
           sendBtn = `<div class="flex mx-2 my-4 -mb-4 justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]}">${sendIcon}</vscode-button></div>`;
         }
 
@@ -278,7 +297,7 @@ const vscode = acquireVsCodeApi();
         }
 
         list.innerHTML +=
-          `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
+          `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : "responsing"}">
               ${questionTitle}
               <div id="prompt-${id}" class="prompt inline-block leading-loose py-2 w-full" data-prompt='${JSON.stringify(prompt)}' data-code="${encodeURIComponent(code)}" data-lang="${lang}">${prompthtml}</div>
               ${codeSnippet}
@@ -423,17 +442,23 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addMessage": {
-        if (list.lastElementChild?.classList.contains(message.category)) {
-
+        let lastElem = list.lastElementChild;
+        if (lastElem && lastElem.classList.contains("progress-ring")) {
+          lastElem.remove();
+        } else if (lastElem && lastElem.classList.contains("message-element-gnc")) {
+          if (lastElem.classList.contains(message.category)) {
+            lastElem.remove();
+          }
         } else {
-          list.innerHTML = `<div class="p-4 w-full message-element-gnc markdown-body ${message.category || ""}">
+        }
+
+        list.innerHTML += `<div class="p-4 w-full message-element-gnc markdown-body ${message.category || ""}" ${message.username ? `date-username="${message.username}"` : ""}>
                     <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
                     <div>
                       ${message.value}
                     </div>
                   </div>`;
-          list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
-        }
+        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       }
       case "addResponse": {
@@ -509,6 +534,7 @@ const vscode = acquireVsCodeApi();
 
   function updateChatBoxStatus(status, id) {
     if (status === "stop") {
+      document.getElementById(`question-${id}`)?.classList.remove("responsing");
       document.getElementById(id)?.classList.remove("responsing");
       document.getElementById(`progress-${id}`)?.classList?.add("hidden");
       document.getElementById(`feedback-${id}`)?.classList?.remove("hidden");
@@ -905,6 +931,13 @@ const vscode = acquireVsCodeApi();
 
     if (e.target.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
+      return;
+    }
+
+    if (targetButton?.classList?.contains('delete-element-gnc')) {
+      const id = targetButton.dataset.id;
+      document.getElementById(`question-${id}`)?.remove();
+      document.getElementById(id)?.remove();
       return;
     }
 

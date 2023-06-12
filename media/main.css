@@ -130,6 +130,9 @@ textarea::placeholder {
     color: var(--vscode-button-border);
 }
 
+.question-element-gnc.responsing .delete-element-gnc {
+    display: none;
+}
 
 .answer-element-gnc.responsing .sensecode-avatar {
     animation: wink 2s linear infinite;

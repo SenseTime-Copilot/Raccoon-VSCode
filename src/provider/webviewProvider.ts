@@ -4,7 +4,6 @@ import { configuration, outlog, telemetryReporter } from '../extension';
 import { Prompt } from '../param/configures';
 import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
-import * as crypto from "crypto";
 import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 
 const swords: string[] = [
@@ -709,8 +708,9 @@ export class SenseCodeEditor extends Disposable {
     );
     context.subscriptions.push(
       context.secrets.onDidChange((e) => {
-        if (e.key === "sensecode.token") {
+        if (e.key === "sensecode.user") {
           this.showWelcome();
+          context.secrets.delete("sensecode.user");
         }
       })
     );
@@ -730,7 +730,6 @@ export class SenseCodeEditor extends Disposable {
         if (!doc) {
           this.lastTextEditor = undefined;
           this.sendMessage({ type: 'codeReady', value: false });
-          return;
         } else if (doc.uri.scheme === "file" || doc.uri.scheme === "git" || doc.uri.scheme === "untitled") {
           this.lastTextEditor = e;
         }
@@ -763,20 +762,21 @@ export class SenseCodeEditor extends Disposable {
     this.showPage();
   }
 
-  private showWelcome() {
+  private showWelcome(full?: boolean) {
     configuration.update();
     this.sendMessage({ type: 'updateSettingPage', action: "close" });
     let engine = configuration.getActiveEngine();
+    let detail = full ? guide : '';
     configuration.getApiKeyRaw(engine).then(async (key) => {
       let username: string | undefined = await configuration.username(engine);
       if (!username && key) {
         username = l10n.t("{0} User", engine);
       }
       let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
-      this.sendMessage({ type: 'addMessage', category: "welcome", value: welcomMsg + guide });
+      this.sendMessage({ type: 'addMessage', category: "welcome", username, value: welcomMsg + detail });
     }, () => {
       let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", "", l10n.t("SenseCode"));
-      this.sendMessage({ type: 'addMessage', category: "no-account", value: welcomMsg + guide + loginHint });
+      this.sendMessage({ type: 'addMessage', category: "no-account", value: welcomMsg + detail + loginHint });
     });
   }
 
@@ -796,7 +796,6 @@ export class SenseCodeEditor extends Disposable {
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
     let es = configuration.engines;
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${activeEngine.label}">`;
-    let sensetimeEnv = configuration.sensetimeEnv;
     for (let e of es) {
       if (e.sensetimeOnly) {
         esList += `<vscode-option value="${e.label}">${e.label} ∞</vscode-option>`;
@@ -808,26 +807,11 @@ export class SenseCodeEditor extends Disposable {
     let username: string | undefined = await configuration.username(activeEngine.label);
     let loginout = ``;
     if (!key) {
-      let authUrl = 'https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime';
-      if (!activeEngine.sensetimeOnly) {
-        let apiUrl = Uri.parse(activeEngine.url);
-        if (apiUrl.authority === "ams.sensecoreapi.cn") {
-          authUrl = 'https://signin.sensecore.cn';
-        } else if (apiUrl.authority === "ams.sensecoreapi.tech") {
-          authUrl = 'https://signin.sensecore.tech';
-        } else if (apiUrl.authority === "ams.sensecoreapi.dev") {
-          authUrl = 'https://signin.sensecore.dev';
-        }
-        let challenge = crypto.createHash('sha256').update(env.machineId).digest("base64url");
-        let loginUrl = `${authUrl}/oauth2/auth?response_type=code&client_id=52090a1b-1f3b-48be-8808-cb0e7a685dbd&code_challenge_method=S256&code_challenge=${challenge}&state=${authUrl}&scope=openid`;
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${authUrl}]" href="${loginUrl}">
+      let authUrl = configuration.getAuthUrlLogin(activeEngine);
+      loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${authUrl.authority}]" href="${authUrl.toString(true)}">
                       <span class="material-symbols-rounded">login</span>
                     </vscode-link>`;
-      } else {
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [https://sso.sensetime.com]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime">
-                      <span class="material-symbols-rounded">login</span>
-                    </vscode-link>`;
-      }
+
     } else {
       if (!username) {
         username = l10n.t("{0} User", activeEngine.label);
@@ -975,7 +959,7 @@ export class SenseCodeEditor extends Disposable {
       <div class="ml-4">
         <div>
         <vscode-radio-group id="responseModeRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Show respoonse")}</label>
+          <label slot="label">${l10n.t("Show response")}</label>
           <vscode-radio ${streamResponse ? "checked" : ""} class="w-32" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
             ${l10n.t("Streaming")}
           </vscode-radio>
@@ -1017,7 +1001,7 @@ export class SenseCodeEditor extends Disposable {
     this.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
         case 'welcome': {
-          this.showWelcome();
+          this.showWelcome(true);
           break;
         }
         case 'listPrompt': {
@@ -1115,8 +1099,20 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'activeEngine': {
-          configuration.setActiveEngine(data.value);
-          this.updateSettingPage("full");
+          window.showWarningMessage(
+            l10n.t("Switch engine"),
+            { modal: true, detail: l10n.t("Switching engine will lead all Q&A list to clear out. Do you confirm on swithing to {0}?", data.value) },
+            l10n.t("OK"))
+            .then(
+              (ret => {
+                if (ret === l10n.t("OK")) {
+                  configuration.setActiveEngine(data.value);
+                  this.updateSettingPage("full");
+                } else {
+                  this.updateSettingPage();
+                }
+              })
+            );
           break;
         }
         case 'setKey': {
@@ -1335,6 +1331,11 @@ ${data.info.response}
   }
 
   public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
+    if (prompt.type === "focus") {
+      await new Promise((f) => setTimeout(f, 300));
+      this.sendMessage({ type: 'focus' });
+      return;
+    }
     let response: string;
     let ts = new Date();
     let id = ts.valueOf();
@@ -1368,7 +1369,7 @@ ${data.info.response}
       let activeEngine = configuration.getActiveEngine();
       let apikey = await configuration.getApiKey(activeEngine);
       if (!apikey) {
-        this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
+        //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
       }
@@ -1504,8 +1505,8 @@ ${codeStr}
   }
 
   public async clear() {
-    this.webview.html = await this.getWebviewHtml(this.webview);
-    this.showWelcome();
+    this.sendMessage({ type: "clear" });
+    this.showWelcome(true);
   }
 
   private async getWebviewHtml(webview: Webview) {
@@ -1547,7 +1548,7 @@ ${codeStr}
                 <vscode-panels class="grow">
                   <vscode-panel-view id="view-1" class="p-0 m-0">
                     <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
-                      <vscode-progress-ring class="w-full content-center mt-32"></vscode-progress-ring>
+                      <vscode-progress-ring class="progress-ring w-full content-center mt-32"></vscode-progress-ring>
                     </div>
                   </vscode-panel-view>
                 </vscode-panels>
@@ -1604,6 +1605,7 @@ ${codeStr}
                   "Question": "${l10n.t("Question")}",
                   "SenseCode": "${l10n.t("SenseCode")}",
                   "Cancel": "${l10n.t("Cancel [Esc]")}",
+                  "Delete": "${l10n.t("Delete this chat entity")}",
                   "Send": "${l10n.t("Send [Enter]")}",
                   "ToggleWrap": "${l10n.t("Toggle line wrap")}",
                   "Copy": "${l10n.t("Copy to clipboard")}",

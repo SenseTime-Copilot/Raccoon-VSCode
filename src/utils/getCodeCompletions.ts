@@ -34,34 +34,34 @@ function hmacSHA256(key: Buffer, data: Buffer): string {
   return hmac.digest('base64');
 }
 
-function generateAuthHeader(url: Uri, ak: string, sk: string) {
-  let date: string = new Date().toUTCString();
+function generateSignature(url: Uri, date: string, ak: string, sk: string) {
   let message: string = `date: ${date}\nPOST ${url.path} HTTP/1.1`;
   let signature = hmacSHA256(Buffer.from(sk), Buffer.from(message));
   let authorization: string = `hmac accesskey="${ak}", algorithm="hmac-sha256", headers="date request-line", signature="${signature}"`;
-  return {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "Date": date,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "Authorization": authorization,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "Content-Type": "application/json"
-  };
+  return authorization;
 }
 
 function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n: number, prompt: string, stream: boolean, signal: AbortSignal): Promise<GetCodeCompletions | IncomingMessage> {
   return new Promise(async (resolve, reject) => {
-    let headers = undefined;
+    let date: string = new Date().toUTCString();
+    let auth = '';
     if (key) {
       if (key.includes("#")) {
         let aksk = key.split("#");
-        headers = generateAuthHeader(Uri.parse(engine.url), aksk[0], aksk[1]);
+        auth = generateSignature(Uri.parse(engine.url), date, aksk[0], aksk[1]);
       } else {
-        headers = {
-          authorization: `Bearer ${key}`,
-        };
+        auth = `Bearer ${key}`;
       }
     }
+    let headers = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Date": date,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": auth
+    };
+
     let payload;
     let p = prompt;
     let responseType: ResponseType | undefined = undefined;
@@ -122,6 +122,7 @@ function getCodeCompletionsSenseCode(engine: Engine, key: string | undefined, n:
             reject(res.data);
           }
         }, (err) => {
+          configuration.refreshToken(engine);
           reject(err);
         }).catch(e => {
           reject(e);
@@ -147,8 +148,24 @@ export async function sendTelemetryLog(_eventName: string, info: Record<string, 
   }
 
   let apiUrl = "https://ams.sensecoreapi.cn/studio/ams/data/logs";
-  let aksk = key.split("#");
-  let auth = generateAuthHeader(Uri.parse(apiUrl), aksk[0], aksk[1]);
+  let date: string = new Date().toUTCString();
+  let auth = '';
+  if (key) {
+    if (key.includes("#")) {
+      let aksk = key.split("#");
+      auth = generateSignature(Uri.parse(engine.url), date, aksk[0], aksk[1]);
+    } else {
+      auth = `Bearer ${key}`;
+    }
+  }
+  let headers = {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    "Date": date,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    "Content-Type": "application/json",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    "Authorization": auth
+  };
   let payload = JSON.stringify([info]);
   let user = await configuration.username(engine.label);
 
@@ -157,7 +174,7 @@ export async function sendTelemetryLog(_eventName: string, info: Record<string, 
     payload,
     {
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...auth },
+      headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...headers },
       proxy: false,
       timeout: 120000,
       transformRequest: [
