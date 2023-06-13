@@ -1,8 +1,6 @@
-import { IncomingMessage } from 'http';
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor, TextDocument } from 'vscode';
 import { configuration, outlog, telemetryReporter } from '../extension';
-import { Prompt } from '../param/configures';
-import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
+import { Prompt } from './sensecodeManager';
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 
@@ -694,13 +692,14 @@ export class SenseCodeEditor extends Disposable {
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     context.subscriptions.push(
-      workspace.onDidChangeConfiguration((e) => {
+      workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration("SenseCode")) {
           configuration.update();
           if (e.affectsConfiguration("SenseCode.Prompt")) {
             this.sendMessage({ type: 'promptList', value: configuration.prompt });
           }
           if (e.affectsConfiguration("SenseCode.Engines")) {
+            await configuration.updateEngineList();
             this.updateSettingPage("full");
           }
         }
@@ -708,9 +707,8 @@ export class SenseCodeEditor extends Disposable {
     );
     context.subscriptions.push(
       context.secrets.onDidChange((e) => {
-        if (e.key === "sensecode.user") {
+        if (e.key === "SenseCode.tokens") {
           this.showWelcome();
-          context.secrets.delete("sensecode.user");
         }
       })
     );
@@ -765,18 +763,18 @@ export class SenseCodeEditor extends Disposable {
   private showWelcome(full?: boolean) {
     configuration.update();
     this.sendMessage({ type: 'updateSettingPage', action: "close" });
-    let engine = configuration.getActiveEngine();
     let detail = full ? guide : '';
-    configuration.getApiKeyRaw(engine).then(async (key) => {
-      let username: string | undefined = await configuration.username(engine);
-      if (!username && key) {
-        username = l10n.t("{0} User", engine);
+    configuration.username().then(async (username) => {
+      let category = "welcome";
+      if (username) {
+        username = ` @${username}`;
+      } else {
+        category = "no-account";
+        username = "";
+        detail += loginHint;
       }
-      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", `${username ? ` @${username}` : ""}`, l10n.t("SenseCode"));
-      this.sendMessage({ type: 'addMessage', category: "welcome", username, value: welcomMsg + detail });
-    }, () => {
-      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", "", l10n.t("SenseCode"));
-      this.sendMessage({ type: 'addMessage', category: "no-account", value: welcomMsg + detail + loginHint });
+      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, l10n.t("SenseCode"));
+      this.sendMessage({ type: 'addMessage', category, username, value: welcomMsg + detail });
     });
   }
 
@@ -790,31 +788,29 @@ export class SenseCodeEditor extends Disposable {
     let delay = configuration.delay;
     let candidates = configuration.candidates;
     let tokenPropensity = configuration.tokenPropensity;
-    const activeEngine = configuration.getActiveEngineInfo();
-    let key = activeEngine.key || await configuration.getApiKey(activeEngine.label);
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
-    let es = configuration.engines;
-    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${activeEngine.label}">`;
-    for (let e of es) {
-      if (e.sensetimeOnly) {
-        esList += `<vscode-option value="${e.label}">${e.label} ∞</vscode-option>`;
-      } else {
-        esList += `<vscode-option value="${e.label}">${e.label}</vscode-option>`;
-      }
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${configuration.getActiveClientLabel()}">`;
+    let es = configuration.clientsLabel;
+    for (let label of es) {
+      esList += `<vscode-option value="${label}">${label}</vscode-option>`;
+
     }
     esList += "</vscode-dropdown>";
-    let username: string | undefined = await configuration.username(activeEngine.label);
+    let username: string | undefined = await configuration.username();
+    let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
-    if (!key) {
-      let authUrl = configuration.getAuthUrlLogin(activeEngine);
-      loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${authUrl.authority}]" href="${authUrl.toString(true)}">
+    if (!username) {
+      let authUrl = configuration.getAuthUrlLogin(env.machineId);
+      let url = Uri.parse(authUrl || "");
+      loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority}]" href="${url.toString(true)}">
                       <span class="material-symbols-rounded">login</span>
                     </vscode-link>`;
 
     } else {
-      if (!username) {
-        username = l10n.t("{0} User", activeEngine.label);
+      let avatar = await configuration.avatar();
+      if (avatar) {
+        avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
       }
       loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
                     <span id="clearKey" class="material-symbols-rounded">logout</span>
@@ -822,74 +818,25 @@ export class SenseCodeEditor extends Disposable {
     }
     let accountInfo = `
         <div class="flex gap-2 items-center w-full">
-          <span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>
+          ${avatarEle}
           <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
           ${loginout}
         </div>
         `;
-    let avatar = await configuration.avatar(activeEngine.label);
-    if (avatar) {
-      accountInfo = `
-        <div class="flex gap-2 items-center w-full">
-          <img class="w-10 h-10 rounded-full" src="${avatar}" />
-          <span class="grow capitalize font-bold text-base">${username || l10n.t("Unknown")}</span>
-          ${loginout}
-        </div>
-        `;
-    }
 
-    let keycfg = "";
-    if (!key) {
-      keycfg = `
-          <span class="flex">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;">privacy_tip</span>
-            <vscode-text-field readonly placeholder="Not set" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;">
-            </vscode-text-field>
-            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Set API Key")}">
-              <span id="setKey" class="material-symbols-rounded">key</span>
-            </vscode-link>
-          </span>`;
-    } else {
-      let len = key.length;
-      let keyMasked = '*'.repeat(len);
-      if (key.length > 10) {
-        let showCharCnt = Math.min(Math.floor(len / 4), 7);
-        let maskCharCnt = Math.min(len - (showCharCnt * 2), 12);
-        keyMasked = `${key.slice(0, showCharCnt)}${'*'.repeat(maskCharCnt)}${key.slice(-1 * showCharCnt)}`;
-      }
-      if (activeEngine.key) {
-        keycfg = `
-          <span class="flex">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("API Key that in settings is adopted")}">password</span>
-            <vscode-text-field readonly placeholder="${keyMasked}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;"></vscode-text-field>
-            <vscode-link href="${setEngineUri}" class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Reveal in settings")}">
-              <span class="material-symbols-rounded">visibility</span>
-            </vscode-link>
-          </span>`;
-      } else {
-        keycfg = `
-          <span class="flex">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("API Key that in secret storage is adopted")}">security</span>
-            <vscode-text-field readonly placeholder="${keyMasked}" style="font-family: var(--vscode-editor-font-family);flex-grow: 1;"></vscode-text-field>
-            <vscode-link class="attach-btn-right" style="padding: 0 3px;" title="${l10n.t("Logout & clear API Key from Secret Storage")}">
-              <span id="clearKey" class="material-symbols-rounded">key_off</span>
-            </vscode-link>
-          </span>`;
-      }
-    }
     let settingPage = `
     <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
       </div>
       <div class="immutable flex flex-col mt-4 px-2 gap-2">
-        <div class="flex flex-row gap-2 mx-2 items-center justify-between">
+        <div class="flex flex-row gap-2 items-center justify-between">
           ${accountInfo}
         </div>
       </div>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <b>${l10n.t("Service")}</b>
-      <div class="flex flex-col ml-4 my-2 px-2 gap-2">
+      <vscode-divider class="${es.length === 1 ? "hidden" : ""}" style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+      <b class="${es.length === 1 ? "hidden" : ""}">${l10n.t("Service")}</b>
+      <div class="flex flex-col ml-4 my-2 px-2 gap-2 ${es.length === 1 ? "hidden" : ""}">
         <span>${l10n.t("Code engine")}</span>
         <div class="flex flex-row">
           <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("Code engine")}">assistant</span>
@@ -897,12 +844,6 @@ export class SenseCodeEditor extends Disposable {
           <vscode-link href="${setEngineUri}" class="pt-px attach-btn-right" title="${l10n.t("Settings")}">
             <span class="material-symbols-rounded">tune</span>
           </vscode-link>
-        </div>
-      </div>
-      <div class="ml-4">
-        <div class="flex flex-col grow my-2 px-2 gap-2">
-          <span>${l10n.t("API Key")}</span>
-          ${keycfg}
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -1099,43 +1040,19 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'activeEngine': {
-          window.showWarningMessage(
-            l10n.t("Switch engine"),
-            { modal: true, detail: l10n.t("Switching engine will lead all Q&A list to clear out. Do you confirm on swithing to {0}?", data.value) },
-            l10n.t("OK"))
-            .then(
-              (ret => {
-                if (ret === l10n.t("OK")) {
-                  configuration.setActiveEngine(data.value);
-                  this.updateSettingPage("full");
-                } else {
-                  this.updateSettingPage();
-                }
-              })
-            );
-          break;
-        }
-        case 'setKey': {
-          await window.showInputBox({ title: `${l10n.t("SenseCode: Input your Key...")}`, password: true, ignoreFocusOut: true }).then(async (v) => {
-            configuration.setApiKey(configuration.getActiveEngine(), v).then((ok) => {
-              if (!ok) {
-                this.sendMessage({ type: 'showError', category: 'invalid-key', value: l10n.t("Invalid API Key"), id: new Date().valueOf() });
-              }
-            }, (_err) => {
-              this.sendMessage({ type: 'showError', category: 'invalid-key', value: l10n.t("Invalid API Key"), id: new Date().valueOf() });
-            });
-          });
+          configuration.setActiveClient(data.value);
+          this.updateSettingPage("full");
           break;
         }
         case 'clearKey': {
-          let ae = configuration.getActiveEngine();
+          let ae = configuration.getActiveClientLabel();
           window.showWarningMessage(
             l10n.t("Logout & clear API Key for {0} from Secret Storage?", ae),
             { modal: true },
             l10n.t("OK"))
             .then((v) => {
               if (v === l10n.t("OK")) {
-                configuration.setApiKey(ae, undefined);
+                configuration.logout();
               }
             });
           break;
@@ -1336,7 +1253,6 @@ ${data.info.response}
       this.sendMessage({ type: 'focus' });
       return;
     }
-    let response: string;
     let ts = new Date();
     let id = ts.valueOf();
     let timestamp = ts.toLocaleString();
@@ -1362,13 +1278,9 @@ ${data.info.response}
     let promptClone = { ...prompt };
     promptClone.prompt = instruction.replace("${code}", "");
 
-    let engine = { ...configuration.getActiveEngineInfo() };
-
-    let rs: GetCodeCompletions | IncomingMessage;
     try {
-      let activeEngine = configuration.getActiveEngine();
-      let apikey = await configuration.getApiKey(activeEngine);
-      if (!apikey) {
+      let loggedin = await configuration.isClientLoggedin();
+      if (!loggedin) {
         //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
         return;
@@ -1378,7 +1290,7 @@ ${data.info.response}
         this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
         return;
       } else {
-        if (code.length > configuration.tokenForPrompt(engine.label) * 3) {
+        if (code.length > configuration.tokenForPrompt() * 3) {
           this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
           return;
         }
@@ -1397,8 +1309,8 @@ ${data.info.response}
         lang = "";
       }
 
-      let username = await configuration.username(activeEngine);
-      let avatar = await configuration.avatar(activeEngine);
+      let username = await configuration.username();
+      let avatar = await configuration.avatar();
       this.sendMessage({ type: 'addQuestion', username, avatar: avatar || undefined, value: promptClone, code, lang, send, id, streaming, timestamp });
       if (!send) {
         return;
@@ -1415,75 +1327,81 @@ ${codeStr}
 ### Response:\n`;
 
       this.stopList[id] = new AbortController();
-      engine.config.max_tokens = engine.token_limit;
-      rs = await getCodeCompletions(engine, promptMsg, 1, streaming, this.stopList[id].signal);
-      if (rs instanceof IncomingMessage) {
-        let data = rs as IncomingMessage;
-        data.on("data", async (v: any) => {
-          if (this.stopList[id].signal.aborted || this.disposing) {
-            delete this.stopList[id];
-            data.destroy();
-            return;
-          }
-          let msgstr: string = v.toString();
-          let msgs = msgstr.split("\n");
-          let errorFlag = false;
-          for (let msg of msgs) {
-            let content = "";
-            if (msg.startsWith("data:")) {
-              content = msg.slice(5).trim();
-            } else if (msg.startsWith("event:")) {
-              content = msg.slice(6).trim();
-              outlog.error(content);
-              if (content === "error") {
-                errorFlag = true;
-                // this.sendMessage({ type: 'addError', error: "streaming interrpted", id });
-                // data.destroy();
-              }
-              // return;
-              continue;
-            }
-
-            if (content === '[DONE]') {
-              this.sendMessage({ type: 'stopResponse', id });
-              outlog.debug(content);
-              delete this.stopList[id];
-              data.destroy();
-              return;
-            }
-            if (!content) {
-              continue;
-            }
-            if (errorFlag) {
-              this.sendMessage({ type: 'addError', error: content, id });
-              continue;
-            }
-            try {
-              let json = JSON.parse(content);
-              outlog.debug(JSON.stringify(json, undefined, 2));
-              if (json.error) {
-                this.sendMessage({ type: 'addError', error: json.error, id });
+      if (streaming) {
+        configuration.getCompletionsStreaming(
+          promptMsg,
+          1,
+          configuration.maxToken(),
+          undefined,
+          this.stopList[id].signal,
+          (data) => {
+            data.on("data", async (v: any) => {
+              if (this.stopList[id].signal.aborted || this.disposing) {
                 delete this.stopList[id];
                 data.destroy();
                 return;
-              } else if (json.choices && json.choices[0]) {
-                let value = json.choices[0].text || json.choices[0].message?.content;
-                if (value) {
-                  if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
-                    value = "\n";
+              }
+              let msgstr: string = v.toString();
+              let msgs = msgstr.split("\n");
+              let errorFlag = false;
+              for (let msg of msgs) {
+                let content = "";
+                if (msg.startsWith("data:")) {
+                  content = msg.slice(5).trim();
+                } else if (msg.startsWith("event:")) {
+                  content = msg.slice(6).trim();
+                  outlog.error(content);
+                  if (content === "error") {
+                    errorFlag = true;
+                    // this.sendMessage({ type: 'addError', error: "streaming interrpted", id });
+                    // data.destroy();
                   }
-                  this.sendMessage({ type: 'addResponse', id, value });
+                  // return;
+                  continue;
+                }
+
+                if (content === '[DONE]') {
+                  this.sendMessage({ type: 'stopResponse', id });
+                  outlog.debug(content);
+                  delete this.stopList[id];
+                  data.destroy();
+                  return;
+                }
+                if (!content) {
+                  continue;
+                }
+                if (errorFlag) {
+                  this.sendMessage({ type: 'addError', error: content, id });
+                  continue;
+                }
+                try {
+                  let json = JSON.parse(content);
+                  outlog.debug(JSON.stringify(json, undefined, 2));
+                  if (json.error) {
+                    this.sendMessage({ type: 'addError', error: json.error, id });
+                    delete this.stopList[id];
+                    data.destroy();
+                    return;
+                  } else if (json.choices && json.choices[0]) {
+                    let value = json.choices[0].text || json.choices[0].message?.content;
+                    if (value) {
+                      if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
+                        value = "\n";
+                      }
+                      this.sendMessage({ type: 'addResponse', id, value });
+                    }
+                  }
+                } catch (e) {
+                  outlog.error(content);
                 }
               }
-            } catch (e) {
-              outlog.error(content);
-            }
-          }
-        });
+            });
+          });
       } else {
-        response = rs.completions[0];
-        outlog.debug(response);
-        this.sendMessage({ type: 'addResponse', id, value: response });
+        let rs: any = await configuration.getCompletions(promptMsg, 1, configuration.maxToken(), undefined, this.stopList[id].signal);
+        let content = rs?.choices[0]?.text || "";
+        outlog.debug(content);
+        this.sendMessage({ type: 'addResponse', id, value: content });
         this.sendMessage({ type: 'stopResponse', id });
       }
     } catch (err: any) {

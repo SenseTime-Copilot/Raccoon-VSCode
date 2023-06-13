@@ -1,22 +1,21 @@
 import * as vscode from "vscode";
-import { Configuration } from "./param/configures";
+import { SenseCodeManager } from "./provider/sensecodeManager";
 import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
-import { sendTelemetryLog } from "./utils/getCodeCompletions";
 import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
-export let configuration: Configuration;
+export let configuration: SenseCodeManager;
 export let telemetryReporter: vscode.TelemetryLogger;
 
 class SenseCodeUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
     try {
-      configuration.login(uri);
+      configuration.getTokenFromLoginResult(uri.toString(), vscode.env.machineId);
     } catch (e: any) {
       vscode.window.showErrorMessage(e.message);
     }
@@ -27,6 +26,9 @@ export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
   context.subscriptions.push(outlog);
 
+  configuration = new SenseCodeManager(context);
+  configuration.update();
+
   const sender: vscode.TelemetrySender = {
     flush() {
     },
@@ -34,14 +36,11 @@ export async function activate(context: vscode.ExtensionContext) {
     },
     sendEventData(eventName, data) {
       if (data) {
-        sendTelemetryLog(eventName, data);
+        configuration.sendTelemetryLog(eventName, data);
       }
     },
   };
   telemetryReporter = vscode.env.createTelemetryLogger(sender);
-
-  configuration = new Configuration(context);
-  configuration.update();
 
   checkPrivacy(context);
 

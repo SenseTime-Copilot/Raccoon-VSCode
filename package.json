@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.24.2",
+    "version": "0.30.0",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -214,12 +214,12 @@
         "@vscode/test-electron": "^2.1.5",
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
-        "jwt-decode": "^3.1.2",
-        "form-data": "^4.0.0",
         "axios": "^0.24.0",
         "crypto": "^1.0.1",
         "eslint": "^8.20.0",
+        "form-data": "^4.0.0",
         "glob": "^8.0.3",
+        "jwt-decode": "^3.1.2",
         "mocha": "^10.0.0",
         "ts-loader": "^9.4.1",
         "ts-webpack": "^1.0.0",

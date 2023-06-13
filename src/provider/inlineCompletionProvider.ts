@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
-import { Engine } from "../param/configures";
-import { GetCodeCompletions, getCodeCompletions } from "../utils/getCodeCompletions";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { IncomingMessage } from "http";
 import { configuration, outlog } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 
@@ -140,12 +137,6 @@ export function inlineCompletionProvider(
 
       showHideStatusBtn(document, statusBarItem);
 
-      const activeEngine: Engine = configuration.getActiveEngineInfo();
-      let engine = { ...activeEngine };
-      engine.config = { ...activeEngine.config };
-      engine.config.stop = "\nExplanation:";
-      engine.config.max_tokens = 64;
-
       if (!editor.selection.isEmpty) {
         vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
         return;
@@ -156,7 +147,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let maxLength = configuration.tokenForPrompt(engine.label) * 2;
+      let maxLength = configuration.tokenForPrompt() * 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
       if (codeSnippets.prefix.length === 0 && codeSnippets.suffix.length === 0) {
@@ -169,7 +160,7 @@ export function inlineCompletionProvider(
         if (lastRequest !== requestId) {
           return;
         }
-        let rs: GetCodeCompletions | any;
+        let data: any;
         try {
           updateStatusBarItem(
             statusBarItem,
@@ -190,10 +181,12 @@ Task type: code completion. Please complete the following ${getDocumentLanguage(
 ${codeSnippets.prefix}`;
           suffix = `### Response:
 `;
-          rs = await getCodeCompletions(engine,
+          data = await configuration.getCompletions(
             `${prefix}\n${suffix}`,
             configuration.candidates,
-            false, controller.signal);
+            64,
+            "\nExplanation:",
+            controller.signal);
         } catch (err: any) {
           if (err.message === "canceled") {
             return;
@@ -223,7 +216,7 @@ ${codeSnippets.prefix}`;
           );
           return;
         }
-        if (rs === null) {
+        if (data === null || data.choices === null || data.choices.length === 0) {
           updateStatusBarItem(
             statusBarItem,
             {
@@ -234,83 +227,98 @@ ${codeSnippets.prefix}`;
           return;
         }
 
-        if (rs instanceof IncomingMessage) {
-
-        } else {
-          let data = rs as GetCodeCompletions;
-          // Add the generated code to the inline suggestion list
-          let items = new Array<vscode.InlineCompletionItem>();
-          let ts = new Date().valueOf();
-          for (let i = 0; i < data.completions.length; i++) {
-            let completion = data.completions[i].split("\nExplanation")[0];
-            outlog.debug(completion);
-            if (isAtTheMiddleOfLine(position, document)) {
-              let currentLine = document?.lineAt(position.line);
-              let lineEndPosition = currentLine?.range.end;
-              let selectionTrailingString: vscode.Selection;
-
-              selectionTrailingString = new vscode.Selection(
-                position.line,
-                position.character,
-                position.line,
-                lineEndPosition.character + 1
-              );
-              let trailingString = document.getText(
-                selectionTrailingString
-              );
-              completion = removeTrailingCharsByReplacement(
-                completion,
-                trailingString
-              );
-              if (
-                completion.trimEnd().slice(-1) === "{" ||
-                completion.trimEnd().slice(-1) === ";" ||
-                completion.trimEnd().slice(-1) === ":"
-              ) {
-                completion = completion
-                  .trimEnd()
-                  .substring(0, completion.length - 1);
-              }
-            }
-
-            let insertText = completion;
-            let replace: vscode.Range | undefined;
-            if (!insertText.trim()) {
-              continue;
-            }
-            let command = {
-              title: "suggestion-accepted",
-              command: "sensecode.onSuggestionAccepted",
-              arguments: [
-                {
-                  type: "code completion",
-                  language: getDocumentLanguage(document.languageId),
-                  code: [codeSnippets.prefix, codeSnippets.suffix],
-                  prompt: "Please complete the following code"
-                },
-                data.completions, "", i.toString(), ts]
-            };
-            items.push({ insertText, range: replace, command });
+        // Add the generated code to the inline suggestion list
+        let items = new Array<vscode.InlineCompletionItem>();
+        let ts = new Date().valueOf();
+        let codeArray = data.choices;
+        const completions = Array<string>();
+        const completionsBackup = Array<string>();
+        for (let i = 0; i < codeArray.length; i++) {
+          const completion = codeArray[i];
+          let tmpstr: string = completion.text || "";
+          if (!tmpstr.trim()) {
+            continue;
           }
-          if (items.length === 0) {
-            updateStatusBarItem(
-              statusBarItem,
-              {
-                text: "$(array)",
-                tooltip: vscode.l10n.t("No completion suggestion")
-              }
-            );
-          } else if (!cancel.isCancellationRequested) {
-            updateStatusBarItem(
-              statusBarItem,
-              {
-                text: "$(pass)",
-                tooltip: vscode.l10n.t("Done")
-              }
-            );
+          if (completions.includes(tmpstr)) {
+            continue;
           }
-          return cancel.isCancellationRequested ? null : items;
+          if (completion.finish_reason === "stop") {
+            completions.push(tmpstr + "\n");
+          } else {
+            completionsBackup.push(tmpstr);
+          }
         }
+        let allCompletions = completions.concat(completionsBackup);
+        for (let i = 0; i < allCompletions.length; i++) {
+          let completion = allCompletions[i].split("\nExplanation")[0];
+          outlog.debug(completion);
+          if (isAtTheMiddleOfLine(position, document)) {
+            let currentLine = document?.lineAt(position.line);
+            let lineEndPosition = currentLine?.range.end;
+            let selectionTrailingString: vscode.Selection;
+
+            selectionTrailingString = new vscode.Selection(
+              position.line,
+              position.character,
+              position.line,
+              lineEndPosition.character + 1
+            );
+            let trailingString = document.getText(
+              selectionTrailingString
+            );
+            completion = removeTrailingCharsByReplacement(
+              completion,
+              trailingString
+            );
+            if (
+              completion.trimEnd().slice(-1) === "{" ||
+              completion.trimEnd().slice(-1) === ";" ||
+              completion.trimEnd().slice(-1) === ":"
+            ) {
+              completion = completion
+                .trimEnd()
+                .substring(0, completion.length - 1);
+            }
+          }
+
+          let insertText = completion;
+          let replace: vscode.Range | undefined;
+          if (!insertText.trim()) {
+            continue;
+          }
+          let command = {
+            title: "suggestion-accepted",
+            command: "sensecode.onSuggestionAccepted",
+            arguments: [
+              {
+                type: "code completion",
+                language: getDocumentLanguage(document.languageId),
+                code: [codeSnippets.prefix, codeSnippets.suffix],
+                prompt: "Please complete the following code"
+              },
+              allCompletions, "", i.toString(), ts]
+          };
+          items.push({ insertText, range: replace, command });
+        }
+        if (items.length === 0) {
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: "$(array)",
+              tooltip: vscode.l10n.t("No completion suggestion")
+            }
+          );
+        } else if (!cancel.isCancellationRequested) {
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: "$(pass)",
+              tooltip: vscode.l10n.t("Done")
+            }
+          );
+        }
+        return cancel.isCancellationRequested ? null : items;
+
       }
     },
   };

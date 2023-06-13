@@ -1,0 +1,22 @@
+{
+    "name": "sensecode-client",
+    "version": "1.0.0",
+    "description": "Sensecode client library",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "/dist"
+    ],
+    "license": "MIT",
+    "scripts": {
+        "compile": "rm -rf dist/lib && tsc && tsc --build tsconfig.json"
+    },
+    "devDependencies": {
+        "typescript": "^4.9.4",
+        "jwt-decode": "^3.1.2",
+        "form-data": "^4.0.0",
+        "axios": "^0.24.0",
+        "crypto": "^1.0.1",
+        "zlib": "^1.0.5"
+    }
+}

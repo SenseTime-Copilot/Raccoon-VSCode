@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import { configuration } from '../extension';
 import { SenseCodeViewProvider } from './webviewProvider';
-import { Prompt } from '../param/configures';
+import { Prompt } from './sensecodeManager';
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {

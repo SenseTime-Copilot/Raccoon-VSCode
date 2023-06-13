@@ -511,6 +511,10 @@ button.disabled,
     color: var(--panel-tab-foreground);
 }
 
+#ask-list .toolbar vscode-link:hover {
+    color: var(--progress-background);
+}
+
 #ask-list .toolbar {
     border-bottom: 1px solid var(--panel-view-border);
 }

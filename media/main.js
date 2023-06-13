@@ -895,11 +895,6 @@ const vscode = acquireVsCodeApi();
       document.getElementById("question-input").focus();
     }
 
-    if (e.target.id === "setKey") {
-      vscode.postMessage({ type: "setKey" });
-      return;
-    }
-
     if (e.target.id === "clearKey") {
       vscode.postMessage({ type: "clearKey" });
       return;
