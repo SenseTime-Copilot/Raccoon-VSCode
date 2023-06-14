@@ -192,7 +192,7 @@ export class SenseCoderClient {
         baseUrl = 'https://signin.sensecore.dev';
       }
       let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64url");
-      let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
+      let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
       return url;
     } else {
       let url = "https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime";
@@ -260,8 +260,12 @@ export class SenseCoderClient {
       return;
     }
     if (url.pathname === "/login") {
-      let data = JSON.parse('{"' + decodeURIComponent(query).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
-      return this.loginSenseCore(data.code, codeVerifer, data.state);
+      try {
+        let data = JSON.parse('{"' + decodeURIComponent(query).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
+        return this.loginSenseCore(data.code, codeVerifer, data.state);
+      } catch (e) {
+        return Promise.reject(e);
+      }
     } else {
       let decoded: any = jwt_decode(query);
       let username = decoded.id_token?.username || decoded.username;
@@ -306,7 +310,7 @@ export class SenseCoderClient {
     }
   }
 
-  private _postPrompt(prompt: string, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<string[] | IncomingMessage> {
+  private _postPrompt(prompt: string, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let key = await this.getApiKeyRaw();
       let date: string = new Date().toUTCString();
@@ -343,23 +347,19 @@ export class SenseCoderClient {
         ...config
       };
 
-      try {
-        axios
-          .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
-          .then(async (res) => {
-            if (res?.status === 200) {
-              resolve(res.data);
-            } else {
-              reject(res.data);
-            }
-          }, (err) => {
-            reject(err);
-          }).catch(e => {
-            reject(e);
-          });
-      } catch (e) {
-        reject(e);
-      }
+      axios
+        .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
+        .then(async (res) => {
+          if (res?.status === 200) {
+            resolve(res.data);
+          } else {
+            reject(res.data);
+          }
+        }, (err) => {
+          reject(err);
+        }).catch(e => {
+          reject(e);
+        });
     });
   }
 
@@ -367,10 +367,13 @@ export class SenseCoderClient {
     return this._postPrompt(prompt, n, maxToken, stopWord, false, signal);
   }
 
-  public getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, dataHandler: (data: IncomingMessage) => void) {
-    let resp = this._postPrompt(prompt, n, maxToken, stopWord, true, signal) as Promise<IncomingMessage>;
-    resp.then(data => {
-      dataHandler(data);
+  public async getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage> {
+    return this._postPrompt(prompt, n, maxToken, stopWord, true, signal).then((data) => {
+      if (data instanceof IncomingMessage) {
+        return data;
+      } else {
+        return Promise.reject(Error("Unexpected response format"));
+      }
     });
   }
 

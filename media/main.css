@@ -75,6 +75,47 @@ textarea::placeholder {
     overflow-x: auto;
 }
 
+.prompt input {
+    width: fit-content;
+    height: 1.4rem;
+    min-width: 2rem;
+    padding: 0;
+}
+
+.prompt input,
+.prompt select {
+    background-color: var(--dropdown-background);
+    border: 1px solid var(--dropdown-border);
+}
+
+.prompt input:invalid {
+    background-color: var(--vscode-inputValidation-errorBackground);
+    border: 1px solid var(--vscode-inputValidation-errorBorder);
+}
+
+.prompt input[type='range'] {
+    height: 9px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--input-background);
+    border-radius: 2px;
+}
+
+.prompt input[type='range']::-webkit-slider-runnable-track {
+    -webkit-appearance: none;
+    height: 5px;
+    margin-top: -2px;
+}
+
+.prompt input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px;
+    height: 8px;
+    cursor: pointer;
+    border-radius: 1px;
+    background: var(--progress-background);
+}
+
 .prompt .editable:empty {
     padding-left: 1ch;
 }
@@ -139,27 +180,33 @@ textarea::placeholder {
 }
 
 @keyframes wink {
-	10% {
-		background-size: 100% 100%;
-	}
+    10% {
+        background-size: 100% 100%;
+    }
+
     15% {
-		background-size: 100% 1%;
-	}
+        background-size: 100% 1%;
+    }
+
     20% {
-		background-size: 100% 100%;
-	}
+        background-size: 100% 100%;
+    }
+
     30% {
-		background-size: 100% 100%;
-	}
+        background-size: 100% 100%;
+    }
+
     35% {
-		background-size: 100% 1%;
-	}
+        background-size: 100% 1%;
+    }
+
     40% {
-		background-size: 100% 100%;
-	}
-	100% {
-		background-size: 100% 100%;
-	}
+        background-size: 100% 100%;
+    }
+
+    100% {
+        background-size: 100% 100%;
+    }
 }
 
 .avatar .material-symbols-rounded {
@@ -496,6 +543,7 @@ button.disabled,
 #ask-list.pin #pin-ask-list {
     transform: none;
     font-variation-settings: 'FILL' 1;
+    font-size: 1.2em;
 }
 
 #ask-list.pin #question-input {

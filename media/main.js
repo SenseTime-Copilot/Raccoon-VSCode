@@ -215,7 +215,59 @@ const vscode = acquireVsCodeApi();
         }
 
         let prompthtml = prompt.prompt;
-        if (prompt.prompt.includes("${input")) {
+        if (prompt.args) {
+          for (let argName in prompt.args) {
+            let arg = prompt.args[argName];
+            switch (arg.type) {
+              case "enum": {
+                let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}" onChange="document.getElementById('${argName}-${id}-value').innerText = this.options[this.selectedIndex].text;">`;
+                for (let v of arg.options) {
+                  renderElem += `<option value="${v}">${v}</option>`;
+                }
+                renderElem += "</select>";
+                renderElem += `<div id="${argName}-${id}-value" style="display: none;">${arg.options[0]}</div></div>`;
+                prompthtml = prompthtml.replace(`\${input:\$${argName}}`, renderElem);
+                break;
+              }
+              case "button":
+              case "file":
+              case "image":
+              case "radio":
+              case "reset":
+              case "submit": {
+                break;
+              }
+              default: {
+                if (!arg.type) {
+                  break;
+                }
+                let visible = true;
+                let initialValue = "";
+                if (arg.type === "color") {
+                  initialValue = "#000000";
+                } else if (arg.type === "range") {
+                  let max = arg.max || 100;
+                  let min = arg.min || 0;
+                  initialValue = (max + min) / 2;
+                  if (max < min) {
+                    initialValue = min;
+                  }
+                } else {
+                  visible = false;
+                }
+                let properties = '';
+                for (let argkey in arg) {
+                  properties += `${argkey}="${arg[argkey]}" `;
+                }
+                let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><input class="ignoreText" id="${argName}-${id}" ${properties} onChange="document.getElementById('${argName}-${id}-value').innerText = this.value;"/>`;
+                renderElem += `<div id="${argName}-${id}-value" style="${visible ? "" : "display: none;"}">${initialValue}</div></div>`;
+                prompthtml = prompthtml.replace(`\${input:\$${argName}}`, renderElem);
+                break;
+              }
+            }
+          }
+        }
+        if (prompthtml.includes("${input")) {
           prompthtml = prompthtml.replaceAll(/\${input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="${edit}" data-placeholder="$2"></p>`);
         }
 
@@ -507,6 +559,9 @@ const vscode = acquireVsCodeApi();
 
   const sendQuestion = (question) => {
     const prompt = question.getElementsByClassName("prompt");
+    Array.from(prompt[0].querySelectorAll('.ignoreText')).reverse().forEach((v, _idx, _arr) => {
+      v.remove();
+    });
     if (prompt[0].textContent.trim().length > 0) {
       const editableElems = prompt[0].getElementsByClassName("editable");
       Array.from(editableElems).forEach((el) => {

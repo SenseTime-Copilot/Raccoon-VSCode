@@ -21,6 +21,7 @@ export interface Prompt {
   label: string;
   type: string;
   prompt: string;
+  args?: any;
   brush?: boolean;
   icon?: string;
 }
@@ -42,7 +43,31 @@ const builtinPrompts: Prompt[] = [
   {
     label: "Code Conversion",
     type: "code language conversion",
-    prompt: "Convert the given code to equivalent ${input:target language} code",
+    prompt: "Convert the given code to equivalent ${input:$language} code",
+    args: {
+      language: {
+        type: "enum",
+        options: [
+          "C",
+          "C++",
+          "CUDA C++",
+          "C#",
+          "Go",
+          "Java",
+          "JavaScript",
+          "Lua",
+          "Object-C++",
+          "PHP",
+          "Perl",
+          "Python",
+          "R",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ]
+      }
+    },
     icon: "repeat"
   },
   {
@@ -189,7 +214,7 @@ export class SenseCodeManager {
   }
 
   public get prompt(): Prompt[] {
-    let customPrompts: { [key: string]: string } = this.configuration.get("Prompt", {});
+    let customPrompts: { [key: string]: String | Prompt } = this.configuration.get("Prompt", {});
     let prompts: Prompt[] = [];
     for (let bp of builtinPrompts) {
       let bpclone = { ...bp };
@@ -197,7 +222,14 @@ export class SenseCodeManager {
       prompts.push(bpclone);
     }
     for (let label in customPrompts) {
-      prompts.push({ label, type: "custom", prompt: customPrompts[label] });
+      if (typeof customPrompts[label] === 'string') {
+        prompts.push({ label, type: "custom", prompt: customPrompts[label] as string });
+      } else {
+        let p = customPrompts[label] as Prompt;
+        p.label = label;
+        p.type = "custom";
+        prompts.push(p);
+      }
     }
     return prompts;
   }
@@ -300,13 +332,15 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, dataHandler: (data: IncomingMessage) => void, clientName?: string) {
+  public async getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<IncomingMessage> {
     let client: SenseCoderClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal, dataHandler);
+      return client.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal);
+    } else {
+      return Promise.reject(Error("Invalid client handle"));
     }
   }
 

@@ -72,8 +72,25 @@
                         "type": "object",
                         "description": "%sensecode.config.prompt%",
                         "additionalProperties": {
-                            "type": "string",
-                            "description": "%sensecode.config.prompt.item%"
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "description": "%sensecode.config.prompt.item%",
+                                    "properties": {
+                                        "prompt": {
+                                            "type": "string"
+                                        },
+                                        "args": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": ["prompt"]
+                                },
+                                {
+                                    "type": "string",
+                                    "description": "%sensecode.config.prompt.item%"        
+                                }
+                            ]
                         }
                     }
                 }
