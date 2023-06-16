@@ -1,5 +1,5 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor, TextDocument } from 'vscode';
-import { configuration, outlog, telemetryReporter } from '../extension';
+import { sensecodeManager, outlog, telemetryReporter } from '../extension';
 import { Prompt } from './sensecodeManager';
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEidtorProvider } from './assitantEditorProvider';
@@ -118,12 +118,12 @@ export class SenseCodeEditor extends Disposable {
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration("SenseCode")) {
-          configuration.update();
+          sensecodeManager.update();
           if (e.affectsConfiguration("SenseCode.Prompt")) {
-            this.sendMessage({ type: 'promptList', value: configuration.prompt });
+            this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
           }
           if (e.affectsConfiguration("SenseCode.Engines")) {
-            await configuration.updateEngineList();
+            await sensecodeManager.updateEngineList();
             this.updateSettingPage("full");
           }
         }
@@ -185,21 +185,21 @@ export class SenseCodeEditor extends Disposable {
   }
 
   private showWelcome(full?: boolean) {
-    configuration.update();
+    sensecodeManager.update();
     this.sendMessage({ type: 'updateSettingPage', action: "close" });
+    let ts = new Date();
+    let timestamp = ts.toLocaleString();
     let detail = full ? guide : '';
-    configuration.username().then(async (username) => {
-      let category = "welcome";
-      if (username) {
-        username = ` @${username}`;
-      } else {
-        category = "no-account";
-        username = "";
-        detail += loginHint;
-      }
-      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, l10n.t("SenseCode"));
-      this.sendMessage({ type: 'addMessage', category, username, value: welcomMsg + detail });
-    });
+    let name = sensecodeManager.username();
+    let category = "welcome" + (full ? "-full" : "");
+    let username = '';
+    if (name) {
+      username = ` @${name}`;
+    } else {
+      detail += loginHint;
+    }
+    let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, l10n.t("SenseCode"));
+    this.sendMessage({ type: 'addMessage', category, username, value: welcomMsg + detail, timestamp });
   }
 
   dispose() {
@@ -207,32 +207,32 @@ export class SenseCodeEditor extends Disposable {
   }
 
   async updateSettingPage(action?: string): Promise<void> {
-    let autoComplete = configuration.autoComplete;
-    let streamResponse = configuration.streamResponse;
-    let delay = configuration.delay;
-    let candidates = configuration.candidates;
-    let tokenPropensity = configuration.tokenPropensity;
+    let autoComplete = sensecodeManager.autoComplete;
+    let streamResponse = sensecodeManager.streamResponse;
+    let delay = sensecodeManager.delay;
+    let candidates = sensecodeManager.candidates;
+    let tokenPropensity = sensecodeManager.tokenPropensity;
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
-    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${configuration.getActiveClientLabel()}">`;
-    let es = configuration.clientsLabel;
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${sensecodeManager.getActiveClientLabel()}">`;
+    let es = sensecodeManager.clientsLabel;
     for (let label of es) {
       esList += `<vscode-option value="${label}">${label}</vscode-option>`;
 
     }
     esList += "</vscode-dropdown>";
-    let username: string | undefined = await configuration.username();
+    let username: string | undefined = sensecodeManager.username();
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
     if (!username) {
-      let authUrl = configuration.getAuthUrlLogin(env.machineId);
+      let authUrl = await sensecodeManager.getAuthUrlLogin(env.machineId);
       let url = Uri.parse(authUrl || "");
       loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority}]" href="${url.toString(true)}">
                       <span class="material-symbols-rounded">login</span>
                     </vscode-link>`;
 
     } else {
-      let avatar = await configuration.avatar();
+      let avatar = sensecodeManager.avatar();
       if (avatar) {
         avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
       }
@@ -370,7 +370,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'listPrompt': {
-          this.sendMessage({ type: 'promptList', value: configuration.prompt });
+          this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
           break;
         }
         case 'searchQuery': {
@@ -464,40 +464,41 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'activeEngine': {
-          configuration.setActiveClient(data.value);
+          sensecodeManager.setActiveClient(data.value);
           this.updateSettingPage("full");
+          this.showWelcome();
           break;
         }
         case 'clearKey': {
-          let ae = configuration.getActiveClientLabel();
+          let ae = sensecodeManager.getActiveClientLabel();
           window.showWarningMessage(
             l10n.t("Logout & clear API Key for {0} from Secret Storage?", ae),
             { modal: true },
             l10n.t("OK"))
             .then((v) => {
               if (v === l10n.t("OK")) {
-                configuration.logout();
+                sensecodeManager.logout();
               }
             });
           break;
         }
         case 'triggerMode': {
-          if (configuration.autoComplete !== (data.value === "Auto")) {
-            configuration.autoComplete = (data.value === "Auto");
+          if (sensecodeManager.autoComplete !== (data.value === "Auto")) {
+            sensecodeManager.autoComplete = (data.value === "Auto");
             this.updateSettingPage();
           }
           break;
         }
         case 'responseMode': {
-          if (configuration.streamResponse !== (data.value === "Streaming")) {
-            configuration.streamResponse = (data.value === "Streaming");
+          if (sensecodeManager.streamResponse !== (data.value === "Streaming")) {
+            sensecodeManager.streamResponse = (data.value === "Streaming");
             this.updateSettingPage();
           }
           break;
         }
         case 'delay': {
-          if (data.value !== configuration.delay) {
-            configuration.delay = data.value;
+          if (data.value !== sensecodeManager.delay) {
+            sensecodeManager.delay = data.value;
             this.updateSettingPage();
           }
           break;
@@ -506,7 +507,7 @@ export class SenseCodeEditor extends Disposable {
           if (data.value <= 0) {
             data.value = 1;
           }
-          configuration.candidates = data.value;
+          sensecodeManager.candidates = data.value;
           this.updateSettingPage();
           break;
         }
@@ -517,7 +518,7 @@ export class SenseCodeEditor extends Disposable {
           if (data.value >= 100) {
             data.value = 80;
           }
-          configuration.tokenPropensity = Math.floor(data.value / 20) * 20;
+          sensecodeManager.tokenPropensity = Math.floor(data.value / 20) * 20;
           this.updateSettingPage();
           break;
         }
@@ -528,7 +529,7 @@ export class SenseCodeEditor extends Disposable {
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
-                configuration.clear();
+                sensecodeManager.clear();
               }
             });
           break;
@@ -683,7 +684,7 @@ ${data.info.response}
 
     let send = true;
     let requireCode = true;
-    let streaming = configuration.streamResponse;
+    let streaming = sensecodeManager.streamResponse;
     let instruction = prompt.prompt;
     for (let sw of SenseCodeEditor.bannedWords) {
       if (instruction.includes(sw) || code.includes(sw)) {
@@ -703,7 +704,7 @@ ${data.info.response}
     promptClone.prompt = instruction.replace("${code}", "");
 
     try {
-      let loggedin = await configuration.isClientLoggedin();
+      let loggedin = sensecodeManager.isClientLoggedin();
       if (!loggedin) {
         //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
         this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
@@ -714,7 +715,7 @@ ${data.info.response}
         this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
         return;
       } else {
-        if (code.length > configuration.tokenForPrompt() * 3) {
+        if (code.length > sensecodeManager.tokenForPrompt() * 3) {
           this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
           return;
         }
@@ -733,9 +734,9 @@ ${data.info.response}
         lang = "";
       }
 
-      let username = await configuration.username();
-      let avatar = await configuration.avatar();
-      this.sendMessage({ type: 'addQuestion', username, avatar: avatar || undefined, value: promptClone, code, lang, send, id, streaming, timestamp });
+      let username = sensecodeManager.username();
+      let avatar = sensecodeManager.avatar();
+      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp });
       if (!send) {
         return;
       }
@@ -752,10 +753,10 @@ ${codeStr}
 
       this.stopList[id] = new AbortController();
       if (streaming) {
-        configuration.getCompletionsStreaming(
+        sensecodeManager.getCompletionsStreaming(
           promptMsg,
           1,
-          configuration.maxToken(),
+          sensecodeManager.maxToken(),
           undefined,
           this.stopList[id].signal
         ).then((data) => {
@@ -824,7 +825,7 @@ ${codeStr}
           this.sendMessage({ type: 'addError', error: e.message, id });
         });
       } else {
-        let rs: any = await configuration.getCompletions(promptMsg, 1, configuration.maxToken(), undefined, this.stopList[id].signal);
+        let rs: any = await sensecodeManager.getCompletions(promptMsg, 1, sensecodeManager.maxToken(), undefined, this.stopList[id].signal);
         let content = rs?.choices[0]?.text || "";
         outlog.debug(content);
         this.sendMessage({ type: 'addResponse', id, value: content });
@@ -973,7 +974,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   constructor(private context: ExtensionContext) {
     context.subscriptions.push(
       commands.registerCommand("sensecode.settings", async () => {
-        configuration.update();
+        sensecodeManager.update();
         commands.executeCommand('sensecode.view.focus').then(() => {
           return SenseCodeViewProvider.eidtor?.updateSettingPage("toogle");
         });

@@ -53,6 +53,9 @@ function demerge(m: string): string[] {
 function unweaveKey(info: string) {
   let tokenKey = demerge(info);
   let p1 = Buffer.from(tokenKey[0], "base64").toString().trim().split("#");
+  if (p1.length !== 3) {
+    return {};
+  }
   return {
     id: parseInt(p1[0]),
     name: p1[1],
@@ -75,7 +78,36 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
   return authorization;
 }
 
-export class SenseCoderClient {
+export interface CoderClient {
+
+  get label(): string;
+
+  get state(): string;
+
+  get username(): string | undefined;
+
+  get avatar(): string | undefined;
+
+  get tokenLimit(): number;
+
+  getAuthUrlLogin(codeVerifier: string): Promise<string>;
+
+  getTokenFromLoginResult(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
+
+  refreshToken(): Promise<AuthInfo>;
+
+  restoreAuth(auth: AuthInfo): Promise<void>;
+
+  logout(): Promise<void>;
+
+  getCompletions(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any>;
+
+  getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage>;
+
+  sendTelemetryLog(_eventName: string, info: Record<string, any>): Promise<void>;
+}
+
+export class SenseCodeClient implements CoderClient {
   private _username?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
@@ -84,21 +116,23 @@ export class SenseCoderClient {
   constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig) {
   }
 
-  public logout() {
+  public logout(): Promise<void> {
     this._username = undefined;
     this._avatar = undefined;
     this._weaverdKey = undefined;
     this._refreshToken = undefined;
+    return Promise.resolve();
   }
 
-  public restoreAuth(auth: AuthInfo) {
+  public restoreAuth(auth: AuthInfo): Promise<void> {
     this._username = auth.username;
     this._avatar = auth.avatar;
     this._weaverdKey = auth.weaverdKey;
     this._refreshToken = auth.refreshToken;
+    return Promise.resolve();
   }
 
-  public state() {
+  public get state(): string {
     return crypto.createHash('sha256').update(this._weaverdKey || "").digest("base64");
   }
 
@@ -110,18 +144,19 @@ export class SenseCoderClient {
     return this.clientConfig.token_limit;
   }
 
-  public username(): string | undefined {
+  public get username(): string | undefined {
     return this._username;
   }
 
   private async getUserAvatar(): Promise<string | undefined> {
     let token = this._weaverdKey;
     if (!token) {
-      return;
+      return Promise.resolve(undefined);
     }
     let info = unweaveKey(token);
-    if (!this.clientConfig.sensetimeOnly || !info.name) {
-      return;
+    if (this.clientConfig.sensetimeOnly !== true || !info || !info.name) {
+      return Promise.resolve(undefined);
+
     }
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${info.name}`,
       {
@@ -133,28 +168,29 @@ export class SenseCoderClient {
           if (res1?.status === 200) {
             if (res1.data[0]) {
               // eslint-disable-next-line @typescript-eslint/naming-convention
-              return res1.data[0].avatar_url;
+              this._avatar = res1.data[0].avatar_url;
+              return this._avatar;
             }
+          } else {
+            return undefined;
           }
+        },
+        (_reason) => {
+          return undefined;
         }
-      ).catch(async (_error) => {
-        return "";
-      });
+      );
   }
 
-  public async avatar(): Promise<string | undefined> {
-    if (!this._avatar) {
-      this._avatar = await this.getUserAvatar();
-    }
+  public get avatar(): string | undefined {
     return this._avatar;
   }
 
-  public async getApiKeyRaw(): Promise<string | undefined> {
+  private apiKeyRaw(): Promise<string> {
     if (this.clientConfig.rawKey) {
-      return this.clientConfig.rawKey;
+      return Promise.resolve(this.clientConfig.rawKey);
     }
     if (!this._weaverdKey) {
-      return;
+      return Promise.reject();
     }
     const cfg = this.clientConfig;
     let info = unweaveKey(this._weaverdKey);
@@ -162,25 +198,27 @@ export class SenseCoderClient {
       return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { "PRIVATE-TOKEN": info?.token || "" }
+          headers: { "PRIVATE-TOKEN": info.token || "" }
         })
         .then(
           async (res) => {
-            if (res?.data?.name === "kestrel.guest" && info?.aksk) {
-              return Buffer.from(info?.aksk, "base64").toString().trim();
+            if (res?.data?.name === "kestrel.guest" && info.aksk) {
+              return Buffer.from(info.aksk, "base64").toString().trim();
+            } else {
+              return Promise.reject();
             }
-            return undefined;
           }
-        ).catch(async (_error) => {
-          return undefined;
-        });
+        );
+    } else if (info.aksk) {
+      return Promise.resolve(Buffer.from(info.aksk, "base64").toString().trim());
+    } else {
+      return Promise.reject();
     }
-    return Buffer.from(info?.aksk, "base64").toString().trim();
   }
 
-  public getAuthUrlLogin(codeVerifier: string): string | undefined {
+  public getAuthUrlLogin(codeVerifier: string): Promise<string> {
     if (this.clientConfig.rawKey) {
-      return;
+      return Promise.reject();
     }
     if (!this.clientConfig.sensetimeOnly) {
       let baseUrl = 'https://signin.sensecore.cn';
@@ -193,10 +231,10 @@ export class SenseCoderClient {
       }
       let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64url");
       let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
-      return url;
+      return Promise.resolve(url);
     } else {
       let url = "https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime";
-      return url;
+      return Promise.resolve(url);
     }
   }
 
@@ -220,16 +258,17 @@ export class SenseCoderClient {
     }
     this._weaverdKey = key;
     this._username = name;
+    this._avatar = await this.getUserAvatar();
     this._refreshToken = refreshToken;
     return {
       username: name,
       weaverdKey: key,
-      avatar: await this.getUserAvatar(),
+      avatar: this._avatar,
       refreshToken: refreshToken
     };
   }
 
-  private async loginSenseCore(code: string, codeVerifier: string, authUrl: string): Promise<AuthInfo | undefined> {
+  private async loginSenseCore(code: string, codeVerifier: string, authUrl: string): Promise<AuthInfo> {
     var data = new FormData();
     data.append('client_id', this.meta.clientId);
     data.append('redirect_uri', this.meta.redirectUrl);
@@ -249,15 +288,19 @@ export class SenseCoderClient {
           let username = decoded.id_token?.username;
           let token = Buffer.from(resp.data.access_token).toString('base64');
           return this.tokenWeaver(username, token, resp.data.refresh_token);
+        } else {
+          return Promise.reject();
         }
+      }).catch(() => {
+        return Promise.reject();
       });
   }
 
-  public async getTokenFromLoginResult(callbackUrl: string, codeVerifer: string): Promise<AuthInfo | undefined> {
+  public async getTokenFromLoginResult(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
     if (!query) {
-      return;
+      return Promise.reject();
     }
     if (url.pathname === "/login") {
       try {
@@ -274,7 +317,7 @@ export class SenseCoderClient {
     }
   }
 
-  public async refreshToken(): Promise<AuthInfo | undefined> {
+  public async refreshToken(): Promise<AuthInfo> {
     let refreshToken = this._refreshToken;
     if (refreshToken) {
       if (!this.clientConfig.sensetimeOnly) {
@@ -305,14 +348,16 @@ export class SenseCoderClient {
               this._username = username;
               return this.tokenWeaver(username, token, resp.data.refresh_token);
             }
+            return Promise.reject();
           });
       }
     }
+    return Promise.reject();
   }
 
   private _postPrompt(prompt: string, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
-      let key = await this.getApiKeyRaw();
+      let key = await this.apiKeyRaw();
       let date: string = new Date().toUTCString();
       let auth = '';
       if (key) {
@@ -382,7 +427,7 @@ export class SenseCoderClient {
     let key = cfg.rawKey;
     try {
       if (!key) {
-        key = await this.getApiKeyRaw();
+        key = await this.apiKeyRaw();
       }
       if (!key) {
         return;
@@ -411,7 +456,7 @@ export class SenseCoderClient {
       "Authorization": auth
     };
     let payload = JSON.stringify([info]);
-    let user = this.username();
+    let user = this.username;
 
     axios.post(
       apiUrl,

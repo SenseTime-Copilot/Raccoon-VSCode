@@ -682,12 +682,16 @@ button.disabled,
     border-bottom: 2px solid var(--panel-view-border);
 }
 
+.answer-element-gnc:last-child {
+    border-bottom: none;
+}
+
 .answer-element-gnc:before {
     content: " ";
     float: left;
-    margin: -1.3rem 0.5rem 0 -0.5rem;
-    width: calc(100% + 1rem);
-    border-bottom: 0.65rem dotted var(--panel-view-background);
+    margin: -1.25rem 0 0 -0.75rem;
+    width: calc(100% + 1.5rem);
+    border-bottom: 0.5rem dotted var(--panel-view-background);
 }
 
 .progress {

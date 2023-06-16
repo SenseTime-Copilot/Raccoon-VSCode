@@ -505,11 +505,21 @@ const vscode = acquireVsCodeApi();
         }
 
         list.innerHTML += `<div class="p-4 w-full message-element-gnc markdown-body ${message.category || ""}" ${message.username ? `date-username="${message.username}"` : ""}>
-                    <h2 class="avatar font-bold mt-1 mb-4 flex flex-row-reverse text-xl gap-1">${aiIcon} ${l10nForUI["SenseCode"]}</h2>
-                    <div>
-                      ${message.value}
-                    </div>
-                  </div>`;
+                            <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
+                              <span class="capitalize flex gap-2 flex text-xl">
+                                ${aiIcon}
+                                <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
+                                  <b class="text-sm">${l10nForUI["SenseCode"]}</b>
+                                  <div class="opacity-30 leading-3">
+                                    ${message.timestamp}
+                                  </div>
+                                </span>
+                              </span>
+                            </h2>
+                            <div>
+                              ${message.value}
+                            </div>
+                          </div>`;
         list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
         break;
       }

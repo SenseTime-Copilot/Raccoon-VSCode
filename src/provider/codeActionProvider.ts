@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { configuration } from '../extension';
+import { sensecodeManager } from '../extension';
 import { SenseCodeViewProvider } from './webviewProvider';
 import { Prompt } from './sensecodeManager';
 
@@ -9,7 +9,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     if (range.isEmpty) {
       return;
     }
-    let ps = configuration.prompt;
+    let ps = sensecodeManager.prompt;
     let actions: vscode.CodeAction[] = [
       new vscode.CodeAction(
         `SenseCode: ${vscode.l10n.t("Ask SenseCode")}...`,
@@ -65,7 +65,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
 
     let selection = vscode.window.activeTextEditor?.selection;
     let document = vscode.window.activeTextEditor?.document;
-    let ps = configuration.prompt;
+    let ps = sensecodeManager.prompt;
     let label = codeAction.title.slice(11);
     let prompt: Prompt | undefined = undefined;
     let prefix = '';

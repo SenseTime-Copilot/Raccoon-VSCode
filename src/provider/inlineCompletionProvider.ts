@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { configuration, outlog } from "../extension";
+import { sensecodeManager, outlog } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 
 let lastRequest = null;
@@ -124,11 +124,11 @@ export function inlineCompletionProvider(
       if (!editor) {
         return;
       }
-      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !configuration.autoComplete) {
+      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !sensecodeManager.autoComplete) {
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        await new Promise((f) => setTimeout(f, (configuration.delay - 1) * 1000));
+        await new Promise((f) => setTimeout(f, (sensecodeManager.delay - 1) * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }
@@ -147,7 +147,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let maxLength = configuration.tokenForPrompt() * 2;
+      let maxLength = sensecodeManager.tokenForPrompt() * 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
       if (codeSnippets.prefix.length === 0 && codeSnippets.suffix.length === 0) {
@@ -181,9 +181,9 @@ Task type: code completion. Please complete the following ${getDocumentLanguage(
 ${codeSnippets.prefix}`;
           suffix = `### Response:
 `;
-          data = await configuration.getCompletions(
+          data = await sensecodeManager.getCompletions(
             `${prefix}\n${suffix}`,
-            configuration.candidates,
+            sensecodeManager.candidates,
             64,
             "\nExplanation:",
             controller.signal);
