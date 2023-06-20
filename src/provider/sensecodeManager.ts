@@ -1,7 +1,10 @@
 import axios from "axios";
-import { ExtensionContext, l10n, window, workspace, WorkspaceConfiguration } from "vscode";
-import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
+import { ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
+import { ClientConfig, ClientMeta, CodeClient, Prompt, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
+import { outlog } from "../extension";
+import { builtinPrompts, PromptInfo } from "./promptTemplates";
+import { PromptType } from "./promptTemplates";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -17,80 +20,11 @@ const builtinEngines: ClientConfig[] = [
   }
 ];
 
-export interface Prompt {
-  label: string;
-  type: string;
-  prompt: string;
-  args?: any;
-  brush?: boolean;
-  icon?: string;
-}
-
-const builtinPrompts: Prompt[] = [
-  {
-    label: "Generation",
-    type: "code generation",
-    prompt: "code generation",
-    brush: true,
-    icon: "process_chart"
-  },
-  {
-    label: "Add Test",
-    type: "test sample generation",
-    prompt: "Generate a set of test cases and corresponding test code for the following code",
-    icon: "science"
-  },
-  {
-    label: "Code Conversion",
-    type: "code language conversion",
-    prompt: "Convert the given code to equivalent ${input:$language} code",
-    args: {
-      language: {
-        type: "enum",
-        options: [
-          "C",
-          "C++",
-          "CUDA C++",
-          "C#",
-          "Go",
-          "Java",
-          "JavaScript",
-          "Lua",
-          "Object-C++",
-          "PHP",
-          "Perl",
-          "Python",
-          "R",
-          "Ruby",
-          "Rust",
-          "Swift",
-          "TypeScript"
-        ]
-      }
-    },
-    icon: "repeat"
-  },
-  {
-    label: "Code Correction",
-    type: "code error correction",
-    prompt: "Identify and correct any errors in the following code snippet",
-    brush: true,
-    icon: "add_task"
-  },
-  {
-    label: "Refactoring",
-    type: "code refactoring and optimization",
-    prompt: "Refactor the given code to improve readability, modularity, and maintainability",
-    brush: true,
-    icon: "construction"
-  }
-];
-
 export class SenseCodeManager {
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
   private isSensetimeEnv: boolean;
-  private _clients: SenseCodeClient[] = [];
+  private _clients: CodeClient[] = [];
   private static readonly meta: ClientMeta = {
     clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
     redirectUrl: "vscode://sensetime.sensecode/login"
@@ -105,7 +39,7 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug));
       }
     }
     this.setupClientInfo();
@@ -164,13 +98,13 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug));
       }
     }
     await this.setupClientInfo();
   }
 
-  private getClient(client?: string): SenseCodeClient | undefined {
+  private getClient(client?: string): CodeClient | undefined {
     if (!client) {
       return undefined;
     }
@@ -180,7 +114,7 @@ export class SenseCodeManager {
     return es[0];
   }
 
-  private getActiveClient(): SenseCodeClient {
+  private getActiveClient(): CodeClient {
     let ae = this.context.globalState.get<string>("ActiveClient");
     let e = this.getClient(ae);
     if (!e) {
@@ -202,7 +136,7 @@ export class SenseCodeManager {
   }
 
   public isClientLoggedin(clientName?: string) {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -212,22 +146,27 @@ export class SenseCodeManager {
     return false;
   }
 
-  public get prompt(): Prompt[] {
-    let customPrompts: { [key: string]: String | Prompt } = this.configuration.get("Prompt", {});
-    let prompts: Prompt[] = [];
-    for (let bp of builtinPrompts) {
-      let bpclone = { ...bp };
-      bpclone.label = l10n.t(bp.label);
-      prompts.push(bpclone);
-    }
+  public get prompt(): PromptInfo[] {
+    let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
+    let prompts: PromptInfo[] = [...builtinPrompts];
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
-        prompts.push({ label, type: "custom", prompt: customPrompts[label] as string });
+        prompts.push(new PromptInfo({
+          label,
+          type: PromptType.customPrompt,
+          prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+Answer question: `,
+          prompt: customPrompts[label] as string,
+          suffix: "### Response:\n"
+        }));
       } else {
-        let p = customPrompts[label] as Prompt;
-        p.label = label;
-        p.type = "custom";
-        prompts.push(p);
+        prompts.push(new PromptInfo({
+          label,
+          type: PromptType.customPrompt,
+          ...customPrompts[label]
+        }));
       }
     }
     return prompts;
@@ -242,7 +181,7 @@ export class SenseCodeManager {
   }
 
   public username(clientName?: string): string | undefined {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -252,7 +191,7 @@ export class SenseCodeManager {
   }
 
   public avatar(clientName?: string): string | undefined {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -262,7 +201,7 @@ export class SenseCodeManager {
   }
 
   public getAuthUrlLogin(codeVerifier: string, clientName?: string) {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -274,22 +213,22 @@ export class SenseCodeManager {
   }
 
   public async getTokenFromLoginResult(callbackUrl: string, codeVerifer: string, clientName?: string): Promise<boolean> {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (!client) {
       return false;
     }
-    
+
     window.withProgress({
-      location: {viewId: "sensecode.view"}
-    }, async (progress, _cancel)=>{
+      location: { viewId: "sensecode.view" }
+    }, async (progress, _cancel) => {
       if (!client) {
         return Promise.reject();
       }
       return client.getTokenFromLoginResult(callbackUrl, codeVerifer).then(async (token) => {
-        progress.report({increment: 100});
+        progress.report({ increment: 100 });
         if (client && token) {
           let tokens = await this.context.secrets.get("SenseCode.tokens");
           let ts: any = JSON.parse(tokens || "{}");
@@ -316,7 +255,7 @@ export class SenseCodeManager {
   }
 
   public async refreshToken(clientName?: string) {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -337,7 +276,7 @@ export class SenseCodeManager {
   }
 
   public async logout(clientName?: string) {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -350,8 +289,8 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletions(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string) {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+  public async getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string) {
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -360,8 +299,8 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<IncomingMessage> {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+  public async getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<IncomingMessage> {
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -373,11 +312,11 @@ export class SenseCodeManager {
   }
 
   public async sendTelemetryLog(eventName: string, info: Record<string, any>, clientName?: string) {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
-    if (client) {
+    if (client && client.sendTelemetryLog) {
       return client.sendTelemetryLog(eventName, info);
     }
   }
@@ -415,7 +354,7 @@ export class SenseCodeManager {
   }
 
   public tokenForPrompt(clientName?: string): number {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
@@ -428,7 +367,7 @@ export class SenseCodeManager {
   }
 
   public maxToken(clientName?: string): number {
-    let client: SenseCodeClient | undefined = this.getActiveClient();
+    let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }

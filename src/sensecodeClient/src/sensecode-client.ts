@@ -27,6 +27,12 @@ export interface ClientConfig {
   sensetimeOnly?: boolean;
 }
 
+export interface Prompt {
+  prologue: string;
+  prompt: string;
+  suffix: string;
+}
+
 function demerge(m: string): string[] {
   var a = '';
   var b = '';
@@ -78,7 +84,7 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
   return authorization;
 }
 
-export interface CoderClient {
+export interface CodeClient {
 
   get label(): string;
 
@@ -100,20 +106,20 @@ export interface CoderClient {
 
   logout(): Promise<void>;
 
-  getCompletions(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any>;
+  getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any>;
 
-  getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage>;
+  getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage>;
 
-  sendTelemetryLog(_eventName: string, info: Record<string, any>): Promise<void>;
+  sendTelemetryLog?(_eventName: string, info: Record<string, any>): Promise<void>;
 }
 
-export class SenseCodeClient implements CoderClient {
+export class SenseCodeClient implements CodeClient {
   private _username?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
   private _refreshToken?: string;
 
-  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig) {
+  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
   public logout(): Promise<void> {
@@ -185,7 +191,7 @@ export class SenseCodeClient implements CoderClient {
     return this._avatar;
   }
 
-  private apiKeyRaw(): Promise<string> {
+  private async apiKeyRaw(): Promise<string> {
     if (this.clientConfig.rawKey) {
       return Promise.resolve(this.clientConfig.rawKey);
     }
@@ -355,7 +361,7 @@ export class SenseCodeClient implements CoderClient {
     return Promise.reject();
   }
 
-  private _postPrompt(prompt: string, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
+  private _postPrompt(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let key = await this.apiKeyRaw();
       let date: string = new Date().toUTCString();
@@ -388,14 +394,26 @@ export class SenseCodeClient implements CoderClient {
         responseType = "stream";
       }
       let payload = {
-        prompt: p,
+        prompt: `${p.prologue}${p.prompt}\n${p.suffix}`,
         ...config
       };
+
+      if (this.debug) {
+        this.debug(`Request to: ${this.clientConfig.url}`);
+        let pc = {...payload};
+        let content = pc.prompt;
+        pc.prompt = undefined;
+        this.debug(`Parameters: ${JSON.stringify(pc)}`);
+        this.debug(`Prompt:\n${content}`);
+      }
 
       axios
         .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
         .then(async (res) => {
           if (res?.status === 200) {
+            if (this.debug && !stream) {
+              this.debug(JSON.stringify(res.data));
+            }
             resolve(res.data);
           } else {
             reject(res.data);
@@ -408,11 +426,11 @@ export class SenseCodeClient implements CoderClient {
     });
   }
 
-  public getCompletions(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any> {
+  public getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any> {
     return this._postPrompt(prompt, n, maxToken, stopWord, false, signal);
   }
 
-  public async getCompletionsStreaming(prompt: string, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage> {
+  public async getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage> {
     return this._postPrompt(prompt, n, maxToken, stopWord, true, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         return data;

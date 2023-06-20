@@ -170,22 +170,30 @@ export function inlineCompletionProvider(
               keep: true
             }
           );
-          let prefix = `${vscode.l10n.t("Complete following {lang} code:\n", { lang: getDocumentLanguage(document.languageId) })}`;
-          let suffix = ``;
-          prefix = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+          let stop: string | undefined = {} = "\nExplanation:";
+          let mt = 64;
+
+          const completionPrompt = {
+            prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
-Task type: code completion. Please complete the following ${getDocumentLanguage(document.languageId)} code, just response code only.
+Task type: code completion`,
+            prompt: `### Input:
 
-### Input:
-${codeSnippets.prefix}`;
-          suffix = `### Response:
-`;
+\`\`\`${document.languageId}
+${codeSnippets.prefix}
+\`\`\`
+
+`,
+            suffix: "### Response:\n",
+          };
+
           data = await sensecodeManager.getCompletions(
-            `${prefix}\n${suffix}`,
+            completionPrompt,
             sensecodeManager.candidates,
-            64,
-            "\nExplanation:",
+            mt,
+            stop,
             controller.signal);
         } catch (err: any) {
           if (err.message === "canceled") {
@@ -251,7 +259,6 @@ ${codeSnippets.prefix}`;
         let allCompletions = completions.concat(completionsBackup);
         for (let i = 0; i < allCompletions.length; i++) {
           let completion = allCompletions[i].split("\nExplanation")[0];
-          outlog.debug(completion);
           if (isAtTheMiddleOfLine(position, document)) {
             let currentLine = document?.lineAt(position.line);
             let lineEndPosition = currentLine?.range.end;

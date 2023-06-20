@@ -1,6 +1,6 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor, TextDocument } from 'vscode';
 import { sensecodeManager, outlog, telemetryReporter } from '../extension';
-import { Prompt } from './sensecodeManager';
+import { PromptInfo, PromptType } from "./promptTemplates";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
@@ -120,7 +120,11 @@ export class SenseCodeEditor extends Disposable {
         if (e.affectsConfiguration("SenseCode")) {
           sensecodeManager.update();
           if (e.affectsConfiguration("SenseCode.Prompt")) {
-            this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
+            let value = [];
+            for (let p of sensecodeManager.prompt) {
+              value.push(p.prompt);
+            }
+            this.sendMessage({ type: 'promptList', value });
           }
           if (e.affectsConfiguration("SenseCode.Engines")) {
             await sensecodeManager.updateEngineList();
@@ -370,7 +374,11 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'listPrompt': {
-          this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
+          let value = [];
+          for (let p of sensecodeManager.prompt) {
+            value.push(p.prompt);
+          }
+          this.sendMessage({ type: 'promptList', value });
           break;
         }
         case 'searchQuery': {
@@ -388,7 +396,7 @@ export class SenseCodeEditor extends Disposable {
           let promptType = data.value?.type;
           let prompt = data.value?.prompt;
           if (editor) {
-            if (promptType === "custom" && !prompt.includes("${code}")) {
+            if (promptType === "custom" && !prompt.includes("{code}")) {
             } else {
               selection = editor.document.getText(editor.selection);
               if (editor.document.languageId !== "plaintext") {
@@ -397,12 +405,12 @@ export class SenseCodeEditor extends Disposable {
             }
           }
           if (data.value) {
-            this.sendApiRequest(data.value, selection, lang);
+            this.sendApiRequest(new PromptInfo(data.value), selection, lang);
           }
           break;
         }
         case 'sendQuestion': {
-          this.sendApiRequest(data.value, data.code || "", data.lang);
+          this.sendApiRequest(new PromptInfo(data.value), undefined, undefined, data.replace);
           break;
         }
         case 'stopGenerate': {
@@ -672,36 +680,36 @@ ${data.info.response}
     });
   }
 
-  public async sendApiRequest(prompt: Prompt, code: string, lang: string) {
-    if (prompt.type === "focus") {
-      await new Promise((f) => setTimeout(f, 300));
-      this.sendMessage({ type: 'focus' });
-      return;
-    }
+  public async sendApiRequest(prompt: PromptInfo, code?: string, lang?: string, replace?: string) {
     let ts = new Date();
     let id = ts.valueOf();
     let timestamp = ts.toLocaleString();
 
     let send = true;
-    let requireCode = true;
+    let requireCode = prompt.codeRequired;
     let streaming = sensecodeManager.streamResponse;
     let instruction = prompt.prompt;
     for (let sw of SenseCodeEditor.bannedWords) {
-      if (instruction.includes(sw) || code.includes(sw)) {
+      if (instruction.prompt.includes(sw) || instruction.suffix.includes(sw) || code?.includes(sw)) {
         this.sendMessage({ type: 'showError', category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
         return;
       }
     }
 
-    if (instruction.includes("${input")) {
+    if (prompt.editRequired) {
       send = false;
     }
-    if (prompt.type === "free chat" || (prompt.type === "custom" && !instruction.includes("${code}"))) {
-      requireCode = false;
-    }
 
-    let promptClone = { ...prompt };
-    promptClone.prompt = instruction.replace("${code}", "");
+    let promptClone = { ...instruction };
+
+    if (prompt.type === PromptType.freeChat) {
+      promptClone.prologue = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+Answer question: `;
+      promptClone.prompt = promptClone.prompt + "\n";
+      promptClone.suffix = "### Response:\n";
+    }
 
     try {
       let loggedin = sensecodeManager.isClientLoggedin();
@@ -715,46 +723,41 @@ ${data.info.response}
         this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
         return;
       } else {
-        if (code.length > sensecodeManager.tokenForPrompt() * 3) {
+        if (code && code.length > sensecodeManager.tokenForPrompt() * 3) {
           this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
           return;
         }
       }
 
-      let instructionMsg = `Task type: ${prompt.type}. ${instruction}`;
-      if (prompt.type === "custom" || prompt.type === "free chat") {
-        instructionMsg = `Task type: Answer question. ${instruction.replace("${code}", '')}`;
-      }
+      if (!requireCode) {
+        promptClone.prompt = promptClone.prompt.replace(`### Input:
 
-      let codeStr = "";
-      if (code) {
-        codeStr = `\`\`\`${lang ? lang.toLowerCase() : ""}\n${code}\n\`\`\``;
+\`\`\`{codeLang}
+{code}
+\`\`\``, "");
+        promptClone.prompt = promptClone.prompt.replace("{code}", "");
+        promptClone.prompt = promptClone.prompt.replace("{codeLang}", "");
+        promptClone.suffix = promptClone.suffix.replace("{code}", "");
+        promptClone.suffix = promptClone.suffix.replace("{codeLang}", "");
       } else {
-        // codeStr = instruction;
-        lang = "";
+        lang = lang ? lang.toLowerCase() : "";
+        promptClone.prompt = promptClone.prompt.replace("{code}", code || "");
+        promptClone.prompt = promptClone.prompt.replace("{codeLang}", lang);
+        promptClone.suffix = promptClone.suffix.replace("{code}", code || "");
+        promptClone.suffix = promptClone.suffix.replace("{codeLang}", lang);
       }
 
       let username = sensecodeManager.username();
       let avatar = sensecodeManager.avatar();
-      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp });
+      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp, replace });
       if (!send) {
         return;
       }
 
-      let promptMsg = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction:
-${l10n.t("Answer this question")}: ${instructionMsg}
-
-### Input:
-${codeStr}
-
-### Response:\n`;
-
       this.stopList[id] = new AbortController();
       if (streaming) {
         sensecodeManager.getCompletionsStreaming(
-          promptMsg,
+          promptClone,
           1,
           sensecodeManager.maxToken(),
           undefined,
@@ -801,7 +804,6 @@ ${codeStr}
               }
               try {
                 let json = JSON.parse(content);
-                outlog.debug(JSON.stringify(json, undefined, 2));
                 if (json.error) {
                   this.sendMessage({ type: 'addError', error: json.error, id });
                   delete this.stopList[id];
@@ -810,6 +812,7 @@ ${codeStr}
                 } else if (json.choices && json.choices[0]) {
                   let value = json.choices[0].text || json.choices[0].message?.content;
                   if (value) {
+                    outlog.debug(value);
                     if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
                       value = "\n";
                     }
@@ -825,9 +828,13 @@ ${codeStr}
           this.sendMessage({ type: 'addError', error: e.message, id });
         });
       } else {
-        let rs: any = await sensecodeManager.getCompletions(promptMsg, 1, sensecodeManager.maxToken(), undefined, this.stopList[id].signal);
+        let rs: any = await sensecodeManager.getCompletions(
+          promptClone,
+          1,
+          sensecodeManager.maxToken(),
+          undefined,
+          this.stopList[id].signal);
         let content = rs?.choices[0]?.text || "";
-        outlog.debug(content);
         this.sendMessage({ type: 'addResponse', id, value: content });
         this.sendMessage({ type: 'stopResponse', id });
       }
@@ -1008,11 +1015,18 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     });
   }
 
-  public static async ask(prompt: Prompt, code: string, lang: string) {
+  public static async ask(prompt?: PromptInfo, code?: string, lang?: string) {
     commands.executeCommand('sensecode.view.focus');
     while (!SenseCodeViewProvider.eidtor) {
       await new Promise((f) => setTimeout(f, 1000));
     }
-    return SenseCodeViewProvider.eidtor?.sendApiRequest(prompt, code, lang);
+    if (SenseCodeViewProvider.eidtor) {
+      if (prompt) {
+        return SenseCodeViewProvider.eidtor.sendApiRequest(prompt, code, lang);
+      } else {
+        await new Promise((f) => setTimeout(f, 300));
+        SenseCodeViewProvider.eidtor?.sendMessage({ type: 'focus' });
+      }
+    }
   }
 }

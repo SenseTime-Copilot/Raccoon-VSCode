@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import { sensecodeManager } from '../extension';
 import { SenseCodeViewProvider } from './webviewProvider';
-import { Prompt } from './sensecodeManager';
+import { PromptInfo, PromptType } from "./promptTemplates";
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
@@ -19,15 +19,18 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     for (let p of ps) {
       let kind = vscode.CodeActionKind.QuickFix.append('sensecode');
       let name = `SenseCode: `;
-      if (p.type === "custom") {
-        kind = kind.append("custom");
-        name += " ✨ ";
+      if (p.type === PromptType.customPrompt) {
+        if (p.codeRequired) {
+          kind = kind.append("custom");
+          name += " ✨ ";
+        } else {
+          continue;
+        }
       } else {
         kind = kind.append("builtin");
       }
       name += p.label;
-      if (p.prompt.includes('${input')) {
-        name += "...";
+      if (p.editRequired) {
         kind = kind.append("edit");
       } else {
         kind = kind.append("send");
@@ -53,12 +56,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     }
     if (vscode.CodeActionKind.QuickFix.append('sensecode').append('preset').contains(codeAction.kind)) {
       if (codeAction.title === `SenseCode: ${vscode.l10n.t("Ask SenseCode")}...`) {
-        let focusAction = {
-          type: "focus",
-          label: "Ask SenseCode...",
-          prompt: ""
-        };
-        SenseCodeViewProvider.ask(focusAction, "", "");
+        SenseCodeViewProvider.ask();
       }
       return codeAction;
     }
@@ -67,27 +65,21 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     let document = vscode.window.activeTextEditor?.document;
     let ps = sensecodeManager.prompt;
     let label = codeAction.title.slice(11);
-    let prompt: Prompt | undefined = undefined;
+    let prompt: PromptInfo | undefined = undefined;
     let prefix = '';
-    let suffix = '';
     if (vscode.CodeActionKind.QuickFix.append('sensecode').append('custom').contains(codeAction.kind)) {
       prefix = ' ✨ ';
-      if (vscode.CodeActionKind.QuickFix.append('sensecode').append('custom').append('edit').contains(codeAction.kind)) {
-        suffix = '...';
-      }
-    } else if (vscode.CodeActionKind.QuickFix.append('sensecode').append('builtin').append('edit').contains(codeAction.kind)) {
-      suffix = '...';
     }
 
     for (let p of ps) {
-      if ((prefix + p.label + suffix) === label) {
+      if ((prefix + p.label) === label) {
         prompt = p;
         break;
       }
     }
     if (prompt && document && selection && !token.isCancellationRequested) {
       let code = document.getText(selection);
-      let lang = '';
+      let lang = undefined;
       if (document.languageId !== "plaintext") {
         lang = document.languageId;
       }

@@ -75,6 +75,10 @@ textarea::placeholder {
     overflow-x: auto;
 }
 
+.prompt p {
+    display: inline;
+}
+
 .prompt input {
     width: fit-content;
     height: 1.4rem;
@@ -131,6 +135,8 @@ textarea::placeholder {
     display: none;
 }
 
+.prompt .edited:before,
+.prompt .edited:after,
 .prompt .editable:before,
 .prompt .editable:after {
     content: "\00a0\00a0";
@@ -141,7 +147,9 @@ textarea::placeholder {
     color: var(--vscode-editorGhostText-foreground);
 }
 
+.prompt .edited,
 .prompt .editable[contenteditable='false'] {
+    text-align: center;
     border: 1px solid transparent;
     text-decoration: 3px underline var(--vscode-progressBar-background);
     text-underline-offset: 3px;
