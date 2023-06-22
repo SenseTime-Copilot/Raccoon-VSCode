@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import { sensecodeManager } from '../extension';
 import { SenseCodeViewProvider } from './webviewProvider';
-import { PromptInfo, PromptType } from "./promptTemplates";
+import { PromptInfo, PromptType, SenseCodePrompt } from "./promptTemplates";
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
@@ -20,7 +20,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       let kind = vscode.CodeActionKind.QuickFix.append('sensecode');
       let name = `SenseCode: `;
       if (p.type === PromptType.customPrompt) {
-        if (p.codeRequired) {
+        if (p.prompt.includes("{code}")) {
           kind = kind.append("custom");
           name += " ✨ ";
         } else {
@@ -30,11 +30,6 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
         kind = kind.append("builtin");
       }
       name += p.label;
-      if (p.editRequired) {
-        kind = kind.append("edit");
-      } else {
-        kind = kind.append("send");
-      }
       actions.push(new vscode.CodeAction(name, kind));
     }
     /*
@@ -65,7 +60,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     let document = vscode.window.activeTextEditor?.document;
     let ps = sensecodeManager.prompt;
     let label = codeAction.title.slice(11);
-    let prompt: PromptInfo | undefined = undefined;
+    let prompt: SenseCodePrompt | undefined = undefined;
     let prefix = '';
     if (vscode.CodeActionKind.QuickFix.append('sensecode').append('custom').contains(codeAction.kind)) {
       prefix = ' ✨ ';
@@ -73,17 +68,16 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
 
     for (let p of ps) {
       if ((prefix + p.label) === label) {
-        prompt = p;
+        prompt = { ...p };
         break;
       }
     }
     if (prompt && document && selection && !token.isCancellationRequested) {
-      let code = document.getText(selection);
-      let lang = undefined;
+      prompt.code = document.getText(selection);
       if (document.languageId !== "plaintext") {
-        lang = document.languageId;
+        prompt.languageid = document.languageId;
       }
-      SenseCodeViewProvider.ask(prompt, code, lang);
+      SenseCodeViewProvider.ask(new PromptInfo(prompt));
     }
     return codeAction;
   }

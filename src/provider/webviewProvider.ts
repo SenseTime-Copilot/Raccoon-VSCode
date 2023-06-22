@@ -1,6 +1,6 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor, TextDocument } from 'vscode';
 import { sensecodeManager, outlog, telemetryReporter } from '../extension';
-import { PromptInfo, PromptType } from "./promptTemplates";
+import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
@@ -120,11 +120,7 @@ export class SenseCodeEditor extends Disposable {
         if (e.affectsConfiguration("SenseCode")) {
           sensecodeManager.update();
           if (e.affectsConfiguration("SenseCode.Prompt")) {
-            let value = [];
-            for (let p of sensecodeManager.prompt) {
-              value.push(p.prompt);
-            }
-            this.sendMessage({ type: 'promptList', value });
+            this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
           }
           if (e.affectsConfiguration("SenseCode.Engines")) {
             await sensecodeManager.updateEngineList();
@@ -222,7 +218,6 @@ export class SenseCodeEditor extends Disposable {
     let es = sensecodeManager.clientsLabel;
     for (let label of es) {
       esList += `<vscode-option value="${label}">${label}</vscode-option>`;
-
     }
     esList += "</vscode-dropdown>";
     let username: string | undefined = sensecodeManager.username();
@@ -374,11 +369,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'listPrompt': {
-          let value = [];
-          for (let p of sensecodeManager.prompt) {
-            value.push(p.prompt);
-          }
-          this.sendMessage({ type: 'promptList', value });
+          this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
           break;
         }
         case 'searchQuery': {
@@ -389,28 +380,29 @@ export class SenseCodeEditor extends Disposable {
           }
           break;
         }
-        case 'prepareQuestion': {
-          let selection: string = "";
+        case 'sendQuestion': {
+          let ts = new Date();
+          let id = ts.valueOf();
           const editor = this.lastTextEditor;
-          let lang = "";
-          let promptType = data.value?.type;
-          let prompt = data.value?.prompt;
-          if (editor) {
-            if (promptType === "custom" && !prompt.includes("{code}")) {
-            } else {
-              selection = editor.document.getText(editor.selection);
-              if (editor.document.languageId !== "plaintext") {
-                lang = editor.document.languageId;
-              }
+          let prompt: SenseCodePrompt = data.prompt;
+          if (editor && !data.values) {
+            prompt.code = editor.document.getText(editor.selection);
+            if (editor.document.languageId !== "plaintext") {
+              prompt.languageid = editor.document.languageId;
             }
           }
-          if (data.value) {
-            this.sendApiRequest(new PromptInfo(data.value), selection, lang);
+          if (prompt.type === PromptType.freeChat) {
+            if (prompt.code) {
+              prompt.prompt += "\n\n### Input:\n\n```{languageid}\n{code}\n```";
+            }
+            prompt.prologue = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+Answer question: `;
+            prompt.suffix = "### Response:\n";
           }
-          break;
-        }
-        case 'sendQuestion': {
-          this.sendApiRequest(new PromptInfo(data.value), undefined, undefined, data.replace);
+          let promptInfo = new PromptInfo(prompt);
+          this.sendApiRequest(id, promptInfo, data.values);
           break;
         }
         case 'stopGenerate': {
@@ -583,6 +575,9 @@ ${msg.code}
           const vendorMarkedJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
           const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
           const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
+          let renderRequestBody = data.info.request.prompt;
+          renderRequestBody = renderRequestBody.replace("{languageid}", data.info.request.languageid || "");
+          renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code || "");
           webview.html = `
           <html>
           <head>
@@ -611,7 +606,7 @@ ${msg.code}
             vscode.postMessage(
               {
                 "type": "sendFeedback",
-                "language": "${data.info.request.language}",
+                "language": "${data.info.request.languageid}",
                 "code": document.getElementById("correction").value
               }
             )
@@ -633,7 +628,7 @@ ${msg.code}
           <div class="markdown-body" style="margin: 1rem 4rem;">
             <div id="info"></div>
               <div style="display: flex;flex-direction: column;">
-                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${getDocumentLanguage(data.info.request.language)} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
+                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${getDocumentLanguage(data.info.request.languageid)} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
                 <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
               </div>
             </div>
@@ -646,11 +641,7 @@ SenseCode is still under development. Questions, patches, improvement suggestion
 
 ## Request
 
-${data.info.request.prompt}
-
-\`\`\`${data.info.request.language}
-${data.info.request.code}
-\`\`\`
+${renderRequestBody}
 
 ## SenseCode response
 
@@ -680,173 +671,134 @@ ${data.info.response}
     });
   }
 
-  public async sendApiRequest(prompt: PromptInfo, code?: string, lang?: string, replace?: string) {
+  public async sendApiRequest(id: number, prompt: PromptInfo, values?: any) {
     let ts = new Date();
-    let id = ts.valueOf();
     let timestamp = ts.toLocaleString();
 
-    let send = true;
-    let requireCode = prompt.codeRequired;
     let streaming = sensecodeManager.streamResponse;
     let instruction = prompt.prompt;
     for (let sw of SenseCodeEditor.bannedWords) {
-      if (instruction.prompt.includes(sw) || instruction.suffix.includes(sw) || code?.includes(sw)) {
+      if (instruction.prompt.includes(sw) || instruction.suffix.includes(sw) || prompt.codeInfo?.code.includes(sw)) {
         this.sendMessage({ type: 'showError', category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
         return;
       }
     }
 
-    if (prompt.editRequired) {
-      send = false;
+    let loggedin = sensecodeManager.isClientLoggedin();
+    if (!loggedin) {
+      //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
+      this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
+      return;
     }
 
-    let promptClone = { ...instruction };
-
-    if (prompt.type === PromptType.freeChat) {
-      promptClone.prologue = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction:
-Answer question: `;
-      promptClone.prompt = promptClone.prompt + "\n";
-      promptClone.suffix = "### Response:\n";
+    let promptHtml = prompt.generatePromptHtml(id, values);
+    if (promptHtml.status === RenderStatus.codeMissing) {
+      this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
+      return;
     }
 
-    try {
-      let loggedin = sensecodeManager.isClientLoggedin();
-      if (!loggedin) {
-        //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
-        this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
-        return;
-      }
+    let username = sensecodeManager.username();
+    let avatar = sensecodeManager.avatar();
+    this.sendMessage({ type: 'addQuestion', username, avatar, value: promptHtml, streaming, id, timestamp });
 
-      if (requireCode && !code) {
-        this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
-        return;
-      } else {
-        if (code && code.length > sensecodeManager.tokenForPrompt() * 3) {
-          this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Prompt too long"), id });
-          return;
-        }
-      }
-
-      if (!requireCode) {
-        promptClone.prompt = promptClone.prompt.replace(`### Input:
-
-\`\`\`{codeLang}
-{code}
-\`\`\``, "");
-        promptClone.prompt = promptClone.prompt.replace("{code}", "");
-        promptClone.prompt = promptClone.prompt.replace("{codeLang}", "");
-        promptClone.suffix = promptClone.suffix.replace("{code}", "");
-        promptClone.suffix = promptClone.suffix.replace("{codeLang}", "");
-      } else {
-        lang = lang ? lang.toLowerCase() : "";
-        promptClone.prompt = promptClone.prompt.replace("{code}", code || "");
-        promptClone.prompt = promptClone.prompt.replace("{codeLang}", lang);
-        promptClone.suffix = promptClone.suffix.replace("{code}", code || "");
-        promptClone.suffix = promptClone.suffix.replace("{codeLang}", lang);
-      }
-
-      let username = sensecodeManager.username();
-      let avatar = sensecodeManager.avatar();
-      this.sendMessage({ type: 'addQuestion', username, avatar, value: promptClone, code, lang, send, id, streaming, timestamp, replace });
-      if (!send) {
-        return;
-      }
-
-      this.stopList[id] = new AbortController();
-      if (streaming) {
-        sensecodeManager.getCompletionsStreaming(
-          promptClone,
-          1,
-          sensecodeManager.maxToken(),
-          undefined,
-          this.stopList[id].signal
-        ).then((data) => {
-          data.on("data", async (v: any) => {
-            if (this.stopList[id].signal.aborted || this.disposing) {
-              delete this.stopList[id];
-              data.destroy();
-              return;
-            }
-            let msgstr: string = v.toString();
-            let msgs = msgstr.split("\n");
-            let errorFlag = false;
-            for (let msg of msgs) {
-              let content = "";
-              if (msg.startsWith("data:")) {
-                content = msg.slice(5).trim();
-              } else if (msg.startsWith("event:")) {
-                content = msg.slice(6).trim();
-                outlog.error(content);
-                if (content === "error") {
-                  errorFlag = true;
-                  // this.sendMessage({ type: 'addError', error: "streaming interrpted", id });
-                  // data.destroy();
-                }
-                // return;
-                continue;
-              }
-
-              if (content === '[DONE]') {
-                this.sendMessage({ type: 'stopResponse', id });
-                outlog.debug(content);
+    if (promptHtml.status === RenderStatus.resolved) {
+      try {
+        this.stopList[id] = new AbortController();
+        instruction.prompt = instruction.prompt.replace("{code}", promptHtml.code || "");
+        instruction.prompt = instruction.prompt.replace("{languageid}", promptHtml.languageid || "");
+        if (streaming) {
+          sensecodeManager.getCompletionsStreaming(
+            instruction,
+            1,
+            sensecodeManager.maxToken(),
+            undefined,
+            this.stopList[id].signal
+          ).then((data) => {
+            data.on("data", async (v: any) => {
+              if (this.stopList[id].signal.aborted || this.disposing) {
                 delete this.stopList[id];
                 data.destroy();
                 return;
               }
-              if (!content) {
-                continue;
-              }
-              if (errorFlag) {
-                this.sendMessage({ type: 'addError', error: content, id });
-                continue;
-              }
-              try {
-                let json = JSON.parse(content);
-                if (json.error) {
-                  this.sendMessage({ type: 'addError', error: json.error, id });
+              let msgstr: string = v.toString();
+              let msgs = msgstr.split("\n");
+              let errorFlag = false;
+              for (let msg of msgs) {
+                let content = "";
+                if (msg.startsWith("data:")) {
+                  content = msg.slice(5).trim();
+                } else if (msg.startsWith("event:")) {
+                  content = msg.slice(6).trim();
+                  outlog.error(content);
+                  if (content === "error") {
+                    errorFlag = true;
+                    // this.sendMessage({ type: 'addError', error: "streaming interrpted", id });
+                    // data.destroy();
+                  }
+                  // return;
+                  continue;
+                }
+
+                if (content === '[DONE]') {
+                  this.sendMessage({ type: 'stopResponse', id });
+                  outlog.debug(content);
                   delete this.stopList[id];
                   data.destroy();
                   return;
-                } else if (json.choices && json.choices[0]) {
-                  let value = json.choices[0].text || json.choices[0].message?.content;
-                  if (value) {
-                    outlog.debug(value);
-                    if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
-                      value = "\n";
-                    }
-                    this.sendMessage({ type: 'addResponse', id, value });
-                  }
                 }
-              } catch (e) {
-                outlog.error(content);
+                if (!content) {
+                  continue;
+                }
+                if (errorFlag) {
+                  this.sendMessage({ type: 'addError', error: content, id });
+                  continue;
+                }
+                try {
+                  let json = JSON.parse(content);
+                  if (json.error) {
+                    this.sendMessage({ type: 'addError', error: json.error, id });
+                    delete this.stopList[id];
+                    data.destroy();
+                    return;
+                  } else if (json.choices && json.choices[0]) {
+                    let value = json.choices[0].text || json.choices[0].message?.content;
+                    if (value) {
+                      outlog.debug(value);
+                      if (json.choices[0]["finish_reason"] === "stop" && value === "</s>") {
+                        value = "\n";
+                      }
+                      this.sendMessage({ type: 'addResponse', id, value });
+                    }
+                  }
+                } catch (e) {
+                  outlog.error(content);
+                }
               }
-            }
+            });
+          }).catch(e => {
+            this.sendMessage({ type: 'addError', error: e.message, id });
           });
-        }).catch(e => {
-          this.sendMessage({ type: 'addError', error: e.message, id });
-        });
-      } else {
-        let rs: any = await sensecodeManager.getCompletions(
-          promptClone,
-          1,
-          sensecodeManager.maxToken(),
-          undefined,
-          this.stopList[id].signal);
-        let content = rs?.choices[0]?.text || "";
-        this.sendMessage({ type: 'addResponse', id, value: content });
-        this.sendMessage({ type: 'stopResponse', id });
+        } else {
+          let rs: any = await sensecodeManager.getCompletions(
+            instruction,
+            1,
+            sensecodeManager.maxToken(),
+            undefined,
+            this.stopList[id].signal);
+          let content = rs?.choices[0]?.text || "";
+          this.sendMessage({ type: 'addResponse', id, value: content });
+          this.sendMessage({ type: 'stopResponse', id });
+        }
+      } catch (err: any) {
+        if (err.message === "canceled") {
+          delete this.stopList[id];
+          this.sendMessage({ type: 'stopResponse', id });
+          return;
+        }
+        let errInfo = err.message || err.response.data.error;
+        outlog.error(errInfo);
+        this.sendMessage({ type: 'addError', error: errInfo, id });
       }
-    } catch (err: any) {
-      if (err.message === "canceled") {
-        delete this.stopList[id];
-        this.sendMessage({ type: 'stopResponse', id });
-        return;
-      }
-      let errInfo = err.message || err.response.data.error;
-      outlog.error(errInfo);
-      this.sendMessage({ type: 'addError', error: errInfo, id });
     }
   }
 
@@ -1015,14 +967,16 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     });
   }
 
-  public static async ask(prompt?: PromptInfo, code?: string, lang?: string) {
+  public static async ask(prompt?: PromptInfo) {
     commands.executeCommand('sensecode.view.focus');
     while (!SenseCodeViewProvider.eidtor) {
       await new Promise((f) => setTimeout(f, 1000));
     }
     if (SenseCodeViewProvider.eidtor) {
       if (prompt) {
-        return SenseCodeViewProvider.eidtor.sendApiRequest(prompt, code, lang);
+        let ts = new Date();
+        let id = ts.valueOf();
+        return SenseCodeViewProvider.eidtor.sendApiRequest(id, prompt);
       } else {
         await new Promise((f) => setTimeout(f, 300));
         SenseCodeViewProvider.eidtor?.sendMessage({ type: 'focus' });

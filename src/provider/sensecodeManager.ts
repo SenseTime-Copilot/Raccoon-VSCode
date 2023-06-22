@@ -3,7 +3,7 @@ import { ExtensionContext, window, workspace, WorkspaceConfiguration } from "vsc
 import { ClientConfig, ClientMeta, CodeClient, Prompt, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
 import { outlog } from "../extension";
-import { builtinPrompts, PromptInfo } from "./promptTemplates";
+import { builtinPrompts, PromptInfo, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 
 const builtinEngines: ClientConfig[] = [
@@ -146,12 +146,12 @@ export class SenseCodeManager {
     return false;
   }
 
-  public get prompt(): PromptInfo[] {
+  public get prompt(): SenseCodePrompt[] {
     let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
-    let prompts: PromptInfo[] = [...builtinPrompts];
+    let prompts: SenseCodePrompt[] = [...builtinPrompts];
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
-        prompts.push(new PromptInfo({
+        prompts.push({
           label,
           type: PromptType.customPrompt,
           prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
@@ -160,13 +160,13 @@ export class SenseCodeManager {
 Answer question: `,
           prompt: customPrompts[label] as string,
           suffix: "### Response:\n"
-        }));
+        });
       } else {
-        prompts.push(new PromptInfo({
+        prompts.push({
           label,
           type: PromptType.customPrompt,
           ...customPrompts[label]
-        }));
+        });
       }
     }
     return prompts;

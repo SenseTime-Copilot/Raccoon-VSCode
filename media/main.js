@@ -38,13 +38,12 @@ const vscode = acquireVsCodeApi();
   collectInfo = function (id, action) {
     var promptNode = document.getElementById(`prompt-${id}`);
     var responseNode = document.getElementById(`response-${id}`);
-    var prompt = JSON.parse(promptNode.dataset.prompt);
     var response = responseNode.dataset.response;
     var error = responseNode.dataset.error;
     return {
       event: "response-feedback",
       request: {
-        type: prompt.type, prompt: prompt.prompt
+        ...promptNode.dataset
       },
       response: [response],
       error,
@@ -134,12 +133,11 @@ const vscode = acquireVsCodeApi();
         var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:workbench.action.openGlobalSettings?%7B%22query%22%3A%22SenseCode.Prompt%22%7D"><span class="material-symbols-rounded">add</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
-          let brush = p.brush || false;
-          shortcuts += `  <button class="flex gap-2 items-center ${brush ? "with-brush" : ""}"
-                                        title='${p.type !== "custom" ? p.prompt + ": ${code}" : p.prompt}'
+          shortcuts += `  <button class="flex gap-2 items-center"
+                                        title='${p.type !== "custom" ? p.prompt + ": {code}" : p.prompt}'
                                         onclick='vscode.postMessage({
-                                            type: "prepareQuestion",
-                                            value: ${JSON.stringify(p)}
+                                            type: "sendQuestion",
+                                            prompt: ${JSON.stringify(p)}
                                         });
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
@@ -162,123 +160,27 @@ const vscode = acquireVsCodeApi();
         updateChatBoxStatus("start");
         toggleSubMenuList();
         let id = message.id;
-        let questionReady = false;
         var replaceElems = document.getElementsByClassName("replace");
         for (var e of replaceElems) {
-          if (e.id === message.replace) {
-            e.id = `question-${id}`;
-            e.classList.remove('replace');
-            var op = e.querySelectorAll('.prompt');
-            op[0].id = `prompt-${id}`;
-            questionReady = true;
-          } else {
-            e.remove();
-          }
+          e.remove();
         }
 
-        if (!questionReady) {
-          let prompt = message.value;
-          const edit = !message.send;
-          let prompthtml = prompt.prompt;
-          if (prompt.args) {
-            for (let argName in prompt.args) {
-              let arg = prompt.args[argName];
-              switch (arg.type) {
-                case "enum": {
-                  let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}" onChange="document.getElementById('${argName}-${id}-value').innerText = this.options[this.selectedIndex].text;">`;
-                  for (let v of arg.options) {
-                    renderElem += `<option value="${v}">${v}</option>`;
-                  }
-                  renderElem += "</select>";
-                  renderElem += `<div id="${argName}-${id}-value" class="hidden edited">${arg.options[0]}</div></div>`;
-                  prompthtml = prompthtml.replace(`{input:\$${argName}}`, renderElem);
-                  break;
-                }
-                case "button":
-                case "file":
-                case "image":
-                case "radio":
-                case "reset":
-                case "submit": {
-                  break;
-                }
-                default: {
-                  if (!arg.type) {
-                    break;
-                  }
-                  let visible = true;
-                  let initialValue = "";
-                  if (arg.type === "color") {
-                    initialValue = "#000000";
-                  } else if (arg.type === "range") {
-                    let max = arg.max || 100;
-                    let min = arg.min || 0;
-                    initialValue = (max + min) / 2;
-                    if (max < min) {
-                      initialValue = min;
-                    }
-                  } else {
-                    visible = false;
-                  }
-                  let properties = '';
-                  for (let argkey in arg) {
-                    properties += `${argkey}="${arg[argkey]}" `;
-                  }
-                  let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><input class="ignoreText" id="${argName}-${id}" ${properties} onChange="document.getElementById('${argName}-${id}-value').innerText = this.value;"/>`;
-                  renderElem += `<div id="${argName}-${id}-value" style="${visible ? "" : "display: none;"}">${initialValue}</div></div>`;
-                  prompthtml = prompthtml.replace(`{input:\$${argName}}`, renderElem);
-                  break;
-                }
-              }
-            }
-          }
-          if (prompthtml.includes("{input")) {
-            prompthtml = prompthtml.replaceAll(/{input(:([^}]*))?}/g, `<p class="editable inline-block mx-1 rounded w-fit" contenteditable="${edit}" data-placeholder="$2"></p>`);
-          }
+        let promptInfo = message.value;
+        const edit = promptInfo.status === "editRequired";
 
-          const requestHtml = new DOMParser().parseFromString(marked.parse(prompthtml), "text/html");
-          const preCodeList = requestHtml.querySelectorAll("pre > code");
-          preCodeList.forEach((preCode, _index) => {
-            preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
-            for (var cls of preCode.classList) {
-              if (cls.startsWith('language-')) {
-                preCode.parentElement.dataset.lang = cls.slice(9);
-                break;
-              }
-            }
-            preCode.classList.add("inline", "whitespace-pre");
-            const buttonWrapper = document.createElement("div");
-            buttonWrapper.classList.add("code-actions-wrapper");
-
-            if (false) {
-              const unfoldButton = document.createElement("button");
-              unfoldButton.innerHTML = unfoldIcon;
-              unfoldButton.classList.add("unfold-btn", "expend-code", "rounded");
-              const flodButton = document.createElement("button");
-              flodButton.innerHTML = foldIcon;
-              flodButton.classList.add("fold-btn", "expend-code", "rounded", "hidden");
-              buttonWrapper.append(unfoldButton, flodButton);
-              preCode.parentElement.classList.add("fold");
-            }
-
-            preCode.parentElement.prepend(buttonWrapper);
-          });
-
-          let actionBtns = `
+        let actionBtns = `
           <div class="-mt-6 ml-1">
             <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
           </div>
-        `;
-          let sendBtn = ``;
-          if (edit) {
-            actionBtns = `
+         `;
+        if (edit) {
+          actionBtns = `
           <div class="-mt-6 ml-1">
             <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
           </div>`;
-            sendBtn = `<div class="flex mx-2 my-4 -mb-4 justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]}">${sendIcon}</vscode-button></div>`;
-          }
+        }
 
-          let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 -mx-2 flex flex-row-reverse">
+        let questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 -mx-2 flex flex-row-reverse">
                               <span class="capitalize flex gap-2 flex flex-row-reverse text-xl">
                                 ${questionIcon}
                                 <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
@@ -290,8 +192,8 @@ const vscode = acquireVsCodeApi();
                               </span>
                               ${actionBtns}
                             </h2>`;
-          if (message.avatar && message.username) {
-            questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 -mx-2 flex flex-row-reverse">
+        if (message.avatar && message.username) {
+          questionTitle = `<h2 class="avatar place-content-between mt-1 mb-4 -mx-2 flex flex-row-reverse">
                             <span class="capitalize flex gap-2 flex flex-row-reverse text-xl">
                               <img src="${message.avatar}"/ class="w-8 h-8 rounded-full">
                               <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
@@ -303,128 +205,122 @@ const vscode = acquireVsCodeApi();
                             </span>
                             ${actionBtns}
                           </h2>`;
-          }
+        }
 
-          if (edit) {
-            document.getElementById("chat-button-wrapper")?.classList?.add("editing");
-            document.getElementById("question-input").disabled = true;
-            list.innerHTML +=
-              `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full replace">
-              ${questionTitle}
-              <div id="prompt-${id}" class="prompt inline-block leading-loose py-2 w-full" data-prompt='${JSON.stringify(message.value)}'>${requestHtml.documentElement.innerHTML}</div>
-              ${sendBtn}
+        list.innerHTML +=
+          `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
+            ${questionTitle}
+            ${promptInfo.html}
           </div>`;
-            var promptText = document.getElementById(`prompt-${id}`);
-            const editableElems = promptText.getElementsByClassName("editable");
-            Array.from(editableElems).reverse().forEach((el) => {
-              el.setAttribute("contenteditable", true);
-              el.focus();
-            });
-            list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
-            break;
-          } else {
-            list.innerHTML +=
-              `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full responsing">
-              ${questionTitle}
-              <div id="prompt-${id}" class="prompt inline-block leading-loose py-2 w-full" data-prompt='${JSON.stringify(message.value)}'>${requestHtml.documentElement.innerHTML}</div>
-              ${sendBtn}
-          </div>`;
+
+        if (edit) {
+          document.getElementById("chat-button-wrapper")?.classList?.add("editing");
+          document.getElementById("question-input").disabled = true;
+
+          var promptText = document.getElementById(`prompt-${id}`);
+          const editableElems = promptText.getElementsByClassName("editable");
+          Array.from(editableElems).reverse().forEach((el) => {
+            el.setAttribute("contenteditable", true);
+            el.focus();
+          });
+          list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+          break;
+        } else {
+          if (message.action === 'free chat') {
+            history = [prompt.prompt, ...history];
           }
-        }
-        if (prompt.type === 'free chat') {
-          history = [prompt.prompt, ...history];
-        }
-        document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
-        document.getElementById("question-input").disabled = true;
-        var chat = document.getElementById(`${id}`);
-        if (!chat) {
-          chat = document.createElement("div");
-          chat.id = `${id}`;
-          chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
-          let outlang = '';
-          let exp = /Convert the given code to equivalent (.+) code/mg;
-          let matches = exp.exec(prompt.prompt);
-          if (matches) {
-            outlang = matches[1];
-          }
-          let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-                    <span class="flex items-center gap-2 opacity-30">
-                      <div class="spinner thinking">
-                          <span class="material-symbols-rounded">autorenew</span>
-                      </div>
-                      <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
-                    </span>
-                    <button class="stopGenerate flex items-center" data-id=${id}>
-                      <span class="material-symbols-rounded">
-                        stop_circle
+          document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
+          document.getElementById("question-input").disabled = true;
+          var chat = document.getElementById(`${id}`);
+          if (!chat) {
+            chat = document.createElement("div");
+            chat.id = `${id}`;
+            chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
+            let outlang = '';
+            let exp = /Convert the given code to equivalent (.+) code/mg;
+            let matches = exp.exec(prompt.prompt);
+            if (matches) {
+              outlang = matches[1];
+            }
+            let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
+                      <span class="flex items-center gap-2 opacity-30">
+                        <div class="spinner thinking">
+                            <span class="material-symbols-rounded">autorenew</span>
+                        </div>
+                        <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
                       </span>
-                      <p class="mx-1">${l10nForUI["Stop responding"]}</p>
-                    </button>
-                  </div>`;
-          if (message.streaming === true) {
-            progress = `
-          <div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-            <span class="flex items-center gap-2 opacity-30">
-              <div class="spinner connecting">
-                <span class="material-symbols-rounded">autorenew</span>
-              </div>
-              <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
-              <div class="spinner typing">
-                <span class="material-symbols-rounded">magic_exchange</span>
-              </div>
-              <div class="typing-text">${l10nForUI["Typing..."]}</div>
-            </span>
-            <button class="stopGenerate flex items-center" data-id=${id}>
-              <span class="material-symbols-rounded">
-                stop_circle
+                      <button class="stopGenerate flex items-center" data-id=${id}>
+                        <span class="material-symbols-rounded">
+                          stop_circle
+                        </span>
+                        <p class="mx-1">${l10nForUI["Stop responding"]}</p>
+                      </button>
+                    </div>`;
+            if (message.streaming === true) {
+              progress = `
+            <div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
+              <span class="flex items-center gap-2 opacity-30">
+                <div class="spinner connecting">
+                  <span class="material-symbols-rounded">autorenew</span>
+                </div>
+                <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
+                <div class="spinner typing">
+                  <span class="material-symbols-rounded">magic_exchange</span>
+                </div>
+                <div class="typing-text">${l10nForUI["Typing..."]}</div>
               </span>
-              <p class="mx-1">${l10nForUI["Stop responding"]}</p>
-            </button>
-          </div>`;
-          }
-          chat.innerHTML = `  <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
-                                  <span class="capitalize flex gap-2 flex text-xl">
-                                    ${aiIcon}
-                                    <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                      <b class="text-sm">${l10nForUI["SenseCode"]}</b>
-                                      <div class="opacity-30 leading-3">
-                                        ${message.timestamp}
-                                      </div>
+              <button class="stopGenerate flex items-center" data-id=${id}>
+                <span class="material-symbols-rounded">
+                  stop_circle
+                </span>
+                <p class="mx-1">${l10nForUI["Stop responding"]}</p>
+              </button>
+            </div>`;
+            }
+            chat.innerHTML = `  <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
+                                    <span class="capitalize flex gap-2 flex text-xl">
+                                      ${aiIcon}
+                                      <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
+                                        <b class="text-sm">${l10nForUI["SenseCode"]}</b>
+                                        <div class="opacity-30 leading-3">
+                                          ${message.timestamp}
+                                        </div>
+                                      </span>
                                     </span>
-                                  </span>
-                                </h2>
-                                <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body" data-lang="${outlang}"></div>
-                                ${progress}
-                                <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
-                                  <span class="flex items-center gap-2">
-                                    <button class="like flex rounded" data-id=${id}>
-                                      <span class="material-symbols-rounded">
-                                        thumb_up
-                                      </span>
-                                    </button>
-                                    <button class="dislike flex rounded" data-id=${id}>
-                                      <span class="material-symbols-rounded">
-                                        thumb_down
-                                      </span>
-                                    </button>
-                                    <button class="correct flex rounded" title="" data-id=${id}>
-                                      <span class="material-symbols-rounded">
-                                        sentiment_dissatisfied
-                                      </span>
-                                    </button>
-                                  </span>
-                                  <span class="flex items-center gap-2">
-                                    <button class="regenerate flex items-center rounded" data-id=${id}>
-                                      <span class="material-symbols-rounded">
-                                        refresh
-                                      </span>
-                                      <p class="mx-1">${l10nForUI["Regenerate"]}</p>
-                                    </button>
-                                  </span>
-                                </div>`;
-          list.appendChild(chat);
+                                  </h2>
+                                  <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body" data-lang="${outlang}"></div>
+                                  ${progress}
+                                  <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
+                                    <span class="flex items-center gap-2">
+                                      <button class="like flex rounded" data-id=${id}>
+                                        <span class="material-symbols-rounded">
+                                          thumb_up
+                                        </span>
+                                      </button>
+                                      <button class="dislike flex rounded" data-id=${id}>
+                                        <span class="material-symbols-rounded">
+                                          thumb_down
+                                        </span>
+                                      </button>
+                                      <button class="correct flex rounded" title="" data-id=${id}>
+                                        <span class="material-symbols-rounded">
+                                          sentiment_dissatisfied
+                                        </span>
+                                      </button>
+                                    </span>
+                                    <span class="flex items-center gap-2">
+                                      <button class="regenerate flex items-center rounded" data-id=${id}>
+                                        <span class="material-symbols-rounded">
+                                          refresh
+                                        </span>
+                                        <p class="mx-1">${l10nForUI["Regenerate"]}</p>
+                                      </button>
+                                    </span>
+                                  </div>`;
+            list.appendChild(chat);
+          }
+          list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
         }
-        list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
         break;
       }
       case "stopResponse": {
@@ -567,11 +463,7 @@ const vscode = acquireVsCodeApi();
       replace = question.id;
     }
     const prompt = question.getElementsByClassName("prompt");
-    Array.from(prompt[0].querySelectorAll('.ignoreText')).reverse().forEach((v, _idx, _arr) => {
-      v.nextElementSibling.classList.remove("hidden");
-      v.remove();
-    });
-    if (prompt[0].textContent.trim().length > 0) {
+    if (prompt && prompt[0]) {
       const editableElems = prompt[0].getElementsByClassName("editable");
       Array.from(editableElems).forEach((el) => {
         el.setAttribute("contenteditable", false);
@@ -581,12 +473,15 @@ const vscode = acquireVsCodeApi();
         s.removeAllRanges();
       }
 
-      let updatedPrompt = JSON.parse(prompt[0].dataset.prompt);
-      updatedPrompt.prompt = prompt[0].textContent;
+      var values = {}
+      const valuesEle = prompt[0].getElementsByClassName("values");
+      if (valuesEle && valuesEle[0]) {
+        values = { ...valuesEle[0].dataset };
+      }
       vscode.postMessage({
         type: "sendQuestion",
-        value: updatedPrompt,
-        replace
+        prompt: { ...prompt[0].dataset },
+        values
       });
     } else {
       addError({ category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
@@ -595,10 +490,9 @@ const vscode = acquireVsCodeApi();
 
   const resendQuestion = (question) => {
     const prompt = question.getElementsByClassName("prompt");
-    let updatedPrompt = JSON.parse(prompt[0].dataset.prompt);
     vscode.postMessage({
       type: "sendQuestion",
-      value: updatedPrompt
+      prompt: { ...prompt[0].dataset }
     });
 
   };
@@ -792,8 +686,8 @@ const vscode = acquireVsCodeApi();
           sendSearchQuery(e.target.value.slice(1).trim());
         } else {
           vscode.postMessage({
-            type: "prepareQuestion",
-            value: {
+            type: "sendQuestion",
+            prompt: {
               label: "",
               type: "free chat",
               prologue: "",
@@ -925,8 +819,8 @@ const vscode = acquireVsCodeApi();
         var prompt = document.getElementById("question-input").value.trim();
         if (prompt) {
           vscode.postMessage({
-            type: "prepareQuestion",
-            value: {
+            type: "sendQuestion",
+            prompt: {
               label: "",
               type: "free chat",
               prologue: "",
