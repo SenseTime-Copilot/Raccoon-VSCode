@@ -131,7 +131,10 @@ export class PromptInfo {
     if (renderHtml.prompt.code) {
       let langclass = renderHtml.prompt.languageid ? `language-${renderHtml.prompt.languageid}` : ``;
       let langdata = renderHtml.prompt.languageid ? `data-lang="${renderHtml.prompt.languageid}"` : "";
-      codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col" style="margin-top: 1rem;"><div class="code-actions-wrapper"></div><code ${langdata} class="${langclass}">${renderHtml.prompt.code}</code></pre>`;
+      let codelines = renderHtml.prompt.code.split('\n').length;
+      let btn1 = '<button class="unfold-btn expend-code rounded"><span class="material-symbols-rounded">expand</span></button>';
+      let btn2 = '<button class="fold-btn expend-code rounded hidden"><span class="material-symbols-rounded">compress</span></button>';
+      codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col ${codelines > 10 ? "fold" : ""}" style="margin-top: 1rem;"><div class="code-actions-wrapper">${btn1}${btn2}</div><code ${langdata} class="${langclass}">${renderHtml.prompt.code}</code></pre>`;
     }
     prompthtml = prompthtml.replace("{code}", codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
