@@ -72,6 +72,7 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 }
 
 export class SenseCodeClient implements CodeClient {
+  private _id_token?: string;
   private _username?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
@@ -80,15 +81,19 @@ export class SenseCodeClient implements CodeClient {
   constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public logout(): Promise<void> {
-    this._username = undefined;
-    this._avatar = undefined;
-    this._weaverdKey = undefined;
-    this._refreshToken = undefined;
-    return Promise.resolve();
+  public async logout(): Promise<void> {
+    return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
+      .then((v) => {
+        this._id_token = undefined;
+        this._username = undefined;
+        this._avatar = undefined;
+        this._weaverdKey = undefined;
+        this._refreshToken = undefined;
+      });
   }
 
   public restoreAuth(auth: AuthInfo): Promise<void> {
+    this._id_token = auth.id_token;
     this._username = auth.username;
     this._avatar = auth.avatar;
     this._weaverdKey = auth.weaverdKey;
@@ -140,13 +145,13 @@ export class SenseCodeClient implements CodeClient {
       return Promise.reject();
     }
 
-    let baseUrl = this.getBaseUrl();
+    let baseUrl = this.getAuthBaseUrl();
     let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64url");
     let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
     return Promise.resolve(url);
   }
 
-  private getBaseUrl() {
+  private getAuthBaseUrl() {
     let baseUrl = 'https://signin.sensecore.cn';
     if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.cn")) {
       baseUrl = 'https://signin.sensecore.cn';
@@ -158,7 +163,10 @@ export class SenseCodeClient implements CodeClient {
     return baseUrl;
   }
 
-  private async tokenWeaver(name: string, token: string, refreshToken?: string): Promise<AuthInfo> {
+  private async tokenWeaver(data: any): Promise<AuthInfo> {
+    let decoded: any = jwt_decode(data.id_token);
+    let name = decoded.id_token?.username;
+    let token = Buffer.from(data.access_token).toString('base64');
     let s1 = Buffer.from(`0#${name}#67pnbtbheuJyBZmsx9rz`).toString('base64');
     let s2 = token;
     s1 = s1.split("=")[0];
@@ -176,15 +184,17 @@ export class SenseCodeClient implements CodeClient {
         key += s2[i];
       }
     }
+    this._id_token = data.id_token;
     this._weaverdKey = key;
     this._username = name;
     this._avatar = await this.getUserAvatar();
-    this._refreshToken = refreshToken;
+    this._refreshToken = data.refresh_token;
     return {
+      id_token: data.id_token,
       username: name,
       weaverdKey: key,
       avatar: this._avatar,
-      refreshToken: refreshToken
+      refreshToken: data.refresh_token
     };
   }
 
@@ -204,19 +214,16 @@ export class SenseCodeClient implements CodeClient {
       })
       .then((resp) => {
         if (resp && resp.status === 200) {
-          let decoded: any = jwt_decode(resp.data.id_token);
-          let username = decoded.id_token?.username;
-          let token = Buffer.from(resp.data.access_token).toString('base64');
-          return this.tokenWeaver(username, token, resp.data.refresh_token);
+          return this.tokenWeaver(resp.data);
         } else {
           return Promise.reject();
         }
-      }).catch(() => {
-        return Promise.reject();
+      }).catch((e) => {
+        return Promise.reject(e);
       });
   }
 
-  public async getTokenFromLoginResult(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
+  public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
     if (!query) {
@@ -254,11 +261,7 @@ export class SenseCodeClient implements CodeClient {
         { headers })
         .then((resp) => {
           if (resp && resp.status === 200) {
-            let decoded: any = jwt_decode(resp.data.id_token);
-            let username = decoded.id_token?.username;
-            let token = Buffer.from(resp.data.access_token).toString('base64');
-            this._username = username;
-            return this.tokenWeaver(username, token, resp.data.refresh_token);
+            return this.tokenWeaver(resp.data);
           }
           return Promise.reject();
         }, (err) => {
@@ -352,7 +355,8 @@ export class SenseCodeClient implements CodeClient {
         return Promise.reject();
       }
 
-      let apiUrl = this.getBaseUrl() + "/studio/ams/data/logs";
+      let uri = new URL(this.clientConfig.url);
+      let apiUrl = uri.origin + "/studio/ams/data/logs";
       let date: string = new Date().toUTCString();
       let auth = '';
       if (key) {

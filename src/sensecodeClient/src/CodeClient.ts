@@ -1,6 +1,7 @@
 import { IncomingMessage } from "http";
 
 export interface AuthInfo {
+    id_token: string;
     username: string;
     weaverdKey: string;
     avatar?: string;
@@ -27,7 +28,7 @@ export interface CodeClient {
 
     getAuthUrlLogin(codeVerifier: string): Promise<string>;
 
-    getTokenFromLoginResult(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
+    login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
 
     refreshToken(): Promise<AuthInfo>;
 

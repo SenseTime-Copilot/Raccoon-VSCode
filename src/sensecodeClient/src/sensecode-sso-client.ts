@@ -194,13 +194,14 @@ export class SsoSenseCodeClient implements CodeClient {
     this._username = name;
     this._avatar = await this.getUserAvatar();
     return {
+      id_token: "",
       username: name,
       weaverdKey: key,
       avatar: this._avatar
     };
   }
 
-  public async getTokenFromLoginResult(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
+  public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
     if (!query) {

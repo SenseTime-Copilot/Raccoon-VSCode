@@ -130,9 +130,14 @@ export class SenseCodeEditor extends Disposable {
       })
     );
     context.subscriptions.push(
-      context.secrets.onDidChange((e) => {
+      context.secrets.onDidChange(async (e) => {
         if (e.key === "SenseCode.tokens") {
-          this.showWelcome();
+          let refreshing = this.context.globalState.get("SenseCode.tokenRefreshed");
+          if (refreshing) {
+            this.context.globalState.update("SenseCode.tokenRefreshed", undefined);
+          } else {
+            this.showWelcome();
+          }
         }
       })
     );
@@ -670,7 +675,7 @@ ${data.info.response}
       this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
       return;
     }
-    let el = instruction.prologue.length + instruction.prompt.length + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 4 : 0) + instruction.suffix.length;
+    let el = instruction.prologue.length + instruction.prompt.length + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0) + instruction.suffix.length;
     let maxTokens = sensecodeManager.maxToken() * 0.6;
     if (el > maxTokens) {
       this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });

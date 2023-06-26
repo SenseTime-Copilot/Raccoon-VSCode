@@ -260,7 +260,7 @@ ${promptProcessed}
       let verifier = this.seed;
       this.seed = randomUUID();
       verifier += env.machineId;
-      return client.getTokenFromLoginResult(callbackUrl, verifier).then(async (token) => {
+      return client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (client && token) {
           let tokens = await this.context.secrets.get("SenseCode.tokens");
@@ -279,15 +279,36 @@ ${promptProcessed}
   }
 
   public async logout(clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
-    if (clientName) {
-      client = this.getClient(clientName);
-    }
+    return window.withProgress({
+      location: { viewId: "sensecode.view" }
+    }, async (progress, _cancel) => {
+      let client: CodeClient | undefined = this.getActiveClient();
+      if (clientName) {
+        client = this.getClient(clientName);
+      }
+      if (client) {
+        let label = client.label;
+        await client.logout().then(async () => {
+          progress.report({ increment: 100 });
+          let tokens = await this.context.secrets.get("SenseCode.tokens");
+          let ts: any = JSON.parse(tokens || "{}");
+          ts[label] = undefined;
+          await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
+        }, (err) => {
+          progress.report({ increment: 100 });
+          window.showErrorMessage("Logout failed" + err.message);
+        })
+      }
+    });
+  }
+
+  private async refreshToken(client: CodeClient | undefined) {
     if (client) {
-      client.logout();
+      let auth = await client.refreshToken();
       let tokens = await this.context.secrets.get("SenseCode.tokens");
       let ts: any = JSON.parse(tokens || "{}");
-      ts[client.label] = undefined;
+      ts[client.label] = auth;
+      this.context.globalState.update("SenseCode.tokenRefreshed", true);
       await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
     }
   }
@@ -302,7 +323,7 @@ ${promptProcessed}
         return resp;
       }, async (err) => {
         if (!skipRetry && err.response?.status === 401) {
-          await client?.refreshToken();
+          await this.refreshToken(client);
           return this.getCompletions(prompt, n, maxToken, stopWord, signal, clientName, true);
         }
         throw (err);
@@ -322,7 +343,7 @@ ${promptProcessed}
         return resp;
       }, async (err) => {
         if (!skipRetry && err.response?.status === 401) {
-          await client?.refreshToken();
+          await this.refreshToken(client);
           return this.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal, clientName, true);
         }
         throw (err);

@@ -109,19 +109,19 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
-      const controller = new AbortController();
-      cancel.onCancellationRequested(_e => {
-        controller.abort();
+      let editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      let loggedin = sensecodeManager.isClientLoggedin();
+      if (!loggedin) {
         updateStatusBarItem(
           statusBarItem,
           {
-            text: "$(circle-slash)",
+            text: "$(workspace-untrusted)",
             tooltip: vscode.l10n.t("User cancelled")
           }
         );
-      });
-      let editor = vscode.window.activeTextEditor;
-      if (!editor) {
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !sensecodeManager.autoComplete) {
@@ -155,6 +155,17 @@ export function inlineCompletionProvider(
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
+        const controller = new AbortController();
+        cancel.onCancellationRequested(_e => {
+          controller.abort();
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: "$(circle-slash)",
+              tooltip: vscode.l10n.t("User cancelled")
+            }
+          );
+        });
         let stopToken: string = "<|end|>";
         let requestId = new Date().getTime();
         lastRequest = requestId;
@@ -199,7 +210,7 @@ ${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
             updateStatusBarItem(
               statusBarItem,
               {
-                text: `$(alert)${err.response?.status || ""}`,
+                text: `$(alert)${err.response?.statusText || ""}`,
                 tooltip: new vscode.MarkdownString(errInfo)
               }
             );

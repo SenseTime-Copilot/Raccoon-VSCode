@@ -113,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
-      [{ scheme: "file" }, { scheme: "untitled" }],
+      [{ scheme: "file" }, { scheme: "untitled" }, { scheme: "git" }],
       inlineProvider
     )
   );
@@ -137,7 +137,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
-      [{ scheme: "file" }, { scheme: "untitled" }],
+      [{ scheme: "file" }, { scheme: "untitled" }, { scheme: "git" }],
       new SenseCodeAction())
   );
 

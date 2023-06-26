@@ -577,4 +577,6 @@ export const swords: string[] = [
   "5oqX6K6u5Lit5YWx5b2T5bGA",
   "6L6+6LWW5ZaH5Zib",
   "6Ieq54Sa",
+  "dGVycm9yaXN0",
+  "VGVycm9yaXN0"
 ];
