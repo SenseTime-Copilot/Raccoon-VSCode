@@ -9,16 +9,16 @@ import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
-export let  sensecodeManager: SenseCodeManager;
+export let sensecodeManager: SenseCodeManager;
 export let telemetryReporter: vscode.TelemetryLogger;
 
 class SenseCodeUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    try {
-      sensecodeManager.getTokenFromLoginResult(uri.toString(), vscode.env.machineId);
-    } catch (e: any) {
-      vscode.window.showErrorMessage(e.message);
-    }
+    sensecodeManager.getTokenFromLoginResult(uri.toString()).then((ok) => {
+      if (!ok) {
+        SenseCodeViewProvider.showError("Login failed");
+      }
+    });
   }
 }
 

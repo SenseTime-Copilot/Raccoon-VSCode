@@ -147,7 +147,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let maxLength = sensecodeManager.tokenForPrompt() * 2;
+      let maxLength = sensecodeManager.maxToken() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
       if (codeSnippets.prefix.length === 0 && codeSnippets.suffix.length === 0) {
@@ -155,6 +155,7 @@ export function inlineCompletionProvider(
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
+        let stopToken: string = "<|end|>";
         let requestId = new Date().getTime();
         lastRequest = requestId;
         if (lastRequest !== requestId) {
@@ -171,29 +172,22 @@ export function inlineCompletionProvider(
             }
           );
 
-          let stop: string | undefined = {} = "\nExplanation:";
-          let mt = 64;
+          let mt = 256;
 
           const completionPrompt = {
-            prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
+            prologue: `<|system|>\n<|end|>`,
+            prompt: `<|user|>
+<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
 
-### Instruction:
-Task type: code completion`,
-            prompt: `### Input:
-
-\`\`\`${document.languageId}
-${codeSnippets.prefix}
-\`\`\`
-
-`,
-            suffix: "### Response:\n",
+${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
+            suffix: "<|assistant|>",
           };
 
           data = await sensecodeManager.getCompletions(
             completionPrompt,
             sensecodeManager.candidates,
             mt,
-            stop,
+            stopToken,
             controller.signal);
         } catch (err: any) {
           if (err.message === "canceled") {
@@ -235,12 +229,13 @@ ${codeSnippets.prefix}
           return;
         }
 
+        outlog.debug(data);
+
         // Add the generated code to the inline suggestion list
         let items = new Array<vscode.InlineCompletionItem>();
         let ts = new Date().valueOf();
         let codeArray = data.choices;
         const completions = Array<string>();
-        const completionsBackup = Array<string>();
         for (let i = 0; i < codeArray.length; i++) {
           const completion = codeArray[i];
           let tmpstr: string = completion.text || "";
@@ -250,15 +245,10 @@ ${codeSnippets.prefix}
           if (completions.includes(tmpstr)) {
             continue;
           }
-          if (completion.finish_reason === "stop") {
-            completions.push(tmpstr + "\n");
-          } else {
-            completionsBackup.push(tmpstr);
-          }
+          completions.push(tmpstr);
         }
-        let allCompletions = completions.concat(completionsBackup);
-        for (let i = 0; i < allCompletions.length; i++) {
-          let completion = allCompletions[i].split("\nExplanation")[0];
+        for (let i = 0; i < completions.length; i++) {
+          let completion = completions[i].replace(stopToken, "");
           if (isAtTheMiddleOfLine(position, document)) {
             let currentLine = document?.lineAt(position.line);
             let lineEndPosition = currentLine?.range.end;
@@ -303,7 +293,7 @@ ${codeSnippets.prefix}
                 code: [codeSnippets.prefix, codeSnippets.suffix],
                 prompt: "Please complete the following code"
               },
-              allCompletions, "", i.toString(), ts]
+              completions, "", i.toString(), ts]
           };
           items.push({ insertText, range: replace, command });
         }

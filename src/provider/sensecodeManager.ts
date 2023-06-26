@@ -1,10 +1,12 @@
 import axios from "axios";
-import { ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
-import { ClientConfig, ClientMeta, CodeClient, Prompt, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
+import { env, ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
+import { CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
+import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
 import { outlog } from "../extension";
 import { builtinPrompts, PromptInfo, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
+import { randomUUID } from "crypto";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -16,11 +18,11 @@ const builtinEngines: ClientConfig[] = [
     },
     // eslint-disable-next-line @typescript-eslint/naming-convention
     token_limit: 2048,
-    sensetimeOnly: true
   }
 ];
 
 export class SenseCodeManager {
+  private seed: string = randomUUID();
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
   private isSensetimeEnv: boolean;
@@ -73,8 +75,6 @@ export class SenseCodeManager {
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
-    this.context.globalState.update("tokenPropensity", undefined);
-    this.context.globalState.update("CompleteLine", undefined);
     this.context.globalState.update("delay", undefined);
     this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
@@ -148,25 +148,56 @@ export class SenseCodeManager {
 
   public get prompt(): SenseCodePrompt[] {
     let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
-    let prompts: SenseCodePrompt[] = [...builtinPrompts];
+    let prompts: SenseCodePrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
+        let promptStr = customPrompts[label] as string;
+        let promptProcessed = customPrompts[label] as string;
+        let regex = /{input(:[^}]*)?\}/g;
+        let m;
+        let args: any = {};
+        while ((m = regex.exec(promptStr)) !== null) {
+          if (m.index === regex.lastIndex) {
+            regex.lastIndex++;
+          }
+          let placeholder;
+          if (m.length > 1 && m[1]) {
+            placeholder = m[1].slice(1);
+          }
+          promptProcessed = promptProcessed.replace(m[0], `\{v${m.index}\}`);
+          args[`v${m.index}`] = {
+            type: "text",
+            placeholder
+          };
+        }
         prompts.push({
           label,
           type: PromptType.customPrompt,
-          prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction:
-Answer question: `,
-          prompt: customPrompts[label] as string,
-          suffix: "### Response:\n"
+          prologue: `<|system|>\n<|end|>`,
+          prompt: `<|user|>
+${promptProcessed}
+<|end|>`,
+          suffix: "<|assistant|>",
+          args
         });
       } else {
-        prompts.push({
-          label,
+        let p: SenseCodePrompt = {
+          label: label,
           type: PromptType.customPrompt,
           ...customPrompts[label]
-        });
+        }
+        if (!p.prologue) {
+          p.prologue = `<|system|>\n<|end|>`;
+        }
+        if (!p.suffix) {
+          p.suffix = "<|assistant|>";
+        }
+        prompts.push(p);
+      }
+    }
+    for (let p of prompts) {
+      if (p.args && Object.keys(p.args).length > 0) {
+        p.label += "...";
       }
     }
     return prompts;
@@ -200,34 +231,36 @@ Answer question: `,
     }
   }
 
-  public getAuthUrlLogin(codeVerifier: string, clientName?: string) {
+  public getAuthUrlLogin(clientName?: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getAuthUrlLogin(codeVerifier);
+      let verifier = this.seed;
+      verifier += env.machineId;
+      return client.getAuthUrlLogin(verifier);
     } else {
       return Promise.reject();
     }
   }
 
-  public async getTokenFromLoginResult(callbackUrl: string, codeVerifer: string, clientName?: string): Promise<boolean> {
+  public getTokenFromLoginResult(callbackUrl: string, clientName?: string): Thenable<boolean> {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
-    if (!client) {
-      return false;
-    }
 
-    window.withProgress({
+    return window.withProgress({
       location: { viewId: "sensecode.view" }
     }, async (progress, _cancel) => {
       if (!client) {
-        return Promise.reject();
+        return false;
       }
-      return client.getTokenFromLoginResult(callbackUrl, codeVerifer).then(async (token) => {
+      let verifier = this.seed;
+      this.seed = randomUUID();
+      verifier += env.machineId;
+      return client.getTokenFromLoginResult(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (client && token) {
           let tokens = await this.context.secrets.get("SenseCode.tokens");
@@ -238,40 +271,10 @@ Answer question: `,
         } else {
           return false;
         }
-      });
-    });
-
-    return client.getTokenFromLoginResult(callbackUrl, codeVerifer).then(async (token) => {
-      if (client && token) {
-        let tokens = await this.context.secrets.get("SenseCode.tokens");
-        let ts: any = JSON.parse(tokens || "{}");
-        ts[client.label] = token;
-        await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
-        return true;
-      } else {
-        return false;
-      }
-    });
-  }
-
-  public async refreshToken(clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
-    if (clientName) {
-      client = this.getClient(clientName);
-    }
-    if (!client) {
-      return false;
-    }
-    return client.refreshToken().then(async (token) => {
-      if (client && token) {
-        let tokens = await this.context.secrets.get("SenseCode.tokens");
-        let ts: any = JSON.parse(tokens || "{}");
-        ts[client.label] = token;
-        await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
-        return true;
-      } else {
-        return false;
-      }
+      },
+        (err) => {
+          return false;
+        });
     });
   }
 
@@ -289,23 +292,41 @@ Answer question: `,
     }
   }
 
-  public async getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string) {
+  public async getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string, skipRetry?: boolean): Promise<any> {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getCompletions(prompt, n, maxToken, stopWord, signal);
+      return client.getCompletions(prompt, n, maxToken, stopWord, signal).then((resp) => {
+        return resp;
+      }, async (err) => {
+        if (!skipRetry && err.response?.status === 401) {
+          await client?.refreshToken();
+          return this.getCompletions(prompt, n, maxToken, stopWord, signal, clientName, true);
+        }
+        throw (err);
+      });
+    } else {
+      return Promise.reject(Error("Invalid client handle"));
     }
   }
 
-  public async getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<IncomingMessage> {
+  public async getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string, skipRetry?: boolean): Promise<IncomingMessage> {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal);
+      return client.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal).then((resp) => {
+        return resp;
+      }, async (err) => {
+        if (!skipRetry && err.response?.status === 401) {
+          await client?.refreshToken();
+          return this.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal, clientName, true);
+        }
+        throw (err);
+      });
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
@@ -343,27 +364,6 @@ Answer question: `,
 
   public set candidates(v: number) {
     this.context.globalState.update("Candidates", v);
-  }
-
-  public get tokenPropensity(): number {
-    return this.context.globalState.get("tokenPropensity", 80);
-  }
-
-  public set tokenPropensity(v: number) {
-    this.context.globalState.update("tokenPropensity", v);
-  }
-
-  public tokenForPrompt(clientName?: string): number {
-    let client: CodeClient | undefined = this.getActiveClient();
-    if (clientName) {
-      client = this.getClient(clientName);
-    }
-    if (client) {
-      let mt = client.tokenLimit;
-      let r = this.tokenPropensity;
-      return Math.max(24, Math.floor(mt * r / 100));
-    }
-    return 0;
   }
 
   public maxToken(clientName?: string): number {

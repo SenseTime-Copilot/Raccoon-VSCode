@@ -597,8 +597,8 @@ button.disabled,
 }
 
 #ask-list.pin button {
-    width: 160px;
-    padding: 0.25rem;
+    width: auto;
+    min-width: 160px;
 }
 
 @media (max-width: calc(320px + 0.5rem)) {
@@ -673,6 +673,12 @@ button.disabled,
     mask-size: var(--mask-size-content);
     mask-position: 0 0, 100% 0;
     mask-repeat: no-repeat, no-repeat;
+}
+
+.instruction-label {
+    font-weight: 600;
+    text-decoration: underline 1px wavy var(--badge-background);
+    padding: 0 3px;
 }
 
 .question-element-gnc .pre-code-element::-webkit-scrollbar {

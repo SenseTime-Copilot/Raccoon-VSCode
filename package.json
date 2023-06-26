@@ -9,7 +9,7 @@
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.30.0",
+    "version": "0.40.0",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -75,20 +75,48 @@
                             "oneOf": [
                                 {
                                     "type": "object",
-                                    "description": "%sensecode.config.prompt.item%",
+                                    "description": "%sensecode.config.prompt.advanced%",
                                     "properties": {
                                         "prompt": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "description": "%sensecode.config.prompt.advanced.item%"
                                         },
                                         "args": {
-                                            "type": "object"
+                                            "type": "object",
+                                            "description": "%sensecode.config.prompt.advanced.args%",
+                                            "patternProperties": {
+                                                "^.+$": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "description": "%sensecode.config.prompt.advanced.args.type%",
+                                                            "enum": [
+                                                                "text",
+                                                                "range",
+                                                                "date",
+                                                                "datetime-local",
+                                                                "month",
+                                                                "week",
+                                                                "number",
+                                                                "tel",
+                                                                "url",
+                                                                "email",
+                                                                "color"
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     },
-                                    "required": ["prompt"]
+                                    "required": [
+                                        "prompt"
+                                    ]
                                 },
                                 {
                                     "type": "string",
-                                    "description": "%sensecode.config.prompt.item%"        
+                                    "description": "%sensecode.config.prompt.item%"
                                 }
                             ]
                         }
@@ -217,7 +245,6 @@
         "vscode:prepublish": "webpack --mode production",
         "watch": "webpack --mode development --watch",
         "webpack": "webpack --mode development",
-        "webpack-dev": "webpack --mode development --watch",
         "test-compile": "tsc -p ./"
     },
     "devDependencies": {

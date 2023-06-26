@@ -1,9 +1,8 @@
 import { l10n } from "vscode";
-import { Prompt } from "../sensecodeClient/src";
+import { Prompt } from "../sensecodeClient/src/CodeClient";
 
 export enum PromptType {
   none,
-  codeCompletion = "code completion",
   codeGeneration = "code generation",
   testSampleGeneration = "test sample generation",
   codeLanguageConversion = "code language conversion",
@@ -31,10 +30,8 @@ export enum RenderStatus {
 
 export interface SenseCodePromptHtml {
   status: RenderStatus;
-  type: PromptType;
   html: string;
-  code?: string;
-  languageid?: string;
+  prompt: SenseCodePrompt;
 }
 
 export class PromptInfo {
@@ -47,8 +44,8 @@ export class PromptInfo {
     if (this._prompt.prompt.includes("{code}") && !this._prompt.code) {
       return {
         status: RenderStatus.codeMissing,
-        type: this.type,
-        html: ""
+        html: "",
+        prompt: this._prompt
       }
     }
     if (!this._prompt.prompt.includes("{code}")) {
@@ -57,10 +54,8 @@ export class PromptInfo {
     }
     let renderHtml: SenseCodePromptHtml = {
       status: RenderStatus.resolved,
-      type: this.type,
       html: "",
-      code: this._prompt.code,
-      languageid: this._prompt.languageid
+      prompt: this._prompt
     };
 
     let prompt = this._prompt;
@@ -76,13 +71,13 @@ export class PromptInfo {
     let args = this._prompt.args;
     let prompthtml = prompt.prompt;
     let argData = '';
-    if (args) {
+    if (args && Object.keys(args).length > 0) {
       renderHtml.status = RenderStatus.editRequired;
       for (let argName in args) {
         let arg = args[argName];
         switch (arg.type) {
           case "enum": {
-            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}" onChange="document.getElementById('template-${id}').dataset.${argName} = this.options[this.selectedIndex].text;">`;
+            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}" onChange="document.getElementById('values-${id}').dataset.${argName} = this.options[this.selectedIndex].text;">`;
             for (let v of arg.options) {
               renderElem += `<option value="${v}">${v}</option>`;
             }
@@ -122,7 +117,7 @@ export class PromptInfo {
             for (let argkey in arg) {
               properties += `${argkey}="${arg[argkey]}" `;
             }
-            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><input class="ignoreText" id="${argName}-${id}" ${properties} onChange="document.getElementById('template-${id}').dataset.${argName} = this.value;"/>`;
+            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><input class="ignoreText" id="${argName}-${id}" ${properties} onChange="document.getElementById('values-${id}').dataset.${argName} = this.value;"/></div>`;
             prompthtml = prompthtml.replace(`{${argName}}`, renderElem);
             break;
           }
@@ -130,15 +125,29 @@ export class PromptInfo {
       }
     }
 
+    prompthtml = prompthtml.replace("<|user|>", "");
+    prompthtml = prompthtml.replace("<|end|>", "");
+    let codeHtml = "";
+    if (renderHtml.prompt.code) {
+      let langclass = renderHtml.prompt.languageid ? `language-${renderHtml.prompt.languageid}` : ``;
+      let langdata = renderHtml.prompt.languageid ? `data-lang="${renderHtml.prompt.languageid}"` : "";
+      codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col" style="margin-top: 1rem;"><div class="code-actions-wrapper"></div><code ${langdata} class="${langclass}">${renderHtml.prompt.code}</code></pre>`;
+    }
+    prompthtml = prompthtml.replace("{code}", codeHtml);
+    if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
+    } else {
+      prompthtml = prompthtml.replace("\n### Instruction:\n", "");
+      prompthtml = prompthtml.replace(`${l10n.t("Please provide an explanation at the end")}.`, "");
+      prompthtml = prompthtml.replace(/Task type:[^\.]*./, `<p class="instruction-label">${renderHtml.prompt.label.replace("...", "")}</p>`);
+      prompthtml = prompthtml.replace("\n### Input:\n", "");
+    }
+
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt inline-block leading-loose py-2 w-full editing"  data-label="${this.label}" data-type="${this.type}" data-code="${prompt.code}"  data-languageid="${prompt.languageid}"  data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}
-          <div id="template-${id}" class="values hidden" ${argData}></div>
-        </div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full editing"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     } else {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt inline-block leading-loose py-2 w-full"  data-label="${this.label}" data-type="${this.type}" data-code="${prompt.code}"  data-languageid="${prompt.languageid}"  data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}
-        </div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     }
 
     return renderHtml;
@@ -177,73 +186,58 @@ export const builtinPrompts: SenseCodePrompt[] = [
   {
     label: l10n.t("Generation"),
     type: PromptType.codeGeneration,
-    prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+    prologue: `<|system|>\n<|end|>`,
+    prompt: `<|user|>
 ### Instruction:
-Task type: ${PromptType.codeGeneration}.`,
-    prompt: `
-
+Task type: ${PromptType.codeGeneration}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
-
-\`\`\`{languageid}
 {code}
-\`\`\`
-
-`,
-    suffix: "### Response:\n",
+<|end|>`,
+    suffix: "<|assistant|>",
     brush: true,
-    icon: "process_chart"
+    icon: "gradient"
   },
   {
     label: l10n.t("Add Test"),
     type: PromptType.testSampleGeneration,
-    prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+    prologue: `<|system|>\n<|end|>`,
+    prompt: `<|user|>
 ### Instruction:
-Task type: ${PromptType.testSampleGeneration}. `,
-    prompt: `Generate a set of test cases and corresponding test code for the following code
+Task type: ${PromptType.testSampleGeneration}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
-
-\`\`\`{languageid}
 {code}
-\`\`\`
-
+<|end|>
 `,
-    suffix: "### Response:\n",
+    suffix: "<|assistant|>",
     icon: "science"
   },
   {
     label: l10n.t("Code Conversion"),
     type: PromptType.codeLanguageConversion,
-    prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+    prologue: `<|system|>\n<|end|>`,
+    prompt: `<|user|>
 ### Instruction:
-Task type: ${PromptType.codeLanguageConversion}. `,
-    prompt: `Convert the given code to equivalent {language} code
+Task type: ${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an explanation at the end")}. ${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.
 
 ### Input:
-
-\`\`\`{languageid}
 {code}
-\`\`\`
-
+<|end|>
 `,
-    suffix: "### Response:\n",
+    suffix: "<|assistant|>",
     args: {
       language: {
         type: "enum",
         options: [
           "C",
           "C++",
-          "CUDA C++",
           "C#",
           "Go",
           "Java",
           "JavaScript",
           "Lua",
-          "Object-C++",
+          "Objective-C",
           "PHP",
           "Perl",
           "Python",
@@ -260,40 +254,32 @@ Task type: ${PromptType.codeLanguageConversion}. `,
   {
     label: l10n.t("Code Correction"),
     type: PromptType.codeErrorCorrection,
-    prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+    prologue: `<|system|>\n<|end|>`,
+    prompt: `<|user|>
 ### Instruction:
-Task type: ${PromptType.codeErrorCorrection}. `,
-    prompt: `Identify and correct any errors in the following code snippet
+Task type: ${PromptType.codeErrorCorrection}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
-
-\`\`\`{languageid}
 {code}
-\`\`\`
-
+<|end|>
 `,
-    suffix: "### Response:\n",
+    suffix: "<|assistant|>",
     brush: true,
     icon: "add_task"
   },
   {
     label: l10n.t("Refactoring"),
     type: PromptType.codeRefactoringOptimization,
-    prologue: `Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+    prologue: `<|system|>\n<|end|>`,
+    prompt: `<|user|>
 ### Instruction:
-Task type: ${PromptType.codeRefactoringOptimization}. `,
-    prompt: `Refactor the given code to improve readability, modularity, and maintainability
+Task type: ${PromptType.codeRefactoringOptimization}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
-
-\`\`\`{languageid}
 {code}
-\`\`\`
-
+<|end|>
 `,
-    suffix: "### Response:\n",
+    suffix: "<|assistant|>",
     brush: true,
     icon: "construction"
   }
