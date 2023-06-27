@@ -62,7 +62,7 @@ export class PromptInfo {
     if (argValues) {
       for (let argName in argValues) {
         let arg = argValues[argName];
-        if (argValues && argValues[argName]) {
+        if (argValues && argValues[argName] != undefined) {
           prompt.prompt = prompt.prompt.replace(`{${argName}}`, arg);
         }
       }
@@ -101,7 +101,6 @@ export class PromptInfo {
             let initialValue;
             if (arg.type === "color") {
               initialValue = "#000000";
-              argData += `data-${argName}="${initialValue}" `
             } else if (arg.type === "range") {
               let max = arg.max || 100;
               let min = arg.min || 0;
@@ -109,10 +108,10 @@ export class PromptInfo {
               if (max < min) {
                 initialValue = min;
               }
-              argData += `data-${argName}="${initialValue}" `
             } else {
               initialValue = "";
             }
+            argData += `data-${argName}="${initialValue}" `
             let properties = '';
             for (let argkey in arg) {
               properties += `${argkey}="${arg[argkey]}" `;

@@ -8,6 +8,9 @@
         "type": "git",
         "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
     },
+    "bugs": {
+        "email": "sensecode@sensetime.com"
+    },
     "icon": "media/sensecode-logo.png",
     "version": "0.40.0",
     "preview": true,

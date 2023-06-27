@@ -174,9 +174,7 @@ export class SenseCodeManager {
           label,
           type: PromptType.customPrompt,
           prologue: `<|system|>\n<|end|>`,
-          prompt: `<|user|>
-${promptProcessed}
-<|end|>`,
+          prompt: `<|user|>${promptProcessed}<|end|>`,
           suffix: "<|assistant|>",
           args
         });
