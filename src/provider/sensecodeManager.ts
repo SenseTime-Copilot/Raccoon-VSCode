@@ -4,9 +4,14 @@ import { CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
 import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
 import { outlog } from "../extension";
-import { builtinPrompts, PromptInfo, SenseCodePrompt } from "./promptTemplates";
+import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomUUID } from "crypto";
+
+let clientProxy: any = undefined;
+
+//import { SsoSenseCodeClient } from "./sensecode-sso-client";
+//let clientProxy = new SsoSenseCodeClient();
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -41,7 +46,7 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, clientProxy));
       }
     }
     this.setupClientInfo();
@@ -52,7 +57,7 @@ export class SenseCodeManager {
     let ts: any = JSON.parse(tokens || "{}");
     for (let e of this._clients) {
       if (ts[e.label]) {
-        e.restoreAuth(ts[e.label]);
+        e.restoreAuthInfo(ts[e.label]);
       }
     }
   }
@@ -98,7 +103,7 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, clientProxy));
       }
     }
     await this.setupClientInfo();

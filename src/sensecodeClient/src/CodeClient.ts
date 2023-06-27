@@ -32,7 +32,7 @@ export interface CodeClient {
 
     refreshToken(): Promise<AuthInfo>;
 
-    restoreAuth(auth: AuthInfo): Promise<void>;
+    restoreAuthInfo(auth: AuthInfo): Promise<void>;
 
     logout(): Promise<void>;
 

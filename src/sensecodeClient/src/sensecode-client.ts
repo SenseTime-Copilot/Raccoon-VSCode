@@ -71,14 +71,21 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
   return authorization;
 }
 
+export interface SsoProxy {
+  getAuthUrlLogin(): Promise<string>;
+  login(callbackUrl: string): Promise<AuthInfo>;
+}
+
 export class SenseCodeClient implements CodeClient {
   private _id_token?: string;
   private _username?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
   private _refreshToken?: string;
+  private _proxy?: SsoProxy;
 
-  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
+  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void, proxy?: any) {
+    this._proxy = proxy;
   }
 
   public async logout(): Promise<void> {
@@ -92,7 +99,7 @@ export class SenseCodeClient implements CodeClient {
       });
   }
 
-  public restoreAuth(auth: AuthInfo): Promise<void> {
+  public restoreAuthInfo(auth: AuthInfo): Promise<void> {
     this._id_token = auth.id_token;
     this._username = auth.username;
     this._avatar = auth.avatar;
@@ -141,6 +148,9 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public getAuthUrlLogin(codeVerifier: string): Promise<string> {
+    if (this._proxy) {
+      return this._proxy.getAuthUrlLogin();
+    }
     if (this.clientConfig.key) {
       return Promise.reject();
     }
@@ -224,6 +234,15 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
+    if (this._proxy) {
+      let info = await this._proxy.login(callbackUrl);
+      this._id_token = info.id_token;
+      this._weaverdKey = info.weaverdKey;
+      this._username = info.username;
+      this._avatar = info.avatar;
+      this._refreshToken = info.refreshToken;
+      return Promise.resolve(info);
+    }
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
     if (!query) {
