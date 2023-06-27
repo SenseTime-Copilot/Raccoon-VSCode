@@ -771,7 +771,11 @@ ${data.info.response}
                         data.destroy();
                         return;
                       }
-                      this.sendMessage({ type: 'addResponse', id, value });
+                      let ts;
+                      if (json.created) {
+                        ts = new Date(json.created * 1000).toLocaleString();
+                      }
+                      this.sendMessage({ type: 'addResponse', id, value, timestamp: ts });
                     }
                   }
                 } catch (e) {

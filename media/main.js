@@ -313,8 +313,10 @@ const vscode = acquireVsCodeApi();
                                       ${aiIcon}
                                       <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                         <b class="text-sm">${l10nForUI["SenseCode"]}</b>
-                                        <div class="opacity-30 leading-3">
-                                          ${message.timestamp}
+                                        <div class="response-ts opacity-30 leading-3">
+                                          <span class="material-symbols-rounded">
+                                            more_horiz
+                                          </span>
                                         </div>
                                       </span>
                                     </span>
@@ -451,6 +453,13 @@ const vscode = acquireVsCodeApi();
       case "addResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
         if (chatText?.classList.contains("empty")) {
+          if (message.timestamp) {
+            let r = document.getElementById(`${message.id}`);
+            let rts = r?.getElementsByClassName("response-ts");
+            if (rts && rts[0]) {
+              rts[0].textContent = message.timestamp;
+            }
+          }
           chatText?.classList.remove("empty");
         }
         const progText = document.getElementById(`progress-${message.id}`);
