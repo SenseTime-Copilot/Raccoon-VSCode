@@ -4,7 +4,7 @@ import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
 import * as zlib from "zlib";
-import { CodeClient, AuthInfo, Prompt } from "./CodeClient";
+import { CodeClient, AuthInfo, Prompt, AuthProxy } from "./CodeClient";
 
 export interface ClientMeta {
   clientId: string;
@@ -71,20 +71,13 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
   return authorization;
 }
 
-export interface SsoProxy {
-  getAuthUrlLogin(): Promise<string>;
-  login(callbackUrl: string): Promise<AuthInfo>;
-  refreshToken(): Promise<AuthInfo>;
-  logout(auth: AuthInfo): Promise<void>;
-}
-
 export class SenseCodeClient implements CodeClient {
   private _id_token?: string;
   private _username?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
   private _refreshToken?: string;
-  private _proxy?: SsoProxy;
+  private _proxy?: AuthProxy;
 
   constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void, proxy?: any) {
     this._proxy = proxy;
@@ -214,13 +207,7 @@ export class SenseCodeClient implements CodeClient {
     this._username = name;
     this._avatar = await this.getUserAvatar();
     this._refreshToken = data.refresh_token;
-    return {
-      id_token: data.id_token,
-      username: name,
-      weaverdKey: key,
-      avatar: this._avatar,
-      refreshToken: data.refresh_token
-    };
+    return this.getAuthInfo();
   }
 
   private async loginSenseCore(code: string, codeVerifier: string, authUrl: string): Promise<AuthInfo> {
@@ -272,6 +259,10 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async refreshToken(): Promise<AuthInfo> {
+    if (this._proxy) {
+      let ai: AuthInfo = this.getAuthInfo();
+      return this._proxy.refreshToken(ai);
+    }
     let refreshToken = this._refreshToken;
     if (refreshToken) {
       let baseUrl = 'https://signin.sensecore.cn';
@@ -305,12 +296,31 @@ export class SenseCodeClient implements CodeClient {
     return Promise.reject();
   }
 
+  private getAuthInfo(): AuthInfo {
+    return {
+      id_token: this._id_token || "",
+      username: this._username || "",
+      weaverdKey: this._weaverdKey || "",
+      avatar: this._avatar,
+      refreshToken: this._refreshToken
+    };
+  }
+
   private _postPrompt(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let key = await this.apiKeyRaw();
       let date: string = new Date().toUTCString();
       let auth = '';
-      if (key) {
+      if (this._proxy) {
+        auth = await this._proxy.checkStatus(this.getAuthInfo()).then((v) => {
+          if (!v) {
+            return "XXX";
+          } else {
+            return "";
+          }
+        })
+      }
+      if (key && auth === '') {
         if (key.includes("#")) {
           let aksk = key.split("#");
           auth = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);

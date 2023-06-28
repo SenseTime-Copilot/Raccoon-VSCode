@@ -1,17 +1,12 @@
 import axios from "axios";
-import { env, ExtensionContext, Progress, window, workspace, WorkspaceConfiguration } from "vscode";
-import { CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
+import { env, ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
+import { AuthProxy, CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
 import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
 import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomUUID } from "crypto";
-
-let clientProxy: any = undefined;
-
-//import { SensetimeProxy } from "./ssoProxy";
-//let clientProxy = new SensetimeProxy();
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -37,7 +32,7 @@ export class SenseCodeManager {
     redirectUrl: "vscode://sensetime.sensecode/login"
   };
 
-  constructor(context: ExtensionContext) {
+  constructor(context: ExtensionContext, private readonly proxy?: AuthProxy) {
     this.isSensetimeEnv = false;
     this.context = context;
     this.checkSensetimeEnv();
@@ -46,7 +41,7 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, clientProxy));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, proxy));
       }
     }
     this.setupClientInfo();
@@ -115,7 +110,7 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, clientProxy));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, this.proxy));
       }
     }
     await this.setupClientInfo();
@@ -362,7 +357,11 @@ export class SenseCodeManager {
         return resp;
       }, async (err) => {
         if (!skipRetry && err.response?.status === 401) {
-          await this.refreshToken(client);
+          try {
+            await this.refreshToken(client);
+          } catch (e) {
+
+          }
           return this.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal, clientName, true);
         }
         throw (err);

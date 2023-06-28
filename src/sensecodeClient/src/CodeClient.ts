@@ -42,3 +42,11 @@ export interface CodeClient {
 
     sendTelemetryLog?(_eventName: string, info: Record<string, any>): Promise<void>;
 }
+
+export interface AuthProxy {
+    getAuthUrlLogin(): Promise<string>;
+    login(callbackUrl: string): Promise<AuthInfo>;
+    checkStatus(info: AuthInfo): Promise<boolean>;
+    refreshToken(info: AuthInfo): Promise<AuthInfo>;
+    logout(auth: AuthInfo): Promise<void>;
+}

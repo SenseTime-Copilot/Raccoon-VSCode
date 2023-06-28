@@ -6,6 +6,7 @@ import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCo
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
 import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
+import { AuthProxy } from "./sensecodeClient/src/CodeClient";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -26,7 +27,17 @@ export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
   context.subscriptions.push(outlog);
 
-  sensecodeManager = new SenseCodeManager(context);
+  let proxy: AuthProxy | undefined = undefined;
+  let extensions = vscode.extensions.all;
+  for (let e of extensions) {
+    if (e.id === "SenseTime.sensetimeproxy") {
+      await e.activate().then((apis) => {
+        proxy = apis;
+      })
+    }
+  }
+
+  sensecodeManager = new SenseCodeManager(context, proxy);
   sensecodeManager.update();
 
   const sender: vscode.TelemetrySender = {

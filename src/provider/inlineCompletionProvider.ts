@@ -183,7 +183,7 @@ export function inlineCompletionProvider(
             }
           );
 
-          let mt = 256;
+          let mt = 128;
 
           const completionPrompt = {
             prologue: `<|system|>\n<|end|>`,
