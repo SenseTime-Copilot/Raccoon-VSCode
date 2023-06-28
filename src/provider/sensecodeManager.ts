@@ -1,5 +1,5 @@
 import axios from "axios";
-import { env, ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
+import { env, ExtensionContext, Progress, window, workspace, WorkspaceConfiguration } from "vscode";
 import { CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
 import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
@@ -75,15 +75,28 @@ export class SenseCodeManager {
   }
 
   public clear() {
+    let logoutAct: Promise<void>[] = [];
     for (let e of this._clients) {
-      this.logout(e.label);
+      logoutAct.push(
+        this.doLogout(e).then(() => { }, (err) => {
+          e.restoreAuthInfo({ username: "", avatar: undefined, id_token: "", weaverdKey: "", refreshToken: undefined })
+          outlog.debug(`Logout ${e.label} failed: ${err}`);
+        }));
     }
+    Promise.all(logoutAct).then(() => {
+      this.clearStatusData();
+    }, () => {
+      this.clearStatusData();
+    });
+  }
+
+  private clearStatusData() {
     this.context.globalState.update("privacy", undefined);
     this.context.globalState.update("ActiveClient", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
-    this.context.globalState.update("delay", undefined);
+    this.context.globalState.update("Delay", undefined);
     this.configuration.update("Prompt", undefined, true);
     this.context.secrets.delete("SenseCode.tokens");
   }
@@ -289,18 +302,22 @@ export class SenseCodeManager {
         client = this.getClient(clientName);
       }
       if (client) {
-        let label = client.label;
-        await client.logout().then(async () => {
+        await this.doLogout(client).then(() => {
           progress.report({ increment: 100 });
-          let tokens = await this.context.secrets.get("SenseCode.tokens");
-          let ts: any = JSON.parse(tokens || "{}");
-          ts[label] = undefined;
-          await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
-        }, (err) => {
+        }, (e) => {
           progress.report({ increment: 100 });
-          window.showErrorMessage("Logout failed" + err.message);
-        })
+          window.showErrorMessage("Logout failed: " + e.message);
+        });
       }
+    });
+  }
+
+  private async doLogout(client: CodeClient) {
+    return client.logout().then(async () => {
+      let tokens = await this.context.secrets.get("SenseCode.tokens");
+      let ts: any = JSON.parse(tokens || "{}");
+      ts[client.label] = undefined;
+      await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
     });
   }
 
@@ -401,10 +418,10 @@ export class SenseCodeManager {
   }
 
   public get delay(): number {
-    return this.context.globalState.get("delay", 1);
+    return this.context.globalState.get("Delay", 1);
   }
 
   public set delay(v: number) {
-    this.context.globalState.update("delay", v);
+    this.context.globalState.update("Delay", v);
   }
 }
