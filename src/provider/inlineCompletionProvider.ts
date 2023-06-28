@@ -128,6 +128,11 @@ export function inlineCompletionProvider(
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
+        if (middleOfLineWontComplete(position, document)) {
+          updateStatusBarItem(statusBarItem);
+          return;
+        }
+
         await new Promise((f) => setTimeout(f, (sensecodeManager.delay - 1) * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
@@ -139,11 +144,6 @@ export function inlineCompletionProvider(
 
       if (!editor.selection.isEmpty) {
         vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
-        return;
-      }
-
-      if (middleOfLineWontComplete(position, document)) {
-        updateStatusBarItem(statusBarItem);
         return;
       }
 
@@ -240,8 +240,6 @@ ${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
           return;
         }
 
-        outlog.debug(data);
-
         // Add the generated code to the inline suggestion list
         let items = new Array<vscode.InlineCompletionItem>();
         let ts = new Date().valueOf();
@@ -260,40 +258,8 @@ ${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
         }
         for (let i = 0; i < completions.length; i++) {
           let completion = completions[i].replace(stopToken, "");
-          if (isAtTheMiddleOfLine(position, document)) {
-            let currentLine = document?.lineAt(position.line);
-            let lineEndPosition = currentLine?.range.end;
-            let selectionTrailingString: vscode.Selection;
-
-            selectionTrailingString = new vscode.Selection(
-              position.line,
-              position.character,
-              position.line,
-              lineEndPosition.character + 1
-            );
-            let trailingString = document.getText(
-              selectionTrailingString
-            );
-            completion = removeTrailingCharsByReplacement(
-              completion,
-              trailingString
-            );
-            if (
-              completion.trimEnd().slice(-1) === "{" ||
-              completion.trimEnd().slice(-1) === ";" ||
-              completion.trimEnd().slice(-1) === ":"
-            ) {
-              completion = completion
-                .trimEnd()
-                .substring(0, completion.length - 1);
-            }
-          }
-
           let insertText = completion;
           let replace: vscode.Range | undefined;
-          if (!insertText.trim()) {
-            continue;
-          }
           let command = {
             title: "suggestion-accepted",
             command: "sensecode.onSuggestionAccepted",
@@ -306,6 +272,7 @@ ${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
               },
               completions, "", i.toString(), ts]
           };
+          outlog.debug(insertText);
           items.push({ insertText, range: replace, command });
         }
         if (items.length === 0) {
@@ -326,7 +293,6 @@ ${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
           );
         }
         return cancel.isCancellationRequested ? null : items;
-
       }
     },
   };
