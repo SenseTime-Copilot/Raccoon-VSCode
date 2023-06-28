@@ -75,18 +75,17 @@ export class SenseCodeManager {
   }
 
   public clear() {
+    for (let e of this._clients) {
+      this.logout(e.label);
+    }
     this.context.globalState.update("privacy", undefined);
     this.context.globalState.update("ActiveClient", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
     this.context.globalState.update("delay", undefined);
-    this.configuration.update("Engines", undefined, true);
     this.configuration.update("Prompt", undefined, true);
     this.context.secrets.delete("SenseCode.tokens");
-    for (let e of this._clients) {
-      e.logout();
-    }
   }
 
   public update() {
