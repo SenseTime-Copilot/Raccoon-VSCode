@@ -6,7 +6,7 @@ SenseCode 是基于商汤 SenseCore 大装置 及 SenseNova 日日新大模型�
 
 您可以在 SenseCode 助手 侧边栏视图可见时，点击面板标题栏上的 `齿轮图标` 进入设置页面进行登录。
 
-> 当前为内测阶段，仅对集团内部及商业伙伴可用，个人用户可通过 <sensecode@sensetime.com> 申请加入内测。
+> Sensecode 当前处于对特定企业用户邀约测试阶段，尚未对企业和个人用户全面开放。如您对Sensecode感兴趣，敬请发送邮件至 <sensecode@sensetime.com>，并留下您的企业或个人信息。
 
 ## 编辑器内代码补全
 
