@@ -3,7 +3,7 @@ import jwt_decode from "jwt-decode";
 import { SsoProxy } from "../sensecodeClient/src/sensecode-client";
 import { AuthInfo } from "../sensecodeClient/src/CodeClient";
 
-export class SsoSenseCodeClient implements SsoProxy {
+export class SensetimeProxy implements SsoProxy {
   private async avatar(name: string, token: string): Promise<string | undefined> {
     return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${name}`,
       {
@@ -54,7 +54,7 @@ export class SsoSenseCodeClient implements SsoProxy {
       }
     }
     return {
-      id_token: "",
+      id_token: data,
       username: name,
       weaverdKey: key,
       avatar: await this.avatar(name, "67pnbtbheuJyBZmsx9rz"),
@@ -70,5 +70,13 @@ export class SsoSenseCodeClient implements SsoProxy {
     }
 
     return this.tokenWeaver(query);
+  }
+
+  public refreshToken(): Promise<AuthInfo> {
+    return Promise.reject();
+  }
+
+  public logout(auth: AuthInfo): Promise<void> {
+    return Promise.resolve();
   }
 }

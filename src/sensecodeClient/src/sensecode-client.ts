@@ -74,6 +74,8 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 export interface SsoProxy {
   getAuthUrlLogin(): Promise<string>;
   login(callbackUrl: string): Promise<AuthInfo>;
+  refreshToken(): Promise<AuthInfo>;
+  logout(auth: AuthInfo): Promise<void>;
 }
 
 export class SenseCodeClient implements CodeClient {
@@ -89,8 +91,21 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async logout(): Promise<void> {
+    if (this._proxy) {
+      if (this._id_token) {
+        this._proxy.logout({ id_token: this._id_token || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
+          .then(() => {
+            this._id_token = undefined;
+            this._username = undefined;
+            this._weaverdKey = undefined;
+            this._refreshToken = undefined;
+            this._avatar = undefined;
+          });
+      }
+      return;
+    }
     return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
-      .then((v) => {
+      .then(() => {
         this._id_token = undefined;
         this._username = undefined;
         this._avatar = undefined;

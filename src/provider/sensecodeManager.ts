@@ -10,8 +10,8 @@ import { randomUUID } from "crypto";
 
 let clientProxy: any = undefined;
 
-//import { SsoSenseCodeClient } from "./sensecode-sso-client";
-//let clientProxy = new SsoSenseCodeClient();
+//import { SensetimeProxy } from "./ssoProxy";
+//let clientProxy = new SensetimeProxy();
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -19,10 +19,10 @@ const builtinEngines: ClientConfig[] = [
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
     config: {
       model: "penrose-411",
-      temperature: 0.8
+      temperature: 0.5
     },
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    token_limit: 2048,
+    token_limit: 4096,
   }
 ];
 
