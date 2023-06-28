@@ -77,7 +77,7 @@ const guide = `
 const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
             <span class='material-symbols-rounded'>priority_high</span>
             <div class='inline-block leading-loose'>
-              ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> or <b>set API Key</b> in settings first.", l10n.t("SenseCode"))}
+              ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> in settings first.", l10n.t("SenseCode"))}
             </div>
             <div class="flex grow justify-end">
               <vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>
