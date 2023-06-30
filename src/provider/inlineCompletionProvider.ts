@@ -151,7 +151,7 @@ export function inlineCompletionProvider(
       let maxLength = sensecodeManager.maxToken() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
-      if (codeSnippets.prefix.replace(/\W/g, "").length < 8) {
+      if (codeSnippets.prefix.trim().replace(/[\/\\,?_#@!~$%&*]/g, "").length < 8) {
         updateStatusBarItem(statusBarItem);
         return;
       }
