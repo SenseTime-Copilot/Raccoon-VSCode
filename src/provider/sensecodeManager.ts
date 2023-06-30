@@ -21,6 +21,12 @@ const builtinEngines: ClientConfig[] = [
   }
 ];
 
+export enum CompletionPreferenceType {
+  speedPriority = "Speed Priority",
+  balanced = "Balanced",
+  bestEffort = "Best Effort"
+}
+
 export class SenseCodeManager {
   private seed: string = randomUUID();
   private configuration: WorkspaceConfiguration;
@@ -89,6 +95,7 @@ export class SenseCodeManager {
     this.context.globalState.update("privacy", undefined);
     this.context.globalState.update("ActiveClient", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
+    this.context.globalState.update("CompletionPreference", undefined);
     this.context.globalState.update("StreamResponse", undefined);
     this.context.globalState.update("Candidates", undefined);
     this.context.globalState.update("Delay", undefined);
@@ -388,6 +395,15 @@ export class SenseCodeManager {
   public set autoComplete(v: boolean) {
     this.context.globalState.update("CompletionAutomatically", v);
   }
+
+  public get completionPreference(): CompletionPreferenceType {
+    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.speedPriority);
+  }
+
+  public set completionPreference(v: CompletionPreferenceType) {
+    this.context.globalState.update("CompletionPreference", v);
+  }
+
 
   public get streamResponse(): boolean {
     return this.context.globalState.get("StreamResponse", true);

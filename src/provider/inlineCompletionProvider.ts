@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { sensecodeManager, outlog } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
+import { CompletionPreferenceType } from "./sensecodeManager";
 
 let lastRequest = null;
 
@@ -150,7 +151,7 @@ export function inlineCompletionProvider(
       let maxLength = sensecodeManager.maxToken() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
-      if (codeSnippets.prefix.length === 0 && codeSnippets.suffix.length === 0) {
+      if (codeSnippets.prefix.replace(/\W/g, "").length < 8) {
         updateStatusBarItem(statusBarItem);
         return;
       }
@@ -184,13 +185,24 @@ export function inlineCompletionProvider(
           );
 
           let mt = 128;
+          let lenPreference = sensecodeManager.completionPreference;
+          if (lenPreference === CompletionPreferenceType.balanced) {
+            mt = 256;
+          } else if (lenPreference === CompletionPreferenceType.bestEffort) {
+            // TODO: need max new token
+            mt = sensecodeManager.maxToken();
+          }
 
+          let temp = `${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle>`;
+          if (!codeSnippets.suffix) {
+            temp = `${codeSnippets.prefix}<fim_middle><fim_suffix>`;
+          }
           const completionPrompt = {
             prologue: `<|system|>\n<|end|>`,
             prompt: `<|user|>
 <fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
 
-${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle><|end|>`,
+${temp}<|end|>`,
             suffix: "<|assistant|>",
           };
 

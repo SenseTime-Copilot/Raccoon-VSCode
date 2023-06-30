@@ -4,6 +4,7 @@ import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptT
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
+import { CompletionPreferenceType } from './sensecodeManager';
 
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -213,6 +214,7 @@ export class SenseCodeEditor extends Disposable {
 
   async updateSettingPage(action?: string): Promise<void> {
     let autoComplete = sensecodeManager.autoComplete;
+    let completionPreference = sensecodeManager.completionPreference;
     let streamResponse = sensecodeManager.streamResponse;
     let delay = sensecodeManager.delay;
     let candidates = sensecodeManager.candidates;
@@ -279,7 +281,7 @@ export class SenseCodeEditor extends Disposable {
         <div>
         <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Trigger Mode")}</label>
-          <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
+          <vscode-radio ${autoComplete ? "checked" : ""} class="w-24" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
             ${l10n.t("Auto")}
             <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
               <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" style="margin: -4px 0;" title="${l10n.t("Short delay")}">
@@ -290,7 +292,7 @@ export class SenseCodeEditor extends Disposable {
               </vscode-link>
             </span>
           </vscode-radio>
-          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
+          <vscode-radio ${autoComplete ? "" : "checked"} class="w-24" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
             ${l10n.t("Manual")}
             <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
               <span class="material-symbols-rounded">keyboard</span>
@@ -299,19 +301,37 @@ export class SenseCodeEditor extends Disposable {
         </vscode-radio-group>
         </div>
       </div>
-      <div class="ml-6 my-2">
-        <span>${l10n.t("Suggestion Settings")}</span>
-        <div class="w-64 my-2">
-          <div class="flex flex-row my-2 px-2 gap-2">
-            <span class="material-symbols-rounded mx-1">format_list_numbered</span>
-            ${l10n.t("Candidate Number")}
-            <span id="candidatesBtn" class="flex items-center">
-              <vscode-link style="margin: -4px 0;" title="${l10n.t("Show {0} candidate snippet(s)", candidates)}">
-                <span id="candidates" class="material-symbols-rounded" data-value=${candidates}>${candidates === 1 ? "looks_one" : `filter_${candidates}`}</span>
-              </vscode-link>
-            </span>
-          </div>
-        </div>
+      <div class="ml-4">
+      <div>
+        <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
+          <label slot="label">${l10n.t("Completion Preference")}</label>
+          <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-24" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
+            ${l10n.t("Speed Priority")}
+          </vscode-radio>
+          <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-24" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
+            ${l10n.t("Balanced")}
+          </vscode-radio>
+          <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-24" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
+            ${l10n.t("Best Effort")}
+          </vscode-radio>
+        </vscode-radio-group>
+      </div>
+      </div>
+      <div class="ml-4">
+      <div>
+        <vscode-radio-group id="candidateNumberRadio" class="flex flex-wrap px-2">
+          <label slot="label">${l10n.t("Candidate Number")}</label>
+          <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-24" value="1" title="${l10n.t("Show {0} candidate snippet(s)", 1)}">
+          ${l10n.t("1 candidate")}
+          </vscode-radio>
+          <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-24" value="2" title="${l10n.t("Show {0} candidate snippet(s)", 2)}">
+          ${l10n.t("{0} candidates", 2)}
+          </vscode-radio>
+          <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-24" value="3" title="${l10n.t("Show {0} candidate snippet(s)", 3)}">
+          ${l10n.t("{0} candidates", 3)}
+          </vscode-radio>
+        </vscode-radio-group>
+      </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Code assistant")}</b>
@@ -378,7 +398,7 @@ export class SenseCodeEditor extends Disposable {
         case 'sendQuestion': {
           let ts = new Date();
           let id = ts.valueOf();
-          const editor = this.lastTextEditor;
+          const editor = window.activeTextEditor || this.lastTextEditor;
           let prompt: SenseCodePrompt = data.prompt;
           if (editor && !data.values) {
             prompt.code = editor.document.getText(editor.selection);
@@ -413,30 +433,31 @@ export class SenseCodeEditor extends Disposable {
         }
         case 'editCode': {
           let found = false;
-          let docUri = this.lastTextEditor?.document.uri;
-          if (docUri) {
+          const editor = window.activeTextEditor || this.lastTextEditor;
+          let docUri = editor?.document.uri;
+          if (editor && docUri) {
             let tgs = window.tabGroups.all;
             for (let tg of tgs) {
               for (let t of tg.tabs) {
                 if (t.isActive && (t.input instanceof TabInputText || t.input instanceof TabInputNotebook) && t.input.uri.toString() === docUri.toString()) {
                   found = true;
                   let content: string = data.value;
-                  let start = this.lastTextEditor?.selection.start.line;
-                  this.lastTextEditor?.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
+                  let start = editor.selection.start.line;
+                  editor.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
                     await new Promise((f) => setTimeout(f, 200));
-                    let end = this.lastTextEditor?.selection.anchor.line;
+                    let end = editor.selection.anchor.line;
                     if (start !== undefined && end !== undefined) {
                       let remover = workspace.onDidChangeTextDocument((e) => {
-                        if (e.document.uri.path === this.lastTextEditor?.document.uri.path) {
-                          this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
+                        if (e.document.uri.path === editor.document.uri.path) {
+                          editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
                         }
                       });
-                      this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, [{
+                      editor.setDecorations(SenseCodeEditor.insertDecorationType, [{
                         range: new Range(start, 0, end, 0)
                       }]);
                       setTimeout(() => {
                         remover.dispose();
-                        this.lastTextEditor?.setDecorations(SenseCodeEditor.insertDecorationType, []);
+                        editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
                       }, 5000);
                     }
                   }, () => { });
@@ -483,6 +504,10 @@ export class SenseCodeEditor extends Disposable {
           }
           break;
         }
+        case 'completionPreference': {
+          sensecodeManager.completionPreference = data.value;
+          break;
+        }
         case 'responseMode': {
           if (sensecodeManager.streamResponse !== (data.value === "Streaming")) {
             sensecodeManager.streamResponse = (data.value === "Streaming");
@@ -502,7 +527,6 @@ export class SenseCodeEditor extends Disposable {
             data.value = 1;
           }
           sensecodeManager.candidates = data.value;
-          this.updateSettingPage();
           break;
         }
         case 'clearAll': {
@@ -690,7 +714,8 @@ ${data.info.response}
       try {
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
-          instruction.prompt = instruction.prompt.replace("{code}", `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``);
+          let codeBlock = `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``;
+          instruction.prompt = instruction.prompt.replace("{code}", () => { return codeBlock; });
         } else {
           instruction.prompt = instruction.prompt.replace("{code}", "");
         }
@@ -835,7 +860,8 @@ ${data.info.response}
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
     const avatarUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'sensecode-logo.png'));
 
-    let codeReady = this.lastTextEditor?.selection?.isEmpty === false;
+    const editor = window.activeTextEditor || this.lastTextEditor;
+    let codeReady = editor?.selection?.isEmpty === false;
     return `<!DOCTYPE html>
             <html lang="en">
             <head>

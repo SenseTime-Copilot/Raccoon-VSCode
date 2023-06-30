@@ -31,9 +31,15 @@ export async function activate(context: vscode.ExtensionContext) {
   let extensions = vscode.extensions.all;
   for (let e of extensions) {
     if (e.id === "SenseTime.sensetimeproxy") {
-      await e.activate().then((apis) => {
-        proxy = apis;
-      })
+      if (e.isActive) {
+        proxy = e.exports;
+      } else {
+        await e.activate().then((apis) => {
+          proxy = apis;
+        }, () => {
+          console.log("Activate 'SenseTime.sensetimeproxy' failed");
+        })
+      }
     }
   }
 

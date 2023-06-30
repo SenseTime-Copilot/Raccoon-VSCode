@@ -348,7 +348,7 @@ export class SenseCodeClient implements CodeClient {
         responseType = "stream";
       }
       let payload = {
-        prompt: `${p.prologue}\n${p.prompt}\n${p.suffix}`,
+        prompt: `${p.prologue}\n${p.prompt}\n${p.suffix}\n`,
         ...config
       };
 

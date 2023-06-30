@@ -635,6 +635,10 @@ const vscode = acquireVsCodeApi();
       toggleSubMenuList();
     } else if (e.target.id === "triggerModeRadio") {
       vscode.postMessage({ type: "triggerMode", value: e.target._value });
+    } else if (e.target.id === "candidateNumberRadio") {
+      vscode.postMessage({ type: "candidates", value: parseInt(e.target._value) });
+    } else if (e.target.id === "completionPreferenceRadio") {
+      vscode.postMessage({ type: "completionPreference", value: e.target._value });
     } else if (e.target.id === "responseModeRadio") {
       vscode.postMessage({ type: "responseMode", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
@@ -669,7 +673,7 @@ const vscode = acquireVsCodeApi();
     var search = document.getElementById("search-list");
     if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
       var btns = list.querySelectorAll("button");
-      if (e.code === "Enter") {
+      if (e.key === "Enter") {
         e.preventDefault();
         for (let i = 0; i < btns.length; i++) {
           if (btns[i].classList.contains('selected')) {
@@ -677,7 +681,7 @@ const vscode = acquireVsCodeApi();
             break;
           }
         }
-      } else if (e.code === "ArrowDown") {
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         for (let i = 0; i < btns.length; i++) {
           if (btns[i].classList.contains('selected')) {
@@ -690,7 +694,7 @@ const vscode = acquireVsCodeApi();
             break;
           }
         }
-      } else if (e.code === "ArrowUp") {
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         for (let i = 0; i < btns.length; i++) {
           if (btns[i].classList.contains('selected')) {
@@ -714,12 +718,12 @@ const vscode = acquireVsCodeApi();
           break;
         }
       }
-      if (e.code === "Enter" || e.code === "Space") {
+      if (e.key === "Enter" || e.key === " ") {
         if (curIdx >= 0) {
           e.preventDefault();
           urls[curIdx].checked = !urls[curIdx].checked;
         }
-      } else if (e.code === "ArrowDown") {
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         if (curIdx < 0) {
           curIdx = 0;
@@ -730,7 +734,7 @@ const vscode = acquireVsCodeApi();
             urls[curIdx + 1].classList.add("selected");
           }
         }
-      } else if (e.code === "ArrowUp") {
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         if (curIdx < 0) {
           curIdx = urls.length - 1;
@@ -752,7 +756,7 @@ const vscode = acquireVsCodeApi();
       }
     }
     if (e.target.id === "question-input") {
-      if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.code === "Enter") {
+      if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.key === "Enter") {
         e.preventDefault();
         if (document.getElementById("question").classList.contains("search")) {
           sendSearchQuery(e.target.value.slice(1).trim());
@@ -769,7 +773,7 @@ const vscode = acquireVsCodeApi();
             history: collectHistory()
           });
         }
-      } else if (e.code === "ArrowDown" && document.getElementById("question").classList.contains("history")) {
+      } else if (e.key === "ArrowDown" && document.getElementById("question").classList.contains("history")) {
         e.preventDefault();
         if (historyIdx > 0) {
           historyIdx--;
@@ -789,7 +793,7 @@ const vscode = acquireVsCodeApi();
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
         toggleSubMenuList();
-      } else if (e.code === "ArrowUp") {
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         if (historyIdx < history.length - 1) {
           historyIdx++;
@@ -805,7 +809,7 @@ const vscode = acquireVsCodeApi();
         }
       } else {
         if (document.getElementById("question").classList.contains("history")) {
-          if (e.code !== "Tab") {
+          if (e.key !== "Tab") {
             e.target.value = "";
             document.getElementById("question").classList.remove("search");
           } else {
@@ -822,7 +826,7 @@ const vscode = acquireVsCodeApi();
     }
 
     const promptBox = e.target.closest('.prompt');
-    if (promptBox && e.ctrlKey && e.code === "Enter") {
+    if (promptBox && e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
       document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
       document.getElementById("question-input").disabled = false;
@@ -832,7 +836,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (promptBox && e.code === "Escape") {
+    if (promptBox && e.key === "Escape") {
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
       question.remove();
@@ -842,7 +846,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.ctrlKey && e.code === "Enter") {
+    if (e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
       var readyQuestion = document.getElementsByClassName("replace");
       if (readyQuestion.length > 0) {
@@ -855,7 +859,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.code === "Escape") {
+    if (e.key === "Escape") {
       e.preventDefault();
       var replaceElems = document.getElementsByClassName("replace");
       for (var p of replaceElems) {
@@ -868,12 +872,12 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.code === "Slash") {
+    if (e.key === "/") {
       document.getElementById("question-input").focus();
       return;
     }
 
-    if (e.target.classList.contains("editable") && e.code === "Enter") {
+    if (e.target.classList.contains("editable") && e.key === "Enter") {
       e.preventDefault();
     }
   });
