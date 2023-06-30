@@ -1,5 +1,5 @@
 import axios from "axios";
-import { env, ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
+import { commands, env, ExtensionContext, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
 import { AuthProxy, CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
 import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
@@ -31,7 +31,6 @@ export class SenseCodeManager {
   private seed: string = randomUUID();
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
-  private isSensetimeEnv: boolean;
   private _clients: CodeClient[] = [];
   private static readonly meta: ClientMeta = {
     clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
@@ -39,9 +38,8 @@ export class SenseCodeManager {
   };
 
   constructor(context: ExtensionContext, private readonly proxy?: AuthProxy) {
-    this.isSensetimeEnv = false;
-    this.context = context;
     this.checkSensetimeEnv();
+    this.context = context;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
@@ -66,13 +64,15 @@ export class SenseCodeManager {
   private async checkSensetimeEnv() {
     await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
       if (e.response?.status === 500) {
-        this.isSensetimeEnv = true;
+        window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件，通过 LDAP 账号登录使用", "下载", "取消").then(
+          (v) => {
+            if (v === "下载") {
+              commands.executeCommand('vscode.open', Uri.parse("http://kestrel.sensetime.com/tools/sensetimeproxy-0.40.0.vsix"));
+            }
+          }
+        );
       }
     });
-  }
-
-  public get sensetimeEnv(): boolean {
-    return this.isSensetimeEnv;
   }
 
   public clear() {
@@ -104,7 +104,6 @@ export class SenseCodeManager {
   }
 
   public update() {
-    this.checkSensetimeEnv();
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
   }
 
