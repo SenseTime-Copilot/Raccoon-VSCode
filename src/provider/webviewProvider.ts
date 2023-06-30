@@ -254,7 +254,7 @@ export class SenseCodeEditor extends Disposable {
         `;
 
     let settingPage = `
-    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-sm">
+    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-md">
       <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
       </div>
@@ -281,7 +281,7 @@ export class SenseCodeEditor extends Disposable {
         <div>
         <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Trigger Mode")}</label>
-          <vscode-radio ${autoComplete ? "checked" : ""} class="w-24" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
+          <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
             ${l10n.t("Auto")}
             <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
               <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" style="margin: -4px 0;" title="${l10n.t("Short delay")}">
@@ -292,7 +292,7 @@ export class SenseCodeEditor extends Disposable {
               </vscode-link>
             </span>
           </vscode-radio>
-          <vscode-radio ${autoComplete ? "" : "checked"} class="w-24" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
+          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
             ${l10n.t("Manual")}
             <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
               <span class="material-symbols-rounded">keyboard</span>
@@ -305,13 +305,13 @@ export class SenseCodeEditor extends Disposable {
       <div>
         <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Completion Preference")}</label>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-24" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
+          <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
             ${l10n.t("Speed Priority")}
           </vscode-radio>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-24" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
+          <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
             ${l10n.t("Balanced")}
           </vscode-radio>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-24" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
+          <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
             ${l10n.t("Best Effort")}
           </vscode-radio>
         </vscode-radio-group>
@@ -321,13 +321,13 @@ export class SenseCodeEditor extends Disposable {
       <div>
         <vscode-radio-group id="candidateNumberRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Candidate Number")}</label>
-          <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-24" value="1" title="${l10n.t("Show {0} candidate snippet(s)", 1)}">
+          <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-32" value="1" title="${l10n.t("Show {0} candidate snippet(s)", 1)}">
           ${l10n.t("1 candidate")}
           </vscode-radio>
-          <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-24" value="2" title="${l10n.t("Show {0} candidate snippet(s)", 2)}">
+          <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-32" value="2" title="${l10n.t("Show {0} candidate snippet(s)", 2)}">
           ${l10n.t("{0} candidates", 2)}
           </vscode-radio>
-          <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-24" value="3" title="${l10n.t("Show {0} candidate snippet(s)", 3)}">
+          <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-32" value="3" title="${l10n.t("Show {0} candidate snippet(s)", 3)}">
           ${l10n.t("{0} candidates", 3)}
           </vscode-radio>
         </vscode-radio-group>
