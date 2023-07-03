@@ -27,9 +27,8 @@ const vscode = acquireVsCodeApi();
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
-  const unfoldIcon = `<span class="material-symbols-rounded">expand</span>`;
-  const foldIcon = `<span class="material-symbols-rounded">compress</span>`;
 
+  var isComposing = false;
   var prompts = undefined;
   var history = [];
 
@@ -371,7 +370,7 @@ const vscode = acquireVsCodeApi();
 
         preCodeList.forEach((preCode, index) => {
           preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
-          preCode.classList.forEach((cls, idx, arr) => {
+          preCode.classList.forEach((cls, _idx, _arr) => {
             if (cls.startsWith('language-')) {
               preCode.parentElement.dataset.lang = cls.slice(9);
             }
@@ -537,10 +536,10 @@ const vscode = acquireVsCodeApi();
   };
 
   function collectHistory() {
-    let history = [];
+    let historyList = [];
     const list = document.getElementById("qa-list");
     let qlist = list.querySelectorAll(".question-element-gnc");
-    qlist.forEach((q, idx, arr) => {
+    qlist.forEach((q, _idx, _arr) => {
       let p = undefined;
       let r = undefined;
 
@@ -560,13 +559,13 @@ const vscode = acquireVsCodeApi();
         }
       }
       if (p && r) {
-        history.push({
+        historyList.push({
           question: p,
           answer: r
         });
       }
     });
-    return history;
+    return historyList;
   }
 
   function updateChatBoxStatus(status, id) {
@@ -668,6 +667,18 @@ const vscode = acquireVsCodeApi();
     historyIdx = -1;
   });
 
+  document.addEventListener("compositionstart", (e) => {
+    if (e.target.id === "question-input") {
+      isComposing = true;
+    }
+  });
+
+  document.addEventListener("compositionend", (e) => {
+    if (e.target.id === "question-input") {
+      isComposing = false;
+    }
+  });
+
   document.addEventListener("keydown", (e) => {
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
@@ -756,7 +767,8 @@ const vscode = acquireVsCodeApi();
       }
     }
     if (e.target.id === "question-input") {
-      if (e.target.value.trim() && !e.isComposing && !e.shiftKey && e.key === "Enter") {
+      var composing = e.isComposing || isComposing;
+      if (e.target.value.trim() && !composing && !e.shiftKey && e.key === "Enter") {
         e.preventDefault();
         if (document.getElementById("question").classList.contains("search")) {
           sendSearchQuery(e.target.value.slice(1).trim());

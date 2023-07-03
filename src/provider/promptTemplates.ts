@@ -46,7 +46,7 @@ export class PromptInfo {
         status: RenderStatus.codeMissing,
         html: "",
         prompt: this._prompt
-      }
+      };
     }
     if (!this._prompt.prompt.includes("{code}")) {
       this._prompt.code = undefined;
@@ -62,7 +62,7 @@ export class PromptInfo {
     if (argValues) {
       for (let argName in argValues) {
         let arg = argValues[argName];
-        if (argValues && argValues[argName] != undefined) {
+        if (argValues && argValues[argName] !== undefined) {
           prompt.prompt = prompt.prompt.replace(`{${argName}}`, arg);
         }
       }
@@ -83,7 +83,7 @@ export class PromptInfo {
             }
             renderElem += "</select></div>";
             prompthtml = prompthtml.replace(`{${argName}}`, renderElem);
-            argData += `data-${argName}="${arg.options[0]}" `
+            argData += `data-${argName}="${arg.options[0]}" `;
             break;
           }
           case "button":
@@ -111,7 +111,7 @@ export class PromptInfo {
             } else {
               initialValue = "";
             }
-            argData += `data-${argName}="${initialValue}" `
+            argData += `data-${argName}="${initialValue}" `;
             let properties = '';
             for (let argkey in arg) {
               properties += `${argkey}="${arg[argkey]}" `;
@@ -168,16 +168,16 @@ export class PromptInfo {
     return this._prompt;
   }
 
-  public get codeInfo(): { code: string, languageid: string } | undefined {
+  public get codeInfo(): { code: string; languageid: string } | undefined {
     if (this._prompt.code) {
       return {
         code: this._prompt.code,
         languageid: this._prompt.languageid || ""
-      }
+      };
     }
   }
 
-  public set codeInfo(info: { code: string, languageid: string } | undefined) {
+  public set codeInfo(info: { code: string; languageid: string } | undefined) {
     if (info) {
       this._prompt.code = info.code;
       this._prompt.languageid = info.languageid;

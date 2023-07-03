@@ -1,7 +1,7 @@
 import { IncomingMessage } from "http";
 
 export interface AuthInfo {
-    id_token: string;
+    idToken: string;
     username: string;
     weaverdKey: string;
     avatar?: string;

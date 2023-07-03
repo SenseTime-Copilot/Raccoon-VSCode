@@ -355,11 +355,12 @@ export class SenseCodeEditor extends Disposable {
           <span>${l10n.t("Custom prompt")}</span>
           <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">auto_fix</span></vscode-link>
         </div>
-        <div class="flex flex-row my-2 px-2 gap-2">
-          <span>${l10n.t("Clear all settings")}</span>
-          <vscode-link style="margin: -1px 0;"><span id="clearAll" class="material-symbols-rounded">settings_power</span></vscode-link>
-        </div>
       </div>
+      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+      <vscode-button class="flex flex-row my-2 px-2 gap-2">
+        ${l10n.t("Clear all settings")}
+        <span id="clearAll" slot="start" class="material-symbols-rounded">settings_power</span>
+      </vscode-button>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);padding-bottom: 4rem;"></vscode-divider>
     </div>
     `;
@@ -536,7 +537,7 @@ export class SenseCodeEditor extends Disposable {
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
-                commands.executeCommand("keybindings.editor.resetKeybinding", "sensecode.inlineSuggest.trigger")
+                commands.executeCommand("keybindings.editor.resetKeybinding", "sensecode.inlineSuggest.trigger");
                 sensecodeManager.clear();
               }
             });
@@ -715,7 +716,10 @@ ${data.info.response}
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
           let codeBlock = `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``;
-          instruction.prompt = instruction.prompt.replace("{code}", () => { return codeBlock; });
+          instruction.prompt = instruction.prompt.replace("{code}",
+            () => {
+              return codeBlock;
+            });
         } else {
           instruction.prompt = instruction.prompt.replace("{code}", "");
         }
@@ -796,11 +800,11 @@ ${data.info.response}
                         data.destroy();
                         return;
                       }
-                      let ts;
+                      let ts1;
                       if (json.created) {
-                        ts = new Date(json.created * 1000).toLocaleString();
+                        ts1 = new Date(json.created * 1000).toLocaleString();
                       }
-                      this.sendMessage({ type: 'addResponse', id, value, timestamp: ts });
+                      this.sendMessage({ type: 'addResponse', id, value, timestamp: ts1 });
                     }
                   }
                 } catch (e) {

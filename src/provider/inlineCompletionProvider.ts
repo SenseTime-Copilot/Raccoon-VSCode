@@ -18,87 +18,6 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
   }
 }
 
-function middleOfLineWontComplete(cursorPosition: vscode.Position, document: any) {
-  let currentLine = document?.lineAt(cursorPosition.line);
-  let lineEndPosition = currentLine?.range.end;
-  let selectionTrailingString: vscode.Selection;
-
-  selectionTrailingString = new vscode.Selection(
-    cursorPosition.line,
-    cursorPosition.character,
-    cursorPosition.line,
-    lineEndPosition.character + 1
-  );
-  let trailingString = document.getText(selectionTrailingString);
-  var re = /^[\]\{\}\); \n\r\t\'\"]*$/;
-  if (re.test(trailingString)) {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-function isAtTheMiddleOfLine(cursorPosition: vscode.Position, document: any) {
-  let currentLine = document?.lineAt(cursorPosition.line);
-  let lineEndPosition = currentLine?.range.end;
-  let selectionTrailingString: vscode.Selection;
-
-  selectionTrailingString = new vscode.Selection(
-    cursorPosition.line,
-    cursorPosition.character,
-    cursorPosition.line,
-    lineEndPosition.character + 1
-  );
-  let trailingString = document.getText(selectionTrailingString);
-  let trimmed = trailingString.trim();
-  return trimmed.length !== 0;
-}
-
-function removeTrailingCharsByReplacement(
-  completion: string,
-  replacement: string
-) {
-  for (let ch of replacement) {
-    if (!isBracketBalanced(completion, ch)) {
-      completion = replaceLast(completion, ch, "");
-    }
-  }
-  return completion;
-}
-
-function replaceLast(str: string, toReplace: string, replacement: string) {
-  let pos = str.lastIndexOf(toReplace);
-  if (pos > -1) {
-    return (
-      str.substring(0, pos) +
-      replacement +
-      str.substring(pos + toReplace.length)
-    );
-  } else {
-    return str;
-  }
-}
-
-function isBracketBalanced(str: string, character: string) {
-  let count = 0;
-  for (let ch of str) {
-    if (ch === character) {
-      count++;
-    }
-    if (
-      (character === "{" && ch === "}") ||
-      (character === "[" && ch === "]") ||
-      (character === "(" && ch === ")") ||
-      (character === "}" && ch === "{") ||
-      (character === "]" && ch === "[") ||
-      (character === ")" && ch === "(")
-    ) {
-      count--;
-    }
-  }
-  return count === 0;
-}
-
 export function inlineCompletionProvider(
   extension: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem
@@ -128,12 +47,13 @@ export function inlineCompletionProvider(
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !sensecodeManager.autoComplete) {
         return;
       }
-      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        if (middleOfLineWontComplete(position, document)) {
-          updateStatusBarItem(statusBarItem);
-          return;
-        }
 
+      if (!editor.selection.isEmpty && context.triggerKind !== vscode.InlineCompletionTriggerKind.Automatic) {
+        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
+        return;
+      }
+
+      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
         await new Promise((f) => setTimeout(f, (sensecodeManager.delay - 1) * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
@@ -143,15 +63,24 @@ export function inlineCompletionProvider(
 
       showHideStatusBtn(document, statusBarItem);
 
-      if (!editor.selection.isEmpty) {
-        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
-        return;
-      }
-
       let maxLength = sensecodeManager.maxToken() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
       if (codeSnippets.prefix.trim().replace(/[\/\\,?_#@!~$%&*]/g, "").length < 8) {
+        updateStatusBarItem(statusBarItem);
+        return;
+      }
+
+      const cursorPosition = editor.selection.active;
+      let selectionNextChar = new vscode.Selection(
+        cursorPosition.line,
+        cursorPosition.character,
+        cursorPosition.line,
+        cursorPosition.character + 1
+      );
+      let nextChar = document.getText(selectionNextChar);
+      const checkString = "]}) \n\t'\"";
+      if (!checkString.includes(nextChar)) {
         updateStatusBarItem(statusBarItem);
         return;
       }

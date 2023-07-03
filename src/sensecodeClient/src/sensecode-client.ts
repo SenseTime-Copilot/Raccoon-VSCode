@@ -72,7 +72,7 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 }
 
 export class SenseCodeClient implements CodeClient {
-  private _id_token?: string;
+  private _idToken?: string;
   private _username?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
@@ -85,10 +85,10 @@ export class SenseCodeClient implements CodeClient {
 
   public async logout(): Promise<void> {
     if (this._proxy) {
-      if (this._id_token) {
-        this._proxy.logout({ id_token: this._id_token || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
+      if (this._idToken) {
+        this._proxy.logout({ idToken: this._idToken || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
           .then(() => {
-            this._id_token = undefined;
+            this._idToken = undefined;
             this._username = undefined;
             this._weaverdKey = undefined;
             this._refreshToken = undefined;
@@ -97,9 +97,9 @@ export class SenseCodeClient implements CodeClient {
       }
       return;
     }
-    return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
+    return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._idToken || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
       .then(() => {
-        this._id_token = undefined;
+        this._idToken = undefined;
         this._username = undefined;
         this._avatar = undefined;
         this._weaverdKey = undefined;
@@ -108,7 +108,7 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public restoreAuthInfo(auth: AuthInfo): Promise<void> {
-    this._id_token = auth.id_token;
+    this._idToken = auth.idToken;
     this._username = auth.username;
     this._avatar = auth.avatar;
     this._weaverdKey = auth.weaverdKey;
@@ -202,7 +202,7 @@ export class SenseCodeClient implements CodeClient {
         key += s2[i];
       }
     }
-    this._id_token = data.id_token;
+    this._idToken = data.id_token;
     this._weaverdKey = key;
     this._username = name;
     this._avatar = await this.getUserAvatar();
@@ -238,7 +238,7 @@ export class SenseCodeClient implements CodeClient {
   public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
     if (this._proxy) {
       let info = await this._proxy.login(callbackUrl);
-      this._id_token = info.id_token;
+      this._idToken = info.idToken;
       this._weaverdKey = info.weaverdKey;
       this._username = info.username;
       this._avatar = info.avatar;
@@ -298,7 +298,7 @@ export class SenseCodeClient implements CodeClient {
 
   private getAuthInfo(): AuthInfo {
     return {
-      id_token: this._id_token || "",
+      idToken: this._idToken || "",
       username: this._username || "",
       weaverdKey: this._weaverdKey || "",
       avatar: this._avatar,
@@ -318,7 +318,7 @@ export class SenseCodeClient implements CodeClient {
           } else {
             return "";
           }
-        })
+        });
       }
       if (key && auth === '') {
         if (key.includes("#")) {
@@ -399,7 +399,7 @@ export class SenseCodeClient implements CodeClient {
         return Promise.reject();
       }
 
-      let uri = new URL(this.clientConfig.url);
+      let uri = new URL(cfg.url);
       let apiUrl = uri.origin + "/studio/ams/data/logs";
       let date: string = new Date().toUTCString();
       let auth = '';
@@ -444,7 +444,6 @@ export class SenseCodeClient implements CodeClient {
         }
       ).then(async (res) => {
         if (res?.status === 200) {
-          return;
         } else {
           throw Error();
         }

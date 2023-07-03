@@ -1,5 +1,5 @@
 import axios from "axios";
-import { commands, env, ExtensionContext, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
+import { commands, env, ExtensionContext, extensions, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
 import { AuthProxy, CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
 import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { IncomingMessage } from "http";
@@ -32,20 +32,43 @@ export class SenseCodeManager {
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
   private _clients: CodeClient[] = [];
+  private proxy: AuthProxy | undefined = undefined;
   private static readonly meta: ClientMeta = {
     clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
     redirectUrl: "vscode://sensetime.sensecode/login"
   };
 
-  constructor(context: ExtensionContext, private readonly proxy?: AuthProxy) {
-    this.checkSensetimeEnv();
+  private async getProxy() {
+    let es = extensions.all;
+    for (let e of es) {
+      if (e.id === "SenseTime.sensetimeproxy") {
+        if (e.isActive) {
+          this.proxy = e.exports;
+        } else {
+          await e.activate().then((apis) => {
+            this.proxy = apis;
+          }, () => {
+            console.log("Activate 'SenseTime.sensetimeproxy' failed");
+          });
+        }
+        return;
+      }
+    }
+  }
+
+  constructor(context: ExtensionContext) {
+    extensions.onDidChange(() => {
+      this.getProxy();
+    });
     this.context = context;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    this.getProxy();
+    this.checkSensetimeEnv();
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, proxy));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, this.proxy));
       }
     }
     this.setupClientInfo();
@@ -63,11 +86,14 @@ export class SenseCodeManager {
 
   private async checkSensetimeEnv() {
     await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
-      if (e.response?.status === 500) {
-        window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件，通过 LDAP 账号登录使用", "下载", "取消").then(
+      if (e.response?.status === 500 && !this.proxy) {
+        window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
           (v) => {
             if (v === "下载") {
               commands.executeCommand('vscode.open', Uri.parse("http://kestrel.sensetime.com/tools/sensetimeproxy-0.40.0.vsix"));
+            }
+            if (v === "已安装, 去启用") {
+              commands.executeCommand('workbench.extensions.search', '@installed sensetimeproxy');
             }
           }
         );
@@ -80,7 +106,8 @@ export class SenseCodeManager {
     for (let e of this._clients) {
       logoutAct.push(
         this.doLogout(e).then(() => { }, (err) => {
-          e.restoreAuthInfo({ username: "", avatar: undefined, id_token: "", weaverdKey: "", refreshToken: undefined })
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          e.restoreAuthInfo({ username: "", avatar: undefined, idToken: "", weaverdKey: "", refreshToken: undefined });
           outlog.debug(`Logout ${e.label} failed: ${err}`);
         }));
     }
@@ -201,7 +228,7 @@ export class SenseCodeManager {
           label: label,
           type: PromptType.customPrompt,
           ...customPrompts[label]
-        }
+        };
         if (!p.prologue) {
           p.prologue = `<|system|>\n<|end|>`;
         }
@@ -287,10 +314,9 @@ export class SenseCodeManager {
         } else {
           return false;
         }
-      },
-        (err) => {
-          return false;
-        });
+      }, (_err) => {
+        return false;
+      });
     });
   }
 
@@ -402,7 +428,6 @@ export class SenseCodeManager {
   public set completionPreference(v: CompletionPreferenceType) {
     this.context.globalState.update("CompletionPreference", v);
   }
-
 
   public get streamResponse(): boolean {
     return this.context.globalState.get("StreamResponse", true);
