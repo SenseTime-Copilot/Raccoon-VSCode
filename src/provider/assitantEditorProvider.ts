@@ -4,7 +4,7 @@ import { SenseCodeEditor } from './webviewProvider';
 export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
   public static readonly viewType = "sensecode.editor";
   private static editors: { [key: string]: SenseCodeEditor } = {};
-  private eidtor?: SenseCodeEditor;
+  private editor?: SenseCodeEditor;
   private id?: string;
   constructor(private context: ExtensionContext) {
   }
@@ -23,8 +23,8 @@ export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
         if (this.id) {
           delete SenseCodeEidtorProvider.editors[this.id];
         }
-        if (this.eidtor) {
-          this.eidtor.dispose();
+        if (this.editor) {
+          this.editor.dispose();
         }
       }
     };
@@ -36,10 +36,11 @@ export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
     let id = document.uri.query;
     if (id) {
       this.id = id;
-      this.eidtor = new SenseCodeEditor(this.context, webviewPanel.webview);
-      SenseCodeEidtorProvider.editors[id] = this.eidtor;
+      this.editor = new SenseCodeEditor(this.context, webviewPanel.webview);
+      SenseCodeEidtorProvider.editors[id] = this.editor;
       webviewPanel.onDidDispose((_e) => {
-        delete this.eidtor;
+        this.editor?.dispose();
+        delete this.editor;
       });
     }
   }

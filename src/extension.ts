@@ -48,12 +48,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.openEditor", async () => {
-      let tabs = vscode.window.tabGroups.all;
       let id = new Date().valueOf();
       vscode.commands.executeCommand('vscode.openWith',
         vscode.Uri.parse(`sensecode://sensecode/assistant.sensecode?${id}`),
-        SenseCodeEidtorProvider.viewType,
-        { viewColumn: tabs.length + 1 });
+        SenseCodeEidtorProvider.viewType);
     })
   );
 

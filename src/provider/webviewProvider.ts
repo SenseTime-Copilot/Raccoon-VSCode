@@ -970,6 +970,7 @@ ${data.info.response}
 
 export class SenseCodeViewProvider implements WebviewViewProvider {
   private static eidtor?: SenseCodeEditor;
+  private static webviewView?: WebviewView;
   constructor(private context: ExtensionContext) {
     context.subscriptions.push(
       commands.registerCommand("sensecode.settings", async () => {
@@ -1001,6 +1002,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
+    SenseCodeViewProvider.webviewView = webviewView;
     webviewView.onDidChangeVisibility(() => {
       if (!webviewView.visible) {
         SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
@@ -1008,7 +1010,13 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     });
     webviewView.onDidDispose(() => {
       SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+      SenseCodeViewProvider.eidtor?.dispose();
+      SenseCodeViewProvider.webviewView = undefined;
     });
+  }
+
+  public static isVisible() {
+    return SenseCodeViewProvider.webviewView?.visible;
   }
 
   public static async ask(prompt?: PromptInfo) {

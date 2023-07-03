@@ -1,8 +1,9 @@
 
 import * as vscode from 'vscode';
 import { sensecodeManager } from '../extension';
-import { SenseCodeViewProvider } from './webviewProvider';
+import { SenseCodeEditor, SenseCodeViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, SenseCodePrompt } from "./promptTemplates";
+import { SenseCodeEidtorProvider } from './assitantEditorProvider';
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
@@ -77,7 +78,25 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       if (document.languageId !== "plaintext") {
         prompt.languageid = document.languageId;
       }
-      SenseCodeViewProvider.ask(new PromptInfo(prompt));
+      let editor: SenseCodeEditor | undefined = undefined;
+      let allTabGroups = vscode.window.tabGroups.all;
+      for (let tg of allTabGroups) {
+        for (let tab of tg.tabs) {
+          if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === SenseCodeEidtorProvider.viewType) {
+            if (editor === undefined || tab.group.isActive) {
+              editor = SenseCodeEidtorProvider.getEditor(tab.input.uri);
+
+            }
+          }
+        }
+      }
+      if (editor) {
+        let ts = new Date();
+        let id = ts.valueOf();
+        editor.sendApiRequest(id, new PromptInfo(prompt));
+      } else {
+        SenseCodeViewProvider.ask(new PromptInfo(prompt));
+      }
     }
     return codeAction;
   }

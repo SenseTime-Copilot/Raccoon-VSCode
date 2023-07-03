@@ -66,7 +66,7 @@ export function inlineCompletionProvider(
       let maxLength = sensecodeManager.maxToken() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
-      if (codeSnippets.prefix.trim().replace(/[\/\\,?_#@!~$%&*]/g, "").length < 8) {
+      if (codeSnippets.prefix.trim().replace(/[\/\\,?_#@!~$%&*]/g, "").length < 4) {
         updateStatusBarItem(statusBarItem);
         return;
       }
@@ -214,6 +214,7 @@ ${temp}<|end|>`,
               completions, "", i.toString(), ts]
           };
           outlog.debug(insertText);
+          replace = new vscode.Range(position, position);
           items.push({ insertText, range: replace, command });
         }
         if (items.length === 0) {
