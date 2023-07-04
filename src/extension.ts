@@ -69,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (request, response, error, action, generate_at) => {
+    vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, request, response, error, action, generate_at) => {
       telemetryReporter.logUsage("suggestion-accepted",
         {
           event: "suggestion-accepted",
@@ -82,7 +82,7 @@ export async function activate(context: vscode.ExtensionContext) {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           report_at: new Date().valueOf()
         });
-      if (sensecodeManager.autoComplete) {
+      if (continueFlag && sensecodeManager.autoComplete) {
         setTimeout(() => {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }, 1000);

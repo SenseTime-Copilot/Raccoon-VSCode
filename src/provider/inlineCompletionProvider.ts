@@ -66,7 +66,7 @@ export function inlineCompletionProvider(
       let maxLength = sensecodeManager.maxToken() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
-      if (codeSnippets.prefix.trim().replace(/[\/\\,?_#@!~$%&*]/g, "").length < 4) {
+      if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
         updateStatusBarItem(statusBarItem);
         return;
       }
@@ -183,6 +183,7 @@ ${temp}<|end|>`,
 
         // Add the generated code to the inline suggestion list
         let items = new Array<vscode.InlineCompletionItem>();
+        let continueFlag = new Array<boolean>();
         let ts = new Date().valueOf();
         let codeArray = data.choices;
         const completions = Array<string>();
@@ -195,6 +196,7 @@ ${temp}<|end|>`,
           if (completions.includes(tmpstr)) {
             continue;
           }
+          continueFlag.push(completion.finish_reason === 'length');
           completions.push(tmpstr);
         }
         for (let i = 0; i < completions.length; i++) {
@@ -205,11 +207,13 @@ ${temp}<|end|>`,
             title: "suggestion-accepted",
             command: "sensecode.onSuggestionAccepted",
             arguments: [
+              document.uri,
+              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + insertText.split('\n').length + 1, character: 0 })),
+              continueFlag[i],
               {
                 type: "code completion",
                 language: getDocumentLanguage(document.languageId),
-                code: [codeSnippets.prefix, codeSnippets.suffix],
-                prompt: "Please complete the following code"
+                code: [codeSnippets.prefix, codeSnippets.suffix]
               },
               completions, "", i.toString(), ts]
           };
