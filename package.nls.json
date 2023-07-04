@@ -16,6 +16,7 @@
     "sensecode.view.title": "Assistant",
     "sensecode.command.clear": "Clear chat list",
     "sensecode.command.openEditor": "Open new SenseCode Assistant instance in editor",
+    "sensecode.command.ask": "Ask SenseCode...",
     "sensecode.command.settings": "Settings",
     "sensecode.command.settingsReset": "Reset all settings",
     "sensecode.command.completionTrigger": "Code Inline Completion Trigger",

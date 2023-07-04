@@ -128,6 +128,13 @@
             }
         ],
         "menus": {
+            "editor/context": [
+                {
+                    "command": "sensecode.ask",
+                    "group": "z_commands",
+                    "when": "editorTextFocus"
+                }
+            ],
             "view/title": [
                 {
                     "command": "sensecode.clear",
@@ -174,6 +181,11 @@
                 "enablement": "view == sensecode.view || resourceScheme == sensecode"
             },
             {
+                "command": "sensecode.ask",
+                "category": "SenseCode",
+                "title": "%sensecode.command.ask%"
+            },
+            {
                 "command": "sensecode.settings.reset",
                 "category": "SenseCode",
                 "title": "%sensecode.command.settingsReset%"
@@ -202,6 +214,10 @@
             {
                 "command": "sensecode.inlineSuggest.trigger",
                 "key": "Alt+/"
+            },
+            {
+                "command": "sensecode.ask",
+                "key": "Alt+Q"
             }
         ],
         "icons": {

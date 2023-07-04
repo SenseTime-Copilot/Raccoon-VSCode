@@ -134,6 +134,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(view);
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.ask", () => {
+      SenseCodeViewProvider.ask();
+    })
+  );
+
+  context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       [{ scheme: "file" }, { scheme: "untitled" }, { scheme: "git" }],
       new SenseCodeAction())
