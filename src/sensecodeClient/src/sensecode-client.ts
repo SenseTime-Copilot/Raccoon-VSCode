@@ -85,7 +85,7 @@ export class SenseCodeClient implements CodeClient {
 
   public async logout(): Promise<void> {
     if (this._proxy) {
-      if (this._idToken) {
+      if (this._username) {
         this._proxy.logout({ idToken: this._idToken || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
           .then(() => {
             this._idToken = undefined;
