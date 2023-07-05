@@ -932,14 +932,21 @@ ${data.info.response}
                       <div class="history-hint">
                         <span class="material-symbols-rounded">keyboard_tab</span> Tab ${l10n.t("Edit")}
                       </div>
+                      <div class="history-hint">
+                      <span class="material-symbols-rounded">first_page</span> Esc ${l10n.t("Clear")}
+                      </div>
                       <div id="code-hint" title="${l10n.t("Code atteched")}">
                         <span class="material-symbols-rounded">data_object</span>
                       </div>
                     </div>
                     <label id="question-sizer" data-value
                           data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
-                          data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
                           data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
+                          data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
+                          data-tip="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}",
+                          data-tip1="${l10n.t("Type ? to tigger search")}",
+                          data-tip2="${l10n.t("Press ↑/↓ key to recall history")}",
+                          data-tip3="${l10n.t("Type [Shift + Enter] to start a new line")}"
                     >
                       <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                     </label>

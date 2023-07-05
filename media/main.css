@@ -431,8 +431,13 @@ textarea::placeholder {
 }
 
 #code-hint {
+    display: inline-block;
     flex-grow: 1;
     text-align: end;
+    margin-top: 16px;
+    margin-right: -16px;
+    transition-duration: 0.3s;
+    z-index: 9999;
 }
 
 .history .op-hint .history-hint {
@@ -443,16 +448,15 @@ textarea::placeholder {
 
 .code-ready .op-hint #code-hint {
     display: inline-block;
+    margin: -2px 2px 0 0;
 }
 
 #code-hint span.material-symbols-rounded {
     position: relative;
     background: var(--progress-background);
     color: var(--foreground);
-    border-radius: 1000px 0px 0px 0px;
-    padding: 3px 1px 0px 3px;
-    margin-top: -3px;
-    z-index: 9999;
+    border-radius: 50% 0px 0px 0px;
+    padding: 2px 1px 1px 2px;
 }
 
 #question-sizer:before {
@@ -467,16 +471,12 @@ textarea::placeholder {
 }
 
 #question-sizer[data-value=""]:before {
-    content: attr(data-placeholder);
+    content: "\00a0" attr(data-tip);
 }
 
 #question-sizer[data-value="/"]:before {
-    content: attr(data-hint);
+    content: "\00a0" attr(data-hint);
     margin-left: 1.5ch;
-}
-
-#ask-list.pin+#question>#question-sizer[data-value=""]:before {
-    content: attr(data-placeholder-short);
 }
 
 #ask-list.pin+#question>#question-sizer[data-value="/"]:before {
@@ -503,6 +503,13 @@ textarea::placeholder {
 
 #question button .material-symbols-rounded {
     font-variation-settings: 'opsz' 40;
+    transition-duration: 0.2s;
+    transition-delay: 0.1s;
+    margin-top: -0.5rem;
+}
+
+#question.code-ready button .material-symbols-rounded {
+    margin-top: -0.75rem;
 }
 
 #send-button,
@@ -519,6 +526,7 @@ textarea::placeholder {
 
 .material-symbols-rounded.history-icon {
     display: none;
+    margin-top: -0.2rem;
 }
 
 #question.history .material-symbols-rounded.history-icon {

@@ -31,8 +31,30 @@ const vscode = acquireVsCodeApi();
   var isComposing = false;
   var prompts = undefined;
   var history = [];
+  var tipN = 0;
 
   document.getElementById("question-input").disabled = true;
+
+  var tipShow = setTimeout(showTips, 8000);
+
+  function showTips() {
+    var qs = document.getElementById(`question-sizer`);
+    if (qs && qs.dataset[`tip${tipN}`]) {
+      qs.dataset['tip'] = qs.dataset[`tip${tipN}`];
+    } else {
+      tipN = 0;
+    }
+    if (tipN === 0) {
+      var al = document.getElementById("ask-list");
+      if (al.classList?.contains("pin")) {
+        qs.dataset['tip'] = qs.dataset[`placeholderShort`];
+      } else {
+        qs.dataset['tip'] = qs.dataset[`placeholder`];
+      }
+    }
+    tipN++;
+    tipShow = setTimeout(showTips, 8000);
+  }
 
   collectInfo = function (id, action) {
     var promptNode = document.getElementById(`prompt-${id}`);
