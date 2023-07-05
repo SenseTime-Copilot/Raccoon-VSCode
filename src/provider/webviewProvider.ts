@@ -357,7 +357,7 @@ export class SenseCodeEditor extends Disposable {
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <vscode-button class="flex flex-row my-2 px-2 gap-2">
+      <vscode-button id="clearAll" class="flex flex-row my-2 px-2 gap-2">
         ${l10n.t("Clear all settings")}
         <span id="clearAll" slot="start" class="material-symbols-rounded">settings_power</span>
       </vscode-button>
