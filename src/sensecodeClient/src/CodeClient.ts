@@ -26,6 +26,10 @@ export interface CodeClient {
 
     get tokenLimit(): number;
 
+    set proxy(proxy: AuthProxy | undefined);
+
+    get proxy(): AuthProxy | undefined;
+
     getAuthUrlLogin(codeVerifier: string): Promise<string>;
 
     login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;

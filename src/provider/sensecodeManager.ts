@@ -32,46 +32,57 @@ export class SenseCodeManager {
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
   private _clients: CodeClient[] = [];
-  private proxy: AuthProxy | undefined = undefined;
   private static readonly meta: ClientMeta = {
     clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
     redirectUrl: "vscode://sensetime.sensecode/login"
   };
 
   private async getProxy() {
+    let proxy: AuthProxy | undefined = undefined;
     let es = extensions.all;
     for (let e of es) {
       if (e.id === "SenseTime.sensetimeproxy") {
         if (e.isActive) {
-          this.proxy = e.exports;
+          proxy = e.exports;
         } else {
           await e.activate().then((apis) => {
-            this.proxy = apis;
+            proxy = apis;
           }, () => {
             console.log("Activate 'SenseTime.sensetimeproxy' failed");
           });
         }
-        return;
+        return proxy;
       }
     }
   }
 
   constructor(context: ExtensionContext) {
     extensions.onDidChange(() => {
-      this.getProxy();
+      this.getProxy().then((proxy) => {
+        for (let e of this._clients) {
+          e.proxy = proxy;
+        }
+      });
     });
     this.context = context;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
-    this.getProxy();
-    this.checkSensetimeEnv();
+    this.buildAllClient();
+  }
+
+  private async buildAllClient() {
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, this.proxy));
+        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug));
       }
     }
     this.setupClientInfo();
+    const proxy = await this.getProxy();
+    for (let e_1 of this._clients) {
+      e_1.proxy = proxy;
+    }
+    this.checkSensetimeEnv(proxy);
   }
 
   private async setupClientInfo() {
@@ -84,9 +95,9 @@ export class SenseCodeManager {
     }
   }
 
-  private async checkSensetimeEnv() {
+  private async checkSensetimeEnv(proxy: AuthProxy | undefined) {
     await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
-      if (e.response?.status === 500 && !this.proxy) {
+      if (e.response?.status === 500 && !proxy) {
         window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
           (v) => {
             if (v === "下载") {
@@ -136,17 +147,9 @@ export class SenseCodeManager {
 
   public async updateEngineList() {
     for (let e of this._clients) {
-      e.logout();
+      await e.logout();
     }
-    this._clients = [];
-    let es = this.configuration.get<ClientConfig[]>("Engines", []);
-    es = builtinEngines.concat(es);
-    for (let e of es) {
-      if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug, this.proxy));
-      }
-    }
-    await this.setupClientInfo();
+    return this.buildAllClient();
   }
 
   private getClient(client?: string): CodeClient | undefined {

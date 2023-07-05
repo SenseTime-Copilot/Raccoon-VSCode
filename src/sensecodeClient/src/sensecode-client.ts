@@ -140,6 +140,14 @@ export class SenseCodeClient implements CodeClient {
     return this._avatar;
   }
 
+  public set proxy(proxy: AuthProxy | undefined) {
+    this._proxy = proxy;
+  }
+
+  public get proxy(): AuthProxy | undefined {
+    return this._proxy;
+  }
+
   private async apiKeyRaw(): Promise<string> {
     if (this.clientConfig.key) {
       return Promise.resolve(this.clientConfig.key);
