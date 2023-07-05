@@ -925,17 +925,28 @@ ${data.info.response}
                     <span class="material-symbols-rounded opacity-40 history-icon">
                       history
                     </span>
+                    <div class="op-hint">
+                      <div class="history-hint">
+                        <span class="material-symbols-rounded">keyboard_return</span> Enter ${l10n.t("Send")}
+                      </div>
+                      <div class="history-hint">
+                        <span class="material-symbols-rounded">keyboard_tab</span> Tab ${l10n.t("Edit")}
+                      </div>
+                      <div id="code-hint" title="${l10n.t("Code atteched")}">
+                        <span class="material-symbols-rounded">data_object</span>
+                      </div>
+                    </div>
                     <label id="question-sizer" data-value
                           data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
-                          data-hint="${l10n.t("Pick one prompt to send [Enter]")}"
+                          data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
                           data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
                     >
                       <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                     </label>
-                    <button id="send-button" title="${l10n.t("Send [Enter]")}">
+                    <button id="send-button" title="${l10n.t("Send")} [Enter]">
                       <span class="material-symbols-rounded">send</span>
                     </button>
-                    <button id="stop-button" title="${l10n.t("Stop [Esc]")}">
+                    <button id="stop-button" title="${l10n.t("Stop")} [Esc]">
                       <span class="material-symbols-rounded">stop</span>
                     </button>
                     <button id="search-button" title="${l10n.t("Search [Enter]")}">
@@ -948,9 +959,9 @@ ${data.info.response}
                 const l10nForUI = {
                   "Question": "${l10n.t("Question")}",
                   "SenseCode": "${l10n.t("SenseCode")}",
-                  "Cancel": "${l10n.t("Cancel [Esc]")}",
+                  "Cancel": "${l10n.t("Cancel")}",
                   "Delete": "${l10n.t("Delete this chat entity")}",
-                  "Send": "${l10n.t("Send [Enter]")}",
+                  "Send": "${l10n.t("Send")}",
                   "ToggleWrap": "${l10n.t("Toggle line wrap")}",
                   "Copy": "${l10n.t("Copy to clipboard")}",
                   "Insert": "${l10n.t("Insert the below code at cursor")}",

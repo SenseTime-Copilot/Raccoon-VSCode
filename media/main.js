@@ -197,7 +197,7 @@ const vscode = acquireVsCodeApi();
         if (edit) {
           actionBtns = `
           <div class="-mt-6 ml-1">
-            <button title="${l10nForUI["Cancel"]}" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
+            <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
           </div>`;
         }
 
@@ -232,7 +232,7 @@ const vscode = acquireVsCodeApi();
           `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
             ${questionTitle}
             ${promptInfo.html}
-            ${edit ? `<div class="flex justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]}">${sendIcon}</vscode-button></div>` : ""}
+            ${edit ? `<div class="flex justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Enter]">${sendIcon}</vscode-button></div>` : ""}
           </div>`;
 
         document.getElementById(`question-${id}`).querySelectorAll('pre code').forEach((el) => {
