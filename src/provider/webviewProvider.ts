@@ -242,7 +242,7 @@ export class SenseCodeEditor extends Disposable {
         avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
       }
       loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
-                    <span id="clearKey" class="material-symbols-rounded">logout</span>
+                    <span id="logout" class="material-symbols-rounded">logout</span>
                   </vscode-link>`;
     }
     let accountInfo = `
@@ -485,10 +485,10 @@ export class SenseCodeEditor extends Disposable {
           this.showWelcome();
           break;
         }
-        case 'clearKey': {
+        case 'logout': {
           let ae = sensecodeManager.getActiveClientLabel();
           window.showWarningMessage(
-            l10n.t("Logout & clear API Key for {0} from Secret Storage?", ae),
+            l10n.t("Logout from {0}?", ae),
             { modal: true },
             l10n.t("OK"))
             .then((v) => {
@@ -533,7 +533,7 @@ export class SenseCodeEditor extends Disposable {
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
-            { modal: true, detail: l10n.t("It will clear all settings, includes API Keys.") },
+            { modal: true, detail: l10n.t("It will clear all settings, and log out all your accounts.") },
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
@@ -682,7 +682,7 @@ ${data.info.response}
     let loggedin = sensecodeManager.isClientLoggedin();
     if (!loggedin) {
       //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
-      this.sendMessage({ type: 'showError', category: 'key-not-set', value: l10n.t("API Key not set"), id });
+      this.sendMessage({ type: 'showError', category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
     }
 

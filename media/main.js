@@ -954,8 +954,8 @@ const vscode = acquireVsCodeApi();
       document.getElementById("question-input").focus();
     }
 
-    if (e.target.id === "clearKey") {
-      vscode.postMessage({ type: "clearKey" });
+    if (e.target.id === "logout") {
+      vscode.postMessage({ type: "logout" });
       return;
     }
 
