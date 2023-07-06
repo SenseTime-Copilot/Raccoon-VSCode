@@ -299,13 +299,13 @@ const vscode = acquireVsCodeApi();
                         <div class="spinner thinking">
                             <span class="material-symbols-rounded">autorenew</span>
                         </div>
-                        <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
+                        <div class="thinking-text" style="height: 1.6em;">${l10nForUI["Thinking..."]}</div>
                       </span>
                       <button class="stopGenerate flex items-center" data-id=${id}>
                         <span class="material-symbols-rounded">
                           stop_circle
                         </span>
-                        <p class="mx-1">${l10nForUI["Stop responding"]}</p>
+                        <p class="mx-1" style="height: 1.6em;">${l10nForUI["Stop responding"]}</p>
                       </button>
                     </div>`;
             if (message.streaming === true) {
@@ -315,17 +315,17 @@ const vscode = acquireVsCodeApi();
                 <div class="spinner connecting">
                   <span class="material-symbols-rounded">autorenew</span>
                 </div>
-                <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
+                <div class="connecting-text" style="height: 1.6em;">${l10nForUI["Connecting..."]}</div>
                 <div class="spinner typing">
                   <span class="material-symbols-rounded">magic_exchange</span>
                 </div>
-                <div class="typing-text">${l10nForUI["Typing..."]}</div>
+                <div class="typing-text" style="height: 1.6em;">${l10nForUI["Typing..."]}</div>
               </span>
               <button class="stopGenerate flex items-center" data-id=${id}>
                 <span class="material-symbols-rounded">
                   stop_circle
                 </span>
-                <p class="mx-1">${l10nForUI["Stop responding"]}</p>
+                <p class="mx-1" style="height: 1.6em;">${l10nForUI["Stop responding"]}</p>
               </button>
             </div>`;
             }
@@ -367,7 +367,7 @@ const vscode = acquireVsCodeApi();
                                         <span class="material-symbols-rounded">
                                           refresh
                                         </span>
-                                        <p class="mx-1">${l10nForUI["Regenerate"]}</p>
+                                        <p class="mx-1" style="height: 1.6em;">${l10nForUI["Regenerate"]}</p>
                                       </button>
                                     </span>
                                   </div>`;
@@ -790,8 +790,11 @@ const vscode = acquireVsCodeApi();
     }
     if (e.target.id === "question-input") {
       var composing = e.isComposing || isComposing;
-      if (e.target.value.trim() && !composing && !e.shiftKey && e.key === "Enter") {
+      if (!composing && !e.shiftKey && e.key === "Enter") {
         e.preventDefault();
+        if (!e.target.value.trim()) {
+          return;
+        }
         if (document.getElementById("question").classList.contains("search")) {
           sendSearchQuery(e.target.value.slice(1).trim());
         } else {
