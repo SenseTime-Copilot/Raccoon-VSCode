@@ -47,6 +47,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.help", async () => {
+      vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`vscode:extension/${context.extension.id}`));
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.openEditor", async () => {
       let id = new Date().valueOf();
       vscode.commands.executeCommand('vscode.openWith',

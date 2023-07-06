@@ -138,29 +138,34 @@
             "view/title": [
                 {
                     "command": "sensecode.clear",
-                    "group": "navigation@0",
-                    "when": "view == sensecode.view"
-                },
-                {
-                    "command": "sensecode.openEditor",
                     "group": "navigation@1",
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.settings",
+                    "command": "sensecode.openEditor",
                     "group": "navigation@2",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.help",
+                    "group": "navigation@3",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.settings",
+                    "group": "navigation@4",
                     "when": "view == sensecode.view"
                 }
             ],
             "editor/title": [
                 {
                     "command": "sensecode.clear",
-                    "group": "navigation@0",
+                    "group": "navigation@1",
                     "when": "resourceScheme == sensecode"
                 },
                 {
                     "command": "sensecode.openEditor",
-                    "group": "navigation@1",
+                    "group": "navigation@2",
                     "when": "resourceScheme == sensecode"
                 }
             ]
@@ -171,6 +176,13 @@
                 "category": "SenseCode",
                 "title": "%sensecode.command.settings%",
                 "icon": "$(gear)",
+                "enablement": "view == sensecode.view"
+            },
+            {
+                "command": "sensecode.help",
+                "category": "SenseCode",
+                "title": "%sensecode.command.help%",
+                "icon": "$(book)",
                 "enablement": "view == sensecode.view"
             },
             {

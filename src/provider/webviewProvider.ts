@@ -66,13 +66,6 @@ const guide = `
             <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
       </li>
       </ol>
-      <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-      <span class="material-symbols-rounded">question_mark</span>
-      <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
-      <div class="flex grow justify-end">
-        <vscode-link href="vscode:extension/sensetime.sensecode"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
-      </div>
-      </div>
       `;
 
 const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
@@ -193,9 +186,17 @@ export class SenseCodeEditor extends Disposable {
   private showWelcome(full?: boolean) {
     sensecodeManager.update();
     this.sendMessage({ type: 'updateSettingPage', action: "close" });
+    let helpLink = `
+    <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+      <span class="material-symbols-rounded">question_mark</span>
+      <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
+      <div class="flex grow justify-end">
+        <vscode-link href="vscode:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+      </div>
+    </div>`;
     let ts = new Date();
     let timestamp = ts.toLocaleString();
-    let detail = full ? guide : '';
+    let detail = full ? (guide + helpLink) : '';
     let name = sensecodeManager.username();
     let category = "welcome" + (full ? "-full" : "");
     let username = '';
@@ -943,10 +944,11 @@ ${data.info.response}
                           data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
                           data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
                           data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
-                          data-tip="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}",
-                          data-tip1="${l10n.t("Type ? to tigger search")}",
-                          data-tip2="${l10n.t("Press ↑/↓ key to recall history")}",
+                          data-tip="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
+                          data-tip1="${l10n.t("Type ? to tigger search")}"
+                          data-tip2="${l10n.t("Press ↑/↓ key to recall history")}"
                           data-tip3="${l10n.t("Type [Shift + Enter] to start a new line")}"
+                          data-tip4="${l10n.t("Clear button can be found on the top of this view")}"
                     >
                       <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                     </label>

@@ -32,10 +32,6 @@ export class SenseCodeManager {
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
   private _clients: CodeClient[] = [];
-  private static readonly meta: ClientMeta = {
-    clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
-    redirectUrl: "vscode://sensetime.sensecode/login"
-  };
 
   private async getProxy() {
     let proxy: AuthProxy | undefined = undefined;
@@ -70,11 +66,15 @@ export class SenseCodeManager {
   }
 
   private async buildAllClient() {
+    let meta: ClientMeta = {
+      clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
+      redirectUrl: `vscode://${this.context.extension.id.toLowerCase()}/login`
+    };
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(SenseCodeManager.meta, e, outlog.debug));
+        this._clients.push(new SenseCodeClient(meta, e, outlog.debug));
       }
     }
     this.setupClientInfo();
