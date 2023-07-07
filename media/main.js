@@ -789,6 +789,10 @@ const vscode = acquireVsCodeApi();
       }
     }
     if (e.target.id === "question-input") {
+      if (e.key === "PageUp") {
+        e.preventDefault();
+        return;
+      }
       var composing = e.isComposing || isComposing;
       if (!composing && !e.shiftKey && e.key === "Enter") {
         e.preventDefault();
@@ -830,7 +834,7 @@ const vscode = acquireVsCodeApi();
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
         toggleSubMenuList();
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp" && !document.getElementById("question-sizer").dataset.value) {
         e.preventDefault();
         if (historyIdx < history.length - 1) {
           historyIdx++;
@@ -848,6 +852,7 @@ const vscode = acquireVsCodeApi();
         if (document.getElementById("question").classList.contains("history")) {
           if (e.key !== "Tab") {
             e.target.value = "";
+            document.getElementById("question-sizer").dataset.value = "";
             document.getElementById("question").classList.remove("search");
           } else {
             e.preventDefault();
