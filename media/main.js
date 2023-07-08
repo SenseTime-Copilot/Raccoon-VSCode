@@ -789,7 +789,7 @@ const vscode = acquireVsCodeApi();
       }
     }
     if (e.target.id === "question-input") {
-      if (e.key === "PageUp") {
+      if (e.key === "PageUp" || e.key === "PageDown") {
         e.preventDefault();
         return;
       }

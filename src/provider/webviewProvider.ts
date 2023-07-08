@@ -931,7 +931,7 @@ ${data.info.response}
                         <span class="material-symbols-rounded">keyboard_return</span> Enter ${l10n.t("Send")}
                       </div>
                       <div class="history-hint">
-                        <span class="material-symbols-rounded">keyboard_tab</span> Tab ${l10n.t("Edit")}
+                        <span class="material-symbols-rounded">keyboard_tab</span> Tab ${l10n.t("Revise")}
                       </div>
                       <div class="history-hint">
                       <span class="material-symbols-rounded">first_page</span> Esc ${l10n.t("Clear")}
