@@ -102,7 +102,7 @@ export class SenseCodeManager {
         window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
           (v) => {
             if (v === "下载") {
-              commands.executeCommand('vscode.open', Uri.parse("http://kestrel.sensetime.com/tools/sensetimeproxy-0.40.0.vsix"));
+              commands.executeCommand('vscode.open', Uri.parse("http://kestrel.sensetime.com/tools/sensetimeproxy-0.40.11.vsix"));
             }
             if (v === "已安装, 去启用") {
               commands.executeCommand('workbench.extensions.search', '@installed sensetimeproxy');
