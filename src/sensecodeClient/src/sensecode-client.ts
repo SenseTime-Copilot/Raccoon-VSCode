@@ -116,6 +116,15 @@ export class SenseCodeClient implements CodeClient {
     return Promise.resolve();
   }
 
+  public clearAuthInfo(): Promise<void> {
+    this._idToken = undefined;
+    this._username = undefined;
+    this._avatar = undefined;
+    this._weaverdKey = undefined;
+    this._refreshToken = undefined;
+    return Promise.resolve();
+  }
+
   public get state(): string {
     return crypto.createHash('sha256').update(this._weaverdKey || "").digest("base64");
   }

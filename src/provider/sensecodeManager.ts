@@ -79,8 +79,8 @@ export class SenseCodeManager {
     }
     this.setupClientInfo();
     const proxy = await this.getProxy();
-    for (let e_1 of this._clients) {
-      e_1.proxy = proxy;
+    for (let e1 of this._clients) {
+      e1.proxy = proxy;
     }
     this.checkSensetimeEnv(proxy);
   }
@@ -118,7 +118,7 @@ export class SenseCodeManager {
       logoutAct.push(
         this.doLogout(e).then(() => { }, (err) => {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          e.restoreAuthInfo({ username: "", avatar: undefined, idToken: "", weaverdKey: "", refreshToken: undefined });
+          e.clearAuthInfo();
           outlog.debug(`Logout ${e.label} failed: ${err}`);
         }));
     }

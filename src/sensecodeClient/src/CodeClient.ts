@@ -38,13 +38,15 @@ export interface CodeClient {
 
     restoreAuthInfo(auth: AuthInfo): Promise<void>;
 
+    clearAuthInfo(): Promise<void>;
+
     logout(): Promise<void>;
 
     getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any>;
 
     getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage>;
 
-    sendTelemetryLog?(_eventName: string, info: Record<string, any>): Promise<void>;
+    sendTelemetryLog?(eventName: string, info: Record<string, any>): Promise<void>;
 }
 
 export interface AuthProxy {

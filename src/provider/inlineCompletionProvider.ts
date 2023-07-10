@@ -189,26 +189,32 @@ ${temp}<|end|>`,
         const completions = Array<string>();
         for (let i = 0; i < codeArray.length; i++) {
           const completion = codeArray[i];
-          let tmpstr: string = completion.text || "";
+          let tmpstr: string = completion.text.replace(stopToken, "") || "";
           if (!tmpstr.trim()) {
+            outlog.debug('[Ignore: Empty Suggestion]: ' + completion.text);
             continue;
           }
           if (completions.includes(tmpstr)) {
+            outlog.debug('[Ignore: Duplicated Suggestion]: ' + completion.text);
             continue;
           }
-          continueFlag.push(completion.finish_reason === 'length');
+          if (completion.finish_reason === 'length') {
+            continueFlag.push(true);
+            outlog.debug('[Accept: Truncated Suggestion]: ' + completion.text);
+          } else {
+            continueFlag.push(false);
+            outlog.debug('[Accept: Completed Suggestion]: ' + completion.text);
+          }
           completions.push(tmpstr);
         }
         for (let i = 0; i < completions.length; i++) {
-          let completion = completions[i].replace(stopToken, "");
-          let insertText = completion;
-          let replace: vscode.Range | undefined;
+          let completion = completions[i];
           let command = {
             title: "suggestion-accepted",
             command: "sensecode.onSuggestionAccepted",
             arguments: [
               document.uri,
-              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + insertText.split('\n').length + 1, character: 0 })),
+              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length + 1, character: 0 })),
               continueFlag[i],
               {
                 type: "code completion",
@@ -217,9 +223,7 @@ ${temp}<|end|>`,
               },
               completions, "", i.toString(), ts]
           };
-          outlog.debug(insertText);
-          replace = new vscode.Range(position, position);
-          items.push({ insertText, range: replace, command });
+          items.push({ insertText: completion, command });
         }
         if (items.length === 0) {
           updateStatusBarItem(
