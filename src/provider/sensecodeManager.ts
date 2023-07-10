@@ -72,6 +72,7 @@ export class SenseCodeManager {
     };
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
+    this._clients = [];
     for (let e of es) {
       if (e.label && e.url) {
         this._clients.push(new SenseCodeClient(meta, e, outlog.debug));
