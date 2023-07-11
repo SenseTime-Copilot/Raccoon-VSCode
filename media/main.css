@@ -354,6 +354,7 @@ textarea::placeholder {
     grid-area: 2/1;
     outline: none;
     cursor: text;
+    max-height: 30vh;
 }
 
 #question.history #question-input {
@@ -499,6 +500,8 @@ textarea::placeholder {
     appearance: none;
     border: none;
     grid-area: 2/1;
+    max-height: 30vh;
+    overflow: hidden;
 }
 
 #question button .material-symbols-rounded {

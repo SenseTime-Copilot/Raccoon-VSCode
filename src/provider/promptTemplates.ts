@@ -133,7 +133,7 @@ export class PromptInfo {
       let codelines = renderHtml.prompt.code.split('\n').length;
       let btn1 = '<button class="unfold-btn expend-code rounded"><span class="material-symbols-rounded">expand</span></button>';
       let btn2 = '<button class="fold-btn expend-code rounded hidden"><span class="material-symbols-rounded">compress</span></button>';
-      let btns = `${btn1}${btn2}`
+      let btns = `${btn1}${btn2}`;
       let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;");
       codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col ${codelines > 10 ? "fold" : ""}" style="margin-top: 1rem;"><div class="code-actions-wrapper">${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
