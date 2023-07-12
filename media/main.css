@@ -430,6 +430,7 @@ textarea::placeholder {
 
 #code-hint {
     display: inline-block;
+    cursor: pointer;
     flex-grow: 1;
     text-align: end;
     transition-duration: 0.3s;

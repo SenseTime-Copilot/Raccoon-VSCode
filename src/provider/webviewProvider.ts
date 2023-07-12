@@ -170,9 +170,10 @@ export class SenseCodeEditor extends Disposable {
       window.onDidChangeTextEditorSelection(e => {
         if (this.isSupportedScheme(e.textEditor.document)) {
           if (e.selections[0]) {
-            let text = e.textEditor.document.getText(e.selections[0]);
+            let doc = e.textEditor.document;
+            let text = doc.getText(e.selections[0]);
             if (text.trim()) {
-              this.sendMessage({ type: 'codeReady', value: true });
+              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: e.selections[0] });
               return;
             }
           }
@@ -387,6 +388,10 @@ export class SenseCodeEditor extends Disposable {
         }
         case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
+          break;
+        }
+        case 'openDoc': {
+          commands.executeCommand("vscode.open", Uri.parse(data.file));
           break;
         }
         case 'searchQuery': {
@@ -936,7 +941,7 @@ ${data.info.response}
                       <div class="history-hint">
                       <span class="material-symbols-rounded">first_page</span> Esc ${l10n.t("Clear")}
                       </div>
-                      <div id="code-hint" title="${l10n.t("Code atteched")}">
+                      <div id="code-hint" title="${l10n.t("Code attached")}">
                         <span class="material-symbols-rounded">data_object</span>
                       </div>
                     </div>

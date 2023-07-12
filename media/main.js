@@ -134,10 +134,32 @@ const vscode = acquireVsCodeApi();
       }
       case 'codeReady': {
         if (message.value) {
-          document.getElementById("question").classList.add("code-ready");
+          var hint = document.getElementById("code-hint");
+          var hasTag = document.getElementById("question").classList.contains("code-ready");
+          var sameFile = (message.file === hint.dataset['file']);
+          var needAnimate = (hasTag && !sameFile);
+          hint.dataset['file'] = message.file;
+          if (needAnimate) {
+            document.getElementById("question").classList.remove("code-ready");
+            void document.getElementById("question").offsetHeight;
+            setTimeout(() => {
+              hint.onclick = (_event) => {
+                vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
+              };
+              document.getElementById("question").classList.add("code-ready");
+            }, 300);
+          } else {
+            hint.onclick = (_event) => {
+              vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
+            };
+            document.getElementById("question").classList.add("code-ready");
+          }
         } else {
           document.getElementById("question").classList.remove("code-ready");
+          hint.dataset['file'] = undefined;
+          hint.onclick = undefined;
         }
+        break;
       }
       case "updateSettingPage": {
         var settings = document.getElementById('settings');
