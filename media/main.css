@@ -426,18 +426,15 @@ textarea::placeholder {
 .history-hint,
 #code-hint {
     display: none;
-    padding-bottom: 0.125rem;
-    left: 0px;
-    bottom: 0px;
 }
 
 #code-hint {
     display: inline-block;
     flex-grow: 1;
     text-align: end;
-    margin-top: 16px;
-    margin-right: -16px;
     transition-duration: 0.3s;
+    transform: scale(0);
+    transform-origin: bottom right;
     z-index: 9999;
 }
 
@@ -447,9 +444,9 @@ textarea::placeholder {
     grid-gap: 0.1rem;
 }
 
-.code-ready .op-hint #code-hint {
+.code-ready:not(.search) .op-hint #code-hint {
     display: inline-block;
-    margin: -2px 2px 0 0;
+    transform: none;
 }
 
 #code-hint span.material-symbols-rounded {
@@ -511,7 +508,7 @@ textarea::placeholder {
     margin-top: -0.5rem;
 }
 
-#question.code-ready button .material-symbols-rounded {
+#question.code-ready:not(.search) button .material-symbols-rounded {
     margin-top: -0.75rem;
 }
 

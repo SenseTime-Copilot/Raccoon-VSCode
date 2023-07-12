@@ -834,7 +834,7 @@ const vscode = acquireVsCodeApi();
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
         toggleSubMenuList();
-      } else if (e.key === "ArrowUp" && !document.getElementById("question-sizer").dataset.value) {
+      } else if (e.key === "ArrowUp" && (historyIdx >= 0 || !document.getElementById("question-sizer").dataset.value)) {
         e.preventDefault();
         if (historyIdx < history.length - 1) {
           historyIdx++;
