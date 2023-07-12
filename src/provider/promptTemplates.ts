@@ -69,7 +69,10 @@ export class PromptInfo {
     }
 
     let args = this._prompt.args;
-    let prompthtml = prompt.prompt;
+    let prompthtml =  prompt.prompt;
+    prompthtml = prompthtml.replace("<|user|>", "");
+    prompthtml = prompthtml.replace("<|end|>", "");
+    prompthtml = prompthtml.replace(/</g, "&lt;");
     let argData = '';
     if (args && Object.keys(args).length > 0) {
       renderHtml.status = RenderStatus.editRequired;
@@ -124,8 +127,6 @@ export class PromptInfo {
       }
     }
 
-    prompthtml = prompthtml.replace("<|user|>", "");
-    prompthtml = prompthtml.replace("<|end|>", "");
     let codeHtml = "";
     if (renderHtml.prompt.code) {
       let langclass = renderHtml.prompt.languageid ? `language-${renderHtml.prompt.languageid}` : ``;
@@ -148,7 +149,7 @@ export class PromptInfo {
 
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full editing"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full editing"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     } else {
       renderHtml.html =
         `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;

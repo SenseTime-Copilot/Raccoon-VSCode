@@ -12,7 +12,7 @@
         "email": "sensecode@sensetime.com"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.40.14",
+    "version": "0.40.16",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
