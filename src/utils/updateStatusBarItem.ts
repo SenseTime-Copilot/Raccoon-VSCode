@@ -15,16 +15,16 @@ export function updateStatusBarItem(
     clearTimeout(statusbartimer);
   }
   if (!info) {
-    statusBarItem.text = "$(sensecore-dark)";
+    statusBarItem.text = "$(sensecode-icon)";
     statusBarItem.tooltip = l10n.t("SenseCode");
     return;
   }
 
-  statusBarItem.text = `$(sensecore-dark) $(dash) ${info.text}`;
+  statusBarItem.text = `$(sensecode-icon) $(dash) ${info.text}`;
   statusBarItem.tooltip = info.tooltip;
   if (!info.keep) {
     statusbartimer = setTimeout(() => {
-      statusBarItem.text = `$(sensecore-dark)`;
+      statusBarItem.text = `$(sensecode-icon)`;
       statusBarItem.tooltip = l10n.t("SenseCode");
     }, 10000);
   }

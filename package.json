@@ -12,7 +12,7 @@
         "email": "sensecode@sensetime.com"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.40.16",
+    "version": "0.40.18",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -233,14 +233,34 @@
             }
         ],
         "icons": {
-            "sensecore-dark": {
-                "description": "SenseCore icon",
+            "sensecode-icon": {
+                "description": "SenseCode icon",
                 "default": {
                     "fontPath": "media/sensecode.woff",
                     "fontCharacter": "\\E001"
                 }
             }
         },
+        "languages": [
+            {
+                "id": "sensecode",
+                "extensions": [
+                    ".sensecode"
+                ],
+                "icon": {
+                    "light": "media/sensecode-logo.png",
+                    "dark": "media/sensecode-logo.png"
+                }
+            }
+        ],
+        "resourceLabelFormatters": [
+            {
+                "scheme": "sensecode",
+                "formatting": {
+                    "label": "%sensecode.view.title%"
+                }
+            }
+        ],
         "viewsContainers": {
             "activitybar": [
                 {
