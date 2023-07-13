@@ -1,7 +1,7 @@
 import { CustomReadonlyEditorProvider, ExtensionContext, CancellationToken, Uri, CustomDocument, CustomDocumentOpenContext, WebviewPanel } from 'vscode';
 import { SenseCodeEditor } from './webviewProvider';
 
-export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
+export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
   public static readonly viewType = "sensecode.editor";
   private static editors: { [key: string]: SenseCodeEditor } = {};
   private editor?: SenseCodeEditor;
@@ -12,7 +12,7 @@ export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
   public static getEditor(uri: Uri) {
     let id = uri.query;
     if (id) {
-      return SenseCodeEidtorProvider.editors[id];
+      return SenseCodeEditorProvider.editors[id];
     }
   }
 
@@ -21,7 +21,7 @@ export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
       uri,
       dispose: () => {
         if (this.id) {
-          delete SenseCodeEidtorProvider.editors[this.id];
+          delete SenseCodeEditorProvider.editors[this.id];
         }
         if (this.editor) {
           this.editor.dispose();
@@ -37,7 +37,7 @@ export class SenseCodeEidtorProvider implements CustomReadonlyEditorProvider {
     if (id) {
       this.id = id;
       this.editor = new SenseCodeEditor(this.context, webviewPanel.webview);
-      SenseCodeEidtorProvider.editors[id] = this.editor;
+      SenseCodeEditorProvider.editors[id] = this.editor;
       webviewPanel.onDidDispose((_e) => {
         this.editor?.dispose();
         delete this.editor;

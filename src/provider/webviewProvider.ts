@@ -2,7 +2,7 @@ import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook,
 import { sensecodeManager, outlog, telemetryReporter } from '../extension';
 import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
-import { SenseCodeEidtorProvider } from './assitantEditorProvider';
+import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
 
@@ -994,23 +994,23 @@ ${data.info.response}
 }
 
 export class SenseCodeViewProvider implements WebviewViewProvider {
-  private static eidtor?: SenseCodeEditor;
+  private static editor?: SenseCodeEditor;
   private static webviewView?: WebviewView;
   constructor(private context: ExtensionContext) {
     context.subscriptions.push(
       commands.registerCommand("sensecode.settings", async () => {
         sensecodeManager.update();
         commands.executeCommand('sensecode.view.focus').then(() => {
-          return SenseCodeViewProvider.eidtor?.updateSettingPage("toogle");
+          return SenseCodeViewProvider.editor?.updateSettingPage("toogle");
         });
       })
     );
     context.subscriptions.push(
       commands.registerCommand("sensecode.clear", async (uri) => {
         if (!uri) {
-          SenseCodeViewProvider.eidtor?.clear();
+          SenseCodeViewProvider.editor?.clear();
         } else {
-          let editor = SenseCodeEidtorProvider.getEditor(uri);
+          let editor = SenseCodeEditorProvider.getEditor(uri);
           editor?.clear();
         }
       })
@@ -1018,7 +1018,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   }
 
   public static showError(msg: string) {
-    SenseCodeViewProvider.eidtor?.sendMessage({ type: 'showError', category: 'custom', value: msg, id: new Date().valueOf() });
+    SenseCodeViewProvider.editor?.sendMessage({ type: 'showError', category: 'custom', value: msg, id: new Date().valueOf() });
   }
 
   public resolveWebviewView(
@@ -1026,16 +1026,16 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     _context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    SenseCodeViewProvider.eidtor = new SenseCodeEditor(this.context, webviewView.webview);
+    SenseCodeViewProvider.editor = new SenseCodeEditor(this.context, webviewView.webview);
     SenseCodeViewProvider.webviewView = webviewView;
     webviewView.onDidChangeVisibility(() => {
       if (!webviewView.visible) {
-        SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+        SenseCodeViewProvider.editor?.sendMessage({ type: 'updateSettingPage', action: "close" });
       }
     });
     webviewView.onDidDispose(() => {
-      SenseCodeViewProvider.eidtor?.sendMessage({ type: 'updateSettingPage', action: "close" });
-      SenseCodeViewProvider.eidtor?.dispose();
+      SenseCodeViewProvider.editor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+      SenseCodeViewProvider.editor?.dispose();
       SenseCodeViewProvider.webviewView = undefined;
     });
   }
@@ -1046,17 +1046,17 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
 
   public static async ask(prompt?: PromptInfo) {
     commands.executeCommand('sensecode.view.focus');
-    while (!SenseCodeViewProvider.eidtor) {
+    while (!SenseCodeViewProvider.editor) {
       await new Promise((f) => setTimeout(f, 1000));
     }
-    if (SenseCodeViewProvider.eidtor) {
+    if (SenseCodeViewProvider.editor) {
       if (prompt) {
         let ts = new Date();
         let id = ts.valueOf();
-        return SenseCodeViewProvider.eidtor.sendApiRequest(id, prompt);
+        return SenseCodeViewProvider.editor.sendApiRequest(id, prompt);
       } else {
         await new Promise((f) => setTimeout(f, 300));
-        SenseCodeViewProvider.eidtor?.sendMessage({ type: 'focus' });
+        SenseCodeViewProvider.editor?.sendMessage({ type: 'focus' });
       }
     }
   }

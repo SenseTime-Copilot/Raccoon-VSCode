@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { sensecodeManager } from '../extension';
 import { SenseCodeEditor, SenseCodeViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, SenseCodePrompt } from "./promptTemplates";
-import { SenseCodeEidtorProvider } from './assitantEditorProvider';
+import { SenseCodeEditorProvider } from './assitantEditorProvider';
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
@@ -52,7 +52,12 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     }
     if (vscode.CodeActionKind.QuickFix.append('sensecode').append('preset').contains(codeAction.kind)) {
       if (codeAction.title === `SenseCode: ${vscode.l10n.t("Ask SenseCode")}...`) {
-        SenseCodeViewProvider.ask();
+        let editor: SenseCodeEditor | undefined = this.getEditor();
+        if (editor) {
+          editor.sendMessage({ type: 'focus' });
+        } else {
+          SenseCodeViewProvider.ask();
+        }
       }
       return codeAction;
     }
@@ -78,18 +83,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       if (document.languageId !== "plaintext") {
         prompt.languageid = document.languageId;
       }
-      let editor: SenseCodeEditor | undefined = undefined;
-      let allTabGroups = vscode.window.tabGroups.all;
-      for (let tg of allTabGroups) {
-        for (let tab of tg.tabs) {
-          if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === SenseCodeEidtorProvider.viewType) {
-            if (editor === undefined || tab.group.isActive) {
-              editor = SenseCodeEidtorProvider.getEditor(tab.input.uri);
-
-            }
-          }
-        }
-      }
+      let editor: SenseCodeEditor | undefined = this.getEditor();
       if (editor) {
         let ts = new Date();
         let id = ts.valueOf();
@@ -99,5 +93,20 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       }
     }
     return codeAction;
+  }
+
+  private getEditor(): SenseCodeEditor | undefined {
+    let editor: SenseCodeEditor | undefined = undefined;
+    let allTabGroups = vscode.window.tabGroups.all;
+    for (let tg of allTabGroups) {
+      for (let tab of tg.tabs) {
+        if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === SenseCodeEditorProvider.viewType) {
+          if (editor === undefined || tab.group.isActive) {
+            editor = SenseCodeEditorProvider.getEditor(tab.input.uri);
+          }
+        }
+      }
+    }
+    return editor;
   }
 }

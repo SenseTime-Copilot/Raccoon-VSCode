@@ -5,7 +5,7 @@ import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
-import { SenseCodeEidtorProvider } from "./provider/assitantEditorProvider";
+import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -57,7 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
       let id = new Date().valueOf();
       vscode.commands.executeCommand('vscode.openWith',
         vscode.Uri.parse(`sensecode://sensecode/assistant.sensecode?${id}`),
-        SenseCodeEidtorProvider.viewType);
+        SenseCodeEditorProvider.viewType);
     })
   );
 
@@ -153,7 +153,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
-  context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEidtorProvider.viewType, new SenseCodeEidtorProvider(context), {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEditorProvider.viewType, new SenseCodeEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 }
