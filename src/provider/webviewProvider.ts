@@ -5,6 +5,7 @@ import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
+import { FinishReason, Message, Role } from '../sensecodeClient/src/CodeClient';
 
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -67,16 +68,6 @@ const guide = `
       </li>
       </ol>
       `;
-
-const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-            <span class='material-symbols-rounded'>priority_high</span>
-            <div class='inline-block leading-loose'>
-              ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> in settings first.", l10n.t("SenseCode"))}
-            </div>
-            <div class="flex grow justify-end">
-              <vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>
-            </div>
-          </div>`;
 
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
@@ -201,13 +192,23 @@ export class SenseCodeEditor extends Disposable {
     let name = sensecodeManager.username();
     let category = "welcome" + (full ? "-full" : "");
     let username = '';
+    let robot = sensecodeManager.getActiveClientLabel();
     if (name) {
       username = ` @${name}`;
     } else {
+      const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+            <span class='material-symbols-rounded'>priority_high</span>
+            <div class='inline-block leading-loose'>
+              ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> in settings first.", robot)}
+            </div>
+            <div class="flex grow justify-end">
+              <vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>
+            </div>
+          </div>`;
       detail += loginHint;
     }
-    let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, l10n.t("SenseCode"));
-    this.sendMessage({ type: 'addMessage', category, username, value: welcomMsg + detail, timestamp });
+    let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot);
+    this.sendMessage({ type: 'addMessage', category, username, robot, value: welcomMsg + detail, timestamp });
   }
 
   dispose() {
@@ -232,20 +233,28 @@ export class SenseCodeEditor extends Disposable {
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
     if (!username) {
-      let authUrl = await sensecodeManager.getAuthUrlLogin();
-      let url = Uri.parse(authUrl || "");
-      loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority}]" href="${url.toString(true)}">
-                      <span class="material-symbols-rounded">login</span>
-                    </vscode-link>`;
-
+      await sensecodeManager.getAuthUrlLogin().then(authUrl => {
+        if (!authUrl) {
+          return;
+        }
+        let url = Uri.parse(authUrl);
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority}]" href="${url.toString(true)}">
+                        <span class="material-symbols-rounded">login</span>
+                      </vscode-link>`;
+      }, () => { });
     } else {
       let avatar = sensecodeManager.avatar();
       if (avatar) {
         avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
       }
-      loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
-                    <span id="logout" class="material-symbols-rounded">logout</span>
-                  </vscode-link>`;
+      await sensecodeManager.getAuthUrlLogin().then(authUrl => {
+        if (!authUrl) {
+          return;
+        }
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
+                      <span id="logout" class="material-symbols-rounded">logout</span>
+                    </vscode-link>`;
+      }, () => { });
     }
     let accountInfo = `
         <div class="flex gap-2 items-center w-full">
@@ -413,14 +422,10 @@ export class SenseCodeEditor extends Disposable {
               prompt.languageid = editor.document.languageId;
             }
           }
-          if (prompt.type === PromptType.freeChat && prompt.prologue === "") {
-            prompt.prompt = `<|user|>${prompt.prompt}`;
+          if (prompt.type === PromptType.freeChat) {
             if (prompt.code) {
-              prompt.prompt += "\n{code}\n";
+              prompt.message.content += "\n{code}\n";
             }
-            prompt.prompt += "<|end|>";
-            prompt.prologue = `<|system|>\n<|end|>`;
-            prompt.suffix = "<|assistant|>";
           }
           let promptInfo = new PromptInfo(prompt);
           this.sendApiRequest(id, promptInfo, data.values, data.history);
@@ -591,9 +596,8 @@ ${msg.code}
           const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
           const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
           let renderRequestBody = data.info.request.prompt;
+          let lang = getDocumentLanguage(data.info.request.languageid);
           renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
-          renderRequestBody = renderRequestBody.replace("<|user|>", "");
-          renderRequestBody = renderRequestBody.replace("<|end|>", "");
 
           let content = `
 # Sincerely apologize for any inconvenience
@@ -655,7 +659,7 @@ ${data.info.response}
           <div class="markdown-body" style="margin: 1rem 4rem;">
             <div id="info">${content}</div>
               <div style="display: flex;flex-direction: column;">
-                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${getDocumentLanguage(data.info.request.languageid)} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
+                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${lang ? lang + " code" : "anwser"} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
                 <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
               </div>
             </div>
@@ -695,7 +699,7 @@ ${data.info.response}
     let streaming = sensecodeManager.streamResponse;
     let instruction = prompt.prompt;
     for (let sw of SenseCodeEditor.bannedWords) {
-      if (instruction.prompt.includes(sw) || instruction.suffix.includes(sw) || prompt.codeInfo?.code.includes(sw)) {
+      if (instruction.content.includes(sw) || prompt.codeInfo?.code.includes(sw)) {
         this.sendMessage({ type: 'showError', category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
         return;
       }
@@ -706,7 +710,7 @@ ${data.info.response}
       this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
       return;
     }
-    let el = instruction.prologue.length + instruction.prompt.length + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0) + instruction.suffix.length;
+    let el = instruction.content.length + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
     let maxTokens = sensecodeManager.maxToken() * 0.6;
     if (el > maxTokens) {
       this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
@@ -715,124 +719,90 @@ ${data.info.response}
 
     let username = sensecodeManager.username();
     let avatar = sensecodeManager.avatar();
-    this.sendMessage({ type: 'addQuestion', username, avatar, value: promptHtml, streaming, id, timestamp });
+    let robot = sensecodeManager.getActiveClientLabel();
+    this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
 
     if (promptHtml.status === RenderStatus.resolved) {
       try {
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
           let codeBlock = `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``;
-          instruction.prompt = instruction.prompt.replace("{code}",
+          instruction.content = instruction.content.replace("{code}",
             () => {
               return codeBlock;
             });
         } else {
-          instruction.prompt = instruction.prompt.replace("{code}", "");
+          instruction.content = instruction.content.replace("{code}", "");
         }
-        let qaHistory = "";
+        let msgs: Message[] = [];
+        msgs.push({ role: Role.system, content: '' });
         if (history) {
           let hs = Array.from(history).reverse();
           for (let h of hs) {
-            if ((el + h.question.length + h.answer.length + qaHistory.length) > maxTokens) {
+            let qaLen = (h.question.length + h.answer.length) / 3;
+            if ((el + qaLen) > maxTokens) {
               break;
             }
-            qaHistory = `${h.question}\n${h.answer}\n${qaHistory}`;
+            el += qaLen;
+            msgs.push({
+              role: Role.user,
+              content: h.question
+            });
+            msgs.push({
+              role: Role.assistant,
+              content: h.answer
+            });
           }
-          instruction.prompt = qaHistory + instruction.prompt;
         }
+        msgs.push(instruction);
         if (streaming) {
           sensecodeManager.getCompletionsStreaming(
-            instruction,
+            msgs,
             1,
             sensecodeManager.maxToken(),
             "<|end|>",
-            this.stopList[id].signal
-          ).then((data) => {
-            data.on("data", async (v: any) => {
+            this.stopList[id].signal,
+            (data) => {
               if (this.stopList[id].signal.aborted || this.disposing) {
                 delete this.stopList[id];
-                data.destroy();
-                return;
+                return false;
               }
-              let msgstr: string = v.toString();
-              let msgs = msgstr.split("\n");
-              let errorFlag = false;
-              for (let msg of msgs) {
-                let content = "";
-                if (msg.startsWith("data:")) {
-                  content = msg.slice(5).trim();
-                } else if (msg.startsWith("event:")) {
-                  content = msg.slice(6).trim();
-                  outlog.error(content);
-                  if (content === "error") {
-                    errorFlag = true;
-                    // this.sendMessage({ type: 'addError', error: "streaming interrpted", id });
-                    // data.destroy();
+              if (data.choices && data.choices[0]) {
+                if (data.choices[0].finishReason) {
+                  if (data.choices[0].finishReason === FinishReason.error) {
+                    this.sendMessage({ type: 'addError', error: data.choices[0].message.content, id, timestamp: new Date(data.created).toLocaleString() });
                   }
-                  // return;
-                  continue;
-                }
-
-                if (content === '[DONE]') {
                   this.sendMessage({ type: 'stopResponse', id });
-                  outlog.debug(content);
-                  delete this.stopList[id];
-                  data.destroy();
-                  return;
-                }
-                if (!content) {
-                  continue;
-                }
-                if (errorFlag) {
-                  this.sendMessage({ type: 'addError', error: content, id });
-                  continue;
-                }
-                try {
-                  let json = JSON.parse(content);
-                  if (json.error) {
-                    this.sendMessage({ type: 'addError', error: json.error, id });
-                    delete this.stopList[id];
-                    data.destroy();
-                    return;
-                  } else if (json.choices && json.choices[0]) {
-                    let stopReason = json.choices[0]["finish_reason"];
-                    let value = json.choices[0].text || json.choices[0].message?.content;
-                    if (value) {
-                      outlog.debug(value + (stopReason ? `<StopReason: ${stopReason}>` : ""));
-                      if (json.choices[0]["finish_reason"] === "stop" || value === "<|end|>") {
-                        this.sendMessage({ type: 'stopResponse', id });
-                        this.stopList[id].abort();
-                        delete this.stopList[id];
-                        data.destroy();
-                        return;
-                      }
-                      let ts1;
-                      if (json.created) {
-                        ts1 = new Date(json.created * 1000).toLocaleString();
-                      }
-                      this.sendMessage({ type: 'addResponse', id, value, timestamp: ts1 });
-                    }
-                  }
-                } catch (e) {
-                  outlog.error(content);
+                  return false;
+                } else {
+                  this.sendMessage({ type: 'addResponse', id, value: data.choices[0].message.content, timestamp: new Date(data.created).toLocaleString() });
+                  return true;
                 }
               }
-            });
-          }).catch(e => {
-            this.sendMessage({ type: 'addError', error: e.response?.statusText || e.message, id });
-          });
+              return false;
+            }
+          );
         } else {
-          let rs: any = await sensecodeManager.getCompletions(
-            instruction,
+          await sensecodeManager.getCompletions(
+            msgs,
             1,
             sensecodeManager.maxToken(),
             "<|end|>",
-            this.stopList[id].signal);
-          let content = rs?.choices[0]?.text || "";
-          let stopReason = rs?.choices[0]?.finish_reason;
-          outlog.debug(content + (stopReason ? `<StopReason: ${stopReason}>` : ""));
-          this.sendMessage({ type: 'addResponse', id, value: content.replace("<|end|>", "") });
-          this.sendMessage({ type: 'stopResponse', id });
+            this.stopList[id].signal)
+            .then(rs => {
+              let content = rs.choices[0]?.message.content || "";
+              let stopReason = rs.choices[0]?.finishReason;
+              outlog.debug(content + (stopReason ? `<StopReason: ${stopReason}>` : ""));
+              if (stopReason === FinishReason.error) {
+                this.sendMessage({ type: 'addError', error: rs.choices[0]?.message.content, id, timestamp: new Date(rs.created).toLocaleString() });
+              } else {
+                this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
+              }
+              this.sendMessage({ type: 'stopResponse', id });
+            }, (err) => {
+              this.sendMessage({ type: 'addError', error: err.response.statusText, id, timestamp: new Date().toLocaleString() });
+              this.sendMessage({ type: 'stopResponse', id });
+            });
         }
       } catch (err: any) {
         if (err.message === "canceled") {
@@ -972,7 +942,6 @@ ${data.info.response}
               <script>
                 const l10nForUI = {
                   "Question": "${l10n.t("Question")}",
-                  "SenseCode": "${l10n.t("SenseCode")}",
                   "Cancel": "${l10n.t("Cancel")}",
                   "Delete": "${l10n.t("Delete this chat entity")}",
                   "Send": "${l10n.t("Send")}",

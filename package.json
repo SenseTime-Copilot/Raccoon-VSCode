@@ -12,7 +12,7 @@
         "email": "sensecode@sensetime.com"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.40.18",
+    "version": "0.50.0",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -46,10 +46,17 @@
                             "type": "object",
                             "description": "%sensecode.config.engines.engine.description%",
                             "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "description": "%sensecode.config.engines.engine.type%",
+                                    "enum": [
+                                        "sensecode",
+                                        "sensenova"
+                                    ]
+                                },
                                 "label": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.label%",
-                                    "pattern": "^(?!Penrose.*$)"
+                                    "description": "%sensecode.config.engines.engine.label%"
                                 },
                                 "url": {
                                     "type": "string",
@@ -59,7 +66,7 @@
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.key%"
                                 },
-                                "token_limit": {
+                                "tokenLimit": {
                                     "type": "number",
                                     "minimum": 1,
                                     "description": "%sensecode.config.engines.engine.token_limit%"
@@ -68,7 +75,14 @@
                                     "type": "object",
                                     "description": "%sensecode.config.engines.engine.config%"
                                 }
-                            }
+                            },
+                            "required": [
+                                "type",
+                                "label",
+                                "url",
+                                "tokenLimit",
+                                "config"
+                            ]
                         }
                     },
                     "SenseCode.Prompt": {
@@ -304,6 +318,7 @@
         "@types/mocha": "^9.1.1",
         "@types/node": "16.x",
         "@types/vscode": "^1.75.0",
+        "@types/jwt-encode": "^1.0.0",
         "@typescript-eslint/eslint-plugin": "^5.31.0",
         "@typescript-eslint/parser": "^5.31.0",
         "@vscode/test-electron": "^2.1.5",
@@ -315,6 +330,7 @@
         "form-data": "^4.0.0",
         "glob": "^8.0.3",
         "jwt-decode": "^3.1.2",
+        "jwt-encode": "^1.0.1",
         "mocha": "^10.0.0",
         "ts-loader": "^9.4.1",
         "ts-webpack": "^1.0.0",

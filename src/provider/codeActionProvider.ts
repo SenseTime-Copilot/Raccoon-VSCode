@@ -6,7 +6,7 @@ import { PromptInfo, PromptType, SenseCodePrompt } from "./promptTemplates";
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
 
 export class SenseCodeAction implements vscode.CodeActionProvider {
-  public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
+  public provideCodeActions(_document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
     if (range.isEmpty) {
       return;
     }
@@ -21,7 +21,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       let kind = vscode.CodeActionKind.QuickFix.append('sensecode');
       let name = `SenseCode: `;
       if (p.type === PromptType.customPrompt) {
-        if (p.prompt.includes("{code}")) {
+        if (p.message.content.includes("{code}")) {
           kind = kind.append("custom");
           name += " ✨ ";
         } else {

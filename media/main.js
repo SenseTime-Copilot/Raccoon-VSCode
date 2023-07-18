@@ -35,7 +35,7 @@ const vscode = acquireVsCodeApi();
 
   document.getElementById("question-input").disabled = true;
 
-  var tipShow = setTimeout(showTips, 8000);
+  setTimeout(showTips, 8000);
 
   function showTips() {
     var qs = document.getElementById(`question-sizer`);
@@ -53,7 +53,7 @@ const vscode = acquireVsCodeApi();
       }
     }
     tipN++;
-    tipShow = setTimeout(showTips, 8000);
+    setTimeout(showTips, 8000);
   }
 
   collectInfo = function (id, action) {
@@ -133,8 +133,8 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case 'codeReady': {
+        var hint = document.getElementById("code-hint");
         if (message.value) {
-          var hint = document.getElementById("code-hint");
           var hasTag = document.getElementById("question").classList.contains("code-ready");
           var sameFile = (message.file === hint.dataset['file']);
           var needAnimate = (hasTag && !sameFile);
@@ -143,13 +143,15 @@ const vscode = acquireVsCodeApi();
             document.getElementById("question").classList.remove("code-ready");
             void document.getElementById("question").offsetHeight;
             setTimeout(() => {
-              hint.onclick = (_event) => {
+              var btn = hint.getElementsByClassName("material-symbols-rounded")[0];
+              btn.onclick = (_event) => {
                 vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
               };
               document.getElementById("question").classList.add("code-ready");
             }, 300);
           } else {
-            hint.onclick = (_event) => {
+            var btn = hint.getElementsByClassName("material-symbols-rounded")[0];
+            btn.onclick = (_event) => {
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
             document.getElementById("question").classList.add("code-ready");
@@ -157,7 +159,8 @@ const vscode = acquireVsCodeApi();
         } else {
           document.getElementById("question").classList.remove("code-ready");
           hint.dataset['file'] = undefined;
-          hint.onclick = undefined;
+          var btn1 = hint.getElementsByClassName("material-symbols-rounded")[0];
+          btn1.onclick = undefined;
         }
         break;
       }
@@ -286,23 +289,10 @@ const vscode = acquireVsCodeApi();
         if (edit) {
           document.getElementById("chat-button-wrapper")?.classList?.add("editing");
           document.getElementById("question-input").disabled = true;
-
-          var promptText = document.getElementById(`prompt-${id}`);
-          const editableElems = promptText.getElementsByClassName("editable");
-          Array.from(editableElems).reverse().forEach((el) => {
-            el.setAttribute("contenteditable", true);
-            el.focus();
-          });
           list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
           break;
         } else {
-          if (promptInfo.prompt.type === 'free chat') {
-            let item = promptInfo.prompt.prompt;
-            item = item.replace("<|user|>", "");
-            item = item.replace("<|end|>", "");
-            item = item.replace("{code}", "");
-            history = [item.trim(), ...history];
-          }
+          updateHistory(promptInfo.prompt);
           document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
           document.getElementById("question-input").disabled = true;
           var chat = document.getElementById(`${id}`);
@@ -310,12 +300,6 @@ const vscode = acquireVsCodeApi();
             chat = document.createElement("div");
             chat.id = `${id}`;
             chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
-            let outlang = '';
-            let exp = /Convert the given code to equivalent (.+) code/mg;
-            let matches = exp.exec(prompt.prompt);
-            if (matches) {
-              outlang = matches[1];
-            }
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
                       <span class="flex items-center gap-2 opacity-30">
                         <div class="spinner thinking">
@@ -355,7 +339,7 @@ const vscode = acquireVsCodeApi();
                                     <span class="flex gap-2 flex text-xl">
                                       ${aiIcon}
                                       <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                        <b class="text-sm">${l10nForUI["SenseCode"]}</b>
+                                        <b class="text-sm">${message.robot}</b>
                                         <div class="response-ts opacity-30 leading-3">
                                           <span class="material-symbols-rounded">
                                             more_horiz
@@ -364,7 +348,7 @@ const vscode = acquireVsCodeApi();
                                       </span>
                                     </span>
                                   </h2>
-                                  <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body" data-lang="${outlang}"></div>
+                                  <div id="response-${id}" class="response empty flex flex-col gap-1 markdown-body"></div>
                                   ${progress}
                                   <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                     <span class="flex items-center gap-2">
@@ -479,7 +463,7 @@ const vscode = acquireVsCodeApi();
                               <span class="flex gap-2 flex text-xl">
                                 ${aiIcon}
                                 <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                  <b class="text-sm">${l10nForUI["SenseCode"]}</b>
+                                  <b class="text-sm">${message.robot}</b>
                                   <div class="opacity-30 leading-3">
                                     ${message.timestamp}
                                   </div>
@@ -521,9 +505,18 @@ const vscode = acquireVsCodeApi();
         if (!list.innerHTML) {
           return;
         }
+        const chatText = document.getElementById(`response-${message.id}`);
+        if (chatText?.classList.contains("empty")) {
+          if (message.timestamp) {
+            let r = document.getElementById(`${message.id}`);
+            let rts = r?.getElementsByClassName("response-ts");
+            if (rts && rts[0]) {
+              rts[0].textContent = message.timestamp;
+            }
+          }
+        }
         updateChatBoxStatus("stop", message.id);
         document.getElementById(`feedback-${message.id}`)?.classList.add("error");
-        const chatText = document.getElementById(`response-${message.id}`);
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
@@ -550,17 +543,9 @@ const vscode = acquireVsCodeApi();
   const sendQuestion = (question) => {
     const prompt = question.getElementsByClassName("prompt");
     if (prompt && prompt[0]) {
-      const editableElems = prompt[0].getElementsByClassName("editable");
-      Array.from(editableElems).forEach((el) => {
-        el.setAttribute("contenteditable", false);
-      });
-      var s = window.getSelection();
-      if (s.rangeCount > 0) {
-        s.removeAllRanges();
-      }
-
       var values = {};
       var promptTemp = { ...prompt[0].dataset };
+      promptTemp.message = { role: 'user', content: prompt[0].dataset['prompt'] };
       const valuesEle = prompt[0].getElementsByClassName("values");
       if (valuesEle && valuesEle[0]) {
         promptTemp.languageid = valuesEle[0].getElementsByClassName("languageid-value")[0].textContent;
@@ -578,6 +563,14 @@ const vscode = acquireVsCodeApi();
       addError({ category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
   };
+
+  function updateHistory(prompt) {
+    if (prompt.type === 'free chat') {
+      let item = prompt.message.content;
+      item = item.replace("{code}", "");
+      history = [item.trim(), ...history];
+    }
+  }
 
   function collectHistory() {
     let historyList = [];
@@ -599,7 +592,7 @@ const vscode = acquireVsCodeApi();
       if (answer && answer.classList?.contains("answer-element-gnc")) {
         const rs = answer.getElementsByClassName("response");
         if (rs && rs[0] && rs[0].dataset.response) {
-          r = `<|assistant|>${rs[0].dataset.response.trim()}<|end|>`;
+          r = `${rs[0].dataset.response.trim()}`;
         }
       }
       if (p && r) {
@@ -829,9 +822,7 @@ const vscode = acquireVsCodeApi();
             prompt: {
               label: "",
               type: "free chat",
-              prologue: "",
-              prompt: e.target.value,
-              suffix: "",
+              message: { role: 'user', content: e.target.value }
             },
             history: collectHistory()
           });
@@ -938,11 +929,7 @@ const vscode = acquireVsCodeApi();
 
     if (e.key === "/") {
       document.getElementById("question-input").focus();
-      return;
-    }
-
-    if (e.target.classList.contains("editable") && e.key === "Enter") {
-      e.preventDefault();
+      // return;
     }
   });
 
@@ -964,9 +951,7 @@ const vscode = acquireVsCodeApi();
             prompt: {
               label: "",
               type: "free chat",
-              prologue: "",
-              prompt,
-              suffix: ""
+              message: { role: 'user', content: prompt }
             },
             history: collectHistory()
           });
@@ -1096,7 +1081,7 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains('regenerate')) {
       let id = targetButton?.dataset.id;
       e.preventDefault();
-      targetButton?.classList?.add("pointer-events-none");
+      // targetButton?.classList?.add("pointer-events-none");
       const question = document.getElementById(`question-${id}`);
       sendQuestion(question);
       vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "regenerate") });

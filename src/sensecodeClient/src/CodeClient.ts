@@ -1,4 +1,17 @@
-import { IncomingMessage } from "http";
+
+export enum ClientType {
+    sensecode = "sensecode",
+    sensenova = "sensenova",
+}
+
+export interface ClientConfig {
+    type: ClientType;
+    label: string;
+    url: string;
+    config: any;
+    tokenLimit: number;
+    key?: string;
+}
 
 export interface AuthInfo {
     idToken: string;
@@ -8,10 +21,35 @@ export interface AuthInfo {
     refreshToken?: string;
 }
 
-export interface Prompt {
-    prologue: string;
-    prompt: string;
-    suffix: string;
+export enum Role {
+    system = 'system',
+    user = 'user',
+    assistant = 'assistant',
+    function = 'function'
+}
+
+export enum FinishReason {
+    stop = 'stop',
+    length = 'length',
+    eos = 'eos',
+    error = 'error'
+}
+
+export interface Message {
+    role: Role;
+    content: string;
+}
+
+export interface Choice {
+    index: number;
+    message: Message;
+    finishReason?: FinishReason;
+}
+
+export interface ResponseData {
+    id: string;
+    created: number;
+    choices: Choice[];
 }
 
 export interface CodeClient {
@@ -30,11 +68,9 @@ export interface CodeClient {
 
     get proxy(): AuthProxy | undefined;
 
-    getAuthUrlLogin(codeVerifier: string): Promise<string>;
+    getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
     login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
-
-    refreshToken(): Promise<AuthInfo>;
 
     restoreAuthInfo(auth: AuthInfo): Promise<void>;
 
@@ -42,15 +78,15 @@ export interface CodeClient {
 
     logout(): Promise<void>;
 
-    getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any>;
+    getCompletions(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<ResponseData>;
 
-    getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage>;
+    getCompletionsStreaming(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => boolean): void;
 
     sendTelemetryLog?(eventName: string, info: Record<string, any>): Promise<void>;
 }
 
 export interface AuthProxy {
-    getAuthUrlLogin(): Promise<string>;
+    getAuthUrlLogin(): Promise<string | undefined>;
     login(callbackUrl: string): Promise<AuthInfo>;
     checkStatus(info: AuthInfo): Promise<boolean>;
     refreshToken(info: AuthInfo): Promise<AuthInfo>;

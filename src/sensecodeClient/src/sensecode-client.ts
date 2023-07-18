@@ -4,20 +4,11 @@ import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
 import * as zlib from "zlib";
-import { CodeClient, AuthInfo, Prompt, AuthProxy } from "./CodeClient";
+import { CodeClient, AuthInfo, AuthProxy, ResponseData, FinishReason, Role, ClientConfig, Choice, Message } from "./CodeClient";
 
 export interface ClientMeta {
   clientId: string;
   redirectUrl: string;
-}
-
-export interface ClientConfig {
-  label: string;
-  url: string;
-  config: any;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  token_limit: number;
-  key?: string;
 }
 
 function demerge(m: string): string[] {
@@ -81,6 +72,11 @@ export class SenseCodeClient implements CodeClient {
 
   constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void, proxy?: any) {
     this._proxy = proxy;
+    if (this.clientConfig.key) {
+      this._idToken = "XXX";
+      this._username = "User";
+      this._weaverdKey = "XXX";
+    }
   }
 
   public async logout(): Promise<void> {
@@ -134,7 +130,7 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public get tokenLimit(): number {
-    return this.clientConfig.token_limit;
+    return this.clientConfig.tokenLimit;
   }
 
   public get username(): string | undefined {
@@ -172,12 +168,12 @@ export class SenseCodeClient implements CodeClient {
     }
   }
 
-  public getAuthUrlLogin(codeVerifier: string): Promise<string> {
+  public getAuthUrlLogin(codeVerifier: string): Promise<string | undefined> {
     if (this._proxy) {
       return this._proxy.getAuthUrlLogin();
     }
     if (this.clientConfig.key) {
-      return Promise.reject();
+      return Promise.resolve(undefined);
     }
 
     let baseUrl = this.getAuthBaseUrl();
@@ -188,11 +184,11 @@ export class SenseCodeClient implements CodeClient {
 
   private getAuthBaseUrl() {
     let baseUrl = 'https://signin.sensecore.cn';
-    if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.cn")) {
+    if (this.clientConfig.url.includes(".sensecoreapi.cn")) {
       baseUrl = 'https://signin.sensecore.cn';
-    } else if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.tech")) {
+    } else if (this.clientConfig.url.includes(".sensecoreapi.tech")) {
       baseUrl = 'https://signin.sensecore.tech';
-    } else if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.dev")) {
+    } else if (this.clientConfig.url.includes(".sensecoreapi.dev")) {
       baseUrl = 'https://signin.sensecore.dev';
     }
     return baseUrl;
@@ -275,19 +271,22 @@ export class SenseCodeClient implements CodeClient {
     }
   }
 
-  public async refreshToken(): Promise<AuthInfo> {
+  private async refreshToken(): Promise<AuthInfo> {
     if (this._proxy) {
       let ai: AuthInfo = this.getAuthInfo();
       return this._proxy.refreshToken(ai);
     }
+    if (this.clientConfig.key) {
+      return this.getAuthInfo();
+    }
     let refreshToken = this._refreshToken;
     if (refreshToken) {
       let baseUrl = 'https://signin.sensecore.cn';
-      if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.cn")) {
+      if (this.clientConfig.url.includes(".sensecoreapi.cn")) {
         baseUrl = 'https://signin.sensecore.cn';
-      } else if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.tech")) {
+      } else if (this.clientConfig.url.includes(".sensecoreapi.tech")) {
         baseUrl = 'https://signin.sensecore.tech';
-      } else if (this.clientConfig.url.startsWith("https://ams.sensecoreapi.dev")) {
+      } else if (this.clientConfig.url.includes(".sensecoreapi.dev")) {
         baseUrl = 'https://signin.sensecore.dev';
       }
       let url = `${baseUrl}/oauth2/token`;
@@ -323,88 +322,201 @@ export class SenseCodeClient implements CodeClient {
     };
   }
 
-  private _postPrompt(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
-    return new Promise(async (resolve, reject) => {
-      let key = await this.apiKeyRaw();
-      let date: string = new Date().toUTCString();
-      let auth = '';
-      if (this._proxy) {
-        auth = await this._proxy.checkStatus(this.getAuthInfo()).then((v) => {
-          if (!v) {
-            return "XXX";
-          } else {
-            return "";
-          }
-        });
-      }
-      if (key && auth === '') {
-        if (key.includes("#")) {
-          let aksk = key.split("#");
-          auth = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
+  private async _postPrompt(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
+    let key = await this.apiKeyRaw();
+    let date: string = new Date().toUTCString();
+    let auth = '';
+    if (this._proxy) {
+      auth = await this._proxy.checkStatus(this.getAuthInfo()).then((v) => {
+        if (!v) {
+          return "XXX";
         } else {
-          auth = `Bearer ${key}`;
+          return "";
         }
+      });
+    }
+    if (key && auth === '') {
+      if (key.includes("#")) {
+        let aksk = key.split("#");
+        auth = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
+      } else {
+        auth = `Bearer ${key}`;
       }
-      let headers = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Date": date,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Content-Type": "application/json",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Authorization": auth
-      };
+    }
+    let headers = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Date": date,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": auth
+    };
 
-      let p = prompt;
-      let responseType: ResponseType | undefined = undefined;
-      let config = { ...this.clientConfig.config };
-      config.n = n;
-      config.stream = stream;
-      config.stop = stopWord;
-      config.max_tokens = maxToken;
-      if (stream) {
-        responseType = "stream";
-      }
-      let payload = {
-        prompt: `${p.prologue}\n${p.prompt}\n${p.suffix}\n`,
-        ...config
-      };
+    let responseType: ResponseType | undefined = undefined;
+    let config = { ...this.clientConfig.config };
+    config.n = n;
+    config.stream = stream;
+    config.stop = stopWord;
+    config.max_tokens = maxToken;
+    if (stream) {
+      responseType = "stream";
+    }
+    let payload = {
+      messages,
+      ...config
+    };
 
-      if (this.debug) {
-        this.debug(`Request to: ${this.clientConfig.url}`);
-        let pc = { ...payload };
-        let content = pc.prompt;
-        pc.prompt = undefined;
-        this.debug(`Parameters: ${JSON.stringify(pc)}`);
-        this.debug(`Prompt:\n${content}`);
-      }
+    if (this.debug) {
+      this.debug(`Request to: ${this.clientConfig.url}`);
+      let pc = { ...payload };
+      let content = pc.messages;
+      pc.messages = undefined;
+      this.debug(`Parameters: ${JSON.stringify(pc)}`);
+      this.debug(`Prompt:\n${JSON.stringify(content)}`);
+    }
 
-      axios
-        .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
-        .then(async (res) => {
-          if (res?.status === 200) {
-            resolve(res.data);
-          } else {
-            reject(res.data);
+    return axios
+      .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
+      .then(async (res) => {
+        if (this.debug && !stream) {
+          this.debug(`${JSON.stringify(res.data)}`);
+        }
+        return res.data;
+      }).catch(async e => {
+        if (!skipRetry && e.response?.status === 401) {
+          try {
+            await this.refreshToken();
+          } catch (er) {
+
           }
-        }, (err) => {
-          reject(err);
-        }).catch(e => {
-          reject(e);
+          return this._postPrompt(messages, n, maxToken, stopWord, stream, signal, true);
+        } else {
+          return Promise.reject(e);
+        }
+      });
+  }
+
+  public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<ResponseData> {
+    return this._postPrompt(messages, n, maxToken, stopWord, false, signal).then(data => {
+      let choices: Choice[] = [];
+      for (let choice of data.choices) {
+        choices.push({
+          index: choice.index,
+          message: choice.message,
+          finishReason: choice.finish_reason
         });
+      }
+      return {
+        id: data.id,
+        created: data.created * 1000,
+        choices
+      };
     });
   }
 
-  public getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<any> {
-    return this._postPrompt(prompt, n, maxToken, stopWord, false, signal);
-  }
-
-  public async getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<IncomingMessage> {
-    return this._postPrompt(prompt, n, maxToken, stopWord, true, signal).then((data) => {
+  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => void) {
+    this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
       if (data instanceof IncomingMessage) {
-        return data;
+        data.on('data', async (v: any) => {
+          if (signal.aborted) {
+            data.destroy();
+            return;
+          }
+          let msgstr: string = v.toString();
+          if (this.debug) {
+            this.debug(msgstr);
+          }
+          let msgs = msgstr.split("\n");
+          for (let msg of msgs) {
+            let content = "";
+            if (msg.startsWith("data:")) {
+              content = msg.slice(5).trim();
+            } else if (msg.startsWith("event:")) {
+              content = msg.slice(6).trim();
+              if (content === "error") {
+                callback({
+                  id: '',
+                  created: new Date().valueOf(),
+                  choices: [
+                    {
+                      index: 0,
+                      message: {
+                        role: Role.assistant,
+                        content: '',
+                      },
+                      finishReason: FinishReason.error
+                    }
+                  ]
+                });
+              }
+              continue;
+            }
+
+            if (content === '[DONE]') {
+              continue;
+            }
+            if (!content) {
+              continue;
+            }
+            try {
+              let json = JSON.parse(content);
+              if (json.error) {
+                callback({
+                  id: json.id,
+                  created: json.created * 1000,
+                  choices: [
+                    {
+                      index: json.index,
+                      message: {
+                        role: Role.assistant,
+                        content: json.error,
+                      },
+                      finishReason: FinishReason.error
+                    }
+                  ]
+                });
+                data.destroy();
+                return;
+              } else if (json.choices && json.choices[0]) {
+                let choice: Choice = json.choices[0];
+                let stopReason = choice["finish_reason"];
+                if (stopReason) {
+                  choice.finishReason = stopReason;
+                  data.destroy();
+                }
+                callback({
+                  id: json.id,
+                  created: json.created * 1000,
+                  choices: [
+                    choice
+                  ]
+                });
+              }
+            } catch (e) {
+              throw (e);
+            }
+          }
+        });
       } else {
-        return Promise.reject(Error("Unexpected response format"));
+        if (this.debug) {
+          this.debug("Unexpected response format");
+        }
       }
+    }, (error) => {
+      callback({
+        id: '',
+        created: new Date().valueOf(),
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: Role.assistant,
+              content: error.response.statusText
+            },
+            finishReason: FinishReason.error
+          }
+        ]
+      });
     });
   }
 

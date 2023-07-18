@@ -23,7 +23,7 @@ class SenseCodeUriHandler implements vscode.UriHandler {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  outlog = vscode.window.createOutputChannel(vscode.l10n.t("SenseCode"), { log: true });
+  outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
   context.subscriptions.push(outlog);
 
   sensecodeManager = new SenseCodeManager(context);

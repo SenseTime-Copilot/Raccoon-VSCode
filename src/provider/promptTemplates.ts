@@ -1,5 +1,5 @@
 import { l10n } from "vscode";
-import { Prompt } from "../sensecodeClient/src/CodeClient";
+import { Message, Role } from "../sensecodeClient/src/CodeClient";
 
 export enum PromptType {
   none,
@@ -12,9 +12,10 @@ export enum PromptType {
   customPrompt = "custom"
 }
 
-export interface SenseCodePrompt extends Prompt {
+export interface SenseCodePrompt {
   label: string;
   type: PromptType;
+  message: Message;
   code?: string;
   languageid?: string;
   args?: any;
@@ -41,14 +42,14 @@ export class PromptInfo {
   }
 
   public generatePromptHtml(id: number, argValues?: any): SenseCodePromptHtml {
-    if (this._prompt.prompt.includes("{code}") && !this._prompt.code) {
+    if (this._prompt.message.content.includes("{code}") && !this._prompt.code) {
       return {
         status: RenderStatus.codeMissing,
         html: "",
         prompt: this._prompt
       };
     }
-    if (!this._prompt.prompt.includes("{code}")) {
+    if (!this._prompt.message.content.includes("{code}")) {
       this._prompt.code = undefined;
       this._prompt.languageid = undefined;
     }
@@ -63,15 +64,13 @@ export class PromptInfo {
       for (let argName in argValues) {
         let arg = argValues[argName];
         if (argValues && argValues[argName] !== undefined) {
-          prompt.prompt = prompt.prompt.replace(`{${argName}}`, arg);
+          prompt.message.content = prompt.message.content.replace(`{${argName}}`, arg);
         }
       }
     }
 
     let args = this._prompt.args;
-    let prompthtml =  prompt.prompt;
-    prompthtml = prompthtml.replace("<|user|>", "");
-    prompthtml = prompthtml.replace("<|end|>", "");
+    let prompthtml = prompt.message.content;
     prompthtml = prompthtml.replace(/</g, "&lt;");
     let argData = '';
     if (args && Object.keys(args).length > 0) {
@@ -149,10 +148,10 @@ export class PromptInfo {
 
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full editing"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full editing"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     } else {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full"  data-label="${this.label}" data-type="${this.type}" data-prologue="${prompt.prologue}" data-prompt="${prompt.prompt}" data-suffix="${prompt.suffix}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body mt-4 leading-loose w-full"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     }
 
     return renderHtml;
@@ -166,8 +165,8 @@ export class PromptInfo {
     return this._prompt.label;
   }
 
-  public get prompt(): Prompt {
-    return this._prompt;
+  public get prompt(): Message {
+    return this._prompt.message;
   }
 
   public get codeInfo(): { code: string; languageid: string } | undefined {
@@ -191,46 +190,44 @@ export const builtinPrompts: SenseCodePrompt[] = [
   {
     label: l10n.t("Generation"),
     type: PromptType.codeGeneration,
-    prologue: `<|system|>\n<|end|>`,
-    prompt: `<|user|>
+    message: {
+      role: Role.user,
+      content: `
 ### Instruction:
 Task type: ${PromptType.codeGeneration}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
 {code}
-<|end|>`,
-    suffix: "<|assistant|>",
+`},
     brush: true,
     icon: "gradient"
   },
   {
     label: l10n.t("Add Test"),
     type: PromptType.testSampleGeneration,
-    prologue: `<|system|>\n<|end|>`,
-    prompt: `<|user|>
+    message: {
+      role: Role.user,
+      content: `
 ### Instruction:
 Task type: ${PromptType.testSampleGeneration}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
 {code}
-<|end|>
-`,
-    suffix: "<|assistant|>",
+`},
     icon: "science"
   },
   {
     label: l10n.t("Code Conversion"),
     type: PromptType.codeLanguageConversion,
-    prologue: `<|system|>\n<|end|>`,
-    prompt: `<|user|>
+    message: {
+      role: Role.user,
+      content: `
 ### Instruction:
 Task type: ${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an explanation at the end")}. ${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.
 
 ### Input:
 {code}
-<|end|>
-`,
-    suffix: "<|assistant|>",
+`},
     args: {
       language: {
         type: "enum",
@@ -259,32 +256,30 @@ Task type: ${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an exp
   {
     label: l10n.t("Code Correction"),
     type: PromptType.codeErrorCorrection,
-    prologue: `<|system|>\n<|end|>`,
-    prompt: `<|user|>
+    message: {
+      role: Role.user,
+      content: `
 ### Instruction:
 Task type: ${PromptType.codeErrorCorrection}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
 {code}
-<|end|>
-`,
-    suffix: "<|assistant|>",
+`},
     brush: true,
     icon: "add_task"
   },
   {
     label: l10n.t("Refactoring"),
     type: PromptType.codeRefactoringOptimization,
-    prologue: `<|system|>\n<|end|>`,
-    prompt: `<|user|>
+    message: {
+      role: Role.user,
+      content: `
 ### Instruction:
 Task type: ${PromptType.codeRefactoringOptimization}. ${l10n.t("Please provide an explanation at the end")}.
 
 ### Input:
 {code}
-<|end|>
-`,
-    suffix: "<|assistant|>",
+`},
     brush: true,
     icon: "construction"
   }

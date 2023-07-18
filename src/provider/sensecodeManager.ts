@@ -1,8 +1,8 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthProxy, CodeClient, Prompt } from "../sensecodeClient/src/CodeClient";
-import { ClientConfig, ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
-import { IncomingMessage } from "http";
+import { AuthProxy, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
+import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
@@ -10,14 +10,14 @@ import { randomUUID } from "crypto";
 
 const builtinEngines: ClientConfig[] = [
   {
-    label: "Penrose",
-    url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/completions",
+    type: ClientType.sensecode,
+    label: "SenseCode",
+    url: "https://ams.sensecoreapi.dev/studio/ams/data/v1/chat/completions",
     config: {
       model: "penrose-411",
       temperature: 0.5
     },
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    token_limit: 4096,
+    tokenLimit: 4096,
   }
 ];
 
@@ -50,6 +50,7 @@ export class SenseCodeManager {
         return proxy;
       }
     }
+    return undefined;
   }
 
   constructor(context: ExtensionContext) {
@@ -75,7 +76,11 @@ export class SenseCodeManager {
     this._clients = [];
     for (let e of es) {
       if (e.label && e.url) {
-        this._clients.push(new SenseCodeClient(meta, e, outlog.debug));
+        if (e.type === ClientType.sensenova) {
+          this._clients.push(new SenseNovaClient(e, outlog.debug));
+        } else {
+          this._clients.push(new SenseCodeClient(meta, e, outlog.debug));
+        }
       }
     }
     this.setupClientInfo();
@@ -222,23 +227,22 @@ export class SenseCodeManager {
         prompts.push({
           label,
           type: PromptType.customPrompt,
-          prologue: `<|system|>\n<|end|>`,
-          prompt: `<|user|>${promptProcessed}<|end|>`,
-          suffix: "<|assistant|>",
+          message: {
+            role: Role.user,
+            content: `${promptProcessed}`
+          },
           args
         });
       } else {
         let p: SenseCodePrompt = {
           label: label,
           type: PromptType.customPrompt,
-          ...customPrompts[label]
+          message: {
+            role: Role.user,
+            content: `${customPrompts[label].prompt}`
+          },
+          args: customPrompts[label].args
         };
-        if (!p.prologue) {
-          p.prologue = `<|system|>\n<|end|>`;
-        }
-        if (!p.suffix) {
-          p.suffix = "<|assistant|>";
-        }
         prompts.push(p);
       }
     }
@@ -352,56 +356,25 @@ export class SenseCodeManager {
     });
   }
 
-  private async refreshToken(client: CodeClient | undefined) {
-    if (client) {
-      let auth = await client.refreshToken();
-      let tokens = await this.context.secrets.get("SenseCode.tokens");
-      let ts: any = JSON.parse(tokens || "{}");
-      ts[client.label] = auth;
-      this.context.globalState.update("SenseCode.tokenRefreshed", true);
-      await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
-    }
-  }
-
-  public async getCompletions(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string, skipRetry?: boolean): Promise<any> {
+  public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<ResponseData> {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getCompletions(prompt, n, maxToken, stopWord, signal).then((resp) => {
-        return resp;
-      }, async (err) => {
-        if (!skipRetry && err.response?.status === 401) {
-          await this.refreshToken(client);
-          return this.getCompletions(prompt, n, maxToken, stopWord, signal, clientName, true);
-        }
-        throw (err);
-      });
+      return client.getCompletions(messages, n, maxToken, stopWord, signal);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
   }
 
-  public async getCompletionsStreaming(prompt: Prompt, n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string, skipRetry?: boolean): Promise<IncomingMessage> {
+  public async getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => boolean, clientName?: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal).then((resp) => {
-        return resp;
-      }, async (err) => {
-        if (!skipRetry && err.response?.status === 401) {
-          try {
-            await this.refreshToken(client);
-          } catch (e) {
-
-          }
-          return this.getCompletionsStreaming(prompt, n, maxToken, stopWord, signal, clientName, true);
-        }
-        throw (err);
-      });
+      client.getCompletionsStreaming(messages, n, maxToken, stopWord, signal, callback);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }

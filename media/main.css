@@ -66,10 +66,6 @@ textarea::placeholder {
     color: var(--vscode-input-placeholderForeground);
 }
 
-[contenteditable='true'] {
-    outline: none;
-}
-
 .prompt {
     white-space: pre-wrap;
     overflow-x: auto;
@@ -118,41 +114,6 @@ textarea::placeholder {
     cursor: pointer;
     border-radius: 1px;
     background: var(--progress-background);
-}
-
-.prompt .editable:empty {
-    padding-left: 1ch;
-}
-
-.prompt .editable {
-    min-width: 6ch;
-    transition-property: border;
-    transition-duration: 0.5s;
-    border: 1px solid var(--vscode-progressBar-background);
-}
-
-.prompt .editable br {
-    display: none;
-}
-
-.prompt .edited:before,
-.prompt .edited:after,
-.prompt .editable:before,
-.prompt .editable:after {
-    content: "\00a0\00a0";
-}
-
-.prompt .editable:empty::before {
-    content: "\00a0\00a0" attr(data-placeholder);
-    color: var(--vscode-editorGhostText-foreground);
-}
-
-.prompt .edited,
-.prompt .editable[contenteditable='false'] {
-    text-align: center;
-    border: 1px solid transparent;
-    text-decoration: 3px underline var(--vscode-progressBar-background);
-    text-underline-offset: 3px;
 }
 
 .prompt-dropdown {
@@ -428,9 +389,12 @@ textarea::placeholder {
     display: none;
 }
 
+#code-hint .material-symbols-rounded {
+    cursor: pointer;
+}
+
 #code-hint {
     display: inline-block;
-    cursor: pointer;
     flex-grow: 1;
     text-align: end;
     transition-duration: 0.3s;

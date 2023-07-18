@@ -3,6 +3,7 @@ import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { sensecodeManager, outlog } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 import { CompletionPreferenceType } from "./sensecodeManager";
+import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 
 let lastRequest = null;
 
@@ -102,7 +103,7 @@ export function inlineCompletionProvider(
         if (lastRequest !== requestId) {
           return;
         }
-        let data: any;
+        let data: ResponseData;
         try {
           updateStatusBarItem(
             statusBarItem,
@@ -126,17 +127,15 @@ export function inlineCompletionProvider(
           if (!codeSnippets.suffix) {
             temp = `${codeSnippets.prefix}<fim_middle><fim_suffix>`;
           }
-          const completionPrompt = {
-            prologue: `<|system|>\n<|end|>`,
-            prompt: `<|user|>
-<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
+          const completionPrompt: Message = {
+            role: Role.user,
+            content: `<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
 
-${temp}<|end|>`,
-            suffix: "<|assistant|>",
+${temp}`
           };
 
           data = await sensecodeManager.getCompletions(
-            completionPrompt,
+            [completionPrompt],
             sensecodeManager.candidates,
             mt,
             stopToken,
@@ -189,21 +188,21 @@ ${temp}<|end|>`,
         const completions = Array<string>();
         for (let i = 0; i < codeArray.length; i++) {
           const completion = codeArray[i];
-          let tmpstr: string = completion.text.replace(stopToken, "") || "";
+          let tmpstr: string = completion.message.content;
           if (!tmpstr.trim()) {
-            outlog.debug('[Ignore: Empty Suggestion]: ' + completion.text);
+            outlog.debug('[Ignore: Empty Suggestion]');
             continue;
           }
           if (completions.includes(tmpstr)) {
-            outlog.debug('[Ignore: Duplicated Suggestion]: ' + completion.text);
+            outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);
             continue;
           }
-          if (completion.finish_reason === 'length') {
+          if (completion.finishReason === 'length') {
             continueFlag.push(true);
-            outlog.debug('[Accept: Truncated Suggestion]: ' + completion.text);
+            outlog.debug('[Accept: Truncated Suggestion]: ' + tmpstr);
           } else {
             continueFlag.push(false);
-            outlog.debug('[Accept: Completed Suggestion]: ' + completion.text);
+            outlog.debug('[Accept: Completed Suggestion]: ' + tmpstr);
           }
           completions.push(tmpstr);
         }
@@ -259,7 +258,7 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
   if (foldings && foldings.length > 0) {
     for (let r of foldings) {
       if (r.start < cursorY && r.end >= cursorY) {
-        foldingPoints.push(r);
+        //foldingPoints.push(r);
       } else if (r.end < cursorY) {
         preCutLines.push(r.end + 1);
       } else if (r.start > cursorY) {
