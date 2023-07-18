@@ -224,27 +224,28 @@ export class SenseNovaClient implements CodeClient {
                 });
                 data.destroy();
                 return;
-              } else if (json.data.choices && json.data.choices[0]) {
-                let choice = json.data.choices[0];
-                let stopReason = choice["finish_reason"];
-                let value = choice.delta;
-                if (stopReason) {
-                  data.destroy();
+              } else if (json.data.choices) {
+                for (let choice of json.data.choices) {
+                  let stopReason = choice["finish_reason"];
+                  let value = choice.delta;
+                  if (stopReason) {
+                    data.destroy();
+                  }
+                  callback({
+                    id: json.data.id,
+                    created: new Date().valueOf(),
+                    choices: [
+                      {
+                        index: 0,
+                        message: {
+                          role: Role.assistant,
+                          content: value
+                        },
+                        finishReason: stopReason
+                      }
+                    ]
+                  });
                 }
-                callback({
-                  id: json.data.id,
-                  created: new Date().valueOf(),
-                  choices: [
-                    {
-                      index: 0,
-                      message: {
-                        role: Role.assistant,
-                        content: value
-                      },
-                      finishReason: stopReason
-                    }
-                  ]
-                });
               }
             } catch (e) {
               throw (e);

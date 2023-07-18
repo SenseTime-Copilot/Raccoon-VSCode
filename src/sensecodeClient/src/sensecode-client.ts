@@ -477,20 +477,24 @@ export class SenseCodeClient implements CodeClient {
                 });
                 data.destroy();
                 return;
-              } else if (json.choices && json.choices[0]) {
-                let choice: Choice = json.choices[0];
-                let stopReason = choice["finish_reason"];
-                if (stopReason) {
-                  choice.finishReason = stopReason;
-                  data.destroy();
+              } else if (json.choices) {
+                for (let choice of json.choices) {
+                  let finishReason = choice["finish_reason"];
+                  if (finishReason) {
+                    data.destroy();
+                  }
+                  callback({
+                    id: json.id,
+                    created: json.created * 1000,
+                    choices: [
+                      {
+                        index: choice.index,
+                        message: choice.message,
+                        finishReason
+                      }
+                    ]
+                  });
                 }
-                callback({
-                  id: json.id,
-                  created: json.created * 1000,
-                  choices: [
-                    choice
-                  ]
-                });
               }
             } catch (e) {
               throw (e);
