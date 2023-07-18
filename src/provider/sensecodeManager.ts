@@ -153,7 +153,7 @@ export class SenseCodeManager {
 
   public async updateEngineList() {
     for (let e of this._clients) {
-      await e.logout();
+      await e.logout().catch(() => { });
     }
     return this.buildAllClient();
   }
@@ -353,7 +353,7 @@ export class SenseCodeManager {
       let ts: any = JSON.parse(tokens || "{}");
       ts[client.label] = undefined;
       await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
-    });
+    }).catch(() => { });
   }
 
   public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<ResponseData> {
