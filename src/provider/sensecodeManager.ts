@@ -12,7 +12,7 @@ const builtinEngines: ClientConfig[] = [
   {
     type: ClientType.sensecode,
     label: "SenseCode",
-    url: "https://ams.sensecoreapi.dev/studio/ams/data/v1/chat/completions",
+    url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
     config: {
       model: "penrose-411",
       temperature: 0.5
