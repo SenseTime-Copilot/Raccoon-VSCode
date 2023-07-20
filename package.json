@@ -34,6 +34,7 @@
         "workspaceContains:**/*"
     ],
     "main": "./dist/extension.js",
+    "browser": "./dist/web/extension.js",
     "l10n": "./l10n",
     "contributes": {
         "configuration": [
@@ -193,6 +194,11 @@
                 "enablement": "view == sensecode.view"
             },
             {
+                "command": "sensecode.setAccessKey",
+                "title": "%sensecode.command.setAccessKey%",
+                "when": "isWeb"
+            },
+            {
                 "command": "sensecode.help",
                 "category": "SenseCode",
                 "title": "%sensecode.command.help%",
@@ -310,7 +316,8 @@
         "vscode:prepublish": "webpack --mode production",
         "watch": "webpack --mode development --watch",
         "webpack": "webpack --mode development",
-        "test-compile": "tsc -p ./"
+        "test-compile": "tsc -p ./",
+        "open-in-browser": "vscode-test-web --extensionDevelopmentPath=. ."
     },
     "devDependencies": {
         "@types/axios": "^0.14.0",
@@ -323,9 +330,16 @@
         "@typescript-eslint/parser": "^5.31.0",
         "@vscode/test-electron": "^2.1.5",
         "@vscode/vsce": "^2.18.0",
+        "@vscode/test-web": "^0.0.44",
         "@vscode/webview-ui-toolkit": "^1.2.0",
         "axios": "^0.24.0",
         "crypto": "^1.0.1",
+        "crypto-browserify": "^3.12.0",
+        "stream-browserify": "^3.0.0",
+        "stream-http": "^3.2.0",
+        "https-browserify": "^1.0.0",
+        "url": "^0.11.1",
+        "process": "^0.11.10",
         "eslint": "^8.20.0",
         "form-data": "^4.0.0",
         "glob": "^8.0.3",

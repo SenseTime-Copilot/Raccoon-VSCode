@@ -1,7 +1,6 @@
 import axios, { ResponseType } from "axios";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import * as zlib from "zlib";
 import { CodeClient, AuthInfo, AuthProxy, ClientConfig, Choice, FinishReason, ResponseData, Role, Message } from "./CodeClient";
 import sign = require('jwt-encode');
 
@@ -19,6 +18,8 @@ export class SenseNovaClient implements CodeClient {
   private _idToken?: string;
   private _username?: string;
   private _weaverdKey?: string;
+  private _aksk?: string;
+  private onChangeAuthInfo?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>;
 
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
     if (clientConfig.key) {
@@ -26,21 +27,36 @@ export class SenseNovaClient implements CodeClient {
     }
   }
 
+  onDidChangeAuthInfo(handler?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>): void {
+    this.onChangeAuthInfo = handler;
+  }
+
   public async logout(): Promise<void> {
     return this.clearAuthInfo();
+  }
+
+  public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
+    this._username = name;
+    this._aksk = `${ak}#${sk}`;
+    return this.getAuthInfo();
   }
 
   public restoreAuthInfo(auth: AuthInfo): Promise<void> {
     this._idToken = auth.idToken;
     this._username = auth.username;
     this._weaverdKey = auth.weaverdKey;
+    this._aksk = auth.aksk;
     return Promise.resolve();
   }
 
-  public clearAuthInfo(): Promise<void> {
+  public async clearAuthInfo(): Promise<void> {
     this._idToken = undefined;
     this._username = undefined;
     this._weaverdKey = undefined;
+    this._aksk = undefined;
+    if (this.onChangeAuthInfo) {
+      await this.onChangeAuthInfo(this);
+    }
     return Promise.resolve();
   }
 
@@ -81,16 +97,17 @@ export class SenseNovaClient implements CodeClient {
 
   private getAuthInfo(): AuthInfo {
     return {
-      username: "User",
-      weaverdKey: "XXX",
-      idToken: "XXX"
+      username: this._username || "User",
+      aksk: this._aksk,
+      weaverdKey: this._weaverdKey || "XXX",
+      idToken: this._idToken || "XXX"
     };
   }
 
   private _postPrompt(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let date: string = new Date().toUTCString();
-      let key = this.clientConfig.key;
+      let key = this.clientConfig.key || this._aksk;
       let auth = '';
       if (key) {
         if (key.includes("#")) {
@@ -184,13 +201,21 @@ export class SenseNovaClient implements CodeClient {
   public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => void) {
     this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
       if (data instanceof IncomingMessage) {
+        let tail = '';
         data.on('data', async (v: any) => {
           if (signal.aborted) {
             data.destroy();
             return;
           }
           let msgstr: string = v.toString();
-          let msgs = msgstr.split("\n");
+          if (this.debug) {
+            this.debug(msgstr);
+          }
+          let msgs = (tail + msgstr)
+            .split("\n")
+            .filter((str, _idx, _arr) => {
+              return !!str;
+            });
           for (let msg of msgs) {
             let content = "";
             if (msg.startsWith("data:")) {
@@ -207,6 +232,7 @@ export class SenseNovaClient implements CodeClient {
             }
             try {
               let json = JSON.parse(content);
+              tail = "";
               if (json.error) {
                 callback({
                   id: '',
@@ -247,7 +273,11 @@ export class SenseNovaClient implements CodeClient {
                   });
                 }
               }
-            } catch (e) {
+            } catch (e: any) {
+              if (!tail && e.stack?.startsWith("SyntaxError")) {
+                tail = content;
+                continue;
+              }
               throw (e);
             }
           }
@@ -327,18 +357,7 @@ export class SenseNovaClient implements CodeClient {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...headers },
           proxy: false,
-          timeout: 120000,
-          transformRequest: [
-            (data, header) => {
-              if (!header) {
-                return;
-              }
-              header['Content-Encoding'] = 'gzip';
-              const w = zlib.createGzip();
-              w.end(Buffer.from(data));
-              return w;
-            }
-          ]
+          timeout: 120000
         }
       ).then(async (res) => {
         if (res?.status === 200) {

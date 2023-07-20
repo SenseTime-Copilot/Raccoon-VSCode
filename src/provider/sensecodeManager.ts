@@ -1,12 +1,12 @@
 import axios from "axios";
-import { commands, env, ExtensionContext, extensions, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthProxy, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { commands, env, ExtensionContext, extensions, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
+import { AuthInfo, AuthProxy, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
-import { randomUUID } from "crypto";
+import { randomBytes } from "crypto";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -28,10 +28,14 @@ export enum CompletionPreferenceType {
 }
 
 export class SenseCodeManager {
-  private seed: string = randomUUID();
+  private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
   private _clients: CodeClient[] = [];
+
+  private randomUUID() {
+    return randomBytes(20).toString('hex');
+  }
 
   private async getProxy() {
     let proxy: AuthProxy | undefined = undefined;
@@ -67,9 +71,9 @@ export class SenseCodeManager {
   }
 
   private async buildAllClient() {
-    let meta: ClientMeta = {
+    const meta: ClientMeta = {
       clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
-      redirectUrl: `vscode://${this.context.extension.id.toLowerCase()}/login`
+      redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
     };
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
@@ -91,6 +95,17 @@ export class SenseCodeManager {
     this.checkSensetimeEnv(proxy);
   }
 
+  public async setAccessKey(name: string, ak: string, sk: string) {
+    let client: CodeClient | undefined = this.getActiveClient();
+    if (client) {
+      let ai = await client.setAccessKey(name, ak, sk);
+      let tokens = await this.context.secrets.get("SenseCode.tokens");
+      let ts: any = JSON.parse(tokens || "{}");
+      ts[client.label] = ai;
+      await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
+    }
+  }
+
   private async setupClientInfo() {
     let tokens = await this.context.secrets.get("SenseCode.tokens");
     let ts: any = JSON.parse(tokens || "{}");
@@ -98,6 +113,15 @@ export class SenseCodeManager {
       if (ts[e.label]) {
         e.restoreAuthInfo(ts[e.label]);
       }
+      e.onDidChangeAuthInfo(async (client: CodeClient, token?: AuthInfo, refresh?: boolean) => {
+        let tokens1 = await this.context.secrets.get("SenseCode.tokens");
+        let ts1: any = JSON.parse(tokens1 || "{}");
+        if (token && refresh) {
+          this.context.globalState.update("SenseCode.tokenRefreshed", true);
+        }
+        ts1[client.label] = token;
+        await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts1));
+      });
     }
   }
 
@@ -122,7 +146,7 @@ export class SenseCodeManager {
     let logoutAct: Promise<void>[] = [];
     for (let e of this._clients) {
       logoutAct.push(
-        this.doLogout(e).then(() => { }, (err) => {
+        e.logout().then(() => { }, (err) => {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           e.clearAuthInfo();
           outlog.debug(`Logout ${e.label} failed: ${err}`);
@@ -288,6 +312,9 @@ export class SenseCodeManager {
       client = this.getClient(clientName);
     }
     if (client) {
+      if (env.uiKind === UIKind.Web) {
+        return Promise.resolve("command:sensecode.setAccessKey");
+      }
       let verifier = this.seed;
       verifier += env.machineId;
       return client.getAuthUrlLogin(verifier);
@@ -309,15 +336,11 @@ export class SenseCodeManager {
         return false;
       }
       let verifier = this.seed;
-      this.seed = randomUUID();
+      this.seed = this.randomUUID();
       verifier += env.machineId;
       return client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (client && token) {
-          let tokens = await this.context.secrets.get("SenseCode.tokens");
-          let ts: any = JSON.parse(tokens || "{}");
-          ts[client.label] = token;
-          await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
           return true;
         } else {
           return false;
@@ -337,23 +360,15 @@ export class SenseCodeManager {
         client = this.getClient(clientName);
       }
       if (client) {
-        await this.doLogout(client).then(() => {
+        await client.logout().then(() => {
           progress.report({ increment: 100 });
         }, (e) => {
           progress.report({ increment: 100 });
+          client?.clearAuthInfo();
           window.showErrorMessage("Logout failed: " + e.message);
         });
       }
     });
-  }
-
-  private async doLogout(client: CodeClient) {
-    return client.logout().then(async () => {
-      let tokens = await this.context.secrets.get("SenseCode.tokens");
-      let ts: any = JSON.parse(tokens || "{}");
-      ts[client.label] = undefined;
-      await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
-    }).catch(() => { });
   }
 
   public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<ResponseData> {

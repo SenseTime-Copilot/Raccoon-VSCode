@@ -125,6 +125,9 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case 'clear': {
+        document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+        document.getElementById("question-input").disabled = false;
+        document.getElementById("question-input").focus();
         list.innerHTML = "";
         break;
       }
@@ -479,7 +482,10 @@ const vscode = acquireVsCodeApi();
       }
       case "addResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
-        if (chatText?.classList.contains("empty")) {
+        if (!chatText) {
+          break;
+        }
+        if (chatText.classList.contains("empty")) {
           if (message.timestamp) {
             let r = document.getElementById(`${message.id}`);
             let rts = r?.getElementsByClassName("response-ts");
@@ -487,7 +493,7 @@ const vscode = acquireVsCodeApi();
               rts[0].textContent = message.timestamp;
             }
           }
-          chatText?.classList.remove("empty");
+          chatText.classList.remove("empty");
         }
         const progText = document.getElementById(`progress-${message.id}`);
         progText?.classList.add("started");
@@ -1022,6 +1028,9 @@ const vscode = acquireVsCodeApi();
 
     if (e.target.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
+      document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
       return;
     }
 

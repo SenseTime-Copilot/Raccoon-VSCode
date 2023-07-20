@@ -3,7 +3,6 @@ import FormData = require("form-data");
 import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import * as zlib from "zlib";
 import { CodeClient, AuthInfo, AuthProxy, ResponseData, FinishReason, Role, ClientConfig, Choice, Message } from "./CodeClient";
 
 export interface ClientMeta {
@@ -48,7 +47,7 @@ function unweaveKey(info: string) {
   };
 }
 
-function hmacSHA256(key: Buffer, data: Buffer): string {
+function hmacSHA256(key: string, data: string): string {
   const hmac = crypto.createHmac('sha256', key);
   hmac.update(data);
   return hmac.digest('base64');
@@ -57,7 +56,7 @@ function hmacSHA256(key: Buffer, data: Buffer): string {
 function generateSignature(urlString: string, date: string, ak: string, sk: string) {
   let url = new URL(urlString);
   let message: string = `date: ${date}\nPOST ${url.pathname} HTTP/1.1`;
-  let signature = hmacSHA256(Buffer.from(sk), Buffer.from(message));
+  let signature = hmacSHA256(sk, message);
   let authorization: string = `hmac accesskey="${ak}", algorithm="hmac-sha256", headers="date request-line", signature="${signature}"`;
   return authorization;
 }
@@ -65,10 +64,12 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 export class SenseCodeClient implements CodeClient {
   private _idToken?: string;
   private _username?: string;
+  private _aksk?: string;
   private _avatar?: string;
   private _weaverdKey?: string;
   private _refreshToken?: string;
   private _proxy?: AuthProxy;
+  private onChangeAuthInfo?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>;
 
   constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void, proxy?: any) {
     this._proxy = proxy;
@@ -79,27 +80,39 @@ export class SenseCodeClient implements CodeClient {
     }
   }
 
+  onDidChangeAuthInfo(handler?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>): void {
+    this.onChangeAuthInfo = handler;
+  }
+
   public async logout(): Promise<void> {
     if (this._proxy) {
       if (this._username) {
         this._proxy.logout({ idToken: this._idToken || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
-          .then(() => {
+          .then(async () => {
             this._idToken = undefined;
             this._username = undefined;
             this._weaverdKey = undefined;
             this._refreshToken = undefined;
             this._avatar = undefined;
+            this._aksk = undefined;
+            if (this.onChangeAuthInfo) {
+              await this.onChangeAuthInfo(this);
+            }
           });
       }
       return;
     }
     return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._idToken || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
-      .then(() => {
+      .then(async () => {
         this._idToken = undefined;
         this._username = undefined;
         this._avatar = undefined;
         this._weaverdKey = undefined;
         this._refreshToken = undefined;
+        this._aksk = undefined;
+        if (this.onChangeAuthInfo) {
+          await this.onChangeAuthInfo(this);
+        }
       });
   }
 
@@ -109,15 +122,20 @@ export class SenseCodeClient implements CodeClient {
     this._avatar = auth.avatar;
     this._weaverdKey = auth.weaverdKey;
     this._refreshToken = auth.refreshToken;
+    this._aksk = auth.aksk;
     return Promise.resolve();
   }
 
-  public clearAuthInfo(): Promise<void> {
+  public async clearAuthInfo(): Promise<void> {
     this._idToken = undefined;
     this._username = undefined;
     this._avatar = undefined;
     this._weaverdKey = undefined;
     this._refreshToken = undefined;
+    this._aksk = undefined;
+    if (this.onChangeAuthInfo) {
+      await this.onChangeAuthInfo(this);
+    }
     return Promise.resolve();
   }
 
@@ -157,6 +175,9 @@ export class SenseCodeClient implements CodeClient {
     if (this.clientConfig.key) {
       return Promise.resolve(this.clientConfig.key);
     }
+    if (this._aksk) {
+      return Promise.resolve(this._aksk);
+    }
     if (!this._weaverdKey) {
       return Promise.reject();
     }
@@ -194,7 +215,7 @@ export class SenseCodeClient implements CodeClient {
     return baseUrl;
   }
 
-  private async tokenWeaver(data: any): Promise<AuthInfo> {
+  private async tokenWeaver(data: any, refresh?: boolean): Promise<AuthInfo> {
     let decoded: any = jwt_decode(data.id_token);
     let name = decoded.id_token?.username;
     let token = Buffer.from(data.access_token).toString('base64');
@@ -220,7 +241,12 @@ export class SenseCodeClient implements CodeClient {
     this._username = name;
     this._avatar = await this.getUserAvatar();
     this._refreshToken = data.refresh_token;
-    return this.getAuthInfo();
+    this._aksk = undefined;
+    let ai = this.getAuthInfo();
+    if (this.onChangeAuthInfo) {
+      await this.onChangeAuthInfo(this, ai, refresh);
+    }
+    return ai;
   }
 
   private async loginSenseCore(code: string, codeVerifier: string, authUrl: string): Promise<AuthInfo> {
@@ -246,6 +272,18 @@ export class SenseCodeClient implements CodeClient {
       }).catch((e) => {
         return Promise.reject(e);
       });
+  }
+
+  public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
+    this._aksk = `${ak}#${sk}`;
+    this._username = name;
+    let auth: AuthInfo = {
+      username: name,
+      aksk: this._aksk,
+      weaverdKey: "XXX",
+      idToken: "XXX"
+    };
+    return auth;
   }
 
   public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
@@ -302,7 +340,7 @@ export class SenseCodeClient implements CodeClient {
         { headers })
         .then((resp) => {
           if (resp && resp.status === 200) {
-            return this.tokenWeaver(resp.data);
+            return this.tokenWeaver(resp.data, true);
           }
           return Promise.reject();
         }, (err) => {
@@ -318,7 +356,8 @@ export class SenseCodeClient implements CodeClient {
       username: this._username || "",
       weaverdKey: this._weaverdKey || "",
       avatar: this._avatar,
-      refreshToken: this._refreshToken
+      refreshToken: this._refreshToken,
+      aksk: this._aksk
     };
   }
 
@@ -385,6 +424,9 @@ export class SenseCodeClient implements CodeClient {
       }).catch(async e => {
         if (!skipRetry && e.response?.status === 401) {
           try {
+            if (this.debug) {
+              this.debug("Try to refresh access token for" + this.clientConfig.label);
+            }
             await this.refreshToken();
           } catch (er) {
 
@@ -417,6 +459,7 @@ export class SenseCodeClient implements CodeClient {
   public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => void) {
     this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
       if (data instanceof IncomingMessage) {
+        let tail = '';
         data.on('data', async (v: any) => {
           if (signal.aborted) {
             data.destroy();
@@ -426,7 +469,11 @@ export class SenseCodeClient implements CodeClient {
           if (this.debug) {
             this.debug(msgstr);
           }
-          let msgs = msgstr.split("\n");
+          let msgs = (tail + msgstr)
+            .split("\n")
+            .filter((str, _idx, _arr) => {
+              return !!str;
+            });
           for (let msg of msgs) {
             let content = "";
             if (msg.startsWith("data:")) {
@@ -460,6 +507,7 @@ export class SenseCodeClient implements CodeClient {
             }
             try {
               let json = JSON.parse(content);
+              tail = "";
               if (json.error) {
                 callback({
                   id: json.id,
@@ -496,7 +544,11 @@ export class SenseCodeClient implements CodeClient {
                   });
                 }
               }
-            } catch (e) {
+            } catch (e: any) {
+              if (!tail && e.stack?.startsWith("SyntaxError")) {
+                tail = content;
+                continue;
+              }
               throw (e);
             }
           }
@@ -515,7 +567,7 @@ export class SenseCodeClient implements CodeClient {
             index: 0,
             message: {
               role: Role.assistant,
-              content: error.response.statusText
+              content: error.response?.statusText || error.message
             },
             finishReason: FinishReason.error
           }
@@ -562,18 +614,7 @@ export class SenseCodeClient implements CodeClient {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...headers },
           proxy: false,
-          timeout: 120000,
-          transformRequest: [
-            (data, header) => {
-              if (!header) {
-                return;
-              }
-              header['Content-Encoding'] = 'gzip';
-              const w = zlib.createGzip();
-              w.end(Buffer.from(data));
-              return w;
-            }
-          ]
+          timeout: 120000
         }
       ).then(async (res) => {
         if (res?.status === 200) {

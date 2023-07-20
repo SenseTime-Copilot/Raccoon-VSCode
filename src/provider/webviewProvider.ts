@@ -229,10 +229,10 @@ export class SenseCodeEditor extends Disposable {
       esList += `<vscode-option value="${label}">${label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
-    let username: string | undefined = sensecodeManager.username();
+    let username: string | undefined = undefined;
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
-    if (!username) {
+    if (!sensecodeManager.isClientLoggedin()) {
       await sensecodeManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
           return;
@@ -243,6 +243,7 @@ export class SenseCodeEditor extends Disposable {
                       </vscode-link>`;
       }, () => { });
     } else {
+      username = sensecodeManager.username();
       let avatar = sensecodeManager.avatar();
       if (avatar) {
         avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
@@ -414,7 +415,10 @@ export class SenseCodeEditor extends Disposable {
         case 'sendQuestion': {
           let ts = new Date();
           let id = ts.valueOf();
-          const editor = window.activeTextEditor || this.lastTextEditor;
+          let editor = this.lastTextEditor;
+          if (window.activeTextEditor && this.isSupportedScheme(window.activeTextEditor.document)) {
+            editor = window.activeTextEditor;
+          }
           let prompt: SenseCodePrompt = data.prompt;
           if (editor && !data.values) {
             prompt.code = editor.document.getText(editor.selection);
@@ -423,7 +427,7 @@ export class SenseCodeEditor extends Disposable {
             }
           }
           if (prompt.type === PromptType.freeChat) {
-            if (prompt.code) {
+            if (prompt.code && !prompt.message.content.includes("{code}")) {
               prompt.message.content += "\n{code}\n";
             }
           }
@@ -659,7 +663,7 @@ ${data.info.response}
           <div class="markdown-body" style="margin: 1rem 4rem;">
             <div id="info">${content}</div>
               <div style="display: flex;flex-direction: column;">
-                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${lang ? lang + " code" : "anwser"} code here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
+                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${lang ? lang + " code" : "anwser"} here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
                 <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
               </div>
             </div>
@@ -734,27 +738,27 @@ ${data.info.response}
         } else {
           instruction.content = instruction.content.replace("{code}", "");
         }
-        let msgs: Message[] = [];
-        msgs.push({ role: Role.system, content: '' });
+        let historyMsgs: Message[] = [];
         if (history) {
           let hs = Array.from(history).reverse();
           for (let h of hs) {
             let qaLen = (h.question.length + h.answer.length) / 3;
             if ((el + qaLen) > maxTokens) {
+              historyMsgs = historyMsgs.reverse();
               break;
             }
             el += qaLen;
-            msgs.push({
+            historyMsgs.push({
               role: Role.user,
               content: h.question
             });
-            msgs.push({
+            historyMsgs.push({
               role: Role.assistant,
               content: h.answer
             });
           }
         }
-        msgs.push(instruction);
+        let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
         if (streaming) {
           sensecodeManager.getCompletionsStreaming(
             msgs,
@@ -824,6 +828,9 @@ ${data.info.response}
   }
 
   public async clear() {
+    for (let id in this.stopList) {
+      this.stopList[id].abort();
+    }
     this.sendMessage({ type: "clear" });
     this.showWelcome(true);
   }

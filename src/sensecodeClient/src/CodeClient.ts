@@ -19,6 +19,7 @@ export interface AuthInfo {
     weaverdKey: string;
     avatar?: string;
     refreshToken?: string;
+    aksk?: string;
 }
 
 export enum Role {
@@ -68,7 +69,11 @@ export interface CodeClient {
 
     get proxy(): AuthProxy | undefined;
 
+    onDidChangeAuthInfo(handler?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>): void;
+
     getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
+
+    setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo>;
 
     login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
 

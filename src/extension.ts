@@ -44,7 +44,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
   checkPrivacy(context);
 
-  context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
+  if (vscode.env.uiKind === vscode.UIKind.Web) {
+    let validateInput = function (v: string) {
+      return v ? undefined : "The value must not be empty";
+    };
+    context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
+      vscode.window.showInputBox({ placeHolder: "Your account name", validateInput, ignoreFocusOut: true }).then((name) => {
+        vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
+          vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
+            if (name && ak && sk) {
+              sensecodeManager.setAccessKey(name, ak, sk);
+            }
+          });
+        });
+      });
+    }));
+  } else {
+    context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
+  }
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.help", async () => {
@@ -128,16 +145,17 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  const view = vscode.window.registerWebviewViewProvider(
-    "sensecode.view",
-    new SenseCodeViewProvider(context),
-    {
-      webviewOptions: {
-        retainContextWhenHidden: true,
-      },
-    }
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "sensecode.view",
+      new SenseCodeViewProvider(context),
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true,
+        },
+      }
+    )
   );
-  context.subscriptions.push(view);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.ask", () => {

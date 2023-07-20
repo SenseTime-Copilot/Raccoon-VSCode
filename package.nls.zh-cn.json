@@ -16,6 +16,7 @@
     "sensecode.config.prompt.advanced.args.type": "参数类型",
     "sensecode.view.title": "代码助手",
     "sensecode.command.clear": "清空对话",
+    "sensecode.command.setAccessKey": "设置 Access Key",
     "sensecode.command.help": "帮助",
     "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 代码助手实例",
     "sensecode.command.ask": "向 SenseCode 提问...",
