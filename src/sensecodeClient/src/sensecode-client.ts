@@ -3,7 +3,7 @@ import FormData = require("form-data");
 import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, AuthProxy, ResponseData, FinishReason, Role, ClientConfig, Choice, Message } from "./CodeClient";
+import { CodeClient, AuthInfo, AuthProxy, ResponseData, FinishReason, Role, ClientConfig, Choice, Message, ResponseEvent } from "./CodeClient";
 
 export interface ClientMeta {
   clientId: string;
@@ -470,13 +470,14 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => void) {
+  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
     this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
           if (signal.aborted) {
             data.destroy();
+            callback(ResponseEvent.cancel);
             return;
           }
           let msgstr: string = v.toString();
@@ -495,7 +496,7 @@ export class SenseCodeClient implements CodeClient {
             } else if (msg.startsWith("event:")) {
               content = msg.slice(6).trim();
               if (content === "error") {
-                callback({
+                callback(ResponseEvent.error, {
                   id: '',
                   created: new Date().valueOf(),
                   choices: [
@@ -504,8 +505,7 @@ export class SenseCodeClient implements CodeClient {
                       message: {
                         role: Role.assistant,
                         content: '',
-                      },
-                      finishReason: FinishReason.error
+                      }
                     }
                   ]
                 });
@@ -514,7 +514,9 @@ export class SenseCodeClient implements CodeClient {
             }
 
             if (content === '[DONE]') {
-              continue;
+              data.destroy();
+              callback(ResponseEvent.done);
+              return;
             }
             if (!content) {
               continue;
@@ -523,7 +525,7 @@ export class SenseCodeClient implements CodeClient {
               let json = JSON.parse(content);
               tail = "";
               if (json.error) {
-                callback({
+                callback(ResponseEvent.error, {
                   id: json.id,
                   created: json.created * 1000,
                   choices: [
@@ -532,30 +534,25 @@ export class SenseCodeClient implements CodeClient {
                       message: {
                         role: Role.assistant,
                         content: json.error,
-                      },
-                      finishReason: FinishReason.error
+                      }
                     }
                   ]
                 });
-                data.destroy();
-                return;
               } else if (json.choices) {
                 for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
-                  if (finishReason) {
-                    data.destroy();
-                  }
-                  callback({
-                    id: json.id,
-                    created: json.created * 1000,
-                    choices: [
-                      {
-                        index: choice.index,
-                        message: choice.message,
-                        finishReason
-                      }
-                    ]
-                  });
+                  callback(finishReason ? ResponseEvent.finish : ResponseEvent.data,
+                    {
+                      id: json.id,
+                      created: json.created * 1000,
+                      choices: [
+                        {
+                          index: choice.index,
+                          message: choice.message,
+                          finishReason
+                        }
+                      ]
+                    });
                 }
               }
             } catch (e: any) {
@@ -573,7 +570,7 @@ export class SenseCodeClient implements CodeClient {
         }
       }
     }, (error) => {
-      callback({
+      callback(ResponseEvent.error, {
         id: '',
         created: new Date().valueOf(),
         choices: [
@@ -582,8 +579,7 @@ export class SenseCodeClient implements CodeClient {
             message: {
               role: Role.assistant,
               content: error.response?.statusText || error.message
-            },
-            finishReason: FinishReason.error
+            }
           }
         ]
       });

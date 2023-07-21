@@ -5,7 +5,7 @@ import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
-import { FinishReason, Message, Role } from '../sensecodeClient/src/CodeClient';
+import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -72,7 +72,6 @@ const guide = `
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
-  private disposing = false;
   private static bannedWords: string[] = [];
   private static insertDecorationType = window.createTextEditorDecorationType({
     backgroundColor: new ThemeColor("diffEditor.insertedLineBackground"),
@@ -143,6 +142,11 @@ export class SenseCodeEditor extends Disposable {
           this.sendMessage({ type: 'codeReady', value: false });
         } else if (this.isSupportedScheme(doc)) {
           this.lastTextEditor = e;
+          if (e && this.checkCodeReady(e)) {
+            this.sendMessage({ type: 'codeReady', value: true, file: e.document.uri.toString(), range: e.selections[0] });
+          } else {
+            this.sendMessage({ type: 'codeReady', value: false });
+          }
         }
       })
     );
@@ -211,7 +215,9 @@ export class SenseCodeEditor extends Disposable {
   }
 
   dispose() {
-    this.disposing = true;
+    for (let s in this.stopList) {
+      this.stopList[s].abort();
+    }
   }
 
   async updateSettingPage(action?: string): Promise<void> {
@@ -400,7 +406,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'openDoc': {
-          commands.executeCommand("vscode.open", Uri.parse(data.file));
+          window.showTextDocument(Uri.parse(data.file), { preview: false, selection: data.range });
           break;
         }
         case 'searchQuery': {
@@ -686,22 +692,29 @@ ${data.info.response}
           break;
       }
     });
-    
+
     const editor = window.activeTextEditor || this.lastTextEditor;
-    let codeReady = editor?.selection?.isEmpty === false;
-    if (editor && codeReady) {
+    if (editor && this.checkCodeReady(editor)) {
+      setTimeout(() => {
+        this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0] });
+      }, 1000);
+    }
+  }
+
+  private checkCodeReady(editor: TextEditor): boolean {
+    let codeReady = editor.selection?.isEmpty === false;
+    if (codeReady) {
       if (this.isSupportedScheme(editor.document)) {
         if (editor.selections[0]) {
           let doc = editor.document;
           let text = doc.getText(editor.selections[0]);
           if (text.trim()) {
-            setTimeout(() => {
-              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: editor.selections[0] });              
-            }, 1000);
+            return true;
           }
         }
       }
     }
+    return false;
   }
 
   public async sendApiRequest(id: number, prompt: PromptInfo, values?: any, history?: any[]) {
@@ -775,30 +788,44 @@ ${data.info.response}
         }
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
         if (streaming) {
+          let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
             msgs,
             1,
             sensecodeManager.maxToken(),
             "<|end|>",
-            this.stopList[id].signal,
-            (data) => {
-              if (this.stopList[id].signal.aborted || this.disposing) {
-                delete this.stopList[id];
-                return false;
+            signal,
+            (event, data) => {
+              let rts = new Date().toLocaleString();
+              let content: string | undefined = undefined;
+              if (data && data.created) {
+                rts = new Date(data.created).toLocaleString();
               }
-              if (data.choices && data.choices[0]) {
-                if (data.choices[0].finishReason) {
-                  if (data.choices[0].finishReason === FinishReason.error) {
-                    this.sendMessage({ type: 'addError', error: data.choices[0].message.content, id, timestamp: new Date(data.created).toLocaleString() });
-                  }
+              if (data && data.choices && data.choices[0]) {
+                content = data.choices[0].message.content;
+              }
+              switch (event) {
+                case ResponseEvent.cancel: {
+                  delete this.stopList[id];
                   this.sendMessage({ type: 'stopResponse', id });
-                  return false;
-                } else {
-                  this.sendMessage({ type: 'addResponse', id, value: data.choices[0].message.content, timestamp: new Date(data.created).toLocaleString() });
-                  return true;
+                  break;
+                }
+                case ResponseEvent.finish:
+                case ResponseEvent.data: {
+                  if (content) {
+                    this.sendMessage({ type: 'addResponse', id, value: content, timestamp: rts });
+                  }
+                  break;
+                }
+                case ResponseEvent.error: {
+                  this.sendMessage({ type: 'addError', error: content || "", id, timestamp: rts });
+                  break;
+                }
+                case ResponseEvent.done: {
+                  this.sendMessage({ type: 'stopResponse', id });
+                  break;
                 }
               }
-              return false;
             }
           );
         } else {
@@ -811,12 +838,8 @@ ${data.info.response}
             .then(rs => {
               let content = rs.choices[0]?.message.content || "";
               let stopReason = rs.choices[0]?.finishReason;
-              outlog.debug(content + (stopReason ? `<StopReason: ${stopReason}>` : ""));
-              if (stopReason === FinishReason.error) {
-                this.sendMessage({ type: 'addError', error: rs.choices[0]?.message.content, id, timestamp: new Date(rs.created).toLocaleString() });
-              } else {
-                this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
-              }
+              outlog.debug(content + (stopReason ? `\n<StopReason: ${stopReason}>` : ""));
+              this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
               this.sendMessage({ type: 'stopResponse', id });
             }, (err) => {
               this.sendMessage({ type: 'addError', error: err.response.statusText, id, timestamp: new Date().toLocaleString() });

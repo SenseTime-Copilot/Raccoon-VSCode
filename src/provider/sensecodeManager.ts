@@ -1,6 +1,6 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, AuthProxy, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { AuthInfo, AuthProxy, ClientConfig, ClientType, CodeClient, Message, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -399,7 +399,7 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => boolean, clientName?: string) {
+  public async getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event:ResponseEvent, data?: ResponseData) => void, clientName?: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);

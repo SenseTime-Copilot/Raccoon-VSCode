@@ -32,8 +32,7 @@ export enum Role {
 export enum FinishReason {
     stop = 'stop',
     length = 'length',
-    eos = 'eos',
-    error = 'error'
+    eos = 'eos'
 }
 
 export interface Message {
@@ -45,6 +44,14 @@ export interface Choice {
     index: number;
     message: Message;
     finishReason?: FinishReason;
+}
+
+export enum ResponseEvent {
+    data = 'data',
+    finish = 'finish',
+    error = 'error',
+    cancel = 'cancel',
+    done = 'done'
 }
 
 export interface ResponseData {
@@ -85,7 +92,7 @@ export interface CodeClient {
 
     getCompletions(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<ResponseData>;
 
-    getCompletionsStreaming(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => boolean): void;
+    getCompletionsStreaming(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void): void;
 
     sendTelemetryLog?(eventName: string, info: Record<string, any>): Promise<void>;
 }

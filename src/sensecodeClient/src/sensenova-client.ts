@@ -1,7 +1,7 @@
 import axios, { ResponseType } from "axios";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, AuthProxy, ClientConfig, Choice, FinishReason, ResponseData, Role, Message } from "./CodeClient";
+import { CodeClient, AuthInfo, AuthProxy, ClientConfig, Choice, FinishReason, ResponseData, Role, Message, ResponseEvent } from "./CodeClient";
 import sign = require('jwt-encode');
 
 function generateSignature(_urlString: string, _date: string, ak: string, sk: string) {
@@ -198,13 +198,14 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (data: ResponseData) => void) {
+  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
     this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
           if (signal.aborted) {
             data.destroy();
+            callback(ResponseEvent.cancel);
             return;
           }
           let msgstr: string = v.toString();
@@ -225,7 +226,9 @@ export class SenseNovaClient implements CodeClient {
             }
 
             if (content === '[DONE]') {
-              continue;
+              data.destroy();
+              callback(ResponseEvent.done);
+              return;
             }
             if (!content) {
               continue;
@@ -234,7 +237,7 @@ export class SenseNovaClient implements CodeClient {
               let json = JSON.parse(content);
               tail = "";
               if (json.error) {
-                callback({
+                callback(ResponseEvent.error, {
                   id: '',
                   created: new Date().valueOf(),
                   choices: [
@@ -243,34 +246,29 @@ export class SenseNovaClient implements CodeClient {
                       message: {
                         role: Role.assistant,
                         content: json.error.message,
-                      },
-                      finishReason: FinishReason.error
+                      }
                     }
                   ]
                 });
-                data.destroy();
-                return;
               } else if (json.data.choices) {
                 for (let choice of json.data.choices) {
-                  let stopReason = choice["finish_reason"];
                   let value = choice.delta;
-                  if (stopReason) {
-                    data.destroy();
-                  }
-                  callback({
-                    id: json.data.id,
-                    created: new Date().valueOf(),
-                    choices: [
-                      {
-                        index: 0,
-                        message: {
-                          role: Role.assistant,
-                          content: value
-                        },
-                        finishReason: stopReason
-                      }
-                    ]
-                  });
+                  let finishReason = choice["finish_reason"];
+                  callback(finishReason ? ResponseEvent.finish : ResponseEvent.data,
+                    {
+                      id: json.data.id,
+                      created: new Date().valueOf(),
+                      choices: [
+                        {
+                          index: 0,
+                          message: {
+                            role: Role.assistant,
+                            content: value
+                          },
+                          finishReason
+                        }
+                      ]
+                    });
                 }
               }
             } catch (e: any) {
@@ -286,7 +284,7 @@ export class SenseNovaClient implements CodeClient {
         if (this.debug) {
           this.debug("Unexpected response format");
         }
-        callback({
+        callback(ResponseEvent.error, {
           id: '',
           created: new Date().valueOf(),
           choices: [
@@ -295,14 +293,13 @@ export class SenseNovaClient implements CodeClient {
               message: {
                 role: Role.assistant,
                 content: "Unexpected response format"
-              },
-              finishReason: FinishReason.error
+              }
             }
           ]
         });
       }
     }, (err) => {
-      callback({
+      callback(ResponseEvent.error, {
         id: '',
         created: new Date().valueOf(),
         choices: [
@@ -311,8 +308,7 @@ export class SenseNovaClient implements CodeClient {
             message: {
               role: Role.assistant,
               content: err.message || err.response?.statusText || "Unknwon error"
-            },
-            finishReason: FinishReason.error
+            }
           }
         ]
       });
