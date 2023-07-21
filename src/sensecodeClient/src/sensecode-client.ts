@@ -294,6 +294,7 @@ export class SenseCodeClient implements CodeClient {
       this._username = info.username;
       this._avatar = info.avatar;
       this._refreshToken = info.refreshToken;
+      this._aksk = info.aksk;
       return Promise.resolve(info);
     }
     let url = new URL(callbackUrl);
@@ -312,7 +313,15 @@ export class SenseCodeClient implements CodeClient {
   private async refreshToken(): Promise<AuthInfo> {
     if (this._proxy) {
       let ai: AuthInfo = this.getAuthInfo();
-      return this._proxy.refreshToken(ai);
+      return this._proxy.refreshToken(ai).then((info: AuthInfo) => {
+        this._idToken = info.idToken;
+        this._weaverdKey = info.weaverdKey;
+        this._username = info.username;
+        this._avatar = info.avatar;
+        this._refreshToken = info.refreshToken;
+        this._aksk = info.aksk;
+        return info;
+      });
     }
     if (this.clientConfig.key) {
       return this.getAuthInfo();
@@ -425,11 +434,16 @@ export class SenseCodeClient implements CodeClient {
         if (!skipRetry && e.response?.status === 401) {
           try {
             if (this.debug) {
-              this.debug("Try to refresh access token for" + this.clientConfig.label);
+              this.debug(`[${this.clientConfig.label}] Try to refresh access token`);
             }
             await this.refreshToken();
-          } catch (er) {
-
+            if (this.debug) {
+              this.debug(`[${this.clientConfig.label}] Refresh access token done`);
+            }
+          } catch (er: any) {
+            if (this.debug) {
+              this.debug(`[${this.clientConfig.label}] Refresh access token failed: ${er?.message}`);
+            }
           }
           return this._postPrompt(messages, n, maxToken, stopWord, stream, signal, true);
         } else {

@@ -119,7 +119,6 @@ export class SenseCodeEditor extends Disposable {
         if (e.key === "SenseCode.tokens") {
           let refreshing = this.context.globalState.get("SenseCode.tokenRefreshed");
           if (refreshing) {
-            this.context.globalState.update("SenseCode.tokenRefreshed", undefined);
           } else {
             this.showWelcome();
           }
@@ -687,6 +686,22 @@ ${data.info.response}
           break;
       }
     });
+    
+    const editor = window.activeTextEditor || this.lastTextEditor;
+    let codeReady = editor?.selection?.isEmpty === false;
+    if (editor && codeReady) {
+      if (this.isSupportedScheme(editor.document)) {
+        if (editor.selections[0]) {
+          let doc = editor.document;
+          let text = doc.getText(editor.selections[0]);
+          if (text.trim()) {
+            setTimeout(() => {
+              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: editor.selections[0] });              
+            }, 1000);
+          }
+        }
+      }
+    }
   }
 
   public async sendApiRequest(id: number, prompt: PromptInfo, values?: any, history?: any[]) {
@@ -847,8 +862,6 @@ ${data.info.response}
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
     const avatarUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'sensecode-logo.png'));
 
-    const editor = window.activeTextEditor || this.lastTextEditor;
-    let codeReady = editor?.selection?.isEmpty === false;
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -904,7 +917,7 @@ ${data.info.response}
                   </div>
                   <div id="ask-list" class="flex flex-col hidden">
                   </div>
-                  <div id="question" class="${codeReady ? "code-ready" : ""} w-full flex justify-center items-center">
+                  <div id="question" class="w-full flex justify-center items-center">
                     <span class="material-symbols-rounded opacity-40 history-icon">
                       history
                     </span>

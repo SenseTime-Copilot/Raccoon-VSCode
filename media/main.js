@@ -304,37 +304,37 @@ const vscode = acquireVsCodeApi();
             chat.id = `${id}`;
             chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-                      <span class="flex items-center gap-2 opacity-30">
+                      <span class="fle gap-2 opacity-30">
                         <div class="spinner thinking">
                             <span class="material-symbols-rounded">autorenew</span>
                         </div>
-                        <div class="thinking-text" style="height: 1.6em;">${l10nForUI["Thinking..."]}</div>
+                        <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
                       </span>
-                      <button class="stopGenerate flex items-center" data-id=${id}>
+                      <button class="stopGenerate flex" data-id=${id}>
                         <span class="material-symbols-rounded">
                           stop_circle
                         </span>
-                        <p class="mx-1" style="height: 1.6em;">${l10nForUI["Stop responding"]}</p>
+                        <p class="mx-1">${l10nForUI["Stop responding"]}</p>
                       </button>
                     </div>`;
             if (message.streaming === true) {
               progress = `
             <div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-              <span class="flex items-center gap-2 opacity-30">
+              <span class="flex gap-1 opacity-30 items-center">
                 <div class="spinner connecting">
                   <span class="material-symbols-rounded">autorenew</span>
                 </div>
-                <div class="connecting-text" style="height: 1.6em;">${l10nForUI["Connecting..."]}</div>
+                <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
                 <div class="spinner typing">
-                  <span class="material-symbols-rounded">magic_exchange</span>
+                  <span class="material-symbols-rounded">rotate_right</span>
                 </div>
-                <div class="typing-text" style="height: 1.6em;">${l10nForUI["Typing..."]}</div>
+                <div class="typing-text">${l10nForUI["Typing..."]}</div>
               </span>
-              <button class="stopGenerate flex items-center" data-id=${id}>
+              <button class="stopGenerate flex items-stretch" data-id=${id}>
                 <span class="material-symbols-rounded">
                   stop_circle
                 </span>
-                <p class="mx-1" style="height: 1.6em;">${l10nForUI["Stop responding"]}</p>
+                <p class="mx-1">${l10nForUI["Stop responding"]}</p>
               </button>
             </div>`;
             }
@@ -355,28 +355,26 @@ const vscode = acquireVsCodeApi();
                                   ${progress}
                                   <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                     <span class="flex items-center gap-2">
-                                      <button class="like flex rounded" data-id=${id}>
+                                      <button class="like flex" data-id=${id}>
                                         <span class="material-symbols-rounded">
                                           thumb_up
                                         </span>
                                       </button>
-                                      <button class="dislike flex rounded" data-id=${id}>
+                                      <button class="dislike flex" data-id=${id}>
                                         <span class="material-symbols-rounded">
                                           thumb_down
                                         </span>
                                       </button>
-                                      <button class="correct flex rounded" title="" data-id=${id}>
+                                      <button class="correct flex" title="" data-id=${id}>
                                         <span class="material-symbols-rounded">
                                           sentiment_dissatisfied
                                         </span>
                                       </button>
                                     </span>
                                     <span class="flex items-center gap-2">
-                                      <button class="regenerate flex items-center rounded" data-id=${id}>
-                                        <span class="material-symbols-rounded">
-                                          refresh
-                                        </span>
-                                        <p class="mx-1" style="height: 1.6em;">${l10nForUI["Regenerate"]}</p>
+                                      <button class="regenerate flex items-stretch" data-id=${id}>
+                                        <span class="material-symbols-rounded">refresh</span>
+                                        <p class="mx-1">${l10nForUI["Regenerate"]}</p>
                                       </button>
                                     </span>
                                   </div>`;
