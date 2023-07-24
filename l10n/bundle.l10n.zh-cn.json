@@ -23,6 +23,7 @@
   "No active editor found": "未找到活动的编辑器",
   "It will clear all settings, and log out all your accounts.": "这将清除您的所有配置, 并退出您的账号.",
   "Unknown": "未登录",
+  "Login failed": "登录失败",
   "Unauthorized": "未登录",
   "Empty prompt": "提示信息为空",
   "Too many tokens": "提问信息过长",

@@ -742,8 +742,8 @@ ${data.info.response}
       this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
       return;
     }
-    let el = instruction.content.length + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
-    let maxTokens = sensecodeManager.maxToken() * 0.6;
+    let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
+    let maxTokens = sensecodeManager.maxToken();
     if (el > maxTokens) {
       this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
       return;
@@ -770,22 +770,22 @@ ${data.info.response}
         if (history) {
           let hs = Array.from(history).reverse();
           for (let h of hs) {
-            let qaLen = (h.question.length + h.answer.length) / 3;
+            let qaLen = (h.question.length + h.answer.length) * 2 + 12;
             if ((el + qaLen) > maxTokens) {
-              historyMsgs = historyMsgs.reverse();
               break;
             }
             el += qaLen;
             historyMsgs.push({
-              role: Role.user,
-              content: h.question
-            });
-            historyMsgs.push({
               role: Role.assistant,
               content: h.answer
             });
+            historyMsgs.push({
+              role: Role.user,
+              content: h.question
+            });
           }
         }
+        historyMsgs = historyMsgs.reverse();
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
         if (streaming) {
           let signal = this.stopList[id].signal;

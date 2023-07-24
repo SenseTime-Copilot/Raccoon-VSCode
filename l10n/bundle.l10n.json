@@ -23,6 +23,7 @@
   "No active editor found": "No active editor found",
   "It will clear all settings, and log out all your accounts.": "It will clear all settings, and log out all your accounts.",
   "Unknown": "Unknown",
+  "Login failed": "Login failed",
   "Unauthorized": "Unauthorized",
   "Empty prompt": "Empty prompt",
   "Too many tokens": "Too many tokens",

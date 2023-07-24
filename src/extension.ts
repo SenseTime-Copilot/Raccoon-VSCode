@@ -16,7 +16,7 @@ class SenseCodeUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
     sensecodeManager.getTokenFromLoginResult(uri.toString()).then((ok) => {
       if (!ok) {
-        SenseCodeViewProvider.showError("Login failed");
+        SenseCodeViewProvider.showError(vscode.l10n.t("Login failed"));
       }
     });
   }
