@@ -29,15 +29,27 @@ export enum Role {
     function = 'function'
 }
 
+export interface Message {
+    role: Role;
+    content: string;
+}
+
+export type StopToken = Array<string> | string;
+
+export interface ChatRequestParam {
+    model: string;
+    messages: Array<Message>;
+    temperature?: number | null;
+    n?: number | null;
+    stream?: boolean | null;
+    stop?: StopToken;
+    maxTokens?: number;
+}
+
 export enum FinishReason {
     stop = 'stop',
     length = 'length',
     eos = 'eos'
-}
-
-export interface Message {
-    role: Role;
-    content: string;
 }
 
 export interface Choice {
@@ -90,9 +102,9 @@ export interface CodeClient {
 
     logout(): Promise<void>;
 
-    getCompletions(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<ResponseData>;
+    getCompletions(requestParam: ChatRequestParam, signal: AbortSignal): Promise<ResponseData>;
 
-    getCompletionsStreaming(msgs: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void): void;
+    getCompletionsStreaming(requestParam: ChatRequestParam, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void): void;
 
     sendTelemetryLog?(eventName: string, info: Record<string, any>): Promise<void>;
 }

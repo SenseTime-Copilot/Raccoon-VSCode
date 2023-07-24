@@ -135,10 +135,12 @@ ${temp}`
           };
 
           data = await sensecodeManager.getCompletions(
-            [{ role: Role.system, content: "" }, completionPrompt],
-            sensecodeManager.candidates,
-            mt,
-            stopToken,
+            {
+              messages: [{ role: Role.system, content: "" }, completionPrompt],
+              n: sensecodeManager.candidates,
+              maxTokens: mt,
+              stop: stopToken
+            },
             controller.signal);
         } catch (err: any) {
           if (err.message === "canceled") {

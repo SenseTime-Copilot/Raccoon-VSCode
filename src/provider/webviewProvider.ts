@@ -337,14 +337,14 @@ export class SenseCodeEditor extends Disposable {
       <div class="ml-4">
       <div>
         <vscode-radio-group id="candidateNumberRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Candidate Number")}</label>
-          <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-32" value="1" title="${l10n.t("Show {0} candidate snippet(s)", 1)}">
+          <label slot="label">${l10n.t("Max Candidate Number")}</label>
+          <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-32" value="1" title="${l10n.t("Show {0} candidate snippet(s) at most", 1)}">
           ${l10n.t("1 candidate")}
           </vscode-radio>
-          <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-32" value="2" title="${l10n.t("Show {0} candidate snippet(s)", 2)}">
+          <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-32" value="2" title="${l10n.t("Show {0} candidate snippet(s) at most", 2)}">
           ${l10n.t("{0} candidates", 2)}
           </vscode-radio>
-          <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-32" value="3" title="${l10n.t("Show {0} candidate snippet(s)", 3)}">
+          <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-32" value="3" title="${l10n.t("Show {0} candidate snippet(s) at most", 3)}">
           ${l10n.t("{0} candidates", 3)}
           </vscode-radio>
         </vscode-radio-group>
@@ -790,10 +790,12 @@ ${data.info.response}
         if (streaming) {
           let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
-            msgs,
-            1,
-            sensecodeManager.maxToken(),
-            "<|end|>",
+            {
+              messages: msgs,
+              n: 1,
+              maxTokens: sensecodeManager.maxToken(),
+              stop: "<|end|>"
+            },
             signal,
             (event, data) => {
               let rts = new Date().toLocaleString();
@@ -830,10 +832,12 @@ ${data.info.response}
           );
         } else {
           await sensecodeManager.getCompletions(
-            msgs,
-            1,
-            sensecodeManager.maxToken(),
-            "<|end|>",
+            {
+              messages: msgs,
+              n: 1,
+              maxTokens: sensecodeManager.maxToken(),
+              stop: "<|end|>"
+            },
             this.stopList[id].signal)
             .then(rs => {
               let content = rs.choices[0]?.message.content || "";

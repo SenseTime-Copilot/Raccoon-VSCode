@@ -3,7 +3,7 @@ import FormData = require("form-data");
 import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, AuthProxy, ResponseData, FinishReason, Role, ClientConfig, Choice, Message, ResponseEvent } from "./CodeClient";
+import { CodeClient, AuthInfo, AuthProxy, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam } from "./CodeClient";
 
 export interface ClientMeta {
   clientId: string;
@@ -370,7 +370,7 @@ export class SenseCodeClient implements CodeClient {
     };
   }
 
-  private async _postPrompt(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private async _postPrompt(requestParam: ChatRequestParam, signal: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
     let key = await this.apiKeyRaw();
     let date: string = new Date().toUTCString();
     let auth = '';
@@ -402,21 +402,18 @@ export class SenseCodeClient implements CodeClient {
 
     let responseType: ResponseType | undefined = undefined;
     let config = { ...this.clientConfig.config };
-    config.n = n;
-    config.stream = stream;
-    config.stop = stopWord;
-    config.max_tokens = maxToken;
-    if (stream) {
+    config.messages = requestParam.messages ?? [];
+    config.n = requestParam.n ?? 1;
+    config.stream = requestParam.stream ?? config.stream;
+    config.stop = requestParam.stop ?? config.stop;
+    config.max_tokens = requestParam.maxTokens ?? config.max_tokens;
+    if (config.stream) {
       responseType = "stream";
     }
-    let payload = {
-      messages,
-      ...config
-    };
 
     if (this.debug) {
       this.debug(`Request to: ${this.clientConfig.url}`);
-      let pc = { ...payload };
+      let pc = { ...config };
       let content = pc.messages;
       pc.messages = undefined;
       this.debug(`Parameters: ${JSON.stringify(pc)}`);
@@ -424,9 +421,9 @@ export class SenseCodeClient implements CodeClient {
     }
 
     return axios
-      .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal })
+      .post(this.clientConfig.url, config, { headers, proxy: false, timeout: 120000, responseType, signal })
       .then(async (res) => {
-        if (this.debug && !stream) {
+        if (this.debug && !config.stream) {
           this.debug(`${JSON.stringify(res.data)}`);
         }
         return res.data;
@@ -445,15 +442,16 @@ export class SenseCodeClient implements CodeClient {
               this.debug(`[${this.clientConfig.label}] Refresh access token failed: ${er?.message}`);
             }
           }
-          return this._postPrompt(messages, n, maxToken, stopWord, stream, signal, true);
+          return this._postPrompt(requestParam, signal, true);
         } else {
           return Promise.reject(e);
         }
       });
   }
 
-  public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<ResponseData> {
-    return this._postPrompt(messages, n, maxToken, stopWord, false, signal).then(data => {
+  public async getCompletions(requestParam: ChatRequestParam, signal: AbortSignal): Promise<ResponseData> {
+    requestParam.stream = false;
+    return this._postPrompt(requestParam, signal).then(data => {
       let choices: Choice[] = [];
       for (let choice of data.choices) {
         choices.push({
@@ -470,8 +468,9 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
-    this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
+  public getCompletionsStreaming(requestParam: ChatRequestParam, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
+    requestParam.stream = true;
+    this._postPrompt(requestParam, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
@@ -583,6 +582,10 @@ export class SenseCodeClient implements CodeClient {
           }
         ]
       });
+    }).catch(err=>{
+      if (this.debug) {
+        this.debug(err);
+      }
     });
   }
 

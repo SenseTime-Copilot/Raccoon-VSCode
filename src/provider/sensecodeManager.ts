@@ -1,6 +1,6 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, AuthProxy, ClientConfig, ClientType, CodeClient, Message, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
+import { AuthInfo, AuthProxy, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, ResponseEvent, Role, StopToken } from "../sensecodeClient/src/CodeClient";
 import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -20,6 +20,13 @@ const builtinEngines: ClientConfig[] = [
     tokenLimit: 4096,
   }
 ];
+
+export interface SenseCodeRequestParam {
+  messages: Array<Message>;
+  n: number | null;
+  stop: StopToken;
+  maxTokens: number;
+}
 
 export enum CompletionPreferenceType {
   speedPriority = "Speed Priority",
@@ -387,25 +394,33 @@ export class SenseCodeManager {
     });
   }
 
-  public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, clientName?: string): Promise<ResponseData> {
+  public async getCompletions(config: SenseCodeRequestParam, signal: AbortSignal, clientName?: string): Promise<ResponseData> {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      return client.getCompletions(messages, n, maxToken, stopWord, signal);
+      let params: ChatRequestParam = {
+        model: "",
+        ...config
+      };
+      return client.getCompletions(params, signal);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
   }
 
-  public async getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event:ResponseEvent, data?: ResponseData) => void, clientName?: string) {
+  public async getCompletionsStreaming(config: SenseCodeRequestParam, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void, clientName?: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
     }
     if (client) {
-      client.getCompletionsStreaming(messages, n, maxToken, stopWord, signal, callback);
+      let params: ChatRequestParam = {
+        model: "",
+        ...config
+      };
+      client.getCompletionsStreaming(params, signal, callback);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }

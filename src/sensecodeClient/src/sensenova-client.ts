@@ -1,7 +1,7 @@
 import axios, { ResponseType } from "axios";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, AuthProxy, ClientConfig, Choice, FinishReason, ResponseData, Role, Message, ResponseEvent } from "./CodeClient";
+import { CodeClient, AuthInfo, AuthProxy, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam } from "./CodeClient";
 import sign = require('jwt-encode');
 
 function generateSignature(_urlString: string, _date: string, ak: string, sk: string) {
@@ -104,7 +104,7 @@ export class SenseNovaClient implements CodeClient {
     };
   }
 
-  private _postPrompt(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, stream: boolean, signal: AbortSignal): Promise<any | IncomingMessage> {
+  private _postPrompt(requestParam: ChatRequestParam,  signal: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let date: string = new Date().toUTCString();
       let key = this.clientConfig.key || this._aksk;
@@ -128,15 +128,16 @@ export class SenseNovaClient implements CodeClient {
 
       let responseType: ResponseType | undefined = undefined;
       let config = { ...this.clientConfig.config };
+      config.messages = requestParam.messages ?? [];
       config.key = undefined;
-      config.stream = stream;
-      config.max_new_tokens = maxToken;
-      if (stream) {
+      config.stream = requestParam.stream ?? config.stream;
+      config.max_new_tokens = requestParam.maxTokens ?? config.max_new_tokens;
+      if (config.stream) {
         responseType = "stream";
       }
 
       let payload = {
-        messages: messages.filter((m) => {
+        messages: requestParam.messages.filter((m) => {
           return !!m.content;
         }),
         ...config
@@ -167,23 +168,16 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  public async getCompletions(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal): Promise<ResponseData> {
-    return this._postPrompt(messages, n, maxToken, stopWord, false, signal).then(resp => {
+  public async getCompletions(requestParam: ChatRequestParam,  signal: AbortSignal): Promise<ResponseData> {
+    requestParam.stream = false;
+    return this._postPrompt(requestParam, signal).then(resp => {
       let codeArray = resp.data.choices;
       const choices = Array<Choice>();
       for (let i = 0; i < codeArray.length; i++) {
         const completion = codeArray[i];
-        let finishReason: FinishReason = FinishReason.length;
-        if (completion.finish_reason === 'length') {
-          finishReason = FinishReason.length;
-        } else if (completion.finish_reason === 'stop') {
-          finishReason = FinishReason.stop;
-        } else if (completion.finish_reason === 'eos') {
-          finishReason = FinishReason.eos;
-        }
         choices.push({
           index: completion.index,
-          finishReason,
+          finishReason: completion.finish_reason,
           message: {
             role: Role.assistant,
             content: completion.message
@@ -198,8 +192,9 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(messages: Message[], n: number, maxToken: number, stopWord: string | undefined, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
-    this._postPrompt(messages, n, maxToken, stopWord, true, signal).then((data) => {
+  public getCompletionsStreaming(requestParam: ChatRequestParam,  signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
+    requestParam.stream = true;
+    this._postPrompt(requestParam, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
@@ -299,19 +294,9 @@ export class SenseNovaClient implements CodeClient {
         });
       }
     }, (err) => {
-      callback(ResponseEvent.error, {
-        id: '',
-        created: new Date().valueOf(),
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: Role.assistant,
-              content: err.message || err.response?.statusText || "Unknwon error"
-            }
-          }
-        ]
-      });
+      if (this.debug) {
+        this.debug(err);
+      }
     });
   }
 
