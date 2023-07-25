@@ -34,7 +34,7 @@ export interface Message {
     content: string;
 }
 
-export type StopToken = Array<string> | string;
+export type StopToken = Array<string> | undefined;
 
 export interface ChatRequestParam {
     model: string;
@@ -102,9 +102,9 @@ export interface CodeClient {
 
     logout(): Promise<void>;
 
-    getCompletions(requestParam: ChatRequestParam, signal: AbortSignal): Promise<ResponseData>;
+    getCompletions(requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData>;
 
-    getCompletionsStreaming(requestParam: ChatRequestParam, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void): void;
+    getCompletionsStreaming(requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal): void;
 
     sendTelemetryLog?(eventName: string, info: Record<string, any>): Promise<void>;
 }

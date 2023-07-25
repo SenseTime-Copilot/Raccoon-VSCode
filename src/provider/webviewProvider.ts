@@ -794,19 +794,19 @@ ${data.info.response}
               messages: msgs,
               n: 1,
               maxTokens: sensecodeManager.maxToken(),
-              stop: "<|end|>"
+              stop: ["<|end|>"]
             },
-            signal,
-            (event, data) => {
+            (event) => {
               let rts = new Date().toLocaleString();
               let content: string | undefined = undefined;
+              let data = event.data;
               if (data && data.created) {
                 rts = new Date(data.created).toLocaleString();
               }
               if (data && data.choices && data.choices[0]) {
                 content = data.choices[0].message.content;
               }
-              switch (event) {
+              switch (event.type) {
                 case ResponseEvent.cancel: {
                   delete this.stopList[id];
                   this.sendMessage({ type: 'stopResponse', id });
@@ -828,7 +828,8 @@ ${data.info.response}
                   break;
                 }
               }
-            }
+            },
+            signal
           );
         } else {
           await sensecodeManager.getCompletions(
@@ -836,7 +837,7 @@ ${data.info.response}
               messages: msgs,
               n: 1,
               maxTokens: sensecodeManager.maxToken(),
-              stop: "<|end|>"
+              stop: ["<|end|>"]
             },
             this.stopList[id].signal)
             .then(rs => {

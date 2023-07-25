@@ -62,6 +62,8 @@ const webExtensionConfig = {
       https: require.resolve("https-browserify"),
       url: require.resolve('url'),
       process: require.resolve("process"),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'process/browser': require.resolve('process/browser'),
     }
   },
   module: {

@@ -97,7 +97,7 @@ export function inlineCompletionProvider(
             }
           );
         });
-        let stopToken: string = "<|end|>";
+        let stopToken: string[] = ["<|end|>"];
         let requestId = new Date().getTime();
         lastRequest = requestId;
         if (lastRequest !== requestId) {

@@ -332,6 +332,7 @@
         "@vscode/vsce": "^2.18.0",
         "@vscode/test-web": "^0.0.44",
         "@vscode/webview-ui-toolkit": "^1.2.0",
+        "langchain": "^0.0.116",
         "axios": "^0.24.0",
         "crypto": "^1.0.1",
         "crypto-browserify": "^3.12.0",

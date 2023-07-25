@@ -1,6 +1,6 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, AuthProxy, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, ResponseEvent, Role, StopToken } from "../sensecodeClient/src/CodeClient";
+import { AuthInfo, AuthProxy, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
 import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -394,7 +394,7 @@ export class SenseCodeManager {
     });
   }
 
-  public async getCompletions(config: SenseCodeRequestParam, signal: AbortSignal, clientName?: string): Promise<ResponseData> {
+  public async getCompletions(config: SenseCodeRequestParam, signal?: AbortSignal, clientName?: string): Promise<ResponseData> {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
@@ -410,7 +410,7 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(config: SenseCodeRequestParam, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void, clientName?: string) {
+  public async getCompletionsStreaming(config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal: AbortSignal, clientName?: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
       client = this.getClient(clientName);
@@ -420,7 +420,7 @@ export class SenseCodeManager {
         model: "",
         ...config
       };
-      client.getCompletionsStreaming(params, signal, callback);
+      client.getCompletionsStreaming(params, callback, signal);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }

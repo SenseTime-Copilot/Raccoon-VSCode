@@ -370,7 +370,7 @@ export class SenseCodeClient implements CodeClient {
     };
   }
 
-  private async _postPrompt(requestParam: ChatRequestParam, signal: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private async _postPrompt(requestParam: ChatRequestParam, signal?: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
     let key = await this.apiKeyRaw();
     let date: string = new Date().toUTCString();
     let auth = '';
@@ -405,7 +405,7 @@ export class SenseCodeClient implements CodeClient {
     config.messages = requestParam.messages ?? [];
     config.n = requestParam.n ?? 1;
     config.stream = requestParam.stream ?? config.stream;
-    config.stop = requestParam.stop ?? config.stop;
+    config.stop = requestParam.stop ? requestParam.stop[0] : config.stop;
     config.max_tokens = requestParam.maxTokens ?? config.max_tokens;
     if (config.stream) {
       responseType = "stream";
@@ -449,7 +449,7 @@ export class SenseCodeClient implements CodeClient {
       });
   }
 
-  public async getCompletions(requestParam: ChatRequestParam, signal: AbortSignal): Promise<ResponseData> {
+  public async getCompletions(requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData> {
     requestParam.stream = false;
     return this._postPrompt(requestParam, signal).then(data => {
       let choices: Choice[] = [];
@@ -468,15 +468,15 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(requestParam: ChatRequestParam, signal: AbortSignal, callback: (event: ResponseEvent, data?: ResponseData) => void) {
+  public getCompletionsStreaming(requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal) {
     requestParam.stream = true;
     this._postPrompt(requestParam, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
-          if (signal.aborted) {
+          if (signal?.aborted) {
             data.destroy();
-            callback(ResponseEvent.cancel);
+            callback(new MessageEvent(ResponseEvent.cancel));
             return;
           }
           let msgstr: string = v.toString();
@@ -495,26 +495,28 @@ export class SenseCodeClient implements CodeClient {
             } else if (msg.startsWith("event:")) {
               content = msg.slice(6).trim();
               if (content === "error") {
-                callback(ResponseEvent.error, {
-                  id: '',
-                  created: new Date().valueOf(),
-                  choices: [
-                    {
-                      index: 0,
-                      message: {
-                        role: Role.assistant,
-                        content: '',
+                callback(new MessageEvent(ResponseEvent.error, {
+                  data: {
+                    id: '',
+                    created: new Date().valueOf(),
+                    choices: [
+                      {
+                        index: 0,
+                        message: {
+                          role: Role.assistant,
+                          content: '',
+                        }
                       }
-                    }
-                  ]
-                });
+                    ]
+                  }
+                }));
               }
               continue;
             }
 
             if (content === '[DONE]') {
               data.destroy();
-              callback(ResponseEvent.done);
+              callback(new MessageEvent(ResponseEvent.done));
               return;
             }
             if (!content) {
@@ -524,34 +526,38 @@ export class SenseCodeClient implements CodeClient {
               let json = JSON.parse(content);
               tail = "";
               if (json.error) {
-                callback(ResponseEvent.error, {
-                  id: json.id,
-                  created: json.created * 1000,
-                  choices: [
-                    {
-                      index: json.index,
-                      message: {
-                        role: Role.assistant,
-                        content: json.error,
+                callback(new MessageEvent(ResponseEvent.error, {
+                  data: {
+                    id: json.id,
+                    created: json.created * 1000,
+                    choices: [
+                      {
+                        index: json.index,
+                        message: {
+                          role: Role.assistant,
+                          content: json.error,
+                        }
                       }
-                    }
-                  ]
-                });
+                    ]
+                  }
+                }));
               } else if (json.choices) {
                 for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
-                  callback(finishReason ? ResponseEvent.finish : ResponseEvent.data,
+                  callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
-                      id: json.id,
-                      created: json.created * 1000,
-                      choices: [
-                        {
-                          index: choice.index,
-                          message: choice.message,
-                          finishReason
-                        }
-                      ]
-                    });
+                      data: {
+                        id: json.id,
+                        created: json.created * 1000,
+                        choices: [
+                          {
+                            index: choice.index,
+                            message: choice.message,
+                            finishReason
+                          }
+                        ]
+                      }
+                    }));
                 }
               }
             } catch (e: any) {
@@ -569,20 +575,22 @@ export class SenseCodeClient implements CodeClient {
         }
       }
     }, (error) => {
-      callback(ResponseEvent.error, {
-        id: '',
-        created: new Date().valueOf(),
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: Role.assistant,
-              content: error.response?.statusText || error.message
+      callback(new MessageEvent(ResponseEvent.error, {
+        data: {
+          id: '',
+          created: new Date().valueOf(),
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: Role.assistant,
+                content: error.response?.statusText || error.message
+              }
             }
-          }
-        ]
-      });
-    }).catch(err=>{
+          ]
+        }
+      }));
+    }).catch(err => {
       if (this.debug) {
         this.debug(err);
       }
