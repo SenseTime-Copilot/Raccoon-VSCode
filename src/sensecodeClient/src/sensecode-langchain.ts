@@ -51,7 +51,7 @@ class PenroseModel extends BaseChatModel {
   invocationParams(options?: this["ParsedCallOptions"]): ChatRequestParam {
     return {
       model: options?.model ?? "",
-      messages: options?.messages,
+      messages: options?.messages ?? [],
       stream: options?.stream,
       n: options?.n ?? 1,
       stop: options?.stop,
