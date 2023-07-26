@@ -295,6 +295,9 @@ export class SenseCodeClient implements CodeClient {
       this._avatar = info.avatar;
       this._refreshToken = info.refreshToken;
       this._aksk = info.aksk;
+      if (this.onChangeAuthInfo) {
+        await this.onChangeAuthInfo(this, info);
+      }
       return Promise.resolve(info);
     }
     let url = new URL(callbackUrl);
@@ -313,13 +316,16 @@ export class SenseCodeClient implements CodeClient {
   private async refreshToken(): Promise<AuthInfo> {
     if (this._proxy) {
       let ai: AuthInfo = this.getAuthInfo();
-      return this._proxy.refreshToken(ai).then((info: AuthInfo) => {
+      return this._proxy.refreshToken(ai).then(async (info: AuthInfo) => {
         this._idToken = info.idToken;
         this._weaverdKey = info.weaverdKey;
         this._username = info.username;
         this._avatar = info.avatar;
         this._refreshToken = info.refreshToken;
         this._aksk = info.aksk;
+        if (this.onChangeAuthInfo) {
+          await this.onChangeAuthInfo(this, info, true);
+        }
         return info;
       });
     }
