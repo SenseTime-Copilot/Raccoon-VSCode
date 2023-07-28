@@ -68,6 +68,7 @@ export class SenseCodeClient implements CodeClient {
   private _avatar?: string;
   private _weaverdKey?: string;
   private _refreshToken?: string;
+  private _logoutUrl?: string;
   private _proxy?: AuthProxy;
   private onChangeAuthInfo?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>;
 
@@ -77,6 +78,7 @@ export class SenseCodeClient implements CodeClient {
       this._idToken = "XXX";
       this._username = "User";
       this._weaverdKey = "XXX";
+      this._logoutUrl = undefined;
     }
   }
 
@@ -87,12 +89,13 @@ export class SenseCodeClient implements CodeClient {
   public async logout(): Promise<void> {
     if (this._proxy) {
       if (this._username) {
-        this._proxy.logout({ idToken: this._idToken || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
+        return this._proxy.logout({ idToken: this._idToken || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
           .then(async () => {
             this._idToken = undefined;
             this._username = undefined;
             this._weaverdKey = undefined;
             this._refreshToken = undefined;
+            this._logoutUrl = undefined;
             this._avatar = undefined;
             this._aksk = undefined;
             if (this.onChangeAuthInfo) {
@@ -100,19 +103,20 @@ export class SenseCodeClient implements CodeClient {
             }
           });
       }
-      return;
     }
     return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._idToken || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
       .then(async () => {
         this._idToken = undefined;
         this._username = undefined;
         this._avatar = undefined;
+        this._logoutUrl = undefined;
         this._weaverdKey = undefined;
         this._refreshToken = undefined;
         this._aksk = undefined;
         if (this.onChangeAuthInfo) {
           await this.onChangeAuthInfo(this);
         }
+        return undefined;
       });
   }
 
@@ -120,6 +124,7 @@ export class SenseCodeClient implements CodeClient {
     this._idToken = auth.idToken;
     this._username = auth.username;
     this._avatar = auth.avatar;
+    this._logoutUrl = auth.logoutUrl;
     this._weaverdKey = auth.weaverdKey;
     this._refreshToken = auth.refreshToken;
     this._aksk = auth.aksk;
@@ -132,6 +137,7 @@ export class SenseCodeClient implements CodeClient {
     this._avatar = undefined;
     this._weaverdKey = undefined;
     this._refreshToken = undefined;
+    this._logoutUrl = undefined;
     this._aksk = undefined;
     if (this.onChangeAuthInfo) {
       await this.onChangeAuthInfo(this);
@@ -239,6 +245,7 @@ export class SenseCodeClient implements CodeClient {
     this._idToken = data.id_token;
     this._weaverdKey = key;
     this._username = name;
+    this._logoutUrl = undefined;
     this._avatar = await this.getUserAvatar();
     this._refreshToken = data.refresh_token;
     this._aksk = undefined;
@@ -275,6 +282,20 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
+    if (this._proxy) {
+      let info = await this._proxy.setAccessKey(name, ak, sk);
+      this._idToken = info.idToken;
+      this._weaverdKey = info.weaverdKey;
+      this._logoutUrl = info.logoutUrl;
+      this._username = info.username;
+      this._avatar = info.avatar;
+      this._refreshToken = info.refreshToken;
+      this._aksk = info.aksk;
+      if (this.onChangeAuthInfo) {
+        await this.onChangeAuthInfo(this, info);
+      }
+      return Promise.resolve(info);
+    }
     this._aksk = `${ak}#${sk}`;
     this._username = name;
     let auth: AuthInfo = {
@@ -283,6 +304,9 @@ export class SenseCodeClient implements CodeClient {
       weaverdKey: "XXX",
       idToken: "XXX"
     };
+    if (this.onChangeAuthInfo) {
+      await this.onChangeAuthInfo(this, auth);
+    }
     return auth;
   }
 
@@ -290,6 +314,7 @@ export class SenseCodeClient implements CodeClient {
     if (this._proxy) {
       let info = await this._proxy.login(callbackUrl);
       this._idToken = info.idToken;
+      this._logoutUrl = info.logoutUrl;
       this._weaverdKey = info.weaverdKey;
       this._username = info.username;
       this._avatar = info.avatar;
@@ -313,12 +338,17 @@ export class SenseCodeClient implements CodeClient {
     }
   }
 
+  get logoutUrl(): string | undefined {
+    return this._logoutUrl;
+  }
+
   private async refreshToken(): Promise<AuthInfo> {
     if (this._proxy) {
       let ai: AuthInfo = this.getAuthInfo();
       return this._proxy.refreshToken(ai).then(async (info: AuthInfo) => {
         this._idToken = info.idToken;
         this._weaverdKey = info.weaverdKey;
+        this._logoutUrl = info.logoutUrl;
         this._username = info.username;
         this._avatar = info.avatar;
         this._refreshToken = info.refreshToken;
@@ -370,6 +400,7 @@ export class SenseCodeClient implements CodeClient {
       idToken: this._idToken || "",
       username: this._username || "",
       weaverdKey: this._weaverdKey || "",
+      logoutUrl: this._logoutUrl,
       avatar: this._avatar,
       refreshToken: this._refreshToken,
       aksk: this._aksk

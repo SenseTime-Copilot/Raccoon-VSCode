@@ -93,6 +93,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     // eslint-disable-next-line @typescript-eslint/naming-convention
     vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, request, response, error, action, generate_at) => {
+      let editor = vscode.window.activeTextEditor;
+      if (editor) {
+        let start = range.start.line;
+        let end = range.end.line;
+        SenseCodeViewProvider.decorateCode(editor, start, end);
+      }
       telemetryReporter.logUsage("suggestion-accepted",
         {
           event: "suggestion-accepted",
@@ -174,5 +180,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEditorProvider.viewType, new SenseCodeEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
+
+  await sensecodeManager.tryAutoLogin();
 }
 export function deactivate() { }

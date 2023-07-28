@@ -182,6 +182,10 @@ ${temp}`
           return;
         }
 
+        let range = new vscode.Range(new vscode.Position(position.line, 0),
+          new vscode.Position(position.line, position.character));
+        let prefix = document.getText(range);
+
         // Add the generated code to the inline suggestion list
         let items = new Array<vscode.InlineCompletionItem>();
         let continueFlag = new Array<boolean>();
@@ -215,7 +219,7 @@ ${temp}`
             command: "sensecode.onSuggestionAccepted",
             arguments: [
               document.uri,
-              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length + 1, character: 0 })),
+              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
               continueFlag[i],
               {
                 type: "code completion",
@@ -224,7 +228,12 @@ ${temp}`
               },
               completions, "", i.toString(), ts]
           };
-          items.push({ insertText: completion, command });
+          items.push({
+            insertText: prefix + completion,
+            range: new vscode.Range(new vscode.Position(position.line, 0),
+              new vscode.Position(position.line, position.character)),
+            command
+          });
         }
         if (items.length === 0) {
           updateStatusBarItem(

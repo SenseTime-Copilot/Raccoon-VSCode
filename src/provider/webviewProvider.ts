@@ -243,7 +243,7 @@ export class SenseCodeEditor extends Disposable {
           return;
         }
         let url = Uri.parse(authUrl);
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority}]" href="${url.toString(true)}">
+        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority ?? authUrl}]" href="${url.toString(true)}">
                         <span class="material-symbols-rounded">login</span>
                       </vscode-link>`;
       }, () => { });
@@ -467,20 +467,7 @@ export class SenseCodeEditor extends Disposable {
                   editor.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
                     await new Promise((f) => setTimeout(f, 200));
                     let end = editor.selection.anchor.line;
-                    if (start !== undefined && end !== undefined) {
-                      let remover = workspace.onDidChangeTextDocument((e) => {
-                        if (e.document.uri.path === editor.document.uri.path) {
-                          editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
-                        }
-                      });
-                      editor.setDecorations(SenseCodeEditor.insertDecorationType, [{
-                        range: new Range(start, 0, end, 0)
-                      }]);
-                      setTimeout(() => {
-                        remover.dispose();
-                        editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
-                      }, 5000);
-                    }
+                    this.decorateCode(editor, start, end);
                   }, () => { });
                 }
               }
@@ -698,6 +685,23 @@ ${data.info.response}
       setTimeout(() => {
         this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0] });
       }, 1000);
+    }
+  }
+
+  public decorateCode(editor: TextEditor, start: number, end: number) {
+    if (start !== undefined && end !== undefined) {
+      let remover = workspace.onDidChangeTextDocument((e) => {
+        if (e.document.uri.path === editor.document.uri.path) {
+          editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
+        }
+      });
+      editor.setDecorations(SenseCodeEditor.insertDecorationType, [{
+        range: new Range(start, 0, end, 0)
+      }]);
+      setTimeout(() => {
+        remover.dispose();
+        editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
+      }, 5000);
     }
   }
 
@@ -1032,6 +1036,10 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
       })
     );
+  }
+
+  public static decorateCode(editor: TextEditor, start: number, end: number) {
+    SenseCodeViewProvider.editor?.decorateCode(editor, start, end);
   }
 
   public static showError(msg: string) {

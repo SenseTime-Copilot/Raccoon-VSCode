@@ -31,6 +31,10 @@ export class SenseNovaClient implements CodeClient {
     this.onChangeAuthInfo = handler;
   }
 
+  get logoutUrl(): string | undefined {
+    return undefined;
+  }
+
   public async logout(): Promise<void> {
     return this.clearAuthInfo();
   }
@@ -38,7 +42,11 @@ export class SenseNovaClient implements CodeClient {
   public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
     this._username = name;
     this._aksk = `${ak}#${sk}`;
-    return this.getAuthInfo();
+    let ai = this.getAuthInfo();
+    if (this.onChangeAuthInfo) {
+      await this.onChangeAuthInfo(this, ai);
+    }
+    return ai;
   }
 
   public restoreAuthInfo(auth: AuthInfo): Promise<void> {
@@ -92,7 +100,11 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public async login(_callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
-    return this.getAuthInfo();
+    let ai = this.getAuthInfo();
+    if (this.onChangeAuthInfo) {
+      await this.onChangeAuthInfo(this, ai);
+    }
+    return ai;
   }
 
   private getAuthInfo(): AuthInfo {

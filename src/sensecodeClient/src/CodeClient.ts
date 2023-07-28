@@ -19,6 +19,7 @@ export interface AuthInfo {
     weaverdKey: string;
     avatar?: string;
     refreshToken?: string;
+    logoutUrl?: string;
     aksk?: string;
 }
 
@@ -80,6 +81,8 @@ export interface CodeClient {
 
     get username(): string | undefined;
 
+    get logoutUrl(): string | undefined;
+
     get avatar(): string | undefined;
 
     get tokenLimit(): number;
@@ -112,6 +115,7 @@ export interface CodeClient {
 export interface AuthProxy {
     getAuthUrlLogin(): Promise<string | undefined>;
     login(callbackUrl: string): Promise<AuthInfo>;
+    setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo>;
     checkStatus(info: AuthInfo): Promise<boolean>;
     refreshToken(info: AuthInfo): Promise<AuthInfo>;
     logout(auth: AuthInfo): Promise<void>;

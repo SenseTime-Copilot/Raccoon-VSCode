@@ -1,6 +1,6 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, AuthProxy, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
+import { AuthInfo, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
 import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -47,7 +47,7 @@ export class SenseCodeManager {
   }
 
   private async getProxy() {
-    let proxy: AuthProxy | undefined = undefined;
+    let proxy: any | undefined = undefined;
     let es = extensions.all;
     for (let e of es) {
       if (e.id === "SenseTime.sensetimeproxy") {
@@ -102,18 +102,13 @@ export class SenseCodeManager {
     for (let e1 of this._clients) {
       e1.proxy = proxy;
     }
-    this.checkSensetimeEnv(proxy);
+    this.checkSensetimeEnv(!!proxy);
   }
 
   public async setAccessKey(name: string, ak: string, sk: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (client) {
-      let ai = await client.setAccessKey(name, ak, sk);
-      let tokens = await this.context.secrets.get("SenseCode.tokens");
-      let ts: any = JSON.parse(tokens || "{}");
-      ts[client.label] = ai;
-      this.context.globalState.update("SenseCode.tokenRefreshed", undefined);
-      await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts));
+      return client.setAccessKey(name, ak, sk);
     }
   }
 
@@ -138,10 +133,10 @@ export class SenseCodeManager {
     }
   }
 
-  private async checkSensetimeEnv(proxy: AuthProxy | undefined) {
+  private async checkSensetimeEnv(proxyReady: boolean) {
     await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
       if (e.response?.status === 500) {
-        if (!proxy) {
+        if (!proxyReady) {
           window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
             (v) => {
               if (v === "下载") {
@@ -153,7 +148,7 @@ export class SenseCodeManager {
             }
           );
         } else if (this.detectedProxyVersion !== this.requiredProxyVersion) {
-          window.showWarningMessage("SenseTime 内网环境需 Proxy 插件有更新版本，需要升级才能使用", "下载").then(
+          window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "下载").then(
             (v) => {
               if (v === "下载") {
                 commands.executeCommand('vscode.open', Uri.parse(`http://kestrel.sensetime.com/tools/sensetimeproxy-${this.requiredProxyVersion}.vsix`));
@@ -168,12 +163,18 @@ export class SenseCodeManager {
   public clear() {
     let logoutAct: Promise<void>[] = [];
     for (let e of this._clients) {
+      let logoutUrl = e.logoutUrl;
+      if (logoutUrl) {
+        commands.executeCommand("vscode.open", logoutUrl);
+      }
       logoutAct.push(
-        e.logout().then(() => { }, (err) => {
+        e.logout().then(() => {
+        }, (err) => {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           e.clearAuthInfo();
           outlog.debug(`Logout ${e.label} failed: ${err}`);
-        }));
+        })
+      );
     }
     Promise.all(logoutAct).then(() => {
       this.clearStatusData();
@@ -199,9 +200,6 @@ export class SenseCodeManager {
   }
 
   public async updateEngineList() {
-    for (let e of this._clients) {
-      await e.logout().catch(() => { });
-    }
     return this.buildAllClient();
   }
 
@@ -329,6 +327,20 @@ export class SenseCodeManager {
     }
   }
 
+  public async tryAutoLogin(clientName?: string) {
+    let client: CodeClient | undefined = this.getActiveClient();
+    if (clientName) {
+      client = this.getClient(clientName);
+    }
+    if (client && !this.username(client.label) && env.uiKind === UIKind.Web) {
+      return this.getProxy().then((proxy) => {
+        if (proxy) {
+          return client?.setAccessKey("User", "", "").then(() => { });
+        }
+      });
+    }
+  }
+
   public getAuthUrlLogin(clientName?: string) {
     let client: CodeClient | undefined = this.getActiveClient();
     if (clientName) {
@@ -383,6 +395,10 @@ export class SenseCodeManager {
         client = this.getClient(clientName);
       }
       if (client) {
+        let logoutUrl = client.logoutUrl;
+        if (logoutUrl) {
+          commands.executeCommand("vscode.open", logoutUrl);
+        }
         await client.logout().then(() => {
           progress.report({ increment: 100 });
         }, (e) => {
