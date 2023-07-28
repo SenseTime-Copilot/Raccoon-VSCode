@@ -50,7 +50,13 @@ export async function activate(context: vscode.ExtensionContext) {
     };
     context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
       vscode.window.showInputBox({ placeHolder: "Your account name", validateInput, ignoreFocusOut: true }).then((name) => {
+        if (!name) {
+          return;
+        }
         vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
+          if (!ak) {
+            return;
+          }
           vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
             if (name && ak && sk) {
               sensecodeManager.setAccessKey(name, ak, sk);

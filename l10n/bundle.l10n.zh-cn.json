@@ -7,6 +7,8 @@
   "Cancel": "取消",
   "Login": "登录",
   "Logout": "退出当前账号",
+  "Setup Access Key": "设置秘钥",
+  "Clear Access Key": "清除秘钥",
   "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.": "欢迎您<b>{0}</b>, 我是 <b>{1}</b>, 您的代码助手. 您可以让我与您一起编写代码, 或向我询问任何技术问题.",
   "It seems that you have not had an account to <b>{0}</b>, please <b>login</b> in settings first.": "看起来您还没有设置 <b>{0}</b> 的账号, 请先在设置中完成 <b>登录</b>.",
   "Coding with SenseCode": "与 SenseCode 一起编程",

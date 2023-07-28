@@ -243,8 +243,18 @@ export class SenseCodeEditor extends Disposable {
           return;
         }
         let url = Uri.parse(authUrl);
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Login")} [${url.authority ?? authUrl}]" href="${url.toString(true)}">
-                        <span class="material-symbols-rounded">login</span>
+        let title;
+        let icon = 'login';
+        if (url.scheme === "command") {
+          icon = 'key';
+          title = l10n.t("Setup Access Key");
+        } else if (url.authority) {
+          title = `${l10n.t("Login")} [${url.authority ?? authUrl}]`;
+        } else {
+          title = `${l10n.t("Login")} [${authUrl}]`;
+        }
+        loginout = `<vscode-link class="justify-end" title="${title}" href="${url.toString(true)}">
+                        <span class="material-symbols-rounded px-1" style="font-size: 24px;">${icon}</span>
                       </vscode-link>`;
       }, () => { });
     } else {
@@ -257,8 +267,15 @@ export class SenseCodeEditor extends Disposable {
         if (!authUrl) {
           return;
         }
-        loginout = `<vscode-link class="justify-end" title="${l10n.t("Logout")}">
-                      <span id="logout" class="material-symbols-rounded">logout</span>
+        let url = Uri.parse(authUrl);
+        let title = l10n.t("Logout");
+        let icon = 'logout';
+        if (url.scheme === "command") {
+          icon = 'key_off';
+          title = l10n.t("Clear Access Key");
+        }
+        loginout = `<vscode-link class="justify-end" title="${title}">
+                      <span id="logout" class="material-symbols-rounded px-1" style="font-size: 24px;">${icon}</span>
                     </vscode-link>`;
       }, () => { });
     }
