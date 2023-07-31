@@ -6,6 +6,7 @@ import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCo
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
 import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
+import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -103,7 +104,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (editor) {
         let start = range.start.line;
         let end = range.end.line;
-        SenseCodeViewProvider.decorateCode(editor, start, end);
+        decorateCodeWithSenseCodeLabel(editor, start, end);
       }
       telemetryReporter.logUsage("suggestion-accepted",
         {

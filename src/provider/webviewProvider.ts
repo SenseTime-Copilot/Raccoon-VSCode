@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, Range, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, OverviewRulerLane, ThemeColor, TextDocument } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, TextDocument } from 'vscode';
 import { sensecodeManager, outlog, telemetryReporter } from '../extension';
 import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
@@ -6,6 +6,7 @@ import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { swords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
+import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
 
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -73,18 +74,6 @@ export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
   private static bannedWords: string[] = [];
-  private static insertDecorationType = window.createTextEditorDecorationType({
-    backgroundColor: new ThemeColor("diffEditor.insertedLineBackground"),
-    isWholeLine: true,
-    overviewRulerColor: new ThemeColor("minimapGutter.addedBackground"),
-    overviewRulerLane: OverviewRulerLane.Full,
-    after: {
-      contentText: "⁣⁣⁣⁣　SenseCode⁣⁣⁣⁣　",
-      backgroundColor: new ThemeColor("activityBarBadge.background"),
-      color: new ThemeColor("activityBarBadge.foreground"),
-      borderColor: new ThemeColor("activityBar.activeBorder")
-    }
-  });
 
   private isSupportedScheme(d: TextDocument) {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-userdata");
@@ -484,7 +473,7 @@ export class SenseCodeEditor extends Disposable {
                   editor.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
                     await new Promise((f) => setTimeout(f, 200));
                     let end = editor.selection.anchor.line;
-                    this.decorateCode(editor, start, end);
+                    decorateCodeWithSenseCodeLabel(editor, start, end);
                   }, () => { });
                 }
               }
@@ -702,23 +691,6 @@ ${data.info.response}
       setTimeout(() => {
         this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0] });
       }, 1000);
-    }
-  }
-
-  public decorateCode(editor: TextEditor, start: number, end: number) {
-    if (start !== undefined && end !== undefined) {
-      let remover = workspace.onDidChangeTextDocument((e) => {
-        if (e.document.uri.path === editor.document.uri.path) {
-          editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
-        }
-      });
-      editor.setDecorations(SenseCodeEditor.insertDecorationType, [{
-        range: new Range(start, 0, end, 0)
-      }]);
-      setTimeout(() => {
-        remover.dispose();
-        editor.setDecorations(SenseCodeEditor.insertDecorationType, []);
-      }, 5000);
     }
   }
 
@@ -1053,10 +1025,6 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
         }
       })
     );
-  }
-
-  public static decorateCode(editor: TextEditor, start: number, end: number) {
-    SenseCodeViewProvider.editor?.decorateCode(editor, start, end);
   }
 
   public static showError(msg: string) {
