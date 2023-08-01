@@ -40,7 +40,7 @@ export function inlineCompletionProvider(
           statusBarItem,
           {
             text: "$(workspace-untrusted)",
-            tooltip: vscode.l10n.t("User cancelled")
+            tooltip: vscode.l10n.t("Unauthorized")
           }
         );
         return;
