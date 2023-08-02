@@ -35,9 +35,9 @@ export async function activate(context: vscode.ExtensionContext) {
     },
     sendErrorData(_error, _data) {
     },
-    sendEventData(eventName, data) {
+    sendEventData(_eventName, data) {
       if (data) {
-        sensecodeManager.sendTelemetryLog(eventName, data);
+        sensecodeManager.sendTelemetryLog(data['action'], {});
       }
     },
   };
@@ -45,30 +45,28 @@ export async function activate(context: vscode.ExtensionContext) {
 
   checkPrivacy(context);
 
-  if (vscode.env.uiKind === vscode.UIKind.Web) {
-    let validateInput = function (v: string) {
-      return v ? undefined : "The value must not be empty";
-    };
-    context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
-      vscode.window.showInputBox({ placeHolder: "Your account name", validateInput, ignoreFocusOut: true }).then((name) => {
-        if (!name) {
+  let validateInput = function (v: string) {
+    return v ? undefined : "The value must not be empty";
+  };
+  context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
+    vscode.window.showInputBox({ placeHolder: "Your account name", validateInput, ignoreFocusOut: true }).then((name) => {
+      if (!name) {
+        return;
+      }
+      vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
+        if (!ak) {
           return;
         }
-        vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
-          if (!ak) {
-            return;
+        vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
+          if (name && ak && sk) {
+            sensecodeManager.setAccessKey(name, ak, sk);
           }
-          vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
-            if (name && ak && sk) {
-              sensecodeManager.setAccessKey(name, ak, sk);
-            }
-          });
         });
       });
-    }));
-  } else {
-    context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
-  }
+    });
+  }));
+
+  context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.help", async () => {
@@ -188,6 +186,5 @@ export async function activate(context: vscode.ExtensionContext) {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 
-  await sensecodeManager.tryAutoLogin();
 }
 export function deactivate() { }

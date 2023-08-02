@@ -3,7 +3,7 @@ import FormData = require("form-data");
 import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, AuthProxy, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam } from "./CodeClient";
 
 export interface ClientMeta {
   clientId: string;
@@ -62,91 +62,21 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 }
 
 export class SenseCodeClient implements CodeClient {
-  private _idToken?: string;
-  private _username?: string;
-  private _aksk?: string;
-  private _avatar?: string;
-  private _weaverdKey?: string;
-  private _refreshToken?: string;
-  private _logoutUrl?: string;
-  private _proxy?: AuthProxy;
-  private onChangeAuthInfo?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>;
+  private onChangeAuthInfo?: (token: AuthInfo | undefined) => void;
 
-  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void, proxy?: any) {
-    this._proxy = proxy;
+  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
+  }
+
+  public async logout(auth: AuthInfo): Promise<string | undefined> {
     if (this.clientConfig.key) {
-      this._idToken = "XXX";
-      this._username = "User";
-      this._weaverdKey = "XXX";
-      this._logoutUrl = undefined;
-    }
-  }
-
-  onDidChangeAuthInfo(handler?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>): void {
-    this.onChangeAuthInfo = handler;
-  }
-
-  public async logout(): Promise<void> {
-    if (this._proxy) {
-      if (this._username) {
-        return this._proxy.logout({ idToken: this._idToken || "", username: this._username || "", weaverdKey: this._weaverdKey || "" })
-          .then(async () => {
-            this._idToken = undefined;
-            this._username = undefined;
-            this._weaverdKey = undefined;
-            this._refreshToken = undefined;
-            this._logoutUrl = undefined;
-            this._avatar = undefined;
-            this._aksk = undefined;
-            if (this.onChangeAuthInfo) {
-              await this.onChangeAuthInfo(this);
-            }
-          });
-      }
-    }
-    return axios.get(`${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(this._idToken || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`)
-      .then(async () => {
-        this._idToken = undefined;
-        this._username = undefined;
-        this._avatar = undefined;
-        this._logoutUrl = undefined;
-        this._weaverdKey = undefined;
-        this._refreshToken = undefined;
-        this._aksk = undefined;
-        if (this.onChangeAuthInfo) {
-          await this.onChangeAuthInfo(this);
-        }
+      return Promise.reject(new Error("Not Authorized From Web"));
+    } else if (!auth.logoutUrl) {
+      return Promise.reject(new Error("No Logout URL"));
+    } else {
+      return axios.get(auth.logoutUrl).then(() => {
         return undefined;
       });
-  }
-
-  public restoreAuthInfo(auth: AuthInfo): Promise<void> {
-    this._idToken = auth.idToken;
-    this._username = auth.username;
-    this._avatar = auth.avatar;
-    this._logoutUrl = auth.logoutUrl;
-    this._weaverdKey = auth.weaverdKey;
-    this._refreshToken = auth.refreshToken;
-    this._aksk = auth.aksk;
-    return Promise.resolve();
-  }
-
-  public async clearAuthInfo(): Promise<void> {
-    this._idToken = undefined;
-    this._username = undefined;
-    this._avatar = undefined;
-    this._weaverdKey = undefined;
-    this._refreshToken = undefined;
-    this._logoutUrl = undefined;
-    this._aksk = undefined;
-    if (this.onChangeAuthInfo) {
-      await this.onChangeAuthInfo(this);
     }
-    return Promise.resolve();
-  }
-
-  public get state(): string {
-    return crypto.createHash('sha256').update(this._weaverdKey || "").digest("base64");
   }
 
   public get label(): string {
@@ -157,37 +87,21 @@ export class SenseCodeClient implements CodeClient {
     return this.clientConfig.tokenLimit;
   }
 
-  public get username(): string | undefined {
-    return this._username;
+  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
+    this.onChangeAuthInfo = handler;
   }
 
-  private async getUserAvatar(): Promise<string | undefined> {
-    return Promise.resolve(undefined);
-  }
-
-  public get avatar(): string | undefined {
-    return this._avatar;
-  }
-
-  public set proxy(proxy: AuthProxy | undefined) {
-    this._proxy = proxy;
-  }
-
-  public get proxy(): AuthProxy | undefined {
-    return this._proxy;
-  }
-
-  private async apiKeyRaw(): Promise<string> {
+  private async apiKeyRaw(auth: AuthInfo): Promise<string> {
     if (this.clientConfig.key) {
       return Promise.resolve(this.clientConfig.key);
     }
-    if (this._aksk) {
-      return Promise.resolve(this._aksk);
+    if (auth.aksk) {
+      return Promise.resolve(auth.aksk);
     }
-    if (!this._weaverdKey) {
+    if (!auth.weaverdKey) {
       return Promise.reject();
     }
-    let info = unweaveKey(this._weaverdKey);
+    let info = unweaveKey(auth.weaverdKey);
     if (info.aksk) {
       return Promise.resolve(Buffer.from(info.aksk, "base64").toString().trim());
     } else {
@@ -196,9 +110,6 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public getAuthUrlLogin(codeVerifier: string): Promise<string | undefined> {
-    if (this._proxy) {
-      return this._proxy.getAuthUrlLogin();
-    }
     if (this.clientConfig.key) {
       return Promise.resolve(undefined);
     }
@@ -221,7 +132,7 @@ export class SenseCodeClient implements CodeClient {
     return baseUrl;
   }
 
-  private async tokenWeaver(data: any, refresh?: boolean): Promise<AuthInfo> {
+  private async tokenWeaver(data: any): Promise<AuthInfo> {
     let decoded: any = jwt_decode(data.id_token);
     let name = decoded.id_token?.username;
     let token = Buffer.from(data.access_token).toString('base64');
@@ -242,18 +153,17 @@ export class SenseCodeClient implements CodeClient {
         key += s2[i];
       }
     }
-    this._idToken = data.id_token;
-    this._weaverdKey = key;
-    this._username = name;
-    this._logoutUrl = undefined;
-    this._avatar = await this.getUserAvatar();
-    this._refreshToken = data.refresh_token;
-    this._aksk = undefined;
-    let ai = this.getAuthInfo();
-    if (this.onChangeAuthInfo) {
-      await this.onChangeAuthInfo(this, ai, refresh);
-    }
-    return ai;
+    let ret: AuthInfo = {
+      account: {
+        username: name,
+        avatar: undefined
+      },
+      idToken: data.id_token,
+      weaverdKey: key,
+      logoutUrl: `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`,
+      aksk: undefined
+    };
+    return ret;
   }
 
   private async loginSenseCore(code: string, codeVerifier: string, authUrl: string): Promise<AuthInfo> {
@@ -282,49 +192,18 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
-    if (this._proxy) {
-      let info = await this._proxy.setAccessKey(name, ak, sk);
-      this._idToken = info.idToken;
-      this._weaverdKey = info.weaverdKey;
-      this._logoutUrl = info.logoutUrl;
-      this._username = info.username;
-      this._avatar = info.avatar;
-      this._refreshToken = info.refreshToken;
-      this._aksk = info.aksk;
-      if (this.onChangeAuthInfo) {
-        await this.onChangeAuthInfo(this, info);
-      }
-      return Promise.resolve(info);
-    }
-    this._aksk = `${ak}#${sk}`;
-    this._username = name;
     let auth: AuthInfo = {
-      username: name,
-      aksk: this._aksk,
+      account: {
+        username: name,
+      },
+      aksk: `${ak}#${sk}`,
       weaverdKey: "XXX",
       idToken: "XXX"
     };
-    if (this.onChangeAuthInfo) {
-      await this.onChangeAuthInfo(this, auth);
-    }
     return auth;
   }
 
   public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
-    if (this._proxy) {
-      let info = await this._proxy.login(callbackUrl);
-      this._idToken = info.idToken;
-      this._logoutUrl = info.logoutUrl;
-      this._weaverdKey = info.weaverdKey;
-      this._username = info.username;
-      this._avatar = info.avatar;
-      this._refreshToken = info.refreshToken;
-      this._aksk = info.aksk;
-      if (this.onChangeAuthInfo) {
-        await this.onChangeAuthInfo(this, info);
-      }
-      return Promise.resolve(info);
-    }
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
     if (!query) {
@@ -338,32 +217,19 @@ export class SenseCodeClient implements CodeClient {
     }
   }
 
-  get logoutUrl(): string | undefined {
-    return this._logoutUrl;
-  }
-
-  private async refreshToken(): Promise<AuthInfo> {
-    if (this._proxy) {
-      let ai: AuthInfo = this.getAuthInfo();
-      return this._proxy.refreshToken(ai).then(async (info: AuthInfo) => {
-        this._idToken = info.idToken;
-        this._weaverdKey = info.weaverdKey;
-        this._logoutUrl = info.logoutUrl;
-        this._username = info.username;
-        this._avatar = info.avatar;
-        this._refreshToken = info.refreshToken;
-        this._aksk = info.aksk;
-        if (this.onChangeAuthInfo) {
-          await this.onChangeAuthInfo(this, info, true);
-        }
-        return info;
-      });
-    }
+  private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
     if (this.clientConfig.key) {
-      return this.getAuthInfo();
+      let ai: AuthInfo = {
+        account: {
+          username: "User",
+        },
+        aksk: this.clientConfig.key,
+        weaverdKey: "XXX",
+        idToken: "XXX"
+      };
+      return Promise.resolve(ai);
     }
-    let refreshToken = this._refreshToken;
-    if (refreshToken) {
+    if (auth.refreshToken) {
       let baseUrl = 'https://signin.sensecore.cn';
       if (this.clientConfig.url.includes(".sensecoreapi.cn")) {
         baseUrl = 'https://signin.sensecore.cn';
@@ -381,11 +247,11 @@ export class SenseCodeClient implements CodeClient {
         "Content-Type": "application/x-www-form-urlencoded"
       };
       return axios.post(url,
-        `grant_type=refresh_token&client_id=${this.meta.clientId}&refresh_token=${refreshToken}&redirect_uri=${this.meta.redirectUrl}`,
+        `grant_type=refresh_token&client_id=${this.meta.clientId}&refresh_token=${auth.refreshToken}&redirect_uri=${this.meta.redirectUrl}`,
         { headers })
         .then((resp) => {
           if (resp && resp.status === 200) {
-            return this.tokenWeaver(resp.data, true);
+            return this.tokenWeaver(resp.data);
           }
           return Promise.reject();
         }, (err) => {
@@ -395,38 +261,21 @@ export class SenseCodeClient implements CodeClient {
     return Promise.reject();
   }
 
-  private getAuthInfo(): AuthInfo {
-    return {
-      idToken: this._idToken || "",
-      username: this._username || "",
-      weaverdKey: this._weaverdKey || "",
-      logoutUrl: this._logoutUrl,
-      avatar: this._avatar,
-      refreshToken: this._refreshToken,
-      aksk: this._aksk
-    };
-  }
-
-  private async _postPrompt(requestParam: ChatRequestParam, signal?: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
-    let key = await this.apiKeyRaw();
+  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
+    let key = await this.apiKeyRaw(auth);
     let date: string = new Date().toUTCString();
-    let auth = '';
-    if (this._proxy) {
-      auth = await this._proxy.checkStatus(this.getAuthInfo()).then((v) => {
-        if (!v) {
-          return "XXX";
-        } else {
-          return "";
-        }
-      });
-    }
-    if (key && auth === '') {
+    let authHeader = '';
+    if (key) {
       if (key.includes("#")) {
         let aksk = key.split("#");
-        auth = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
+        authHeader = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
       } else {
-        auth = `Bearer ${key}`;
+        authHeader = `Bearer ${key}`;
       }
+    }
+    let user = auth.account.username;
+    if (!user || user === "User") {
+      user = "Unknown";
     }
     let headers = {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -434,7 +283,9 @@ export class SenseCodeClient implements CodeClient {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       "Content-Type": "application/json",
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Authorization": auth
+      "Authorization": authHeader,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "x-sensecode-identity": user
     };
 
     let responseType: ResponseType | undefined = undefined;
@@ -466,29 +317,37 @@ export class SenseCodeClient implements CodeClient {
         return res.data;
       }).catch(async e => {
         if (!skipRetry && e.response?.status === 401) {
+          let newToken: AuthInfo | undefined = undefined;
           try {
             if (this.debug) {
               this.debug(`[${this.clientConfig.label}] Try to refresh access token`);
             }
-            await this.refreshToken();
-            if (this.debug) {
-              this.debug(`[${this.clientConfig.label}] Refresh access token done`);
+            newToken = await this.refreshToken(auth);
+            if (this.onChangeAuthInfo) {
+              this.onChangeAuthInfo(newToken);
             }
+            if (this.debug) {
+              if (newToken) {
+                this.debug(`[${this.clientConfig.label}] Refresh access token done`);
+              } else {
+                throw new Error('Refresh access token but get nothing');
+              }
+            }
+            return this._postPrompt(newToken, requestParam, signal, true);
           } catch (er: any) {
             if (this.debug) {
               this.debug(`[${this.clientConfig.label}] Refresh access token failed: ${er?.message}`);
             }
           }
-          return this._postPrompt(requestParam, signal, true);
         } else {
           return Promise.reject(e);
         }
       });
   }
 
-  public async getCompletions(requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData> {
+  public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData> {
     requestParam.stream = false;
-    return this._postPrompt(requestParam, signal).then(data => {
+    return this._postPrompt(auth, requestParam, signal).then(data => {
       let choices: Choice[] = [];
       for (let choice of data.choices) {
         choices.push({
@@ -505,9 +364,9 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal) {
+  public getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal) {
     requestParam.stream = true;
-    this._postPrompt(requestParam, signal).then((data) => {
+    this._postPrompt(auth, requestParam, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
@@ -634,43 +493,48 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public async sendTelemetryLog(_eventName: string, info: Record<string, any>) {
+  public async sendTelemetryLog(auth: AuthInfo, action: string, info: Record<string, any>) {
     try {
       const cfg: ClientConfig = this.clientConfig;
-      let key = await this.apiKeyRaw();
+      let key = await this.apiKeyRaw(auth);
       if (!key) {
         return Promise.reject();
       }
 
-      let uri = new URL(cfg.url);
-      let apiUrl = uri.origin + "/studio/ams/data/logs";
       let date: string = new Date().toUTCString();
-      let auth = '';
+      let authHeader = '';
       if (key) {
         if (key.includes("#")) {
           let aksk = key.split("#");
-          auth = generateSignature(apiUrl, date, aksk[0], aksk[1]);
+          authHeader = generateSignature(cfg.url, date, aksk[0], aksk[1]);
         } else {
-          auth = `Bearer ${key}`;
+          authHeader = `Bearer ${key}`;
         }
       }
+      let user = auth.account.username;
+      if (!user || user === "User") {
+        user = "Unknown";
+      }
+
       let headers = {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         "Date": date,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         "Content-Type": "application/json",
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Authorization": auth
+        "Authorization": authHeader,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "x-sensecode-identity": user,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "x-sensecode-action": action
       };
       let payload = JSON.stringify([info]);
-      let user = this.username;
 
       return axios.post(
-        apiUrl,
+        cfg.url,
         payload,
         {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...headers },
+          headers,
           proxy: false,
           timeout: 120000
         }

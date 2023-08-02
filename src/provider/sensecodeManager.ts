@@ -7,10 +7,11 @@ import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
+import { SenseCodeViewProvider } from "./webviewProvider";
 
 const builtinEngines: ClientConfig[] = [
   {
-    type: ClientType.sensecode,
+    type: ClientType.sensecore,
     label: "SenseCode",
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
     config: {
@@ -34,31 +35,43 @@ export enum CompletionPreferenceType {
   bestEffort = "Best Effort"
 }
 
+interface ClientAndAuthInfo {
+  config: ClientConfig;
+  client: CodeClient;
+  authInfo?: AuthInfo;
+}
+
+interface CodeExtension {
+  filterType: () => ClientType;
+  factory: (clientConfig: ClientConfig, debug?: (message: string, ...args: any[]) => void) => CodeClient | undefined;
+}
+
 export class SenseCodeManager {
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private context: ExtensionContext;
-  private _clients: CodeClient[] = [];
+  private _clients: { [key: string]: ClientAndAuthInfo } = {};
   private detectedProxyVersion = '0.0.0';
+  private readonly requiredProxyExtension = "SenseTime.sensetimeproxy";
   private readonly requiredProxyVersion = '0.50.0';
 
-  private randomUUID() {
+  private randomUUID(): string {
     return randomBytes(20).toString('hex');
   }
 
-  private async getProxy() {
-    let proxy: any | undefined = undefined;
+  private async getProxy(): Promise<CodeExtension | undefined> {
+    let proxy: CodeExtension | undefined = undefined;
     let es = extensions.all;
     for (let e of es) {
-      if (e.id === "SenseTime.sensetimeproxy") {
+      if (e.id === this.requiredProxyExtension) {
         this.detectedProxyVersion = e.packageJSON.version;
         if (e.isActive) {
-          proxy = e.exports;
+          proxy = e.exports as CodeExtension;
         } else {
           await e.activate().then((apis) => {
-            proxy = apis;
+            proxy = apis as CodeExtension;
           }, () => {
-            console.log("Activate 'SenseTime.sensetimeproxy' failed");
+            console.log(`Activate '${this.requiredProxyExtension}' failed`);
           });
         }
         return proxy;
@@ -69,71 +82,96 @@ export class SenseCodeManager {
 
   constructor(context: ExtensionContext) {
     extensions.onDidChange(() => {
-      this.getProxy().then((proxy) => {
-        for (let e of this._clients) {
-          e.proxy = proxy;
-        }
+      this.getProxy().then((ext) => {
+        this.buildAllClient(ext);
       });
     });
     this.context = context;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
-    this.buildAllClient();
+    this.getProxy().then((ext) => {
+      this.buildAllClient(ext);
+    });
   }
 
-  private async buildAllClient() {
-    const meta: ClientMeta = {
-      clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
-      redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
-    };
+  private async buildAllClient(ext?: CodeExtension): Promise<void> {
+    let tks = await this.context.secrets.get("SenseCode.tokens");
+    let authinfos: any = {};
+    if (tks) {
+      try {
+        authinfos = JSON.parse(tks);
+      } catch (e) { }
+    }
     let es = this.configuration.get<ClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
-    this._clients = [];
+    this._clients = {};
     for (let e of es) {
-      if (e.label && e.url) {
+      if (e.type && e.label && e.url) {
+        if (e.type === ext?.filterType()) {
+          let client = ext.factory(e, outlog.debug);
+          if (client) {
+            this.appendClient({ config: e, client, authInfo: authinfos[e.label] });
+            continue;
+          }
+        }
         if (e.type === ClientType.sensenova) {
-          this._clients.push(new SenseNovaClient(e, outlog.debug));
+          this.appendClient({ config: e, client: new SenseNovaClient(e, outlog.debug), authInfo: authinfos[e.label] });
         } else {
-          this._clients.push(new SenseCodeClient(meta, e, outlog.debug));
+          const meta: ClientMeta = {
+            clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
+            redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
+          };
+          let client = new SenseCodeClient(meta, e, outlog.debug);
+          client.onDidChangeAuthInfo((ai) => {
+            this.updateToken(client.label, ai, true);
+          });
+          this.appendClient({ config: e, client, authInfo: authinfos[e.label] });
         }
       }
     }
-    this.setupClientInfo();
-    const proxy = await this.getProxy();
-    for (let e1 of this._clients) {
-      e1.proxy = proxy;
-    }
-    this.checkSensetimeEnv(!!proxy);
+
+    this.checkSensetimeEnv(!!ext);
   }
 
-  public async setAccessKey(name: string, ak: string, sk: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
-    if (client) {
-      return client.setAccessKey(name, ak, sk);
-    }
-  }
-
-  private async setupClientInfo() {
-    let tokens = await this.context.secrets.get("SenseCode.tokens");
-    let ts: any = JSON.parse(tokens || "{}");
-    for (let e of this._clients) {
-      if (ts[e.label]) {
-        e.restoreAuthInfo(ts[e.label]);
-      }
-      e.onDidChangeAuthInfo(async (client: CodeClient, token?: AuthInfo, refresh?: boolean) => {
-        let tokens1 = await this.context.secrets.get("SenseCode.tokens");
-        let ts1: any = JSON.parse(tokens1 || "{}");
-        if (token && refresh) {
-          this.context.globalState.update("SenseCode.tokenRefreshed", true);
-        } else {
-          this.context.globalState.update("SenseCode.tokenRefreshed", undefined);
-        }
-        ts1[client.label] = token;
-        await this.context.secrets.store("SenseCode.tokens", JSON.stringify(ts1));
+  private appendClient(c: ClientAndAuthInfo) {
+    this._clients[c.config.label] = c;
+    if (!c.authInfo && c.config.key) {
+      let aksk = c.config.key.split('#');
+      let ak = aksk[0] ?? '';
+      let sk = aksk[1] ?? '';
+      c.client.setAccessKey("User", ak, sk).then(async (ai) => {
+        this._clients[c.config.label].authInfo = ai;
+        await this.updateToken(c.config.label, ai);
       });
     }
   }
 
-  private async checkSensetimeEnv(proxyReady: boolean) {
+  public async setAccessKey(name: string, ak: string, sk: string, clientName?: string): Promise<void> {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    if (ca) {
+      ca.client.setAccessKey(name, ak, sk).then(async ai => {
+        ca!.authInfo = ai;
+        await this.updateToken(name, ai);
+      });
+    }
+  }
+
+  private async updateToken(name: string, ai?: AuthInfo, quite?: boolean) {
+    let tks = await this.context.secrets.get("SenseCode.tokens");
+    let authinfos: any = {};
+    if (tks) {
+      try {
+        authinfos = JSON.parse(tks);
+        authinfos[name] = ai;
+      } catch (e) { }
+    }
+    await this.context.globalState.update("SenseCode.tokenRefreshed", quite);
+    this.context.secrets.store("SenseCode.tokens", JSON.stringify(authinfos));
+  }
+
+  private async checkSensetimeEnv(proxyReady: boolean): Promise<void> {
     await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
       if (e.response?.status === 500) {
         if (!proxyReady) {
@@ -160,21 +198,24 @@ export class SenseCodeManager {
     });
   }
 
-  public clear() {
+  public clear(): void {
     let logoutAct: Promise<void>[] = [];
-    for (let e of this._clients) {
-      let logoutUrl = e.logoutUrl;
-      if (logoutUrl) {
-        commands.executeCommand("vscode.open", logoutUrl);
+    for (let e in this._clients) {
+      let ca = this._clients[e];
+      if (ca.authInfo) {
+        logoutAct.push(
+          ca.client.logout(ca.authInfo).then((logoutUrl) => {
+            if (logoutUrl) {
+              commands.executeCommand("vscode.open", logoutUrl);
+            }
+            if (ca) {
+              ca.authInfo = undefined;
+            }
+          }, (err) => {
+            outlog.debug(`Logout ${e} failed: ${err}`);
+          })
+        );
       }
-      logoutAct.push(
-        e.logout().then(() => {
-        }, (err) => {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          e.clearAuthInfo();
-          outlog.debug(`Logout ${e.label} failed: ${err}`);
-        })
-      );
     }
     Promise.all(logoutAct).then(() => {
       this.clearStatusData();
@@ -183,7 +224,7 @@ export class SenseCodeManager {
     });
   }
 
-  private clearStatusData() {
+  private clearStatusData(): void {
     this.context.globalState.update("privacy", undefined);
     this.context.globalState.update("ActiveClient", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
@@ -193,38 +234,44 @@ export class SenseCodeManager {
     this.context.globalState.update("Delay", undefined);
     this.configuration.update("Prompt", undefined, true);
     this.context.secrets.delete("SenseCode.tokens");
+    this.getProxy().then((ext) => {
+      this.buildAllClient(ext);
+    });
   }
 
-  public update() {
+  public update(): void {
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
   }
 
-  public async updateEngineList() {
+  public async updateEngineList(): Promise<void> {
     return this.buildAllClient();
   }
 
-  private getClient(client?: string): CodeClient | undefined {
+  private getClient(client?: string): ClientAndAuthInfo | undefined {
     if (!client) {
       return undefined;
     }
-    let es = this._clients.filter((e) => {
-      return e.label === client;
-    });
-    return es[0];
-  }
-
-  private getActiveClient(): CodeClient {
-    let ae = this.context.globalState.get<string>("ActiveClient");
-    let e = this.getClient(ae);
-    if (!e) {
-      this.setActiveClient(this._clients[0]?.label);
-      return this._clients[0];
+    for (let e in this._clients) {
+      if (e === client) {
+        return this._clients[e];
+      }
     }
-    return e;
   }
 
-  public getActiveClientLabel(): string {
-    return this.getActiveClient().label;
+  private getActiveClient(): ClientAndAuthInfo | undefined {
+    let ae = this.context.globalState.get<string>("ActiveClient");
+    let ac = this.getClient(ae);
+    if (!ac) {
+      for (let e in this._clients) {
+        return this._clients[e];
+      }
+    } else {
+      return ac;
+    }
+  }
+
+  public getActiveClientLabel(): string | undefined {
+    return this.getActiveClient()?.config.label;
   }
 
   public async setActiveClient(clientName: string | undefined) {
@@ -235,14 +282,7 @@ export class SenseCodeManager {
   }
 
   public isClientLoggedin(clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
-    if (clientName) {
-      client = this.getClient(clientName);
-    }
-    if (client) {
-      return client.username !== undefined;
-    }
-    return false;
+    return this.username(clientName) !== undefined;
   }
 
   public get prompt(): SenseCodePrompt[] {
@@ -300,82 +340,84 @@ export class SenseCodeManager {
   }
 
   public get clientsLabel(): string[] {
-    let labels: string[] = [];
-    for (let e of this._clients) {
-      labels.push(e.label);
-    }
-    return labels;
+    return Object.keys(this._clients);
   }
 
   public username(clientName?: string): string | undefined {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client) {
-      return client.username;
+    if (ca) {
+      return ca.authInfo?.account.username;
     }
   }
 
   public avatar(clientName?: string): string | undefined {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client) {
-      return client.avatar;
+    if (ca) {
+      return ca.authInfo?.account.avatar;
     }
   }
 
-  public async tryAutoLogin(clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
+  private async tryAutoLogin(clientName?: string) {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client && !this.username(client.label) && env.uiKind === UIKind.Web) {
-      return this.getProxy().then((proxy) => {
-        if (proxy) {
-          return client?.setAccessKey("User", "", "").then(() => { });
-        }
-      });
+    if (ca && !this.isClientLoggedin(ca.config.label)) {
+      let key = ca.config.key;
+      if (key) {
+        let aksk = key.split('#');
+        let ak = aksk[0] ?? '';
+        let sk = aksk[1] ?? '';
+        this.setAccessKey("User", ak, sk, clientName);
+      }
     }
   }
 
   public getAuthUrlLogin(clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client) {
+    if (ca) {
       if (env.uiKind === UIKind.Web) {
         return Promise.resolve("command:sensecode.setAccessKey");
       }
       let verifier = this.seed;
       verifier += env.machineId;
-      return client.getAuthUrlLogin(verifier);
+      return ca.client.getAuthUrlLogin(verifier).then((url)=>{
+        return url ?? "command:sensecode.setAccessKey";
+      });
     } else {
       return Promise.reject();
     }
   }
 
   public getTokenFromLoginResult(callbackUrl: string, clientName?: string): Thenable<boolean> {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
 
     return window.withProgress({
       location: { viewId: "sensecode.view" }
     }, async (progress, _cancel) => {
-      if (!client) {
+      if (!ca) {
         return false;
       }
       let verifier = this.seed;
       this.seed = this.randomUUID();
       verifier += env.machineId;
-      return client.login(callbackUrl, verifier).then(async (token) => {
+      return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
-        if (client && token) {
+        if (ca && token) {
+          ca.authInfo = token;
+          this.updateToken(ca.config.label, token);
           return true;
         } else {
           return false;
@@ -390,65 +432,67 @@ export class SenseCodeManager {
     return window.withProgress({
       location: { viewId: "sensecode.view" }
     }, async (progress, _cancel) => {
-      let client: CodeClient | undefined = this.getActiveClient();
+      let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
       if (clientName) {
-        client = this.getClient(clientName);
+        ca = this.getClient(clientName);
       }
-      if (client) {
-        let logoutUrl = client.logoutUrl;
-        if (logoutUrl) {
-          commands.executeCommand("vscode.open", logoutUrl);
-        }
-        await client.logout().then(() => {
+      if (ca && ca.authInfo) {       
+        await ca.client.logout(ca.authInfo).then((logoutUrl) => {
           progress.report({ increment: 100 });
+          if (logoutUrl) {
+            commands.executeCommand("vscode.open", logoutUrl);
+          }
+          if (ca) {
+            ca.authInfo = undefined;
+            this.updateToken(ca.config.label);
+          }
         }, (e) => {
           progress.report({ increment: 100 });
-          client?.clearAuthInfo();
-          window.showErrorMessage("Logout failed: " + e.message);
+          SenseCodeViewProvider.showError("Logout failed: " + e.message);
         });
       }
     });
   }
 
   public async getCompletions(config: SenseCodeRequestParam, signal?: AbortSignal, clientName?: string): Promise<ResponseData> {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client) {
+    if (ca && ca.authInfo) {
       let params: ChatRequestParam = {
         model: "",
         ...config
       };
-      return client.getCompletions(params, signal);
+      return ca.client.getCompletions(ca.authInfo, params, signal);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
   }
 
   public async getCompletionsStreaming(config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal: AbortSignal, clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client) {
+    if (ca && ca.authInfo) {
       let params: ChatRequestParam = {
         model: "",
         ...config
       };
-      client.getCompletionsStreaming(params, callback, signal);
+      ca.client.getCompletionsStreaming(ca.authInfo, params, callback, signal);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
   }
 
   public async sendTelemetryLog(eventName: string, info: Record<string, any>, clientName?: string) {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client && client.sendTelemetryLog) {
-      return client.sendTelemetryLog(eventName, info);
+    if (ca && ca.authInfo && ca.client.sendTelemetryLog) {
+      return ca.client.sendTelemetryLog(ca.authInfo, eventName, info);
     }
   }
 
@@ -485,12 +529,12 @@ export class SenseCodeManager {
   }
 
   public maxToken(clientName?: string): number {
-    let client: CodeClient | undefined = this.getActiveClient();
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
-      client = this.getClient(clientName);
+      ca = this.getClient(clientName);
     }
-    if (client) {
-      return client.tokenLimit;
+    if (ca) {
+      return ca.config.tokenLimit;
     }
     return 0;
   }

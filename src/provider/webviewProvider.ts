@@ -184,7 +184,7 @@ export class SenseCodeEditor extends Disposable {
     let name = sensecodeManager.username();
     let category = "welcome" + (full ? "-full" : "");
     let username = '';
-    let robot = sensecodeManager.getActiveClientLabel();
+    let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
     if (name) {
       username = ` @${name}`;
     } else {
@@ -499,7 +499,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'logout': {
-          let ae = sensecodeManager.getActiveClientLabel();
+          let ae = sensecodeManager.getActiveClientLabel() || "SenseCode";
           window.showWarningMessage(
             l10n.t("Logout from {0}?", ae),
             { modal: true },

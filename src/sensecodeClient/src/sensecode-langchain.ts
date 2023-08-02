@@ -2,10 +2,10 @@ import { BaseChatModel, BaseChatModelParams } from 'langchain/chat_models/base';
 import { BaseLanguageModelCallOptions } from 'langchain/base_language';
 import { CallbackManagerForLLMRun } from 'langchain/callbacks';
 import { AIMessage, BaseMessage, ChatGeneration, ChatMessage, ChatResult, HumanMessage, LLMResult, SystemMessage } from 'langchain/schema';
-import { ConversationChain, LLMChain } from "langchain/chains";
+import { LLMChain } from "langchain/chains";
 import { ChatPromptTemplate } from 'langchain/prompts';
 
-import { ChatRequestParam, CodeClient, Message, ResponseData, ResponseEvent, Role } from './CodeClient';
+import { AuthInfo, ChatRequestParam, CodeClient, Message, ResponseData, ResponseEvent, Role } from './CodeClient';
 
 function sensecodeResponseToChatMessage(
   message: Message
@@ -26,14 +26,16 @@ class PenroseModel extends BaseChatModel {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   lc_namespace: string[];
   client: CodeClient;
+  auth: AuthInfo;
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   declare CallOptions: BaseLanguageModelCallOptions & ChatRequestParam;
 
-  constructor(client: CodeClient, fields?: BaseChatModelParams) {
+  constructor(client: CodeClient, auth: AuthInfo, fields?: BaseChatModelParams) {
     super(fields ?? {});
     this.lc_namespace = [];
     this.client = client;
+    this.auth = auth;
   }
 
   get callKeys(): string[] {
@@ -65,6 +67,7 @@ class PenroseModel extends BaseChatModel {
 
     if (!params.stream) {
       let data = await this.client.getCompletions(
+        this.auth,
         {
           ...params
         },
@@ -84,6 +87,7 @@ class PenroseModel extends BaseChatModel {
     } else {
       return await new Promise<ChatResult>((resolve, _reject) => {
         this.client.getCompletionsStreaming(
+          this.auth,
           {
             ...params,
           },
@@ -120,13 +124,13 @@ class PenroseModel extends BaseChatModel {
 }
 
 export class SenseCodeLangChain {
-  private conversation: ConversationChain;
-  constructor(client: CodeClient) {
-    this.conversation = this.createConversationChain(client);
+  private chain: LLMChain;
+  constructor(client: CodeClient, auth: AuthInfo) {
+    this.chain = this.createConversationChain(client, auth);
   }
 
-  private createConversationChain(client: CodeClient): ConversationChain {
-    let model = new PenroseModel(client);
+  private createConversationChain(client: CodeClient, auth: AuthInfo): LLMChain {
+    let model = new PenroseModel(client, auth);
     return new LLMChain({
       llm: model,
       prompt: ChatPromptTemplate.fromPromptMessages([])
@@ -134,7 +138,7 @@ export class SenseCodeLangChain {
   }
 
   public async callStreaming(config: ChatRequestParam, callback: (data: MessageEvent<ResponseData>) => void, signal: AbortSignal) {
-    this.conversation.call({ ...config, stream: true, signal }, [{
+    this.chain.call({ ...config, stream: true, signal }, [{
       handleLLMNewToken(data: string, idx) {
         callback(new MessageEvent(ResponseEvent.data, {
           data: {

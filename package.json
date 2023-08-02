@@ -51,7 +51,7 @@
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.type%",
                                     "enum": [
-                                        "sensecode",
+                                        "sensecore",
                                         "sensenova"
                                     ]
                                 },
@@ -196,7 +196,7 @@
             {
                 "command": "sensecode.setAccessKey",
                 "title": "%sensecode.command.setAccessKey%",
-                "when": "isWeb"
+                "enablement": "view == sensecode.view"
             },
             {
                 "command": "sensecode.help",

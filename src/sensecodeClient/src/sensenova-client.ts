@@ -1,7 +1,6 @@
 import axios, { ResponseType } from "axios";
-import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, AuthProxy, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam } from "./CodeClient";
 import sign = require('jwt-encode');
 
 function generateSignature(_urlString: string, _date: string, ak: string, sk: string) {
@@ -15,61 +14,28 @@ function generateSignature(_urlString: string, _date: string, ak: string, sk: st
 }
 
 export class SenseNovaClient implements CodeClient {
-  private _idToken?: string;
-  private _username?: string;
-  private _weaverdKey?: string;
-  private _aksk?: string;
-  private onChangeAuthInfo?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>;
 
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
-    if (clientConfig.key) {
-      this._username = "User";
+  }
+
+  public async logout(_auth: AuthInfo): Promise<string | undefined> {
+    if (this.clientConfig.key) {
+      return Promise.reject(new Error("Not Authorized From Web"));
+    } else {
+      return Promise.resolve(undefined);
     }
-  }
-
-  onDidChangeAuthInfo(handler?: (client: CodeClient, token?: AuthInfo, refresh?: boolean) => Promise<void>): void {
-    this.onChangeAuthInfo = handler;
-  }
-
-  get logoutUrl(): string | undefined {
-    return undefined;
-  }
-
-  public async logout(): Promise<void> {
-    return this.clearAuthInfo();
   }
 
   public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
-    this._username = name;
-    this._aksk = `${ak}#${sk}`;
-    let ai = this.getAuthInfo();
-    if (this.onChangeAuthInfo) {
-      await this.onChangeAuthInfo(this, ai);
-    }
+    let ai: AuthInfo = {
+      account: {
+        username: name,
+      },
+      aksk: `${ak}#${sk}`,
+      weaverdKey: "XXX",
+      idToken: "XXX"
+    };
     return ai;
-  }
-
-  public restoreAuthInfo(auth: AuthInfo): Promise<void> {
-    this._idToken = auth.idToken;
-    this._username = auth.username;
-    this._weaverdKey = auth.weaverdKey;
-    this._aksk = auth.aksk;
-    return Promise.resolve();
-  }
-
-  public async clearAuthInfo(): Promise<void> {
-    this._idToken = undefined;
-    this._username = undefined;
-    this._weaverdKey = undefined;
-    this._aksk = undefined;
-    if (this.onChangeAuthInfo) {
-      await this.onChangeAuthInfo(this);
-    }
-    return Promise.resolve();
-  }
-
-  public get state(): string {
-    return crypto.createHash('sha256').update(this._weaverdKey || "").digest("base64");
   }
 
   public get label(): string {
@@ -80,19 +46,7 @@ export class SenseNovaClient implements CodeClient {
     return this.clientConfig.tokenLimit;
   }
 
-  public get username(): string | undefined {
-    return this._username;
-  }
-
-  public get avatar(): string | undefined {
-    return undefined;
-  }
-
-  public set proxy(proxy: AuthProxy | undefined) {
-  }
-
-  public get proxy(): AuthProxy | undefined {
-    return undefined;
+  onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
@@ -100,33 +54,27 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public async login(_callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
-    let ai = this.getAuthInfo();
-    if (this.onChangeAuthInfo) {
-      await this.onChangeAuthInfo(this, ai);
-    }
+    let ai: AuthInfo = {
+      account: {
+        username: "User",
+      },
+      weaverdKey: "XXX",
+      idToken: "XXX"
+    };
     return ai;
   }
 
-  private getAuthInfo(): AuthInfo {
-    return {
-      username: this._username || "User",
-      aksk: this._aksk,
-      weaverdKey: this._weaverdKey || "XXX",
-      idToken: this._idToken || "XXX"
-    };
-  }
-
-  private _postPrompt(requestParam: ChatRequestParam, signal?: AbortSignal): Promise<any | IncomingMessage> {
+  private _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let date: string = new Date().toUTCString();
-      let key = this.clientConfig.key || this._aksk;
-      let auth = '';
+      let key = this.clientConfig.key || auth.aksk;
+      let authHeader = '';
       if (key) {
         if (key.includes("#")) {
           let aksk = key.split("#");
-          auth = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
+          authHeader = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
         } else {
-          auth = `Bearer ${key}`;
+          authHeader = `Bearer ${key}`;
         }
       }
       let headers = {
@@ -135,7 +83,7 @@ export class SenseNovaClient implements CodeClient {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         "Content-Type": "application/json",
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Authorization": auth
+        "Authorization": authHeader
       };
 
       let responseType: ResponseType | undefined = undefined;
@@ -180,9 +128,9 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  public async getCompletions(requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData> {
+  public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData> {
     requestParam.stream = false;
-    return this._postPrompt(requestParam, signal).then(resp => {
+    return this._postPrompt(auth, requestParam, signal).then(resp => {
       let codeArray = resp.data.choices;
       const choices = Array<Choice>();
       for (let i = 0; i < codeArray.length; i++) {
@@ -204,9 +152,9 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal) {
+  public getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal) {
     requestParam.stream = true;
-    this._postPrompt(requestParam, signal).then((data) => {
+    this._postPrompt(auth, requestParam, signal).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
@@ -318,56 +266,7 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  public async sendTelemetryLog(_eventName: string, info: Record<string, any>) {
-    try {
-      const cfg: ClientConfig = this.clientConfig;
-      let key = cfg.key;
-      if (!key) {
-        return Promise.reject();
-      }
+  public async sendTelemetryLog(_auth: AuthInfo, _action: string, _info: Record<string, any>) {
 
-      let uri = new URL(cfg.url);
-      let apiUrl = uri.origin + "/studio/ams/data/logs";
-      let date: string = new Date().toUTCString();
-      let auth = '';
-      if (key) {
-        if (key.includes("#")) {
-          let aksk = key.split("#");
-          auth = generateSignature(apiUrl, date, aksk[0], aksk[1]);
-        } else {
-          auth = `Bearer ${key}`;
-        }
-      }
-      let headers = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Date": date,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Content-Type": "application/json",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Authorization": auth
-      };
-      let payload = JSON.stringify([info]);
-      let user = this.username;
-
-      return axios.post(
-        apiUrl,
-        payload,
-        {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { "X-Request-Id": user || info["common.vscodemachineid"], ...headers },
-          proxy: false,
-          timeout: 120000
-        }
-      ).then(async (res) => {
-        if (res?.status === 200) {
-        } else {
-          throw Error();
-        }
-      }, (err) => {
-        throw err;
-      });
-    } catch (e) {
-      return Promise.reject();
-    }
   }
 }
