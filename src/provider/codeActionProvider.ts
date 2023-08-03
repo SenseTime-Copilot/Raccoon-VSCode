@@ -85,9 +85,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       }
       let editor: SenseCodeEditor | undefined = this.getEditor();
       if (editor) {
-        let ts = new Date();
-        let id = ts.valueOf();
-        editor.sendApiRequest(id, new PromptInfo(prompt));
+        editor.sendApiRequest(new PromptInfo(prompt));
       } else {
         SenseCodeViewProvider.ask(new PromptInfo(prompt));
       }

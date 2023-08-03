@@ -91,14 +91,20 @@ const vscode = acquireVsCodeApi();
     };
   };
 
-  addError = function (message) {
-    var ew = document.getElementById('error-wrapper');
+  showInfoTip = function (message) {
+    var ew = document.getElementById('msg-wrapper');
     if (ew.querySelector(`.${message.category}`)) {
       return;
     }
-    ew.innerHTML += `<div class="error ${message.category}" id="error-${message.id}">${message.value}</div>`;
+    var eleId = `msg-${message.id}`;
+    if (message.style === 'message') {
+      ew.innerHTML += `<div class="msg ${message.category}" id="${eleId}">${message.value}</div>`;
+    } else if (message.style === 'error') {
+      eleId = `error-${message.id}`;
+      ew.innerHTML += `<div class="error ${message.category}" id="${eleId}">${message.value}</div>`;
+    }
     setTimeout(() => {
-      var err = document.getElementById(`error-${message.id}`);
+      var err = document.getElementById(eleId);
       err.remove();
     }, 3000);
   };
@@ -128,11 +134,121 @@ const vscode = acquireVsCodeApi();
         document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
         document.getElementById("question-input").disabled = false;
         document.getElementById("question-input").focus();
+        vscode.postMessage({ type: 'flushLog', action: "delete" });
         list.innerHTML = "";
         break;
       }
-      case 'showError': {
-        addError(message);
+      case 'restoreFromCache': {
+        for (let item of message.value) {
+          if (item.question) {
+            let questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
+                                  <span class="flex gap-2 flex flex-row-reverse text-xl">
+                                    ${questionIcon}
+                                    <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
+                                      <b class="text-sm">${item.name}</b>
+                                      <div class="opacity-30 leading-3">
+                                        ${item.timestamp}
+                                      </div>
+                                    </span>
+                                  </span>
+                                  <div class="-mt-6 ml-1">
+                                    <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${item.id}>${cancelIcon}</button>
+                                  </div>
+                                </h2>`;
+            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.question)), "text/html");
+            const preCodeList = markedResponse.querySelectorAll("pre > code");
+
+            preCodeList.forEach((preCode, index) => {
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+              preCode.classList.forEach((cls, _idx, _arr) => {
+                if (cls.startsWith('language-')) {
+                  preCode.parentElement.dataset.lang = cls.slice(9);
+                }
+              });
+
+              if (index !== preCodeList.length - 1) {
+                preCode.parentElement.classList.add("mb-8");
+              }
+
+              const buttonWrapper = document.createElement("div");
+              buttonWrapper.classList.add("code-actions-wrapper");
+              preCode.parentElement.prepend(buttonWrapper);
+            });
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full" data-prompt="${item.question}">${markedResponse.documentElement.innerHTML}</div>`;
+            list.innerHTML += `<div id="question-${item.id}" class="p-4 pb-8 question-element-gnc w-full">
+                      ${questionTitle}
+                      ${html}
+                    </div>`;
+          } else if (item.answer) {
+            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.answer)), "text/html");
+            const preCodeList = markedResponse.querySelectorAll("pre > code");
+
+            preCodeList.forEach((preCode, index) => {
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+              preCode.classList.forEach((cls, _idx, _arr) => {
+                if (cls.startsWith('language-')) {
+                  preCode.parentElement.dataset.lang = cls.slice(9);
+                }
+              });
+
+              if (index !== preCodeList.length - 1) {
+                preCode.parentElement.classList.add("mb-8");
+              }
+
+              const buttonWrapper = document.createElement("div");
+              buttonWrapper.classList.add("code-actions-wrapper");
+
+              // Create wrap to clipboard button
+              const wrapButton = document.createElement("button");
+              wrapButton.dataset.id = message.id;
+              wrapButton.title = l10nForUI["ToggleWrap"];
+              wrapButton.innerHTML = wrapIcon;
+
+              wrapButton.classList.add("wrap-element-gnc", "rounded");
+
+              // Create copy to clipboard button
+              const copyButton = document.createElement("button");
+              copyButton.dataset.id = message.id;
+              copyButton.title = l10nForUI["Copy"];
+              copyButton.innerHTML = clipboardIcon;
+
+              copyButton.classList.add("code-element-gnc", "rounded");
+
+              const insert = document.createElement("button");
+              insert.dataset.id = message.id;
+              insert.title = l10nForUI["Insert"];
+              insert.innerHTML = insertIcon;
+
+              insert.classList.add("edit-element-gnc", "rounded");
+
+              buttonWrapper.append(wrapButton, copyButton, insert);
+
+              preCode.parentElement.prepend(buttonWrapper);
+            });
+            list.innerHTML += `<div id="${item.id}" data-name="${item.name}" class="p-4 answer-element-gnc w-full">
+                            <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
+                              <span class="flex gap-2 flex text-xl">
+                                ${aiIcon}
+                                <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
+                                  <b class="text-sm">${item.name}</b>
+                                  <div class="response-ts opacity-30 leading-3">
+                                    ${item.timestamp}
+                                  </div>
+                                </span>
+                              </span>
+                            </h2>
+                            <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body">
+                              ${markedResponse.documentElement.innerHTML}
+                            </div>
+                          </div>`;
+          }
+        }
+        list.innerHTML += "<div class='history-seperator'></div>";
+        list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        break;
+      }
+      case 'showInfoTip': {
+        showInfoTip(message);
         break;
       }
       case 'codeReady': {
@@ -292,7 +408,7 @@ const vscode = acquireVsCodeApi();
         if (edit) {
           document.getElementById("chat-button-wrapper")?.classList?.add("editing");
           document.getElementById("question-input").disabled = true;
-          list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
           break;
         } else {
           updateHistory(promptInfo.prompt);
@@ -302,6 +418,7 @@ const vscode = acquireVsCodeApi();
           if (!chat) {
             chat = document.createElement("div");
             chat.id = `${id}`;
+            chat.dataset['name'] = message.robot;
             chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
                       <span class="fle gap-2 opacity-30">
@@ -380,7 +497,7 @@ const vscode = acquireVsCodeApi();
                                   </div>`;
             list.appendChild(chat);
           }
-          list.lastChild?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         }
         break;
       }
@@ -445,6 +562,20 @@ const vscode = acquireVsCodeApi();
 
         if (message.byUser === true) {
           vscode.postMessage({ type: 'telemetry', info: collectInfo(message.id, "stopped-by-user") });
+        } else {
+          var info = collectInfo(message.id, "");
+          let r = document.getElementById(`${message.id}`);
+          let name = r.dataset['name'];
+          let rts = r?.getElementsByClassName("response-ts");
+          let ts = '';
+          if (rts && rts[0]) {
+            ts = rts[0].textContent;
+          }
+          if (info.response[0]) {
+            vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: info.response[0] });
+          } else if (info.error) {
+            vscode.postMessage({ type: 'flushLog', action: "error", id: message.id, name, ts, value: info.error });
+          }
         }
         break;
       }
@@ -564,7 +695,7 @@ const vscode = acquireVsCodeApi();
         values
       });
     } else {
-      addError({ category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
+      showInfoTip({ style: "error", category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
   };
 
@@ -1024,7 +1155,15 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.target.id === "clearAll") {
+    if (e.target.id === "clearCacheFiles") {
+      vscode.postMessage({ type: "clearCacheFiles" });
+      document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+      document.getElementById("question-input").disabled = false;
+      document.getElementById("question-input").focus();
+      return;
+    }
+
+    if (targetButton?.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
       document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
       document.getElementById("question-input").disabled = false;
@@ -1036,6 +1175,7 @@ const vscode = acquireVsCodeApi();
       const id = targetButton.dataset.id;
       document.getElementById(`question-${id}`)?.remove();
       document.getElementById(id)?.remove();
+      vscode.postMessage({ type: 'flushLog', action: "delete", id: parseInt(id) });
       return;
     }
 

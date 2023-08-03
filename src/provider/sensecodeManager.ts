@@ -1,5 +1,5 @@
 import axios from "axios";
-import { commands, env, ExtensionContext, extensions, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
+import { commands, env, ExtensionContext, extensions, l10n, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
 import { AuthInfo, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
 import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
@@ -7,7 +7,7 @@ import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
-import { SenseCodeViewProvider } from "./webviewProvider";
+import { deleteAllCacheFiles, SenseCodeViewProvider } from "./webviewProvider";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -225,6 +225,7 @@ export class SenseCodeManager {
   }
 
   private clearStatusData(): void {
+    deleteAllCacheFiles(this.context);
     this.context.globalState.update("privacy", undefined);
     this.context.globalState.update("ActiveClient", undefined);
     this.context.globalState.update("CompletionAutomatically", undefined);
@@ -448,7 +449,7 @@ export class SenseCodeManager {
           }
         }, (e) => {
           progress.report({ increment: 100 });
-          SenseCodeViewProvider.showError("Logout failed: " + e.message);
+          SenseCodeViewProvider.showError(l10n.t(e.message));
         });
       }
     });

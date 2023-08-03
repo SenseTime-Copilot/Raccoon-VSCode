@@ -36,12 +36,8 @@ export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
     let id = document.uri.query;
     if (id) {
       this.id = id;
-      this.editor = new SenseCodeEditor(this.context, webviewPanel.webview);
+      this.editor = new SenseCodeEditor(this.context, webviewPanel.webview, `sensecode-${id}.json`);
       SenseCodeEditorProvider.editors[id] = this.editor;
-      webviewPanel.onDidDispose((_e) => {
-        this.editor?.dispose();
-        delete this.editor;
-      });
     }
   }
 }

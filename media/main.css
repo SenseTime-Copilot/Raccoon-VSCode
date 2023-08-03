@@ -282,20 +282,31 @@ textarea::placeholder {
     border-top: 1px solid var(--panel-view-border);
 }
 
-#error-wrapper {
+#msg-wrapper {
     height: 0;
     display: flex;
     flex-direction: column-reverse;
     z-index: 999999;
 }
 
-#error-wrapper .error {
+#msg-wrapper .error {
     padding: 0.5rem;
     margin: 0.5rem auto;
     max-width: 80%;
     border-radius: 0.25rem;
     background-color: var(--vscode-statusBarItem-errorBackground);
     color: var(--vscode-statusBarItem-errorForeground);
+    opacity: 0.6;
+    width: fit-content;
+}
+
+#msg-wrapper .msg {
+    padding: 0.5rem;
+    margin: 0.5rem auto;
+    max-width: 80%;
+    border-radius: 0.25rem;
+    background-color: var(--progress-background);
+    color: var(--vscode-foreground);
     opacity: 0.6;
     width: fit-content;
 }

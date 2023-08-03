@@ -70,6 +70,76 @@ const guide = `
       </ol>
       `;
 
+interface CacheItem {
+  id: number;
+  timestamp: string;
+  name: string;
+  question?: string;
+  answer?: string;
+  error?: string;
+}
+
+async function appendCacheItem(context: ExtensionContext, cacheFile: string, data?: CacheItem): Promise<void> {
+  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+  let cacheUri = Uri.joinPath(cacheDir, cacheFile);
+  return workspace.fs.stat(cacheDir)
+    .then(() => {
+      return workspace.fs.stat(cacheUri)
+        .then(() => {
+          if (!data) {
+            return;
+          }
+          workspace.fs.readFile(cacheUri).then(content => {
+            let items: Array<any> = JSON.parse(content.toString());
+            if (items) {
+              workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify([...items, data], undefined, 2))));
+            } else {
+              workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify([data], undefined, 2))));
+            }
+          });
+        }, () => {
+          return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify(data ? [data] : []))));
+        });
+    }, async () => {
+      return workspace.fs.createDirectory(cacheDir)
+        .then(() => {
+          return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify(data ? [data] : []))));
+        });
+    });
+}
+
+async function getCacheItems(context: ExtensionContext, cacheFile: string): Promise<Array<CacheItem>> {
+  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+  let cacheUri = Uri.joinPath(cacheDir, cacheFile);
+  return workspace.fs.readFile(cacheUri).then(content => {
+    return JSON.parse(content.toString());
+  });
+}
+
+async function removeCacheItem(context: ExtensionContext, cacheFile: string, id?: number): Promise<void> {
+  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+  let cacheUri = Uri.joinPath(cacheDir, cacheFile);
+  return workspace.fs.readFile(cacheUri).then(content => {
+    if (id) {
+      let items: Array<any> = JSON.parse(content.toString());
+      let log = items.filter((v, _idx, _arr) => {
+        return v.id !== id;
+      });
+      return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify(log, undefined, 2))));
+    } else {
+      return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from('[]')));
+    }
+  });
+}
+
+export async function deleteAllCacheFiles(context: ExtensionContext): Promise<void> {
+  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+  return workspace.fs.stat(cacheDir)
+    .then(() => {
+      workspace.fs.delete(cacheDir, { recursive: true });
+    });
+}
+
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
@@ -79,8 +149,9 @@ export class SenseCodeEditor extends Disposable {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-userdata");
   }
 
-  constructor(private context: ExtensionContext, private webview: Webview) {
+  constructor(private context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {
     super(() => { });
+    appendCacheItem(context, cacheFile);
     if (SenseCodeEditor.bannedWords.length === 0) {
       for (let w of swords) {
         SenseCodeEditor.bannedWords.push(decodeURIComponent(escape(atob(w))).trim());
@@ -201,6 +272,12 @@ export class SenseCodeEditor extends Disposable {
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot);
     this.sendMessage({ type: 'addMessage', category, username, robot, value: welcomMsg + detail, timestamp });
+  }
+
+  private async restoreFromCache() {
+    return getCacheItems(this.context, this.cacheFile).then((items: Array<CacheItem>) => {
+      this.sendMessage({ type: 'restoreFromCache', value: items });
+    });
   }
 
   dispose() {
@@ -374,15 +451,21 @@ export class SenseCodeEditor extends Disposable {
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b>${l10n.t("Advanced")}</b>
       <div class="ml-4">
-        <div class="flex flex-row my-2 px-2 gap-2">
+        <div class="flex flex-row my-2 px-2 gap-2 items-center">
           <span>${l10n.t("Custom prompt")}</span>
           <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">auto_fix</span></vscode-link>
+        </div>
+      </div>
+      <div class="ml-4">
+        <div class="flex flex-row my-2 px-2 gap-2 items-center">
+          <span>${l10n.t("Clear cache files")}</span>
+          <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">delete</span></vscode-link>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <vscode-button id="clearAll" class="mx-2 self-center w-60">
         ${l10n.t("Clear all settings")}
-        <span id="clearAll" slot="start" class="material-symbols-rounded">settings_power</span>
+        <span slot="start" class="material-symbols-rounded">settings_power</span>
       </vscode-button>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);padding-bottom: 4rem;"></vscode-divider>
     </div>
@@ -405,6 +488,7 @@ export class SenseCodeEditor extends Disposable {
       switch (data.type) {
         case 'welcome': {
           this.showWelcome(true);
+          await this.restoreFromCache();
           break;
         }
         case 'listPrompt': {
@@ -423,9 +507,17 @@ export class SenseCodeEditor extends Disposable {
           }
           break;
         }
+        case 'flushLog': {
+          if (data.action === 'delete') {
+            removeCacheItem(this.context, this.cacheFile, data.id);
+          } else if (data.action === 'answer') {
+            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, answer: data.value });
+          } else if (data.action === 'error') {
+            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, error: data.value });
+          }
+          break;
+        }
         case 'sendQuestion': {
-          let ts = new Date();
-          let id = ts.valueOf();
           let editor = this.lastTextEditor;
           if (window.activeTextEditor && this.isSupportedScheme(window.activeTextEditor.document)) {
             editor = window.activeTextEditor;
@@ -443,7 +535,7 @@ export class SenseCodeEditor extends Disposable {
             }
           }
           let promptInfo = new PromptInfo(prompt);
-          this.sendApiRequest(id, promptInfo, data.values, data.history);
+          this.sendApiRequest(promptInfo, data.values, data.history);
           break;
         }
         case 'stopGenerate': {
@@ -480,7 +572,7 @@ export class SenseCodeEditor extends Disposable {
             }
           }
           if (!found) {
-            this.sendMessage({ type: 'showError', category: 'no-active-editor', value: l10n.t("No active editor found"), id: new Date().valueOf() });
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-active-editor', value: l10n.t("No active editor found"), id: new Date().valueOf() });
           }
           break;
         }
@@ -541,6 +633,20 @@ export class SenseCodeEditor extends Disposable {
             data.value = 1;
           }
           sensecodeManager.candidates = data.value;
+          break;
+        }
+        case 'clearCacheFiles': {
+          window.withProgress({
+            location: { viewId: "sensecode.view" }
+          }, async (progress, _cancel) => {
+            return deleteAllCacheFiles(this.context).then(() => {
+              progress.report({ increment: 100 });
+              this.sendMessage({ type: 'showInfoTip', style: "message", category: 'clear-cache-done', value: l10n.t("Clear cache files done"), id: new Date().valueOf() });
+            }, () => {
+              progress.report({ increment: 100 });
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'clear-cache-fail', value: l10n.t("Clear cache files failed"), id: new Date().valueOf() });
+            });
+          });
           break;
         }
         case 'clearAll': {
@@ -710,14 +816,15 @@ ${data.info.response}
     return false;
   }
 
-  public async sendApiRequest(id: number, prompt: PromptInfo, values?: any, history?: any[]) {
+  public async sendApiRequest(prompt: PromptInfo, values?: any, history?: any[]) {
     let ts = new Date();
+    let id = ts.valueOf();
     let timestamp = ts.toLocaleString();
 
     let loggedin = sensecodeManager.isClientLoggedin();
     if (!loggedin) {
       //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
-      this.sendMessage({ type: 'showError', category: 'unauthorized', value: l10n.t("Unauthorized"), id });
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
     }
 
@@ -725,24 +832,24 @@ ${data.info.response}
     let instruction = prompt.prompt;
     for (let sw of SenseCodeEditor.bannedWords) {
       if (instruction.content.includes(sw) || prompt.codeInfo?.code.includes(sw)) {
-        this.sendMessage({ type: 'showError', category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
+        this.sendMessage({ type: 'showInfoTip', style: "error", category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
         return;
       }
     }
 
     let promptHtml = prompt.generatePromptHtml(id, values);
     if (promptHtml.status === RenderStatus.codeMissing) {
-      this.sendMessage({ type: 'showError', category: 'no-code', value: l10n.t("No code selected"), id });
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-code', value: l10n.t("No code selected"), id });
       return;
     }
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
     let maxTokens = sensecodeManager.maxToken();
     if (el > maxTokens) {
-      this.sendMessage({ type: 'showError', category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
       return;
     }
 
-    let username = sensecodeManager.username();
+    let username = sensecodeManager.username() || "User";
     let avatar = sensecodeManager.avatar();
     let robot = sensecodeManager.getActiveClientLabel();
     this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
@@ -778,6 +885,7 @@ ${data.info.response}
             });
           }
         }
+        appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, question: instruction.content });
         historyMsgs = historyMsgs.reverse();
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
         if (streaming) {
@@ -913,7 +1021,7 @@ ${data.info.response}
                     </div>
                   </vscode-panel-view>
                 </vscode-panels>
-                <div id="error-wrapper">
+                <div id="msg-wrapper">
                 </div>
                 <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
@@ -1028,7 +1136,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   }
 
   public static showError(msg: string) {
-    SenseCodeViewProvider.editor?.sendMessage({ type: 'showError', category: 'custom', value: msg, id: new Date().valueOf() });
+    SenseCodeViewProvider.editor?.sendMessage({ type: 'showInfoTip', style: 'error', category: 'custom', value: msg, id: new Date().valueOf() });
   }
 
   public resolveWebviewView(
@@ -1036,7 +1144,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     _context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    SenseCodeViewProvider.editor = new SenseCodeEditor(this.context, webviewView.webview);
+    SenseCodeViewProvider.editor = new SenseCodeEditor(this.context, webviewView.webview, `sensecode-sidebar.json`);
     SenseCodeViewProvider.webviewView = webviewView;
     webviewView.onDidChangeVisibility(() => {
       if (!webviewView.visible) {
@@ -1061,9 +1169,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     }
     if (SenseCodeViewProvider.editor) {
       if (prompt) {
-        let ts = new Date();
-        let id = ts.valueOf();
-        return SenseCodeViewProvider.editor.sendApiRequest(id, prompt);
+        return SenseCodeViewProvider.editor.sendApiRequest(prompt);
       } else {
         await new Promise((f) => setTimeout(f, 300));
         SenseCodeViewProvider.editor?.sendMessage({ type: 'focus' });

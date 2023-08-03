@@ -159,6 +159,7 @@ export class SenseCodeClient implements CodeClient {
         avatar: undefined
       },
       idToken: data.id_token,
+      refreshToken: data.refresh_token,
       weaverdKey: key,
       logoutUrl: `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`,
       aksk: undefined
