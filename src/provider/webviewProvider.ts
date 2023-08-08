@@ -276,7 +276,10 @@ export class SenseCodeEditor extends Disposable {
 
   private async restoreFromCache() {
     return getCacheItems(this.context, this.cacheFile).then((items: Array<CacheItem>) => {
-      this.sendMessage({ type: 'restoreFromCache', value: items });
+      if (items.length > 0) {
+        this.sendMessage({ type: 'restoreFromCache', value: items });
+        this.showWelcome();
+      }
     });
   }
 
@@ -496,6 +499,15 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'openDoc': {
+          let allTabGroups = window.tabGroups.all;
+          for (let tg of allTabGroups) {
+            for (let tab of tg.tabs) {
+              if (tab.input instanceof TabInputText && tab.input.uri.toString() === data.file) {
+                window.showTextDocument(tab.input.uri, {viewColumn: tab.group.viewColumn, selection: data.range});
+                break;
+              }
+            }
+          }
           window.showTextDocument(Uri.parse(data.file), { preview: false, selection: data.range });
           break;
         }

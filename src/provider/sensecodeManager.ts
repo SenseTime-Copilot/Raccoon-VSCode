@@ -106,25 +106,24 @@ export class SenseCodeManager {
     this._clients = {};
     for (let e of es) {
       if (e.type && e.label && e.url) {
+        let client;
         if (e.type === ext?.filterType()) {
-          let client = ext.factory(e, outlog.debug);
-          if (client) {
-            this.appendClient({ config: e, client, authInfo: authinfos[e.label] });
-            continue;
-          }
-        }
-        if (e.type === ClientType.sensenova) {
-          this.appendClient({ config: e, client: new SenseNovaClient(e, outlog.debug), authInfo: authinfos[e.label] });
-        } else {
+          client = ext.factory(e, outlog.debug);
+        } else if (e.type === ClientType.sensenova) {
+          client = new SenseNovaClient(e, outlog.debug);
+        } else if (e.type === ClientType.sensecore) {
           const meta: ClientMeta = {
             clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
             redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
           };
-          let client = new SenseCodeClient(meta, e, outlog.debug);
+          client = new SenseCodeClient(meta, e, outlog.debug);
+        }
+        if (client) {
+          let ca: ClientAndAuthInfo = { config: e, client, authInfo: authinfos[e.label] };
           client.onDidChangeAuthInfo((ai) => {
-            this.updateToken(client.label, ai, true);
+            this.updateToken(e.label, ai, true);
           });
-          this.appendClient({ config: e, client, authInfo: authinfos[e.label] });
+          this.appendClient(ca);
         }
       }
     }
@@ -139,7 +138,6 @@ export class SenseCodeManager {
       let ak = aksk[0] ?? '';
       let sk = aksk[1] ?? '';
       c.client.setAccessKey("User", ak, sk).then(async (ai) => {
-        this._clients[c.config.label].authInfo = ai;
         await this.updateToken(c.config.label, ai);
       });
     }
@@ -152,7 +150,6 @@ export class SenseCodeManager {
     }
     if (ca) {
       ca.client.setAccessKey(name, ak, sk).then(async ai => {
-        ca!.authInfo = ai;
         await this.updateToken(name, ai);
       });
     }
@@ -165,6 +162,10 @@ export class SenseCodeManager {
       try {
         authinfos = JSON.parse(tks);
         authinfos[name] = ai;
+        let ca = this.getClient(name);
+        if (ca) {
+          ca.authInfo = ai;
+        }
       } catch (e) { }
     }
     await this.context.globalState.update("SenseCode.tokenRefreshed", quite);
@@ -391,7 +392,7 @@ export class SenseCodeManager {
       }
       let verifier = this.seed;
       verifier += env.machineId;
-      return ca.client.getAuthUrlLogin(verifier).then((url)=>{
+      return ca.client.getAuthUrlLogin(verifier).then((url) => {
         return url ?? "command:sensecode.setAccessKey";
       });
     } else {
@@ -417,7 +418,6 @@ export class SenseCodeManager {
       return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
-          ca.authInfo = token;
           this.updateToken(ca.config.label, token);
           return true;
         } else {
@@ -437,14 +437,13 @@ export class SenseCodeManager {
       if (clientName) {
         ca = this.getClient(clientName);
       }
-      if (ca && ca.authInfo) {       
+      if (ca && ca.authInfo) {
         await ca.client.logout(ca.authInfo).then((logoutUrl) => {
           progress.report({ increment: 100 });
           if (logoutUrl) {
             commands.executeCommand("vscode.open", logoutUrl);
           }
           if (ca) {
-            ca.authInfo = undefined;
             this.updateToken(ca.config.label);
           }
         }, (e) => {

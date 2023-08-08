@@ -27,6 +27,8 @@ const vscode = acquireVsCodeApi();
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
+  const unfoldIcon = '<span class="material-symbols-rounded">expand</span>';
+  const foldIcon = '<span class="material-symbols-rounded">compress</span>';
 
   var isComposing = false;
   var prompts = undefined;
@@ -159,7 +161,7 @@ const vscode = acquireVsCodeApi();
             const preCodeList = markedResponse.querySelectorAll("pre > code");
 
             preCodeList.forEach((preCode, index) => {
-              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "fold");
               preCode.classList.forEach((cls, _idx, _arr) => {
                 if (cls.startsWith('language-')) {
                   preCode.parentElement.dataset.lang = cls.slice(9);
@@ -172,10 +174,32 @@ const vscode = acquireVsCodeApi();
 
               const buttonWrapper = document.createElement("div");
               buttonWrapper.classList.add("code-actions-wrapper");
+
+              // Create wrap button
+              const wrapButton = document.createElement("button");
+              wrapButton.dataset.id = item.id;
+              wrapButton.title = l10nForUI["ToggleWrap"];
+              wrapButton.innerHTML = wrapIcon;
+              wrapButton.classList.add("wrap-element-gnc", "rounded");
+
+              // Create fold button
+              const foldButton = document.createElement("button");
+              foldButton.dataset.id = item.id;
+              foldButton.innerHTML = foldIcon;
+              foldButton.classList.add("fold-btn","expend-code", "rounded", "hidden");
+
+              // Create unfold button
+              const unfoldButton = document.createElement("button");
+              unfoldButton.dataset.id = item.id;
+              unfoldButton.innerHTML = unfoldIcon;
+              unfoldButton.classList.add("unfold-btn", "expend-code", "rounded");
+
+              buttonWrapper.append(wrapButton, unfoldButton, foldButton);
+
               preCode.parentElement.prepend(buttonWrapper);
             });
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full" data-prompt="${item.question}">${markedResponse.documentElement.innerHTML}</div>`;
-            list.innerHTML += `<div id="question-${item.id}" class="p-4 pb-8 question-element-gnc w-full">
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${markedResponse.documentElement.innerHTML}</div>`;
+            list.innerHTML += `<div id="question-${item.id}" class="p-4 question-element-gnc w-full">
                       ${questionTitle}
                       ${html}
                     </div>`;
@@ -198,7 +222,7 @@ const vscode = acquireVsCodeApi();
               const buttonWrapper = document.createElement("div");
               buttonWrapper.classList.add("code-actions-wrapper");
 
-              // Create wrap to clipboard button
+              // Create wrap button
               const wrapButton = document.createElement("button");
               wrapButton.dataset.id = message.id;
               wrapButton.title = l10nForUI["ToggleWrap"];
@@ -243,7 +267,7 @@ const vscode = acquireVsCodeApi();
                           </div>`;
           }
         }
-        list.innerHTML += "<div class='history-seperator'></div>";
+        list.innerHTML += `<div class='history-seperator' data-text='↓ ${new Date().toLocaleString()} ↓'></div>`;
         list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         break;
       }

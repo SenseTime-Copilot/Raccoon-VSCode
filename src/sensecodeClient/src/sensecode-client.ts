@@ -320,25 +320,16 @@ export class SenseCodeClient implements CodeClient {
         if (!skipRetry && e.response?.status === 401) {
           let newToken: AuthInfo | undefined = undefined;
           try {
-            if (this.debug) {
-              this.debug(`[${this.clientConfig.label}] Try to refresh access token`);
-            }
             newToken = await this.refreshToken(auth);
             if (this.onChangeAuthInfo) {
               this.onChangeAuthInfo(newToken);
             }
-            if (this.debug) {
-              if (newToken) {
-                this.debug(`[${this.clientConfig.label}] Refresh access token done`);
-              } else {
-                throw new Error('Refresh access token but get nothing');
-              }
+            if (!newToken) {
+              throw new Error('Attemp to refresh access token but get nothing');
             }
             return this._postPrompt(newToken, requestParam, signal, true);
           } catch (er: any) {
-            if (this.debug) {
-              this.debug(`[${this.clientConfig.label}] Refresh access token failed: ${er?.message}`);
-            }
+            throw new Error('Attemp to refresh access token but failed');
           }
         } else {
           return Promise.reject(e);
@@ -467,9 +458,21 @@ export class SenseCodeClient implements CodeClient {
           }
         });
       } else {
-        if (this.debug) {
-          this.debug("Unexpected response format");
-        }
+        callback(new MessageEvent(ResponseEvent.error, {
+          data: {
+            id: '',
+            created: new Date().valueOf(),
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: Role.assistant,
+                  content: "Unexpected response format",
+                }
+              }
+            ]
+          }
+        }));
       }
     }, (error) => {
       callback(new MessageEvent(ResponseEvent.error, {
@@ -488,9 +491,21 @@ export class SenseCodeClient implements CodeClient {
         }
       }));
     }).catch(err => {
-      if (this.debug) {
-        this.debug(err);
-      }
+      callback(new MessageEvent(ResponseEvent.error, {
+        data: {
+          id: '',
+          created: new Date().valueOf(),
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: Role.assistant,
+                content: err.message,
+              }
+            }
+          ]
+        }
+      }));
     });
   }
 
