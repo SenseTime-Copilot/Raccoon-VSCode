@@ -3,9 +3,9 @@ import FormData = require("form-data");
 import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions } from "./CodeClient";
 
-export interface ClientMeta {
+export interface SenseCodeClientMeta {
   clientId: string;
   redirectUrl: string;
 }
@@ -43,7 +43,7 @@ function unweaveKey(info: string) {
     id: parseInt(p1[0]),
     name: p1[1],
     token: p1[2],
-    aksk: tokenKey[1]
+    base64key: tokenKey[1]
   };
 }
 
@@ -64,7 +64,7 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 export class SenseCodeClient implements CodeClient {
   private onChangeAuthInfo?: (token: AuthInfo | undefined) => void;
 
-  constructor(private readonly meta: ClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
+  constructor(private readonly meta: SenseCodeClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
   public async logout(auth: AuthInfo): Promise<string | undefined> {
@@ -95,15 +95,12 @@ export class SenseCodeClient implements CodeClient {
     if (this.clientConfig.key) {
       return Promise.resolve(this.clientConfig.key);
     }
-    if (auth.aksk) {
-      return Promise.resolve(auth.aksk);
-    }
     if (!auth.weaverdKey) {
       return Promise.reject();
     }
     let info = unweaveKey(auth.weaverdKey);
-    if (info.aksk) {
-      return Promise.resolve(Buffer.from(info.aksk, "base64").toString().trim());
+    if (info.base64key) {
+      return Promise.resolve(Buffer.from(info.base64key, "base64").toString().trim());
     } else {
       return Promise.reject();
     }
@@ -132,10 +129,7 @@ export class SenseCodeClient implements CodeClient {
     return baseUrl;
   }
 
-  private async tokenWeaver(data: any): Promise<AuthInfo> {
-    let decoded: any = jwt_decode(data.id_token);
-    let name = decoded.id_token?.username;
-    let token = Buffer.from(data.access_token).toString('base64');
+  private calcKey(name: any, token: string) {
     let s1 = Buffer.from(`0#${name}#67pnbtbheuJyBZmsx9rz`).toString('base64');
     let s2 = token;
     s1 = s1.split("=")[0];
@@ -153,16 +147,22 @@ export class SenseCodeClient implements CodeClient {
         key += s2[i];
       }
     }
+    return key;
+  }
+
+  private async tokenWeaver(data: any): Promise<AuthInfo> {
+    let decoded: any = jwt_decode(data.id_token);
+    let name = decoded.id_token?.username;
+    let token = Buffer.from(data.access_token).toString('base64');
+    let key = this.calcKey(name, token);
     let ret: AuthInfo = {
       account: {
         username: name,
         avatar: undefined
       },
-      idToken: data.id_token,
       refreshToken: data.refresh_token,
       weaverdKey: key,
-      logoutUrl: `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`,
-      aksk: undefined
+      logoutUrl: `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`
     };
     return ret;
   }
@@ -193,13 +193,12 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
+    let token = Buffer.from(`${ak}#${sk}`).toString('base64');
     let auth: AuthInfo = {
       account: {
         username: name,
       },
-      aksk: `${ak}#${sk}`,
-      weaverdKey: "XXX",
-      idToken: "XXX"
+      weaverdKey: this.calcKey(name, token)
     };
     return auth;
   }
@@ -220,15 +219,7 @@ export class SenseCodeClient implements CodeClient {
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
     if (this.clientConfig.key) {
-      let ai: AuthInfo = {
-        account: {
-          username: "User",
-        },
-        aksk: this.clientConfig.key,
-        weaverdKey: "XXX",
-        idToken: "XXX"
-      };
-      return Promise.resolve(ai);
+      return Promise.resolve(auth);
     }
     if (auth.refreshToken) {
       let baseUrl = 'https://signin.sensecore.cn';
@@ -262,7 +253,7 @@ export class SenseCodeClient implements CodeClient {
     return Promise.reject();
   }
 
-  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions, skipRetry?: boolean): Promise<any | IncomingMessage> {
     let key = await this.apiKeyRaw(auth);
     let date: string = new Date().toUTCString();
     let authHeader = '';
@@ -274,20 +265,13 @@ export class SenseCodeClient implements CodeClient {
         authHeader = `Bearer ${key}`;
       }
     }
-    let user = auth.account.username;
-    if (!user || user === "User") {
-      user = "Unknown";
-    }
-    let headers = {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Date": date,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Content-Type": "application/json",
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Authorization": authHeader,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "x-sensecode-identity": user
-    };
+
+    let headers = options ? {
+      ...options?.headers
+    } : {};
+    headers["Date"] = date;
+    headers["Content-Type"] = "application/json";
+    headers["Authorization"] = authHeader;
 
     let responseType: ResponseType | undefined = undefined;
     let config = { ...this.clientConfig.config };
@@ -310,7 +294,7 @@ export class SenseCodeClient implements CodeClient {
     }
 
     return axios
-      .post(this.clientConfig.url, config, { headers, proxy: false, timeout: 120000, responseType, signal })
+      .post(this.clientConfig.url, config, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
       .then(async (res) => {
         if (this.debug && !config.stream) {
           this.debug(`${JSON.stringify(res.data)}`);
@@ -327,7 +311,7 @@ export class SenseCodeClient implements CodeClient {
             if (!newToken) {
               throw new Error('Attemp to refresh access token but get nothing');
             }
-            return this._postPrompt(newToken, requestParam, signal, true);
+            return this._postPrompt(newToken, requestParam, options, true);
           } catch (er: any) {
             throw new Error('Attemp to refresh access token but failed');
           }
@@ -337,9 +321,9 @@ export class SenseCodeClient implements CodeClient {
       });
   }
 
-  public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData> {
+  public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData> {
     requestParam.stream = false;
-    return this._postPrompt(auth, requestParam, signal).then(data => {
+    return this._postPrompt(auth, requestParam, options).then(data => {
       let choices: Choice[] = [];
       for (let choice of data.choices) {
         choices.push({
@@ -356,13 +340,13 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal) {
+  public getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions) {
     requestParam.stream = true;
-    this._postPrompt(auth, requestParam, signal).then((data) => {
+    this._postPrompt(auth, requestParam, options).then((data) => {
       if (data instanceof IncomingMessage) {
         let tail = '';
         data.on('data', async (v: any) => {
-          if (signal?.aborted) {
+          if (options?.signal?.aborted) {
             data.destroy();
             callback(new MessageEvent(ResponseEvent.cancel));
             return;
@@ -509,61 +493,7 @@ export class SenseCodeClient implements CodeClient {
     });
   }
 
-  public async sendTelemetryLog(auth: AuthInfo, action: string, info: Record<string, any>) {
-    try {
-      const cfg: ClientConfig = this.clientConfig;
-      let key = await this.apiKeyRaw(auth);
-      if (!key) {
-        return Promise.reject();
-      }
-
-      let date: string = new Date().toUTCString();
-      let authHeader = '';
-      if (key) {
-        if (key.includes("#")) {
-          let aksk = key.split("#");
-          authHeader = generateSignature(cfg.url, date, aksk[0], aksk[1]);
-        } else {
-          authHeader = `Bearer ${key}`;
-        }
-      }
-      let user = auth.account.username;
-      if (!user || user === "User") {
-        user = "Unknown";
-      }
-
-      let headers = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Date": date,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Content-Type": "application/json",
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Authorization": authHeader,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "x-sensecode-identity": user,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "x-sensecode-action": action
-      };
-      let payload = JSON.stringify([info]);
-
-      return axios.post(
-        cfg.url,
-        payload,
-        {
-          headers,
-          proxy: false,
-          timeout: 120000
-        }
-      ).then(async (res) => {
-        if (res?.status === 200) {
-        } else {
-          throw Error();
-        }
-      }, (err) => {
-        throw err;
-      });
-    } catch (e) {
-      return Promise.reject();
-    }
+  public async sendTelemetryLog(_auth: AuthInfo, _action: string, _info: Record<string, any>) {
+    return Promise.resolve();
   }
 }

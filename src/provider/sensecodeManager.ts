@@ -1,8 +1,8 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, l10n, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, ChatRequestParam, ClientConfig, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
-import { ClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
-import { SenseNovaClient } from "../sensecodeClient/src/sensenova-client";
+import { AuthInfo, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
+import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
+import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
@@ -110,9 +110,13 @@ export class SenseCodeManager {
         if (e.type === ext?.filterType()) {
           client = ext.factory(e, outlog.debug);
         } else if (e.type === ClientType.sensenova) {
-          client = new SenseNovaClient(e, outlog.debug);
+          const meta: SenseNovaClientMeta = {
+            clientId: "",
+            redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
+          };
+          client = new SenseNovaClient(meta, e, outlog.debug);
         } else if (e.type === ClientType.sensecore) {
-          const meta: ClientMeta = {
+          const meta: SenseCodeClientMeta = {
             clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
             redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
           };
@@ -454,7 +458,7 @@ export class SenseCodeManager {
     });
   }
 
-  public async getCompletions(config: SenseCodeRequestParam, signal?: AbortSignal, clientName?: string): Promise<ResponseData> {
+  public async getCompletions(config: SenseCodeRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
@@ -464,13 +468,13 @@ export class SenseCodeManager {
         model: "",
         ...config
       };
-      return ca.client.getCompletions(ca.authInfo, params, signal);
+      return ca.client.getCompletions(ca.authInfo, params, options);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
   }
 
-  public async getCompletionsStreaming(config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal: AbortSignal, clientName?: string) {
+  public async getCompletionsStreaming(config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
@@ -480,7 +484,7 @@ export class SenseCodeManager {
         model: "",
         ...config
       };
-      ca.client.getCompletionsStreaming(ca.authInfo, params, callback, signal);
+      ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }

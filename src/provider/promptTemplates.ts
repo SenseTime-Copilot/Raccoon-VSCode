@@ -2,7 +2,6 @@ import { l10n } from "vscode";
 import { Message, Role } from "../sensecodeClient/src/CodeClient";
 
 export enum PromptType {
-  none,
   codeGeneration = "code generation",
   testSampleGeneration = "test sample generation",
   codeLanguageConversion = "code language conversion",

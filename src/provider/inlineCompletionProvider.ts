@@ -4,6 +4,7 @@ import { sensecodeManager, outlog } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 import { CompletionPreferenceType } from "./sensecodeManager";
 import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { buildHeader } from "../utils/buildRequestHeader";
 
 let lastRequest = null;
 
@@ -97,6 +98,7 @@ export function inlineCompletionProvider(
             }
           );
         });
+        let username = sensecodeManager.username() || "User";
         let stopToken: string[] = ["<|end|>"];
         let requestId = new Date().getTime();
         lastRequest = requestId;
@@ -141,7 +143,10 @@ ${temp}`
               maxTokens: mt,
               stop: stopToken
             },
-            controller.signal);
+            {
+              headers: buildHeader(extension.extension, username, 'inline completion'),
+              signal: controller.signal
+            });
         } catch (err: any) {
           if (err.message === "canceled") {
             return;

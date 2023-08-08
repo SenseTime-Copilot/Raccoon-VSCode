@@ -7,6 +7,7 @@ import { swords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
+import { buildHeader } from '../utils/buildRequestHeader';
 
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -503,7 +504,7 @@ export class SenseCodeEditor extends Disposable {
           for (let tg of allTabGroups) {
             for (let tab of tg.tabs) {
               if (tab.input instanceof TabInputText && tab.input.uri.toString() === data.file) {
-                window.showTextDocument(tab.input.uri, {viewColumn: tab.group.viewColumn, selection: data.range});
+                window.showTextDocument(tab.input.uri, { viewColumn: tab.group.viewColumn, selection: data.range });
                 break;
               }
             }
@@ -942,7 +943,10 @@ ${data.info.response}
                 }
               }
             },
-            signal
+            {
+              headers: buildHeader(this.context.extension, username, prompt.type),
+              signal
+            }
           );
         } else {
           await sensecodeManager.getCompletions(
@@ -952,7 +956,10 @@ ${data.info.response}
               maxTokens: sensecodeManager.maxToken(),
               stop: ["<|end|>"]
             },
-            this.stopList[id].signal)
+            {
+              headers: buildHeader(this.context.extension, username, prompt.type),
+              signal: this.stopList[id].signal
+            })
             .then(rs => {
               let content = rs.choices[0]?.message.content || "";
               let stopReason = rs.choices[0]?.finishReason;

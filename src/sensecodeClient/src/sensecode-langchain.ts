@@ -71,7 +71,9 @@ class PenroseModel extends BaseChatModel {
         {
           ...params
         },
-        options?.signal
+        {
+          signal: options?.signal
+        }
       );
       const generations: ChatGeneration[] = [];
       for (const part of data.choices) {
@@ -116,7 +118,9 @@ class PenroseModel extends BaseChatModel {
               }
             }
           },
-          options?.signal
+          {
+            signal: options?.signal
+          }
         );
       });
     }

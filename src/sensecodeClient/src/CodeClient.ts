@@ -12,6 +12,11 @@ export interface ClientConfig {
   key?: string;
 }
 
+export interface ClientReqeustOptions {
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+}
+
 export interface AccountInfo {
   username: string;
   avatar?: string;
@@ -19,11 +24,9 @@ export interface AccountInfo {
 
 export interface AuthInfo {
   account: AccountInfo;
-  idToken: string;
   weaverdKey: string;
   refreshToken?: string;
   logoutUrl?: string;
-  aksk?: string;
 }
 
 export enum Role {
@@ -92,9 +95,9 @@ export interface CodeClient {
 
   logout(auth: AuthInfo): Promise<string | undefined>;
 
-  getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, signal?: AbortSignal): Promise<ResponseData>;
+  getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData>;
 
-  getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, signal?: AbortSignal): void;
+  getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions): void;
 
   sendTelemetryLog?(auth: AuthInfo, eventName: string, info: Record<string, any>): Promise<void>;
 }
