@@ -9,6 +9,6 @@ export function buildHeader(extension: Extension<any>, username: string, action:
     // eslint-disable-next-line @typescript-eslint/naming-convention
     "x-sensecode-machine-id": env.machineId,
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    "x-sensecode-client": `${extension.packageJSON.version} (${env.appName} ${version} ${env.uiKind === UIKind.Desktop ? 'Desktop' : 'Web'})`
+    "x-sensecode-client": `${extension.id}/${extension.packageJSON.version} (${env.appName} ${version} ${env.uiKind === UIKind.Desktop ? 'Desktop' : 'Web'})`
   };
 }

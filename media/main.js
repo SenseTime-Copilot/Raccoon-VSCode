@@ -445,7 +445,7 @@ const vscode = acquireVsCodeApi();
             chat.dataset['name'] = message.robot;
             chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-                      <span class="fle gap-2 opacity-30">
+                      <span class="flex gap-1 opacity-30 items-center">
                         <div class="spinner thinking">
                             <span class="material-symbols-rounded">autorenew</span>
                         </div>

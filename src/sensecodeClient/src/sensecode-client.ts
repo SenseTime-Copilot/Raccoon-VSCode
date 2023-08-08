@@ -10,43 +10,6 @@ export interface SenseCodeClientMeta {
   redirectUrl: string;
 }
 
-function demerge(m: string): string[] {
-  var a = '';
-  var b = '';
-  var t = true;
-  var flip = true;
-  for (var i = 0; i < m.length; i++) {
-    if (m[i] === ',') {
-      flip = false;
-      t = !t;
-      continue;
-    }
-    if (t) {
-      a += m[i];
-    } else {
-      b += m[i];
-    }
-    if (flip) {
-      t = !t;
-    }
-  }
-  return [a, b];
-}
-
-function unweaveKey(info: string) {
-  let tokenKey = demerge(info);
-  let p1 = Buffer.from(tokenKey[0], "base64").toString().trim().split("#");
-  if (p1.length !== 3) {
-    return {};
-  }
-  return {
-    id: parseInt(p1[0]),
-    name: p1[1],
-    token: p1[2],
-    base64key: tokenKey[1]
-  };
-}
-
 function hmacSHA256(key: string, data: string): string {
   const hmac = crypto.createHmac('sha256', key);
   hmac.update(data);
@@ -62,18 +25,17 @@ function generateSignature(urlString: string, date: string, ak: string, sk: stri
 }
 
 export class SenseCodeClient implements CodeClient {
+  private logoutUrl?: string;
   private onChangeAuthInfo?: (token: AuthInfo | undefined) => void;
 
   constructor(private readonly meta: SenseCodeClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public async logout(auth: AuthInfo): Promise<string | undefined> {
+  public async logout(_auth: AuthInfo): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Not Authorized From Web"));
-    } else if (!auth.logoutUrl) {
-      return Promise.reject(new Error("No Logout URL"));
-    } else {
-      return axios.get(auth.logoutUrl).then(() => {
+    } else if (this.logoutUrl) {
+      return axios.get(this.logoutUrl).then(() => {
         return undefined;
       });
     }
@@ -94,13 +56,8 @@ export class SenseCodeClient implements CodeClient {
   private async apiKeyRaw(auth: AuthInfo): Promise<string> {
     if (this.clientConfig.key) {
       return Promise.resolve(this.clientConfig.key);
-    }
-    if (!auth.weaverdKey) {
-      return Promise.reject();
-    }
-    let info = unweaveKey(auth.weaverdKey);
-    if (info.base64key) {
-      return Promise.resolve(Buffer.from(info.base64key, "base64").toString().trim());
+    } else if (auth.weaverdKey) {
+      return Promise.resolve(auth.weaverdKey);
     } else {
       return Promise.reject();
     }
@@ -129,41 +86,20 @@ export class SenseCodeClient implements CodeClient {
     return baseUrl;
   }
 
-  private calcKey(name: any, token: string) {
-    let s1 = Buffer.from(`0#${name}#67pnbtbheuJyBZmsx9rz`).toString('base64');
-    let s2 = token;
-    s1 = s1.split("=")[0];
-    s2 = s2.split("=")[0];
-    let len = Math.max(s1.length, s2.length);
-    let key = '';
-    for (let i = 0; i < len; i++) {
-      if (i < s1.length) {
-        key += s1[i];
-      }
-      if (i === s1.length) {
-        key += ',';
-      }
-      if (i < s2.length) {
-        key += s2[i];
-      }
-    }
-    return key;
-  }
-
-  private async tokenWeaver(data: any): Promise<AuthInfo> {
+  private async parseAuthInfo(data: any): Promise<AuthInfo> {
     let decoded: any = jwt_decode(data.id_token);
     let name = decoded.id_token?.username;
-    let token = Buffer.from(data.access_token).toString('base64');
-    let key = this.calcKey(name, token);
     let ret: AuthInfo = {
       account: {
         username: name,
         avatar: undefined
       },
       refreshToken: data.refresh_token,
-      weaverdKey: key,
-      logoutUrl: `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`
+      weaverdKey: data.access_token,
     };
+
+    this.logoutUrl = `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`;
+
     return ret;
   }
 
@@ -183,7 +119,7 @@ export class SenseCodeClient implements CodeClient {
       })
       .then((resp) => {
         if (resp && resp.status === 200) {
-          return this.tokenWeaver(resp.data);
+          return this.parseAuthInfo(resp.data);
         } else {
           return Promise.reject();
         }
@@ -193,12 +129,11 @@ export class SenseCodeClient implements CodeClient {
   }
 
   public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
-    let token = Buffer.from(`${ak}#${sk}`).toString('base64');
     let auth: AuthInfo = {
       account: {
         username: name,
       },
-      weaverdKey: this.calcKey(name, token)
+      weaverdKey: `${ak}#${sk}`
     };
     return auth;
   }
@@ -243,7 +178,7 @@ export class SenseCodeClient implements CodeClient {
         { headers })
         .then((resp) => {
           if (resp && resp.status === 200) {
-            return this.tokenWeaver(resp.data);
+            return this.parseAuthInfo(resp.data);
           }
           return Promise.reject();
         }, (err) => {

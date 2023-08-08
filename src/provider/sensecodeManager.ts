@@ -132,7 +132,9 @@ export class SenseCodeManager {
       }
     }
 
-    this.checkSensetimeEnv(!!ext);
+    if (env.uiKind !== UIKind.Web) {
+      this.checkSensetimeEnv(!!ext);
+    }
   }
 
   private appendClient(c: ClientAndAuthInfo) {
@@ -154,19 +156,19 @@ export class SenseCodeManager {
     }
     if (ca) {
       ca.client.setAccessKey(name, ak, sk).then(async ai => {
-        await this.updateToken(name, ai);
+        await this.updateToken(ca?.config.label!, ai);
       });
     }
   }
 
-  private async updateToken(name: string, ai?: AuthInfo, quite?: boolean) {
+  private async updateToken(clientName: string, ai?: AuthInfo, quite?: boolean) {
     let tks = await this.context.secrets.get("SenseCode.tokens");
     let authinfos: any = {};
     if (tks) {
       try {
         authinfos = JSON.parse(tks);
-        authinfos[name] = ai;
-        let ca = this.getClient(name);
+        authinfos[clientName] = ai;
+        let ca = this.getClient(clientName);
         if (ca) {
           ca.authInfo = ai;
         }
@@ -366,22 +368,6 @@ export class SenseCodeManager {
     }
     if (ca) {
       return ca.authInfo?.account.avatar;
-    }
-  }
-
-  private async tryAutoLogin(clientName?: string) {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
-    if (ca && !this.isClientLoggedin(ca.config.label)) {
-      let key = ca.config.key;
-      if (key) {
-        let aksk = key.split('#');
-        let ak = aksk[0] ?? '';
-        let sk = aksk[1] ?? '';
-        this.setAccessKey("User", ak, sk, clientName);
-      }
     }
   }
 

@@ -9,6 +9,9 @@ import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient'
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
 const guide = `
       <h3>${l10n.t("Coding with SenseCode")}</h3>
       <ol>
@@ -91,20 +94,20 @@ async function appendCacheItem(context: ExtensionContext, cacheFile: string, dat
             return;
           }
           workspace.fs.readFile(cacheUri).then(content => {
-            let items: Array<any> = JSON.parse(content.toString());
+            let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");
             if (items) {
-              workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify([...items, data], undefined, 2))));
+              workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify([...items, data], undefined, 2))));
             } else {
-              workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify([data], undefined, 2))));
+              workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify([data], undefined, 2))));
             }
           });
         }, () => {
-          return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify(data ? [data] : []))));
+          return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(data ? [data] : []))));
         });
     }, async () => {
       return workspace.fs.createDirectory(cacheDir)
         .then(() => {
-          return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify(data ? [data] : []))));
+          return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(data ? [data] : []))));
         });
     });
 }
@@ -113,7 +116,7 @@ async function getCacheItems(context: ExtensionContext, cacheFile: string): Prom
   let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
   let cacheUri = Uri.joinPath(cacheDir, cacheFile);
   return workspace.fs.readFile(cacheUri).then(content => {
-    return JSON.parse(content.toString());
+    return JSON.parse(decoder.decode(content) || "[]");
   });
 }
 
@@ -122,13 +125,13 @@ async function removeCacheItem(context: ExtensionContext, cacheFile: string, id?
   let cacheUri = Uri.joinPath(cacheDir, cacheFile);
   return workspace.fs.readFile(cacheUri).then(content => {
     if (id) {
-      let items: Array<any> = JSON.parse(content.toString());
+      let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");
       let log = items.filter((v, _idx, _arr) => {
         return v.id !== id;
       });
-      return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from(JSON.stringify(log, undefined, 2))));
+      return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(log, undefined, 2))));
     } else {
-      return workspace.fs.writeFile(cacheUri, new Uint8Array(Buffer.from('[]')));
+      return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode('[]')));
     }
   });
 }

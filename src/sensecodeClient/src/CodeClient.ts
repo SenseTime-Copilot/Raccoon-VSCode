@@ -26,7 +26,6 @@ export interface AuthInfo {
   account: AccountInfo;
   weaverdKey: string;
   refreshToken?: string;
-  logoutUrl?: string;
 }
 
 export enum Role {
