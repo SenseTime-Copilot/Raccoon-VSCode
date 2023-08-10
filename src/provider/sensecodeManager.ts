@@ -81,16 +81,12 @@ export class SenseCodeManager {
   }
 
   constructor(context: ExtensionContext) {
-    extensions.onDidChange(() => {
-      this.getProxy().then((ext) => {
-        this.buildAllClient(ext);
-      });
-    });
+    context.subscriptions.push(extensions.onDidChange(() => {
+      this.updateEngineList();
+    }));
     this.context = context;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
-    this.getProxy().then((ext) => {
-      this.buildAllClient(ext);
-    });
+    this.updateEngineList();
   }
 
   private async buildAllClient(ext?: CodeExtension): Promise<void> {
@@ -242,9 +238,7 @@ export class SenseCodeManager {
     this.context.globalState.update("Delay", undefined);
     this.configuration.update("Prompt", undefined, true);
     this.context.secrets.delete("SenseCode.tokens");
-    this.getProxy().then((ext) => {
-      this.buildAllClient(ext);
-    });
+    this.updateEngineList();
   }
 
   public update(): void {
@@ -252,7 +246,9 @@ export class SenseCodeManager {
   }
 
   public async updateEngineList(): Promise<void> {
-    return this.buildAllClient();
+    return this.getProxy().then((ext) => {
+      return this.buildAllClient(ext);
+    });
   }
 
   private getClient(client?: string): ClientAndAuthInfo | undefined {
@@ -290,7 +286,11 @@ export class SenseCodeManager {
   }
 
   public isClientLoggedin(clientName?: string) {
-    return this.username(clientName) !== undefined;
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    return (ca && ca.authInfo);
   }
 
   public get prompt(): SenseCodePrompt[] {
@@ -351,14 +351,15 @@ export class SenseCodeManager {
     return Object.keys(this._clients);
   }
 
-  public username(clientName?: string): string | undefined {
+  public username(clientName?: string): string {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      return ca.authInfo?.account.username;
+      return ca.config.username || ca.authInfo?.account.username || "User";
     }
+    return "User";
   }
 
   public avatar(clientName?: string): string | undefined {

@@ -858,7 +858,7 @@ ${data.info.response}
       return;
     }
 
-    let username = sensecodeManager.username() || "User";
+    let username = sensecodeManager.username();
     let avatar = sensecodeManager.avatar();
     let robot = sensecodeManager.getActiveClientLabel();
     this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
