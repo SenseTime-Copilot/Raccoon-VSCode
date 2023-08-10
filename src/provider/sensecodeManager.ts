@@ -478,16 +478,6 @@ export class SenseCodeManager {
     }
   }
 
-  public async sendTelemetryLog(eventName: string, info: Record<string, any>, clientName?: string) {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
-    if (ca && ca.authInfo && ca.client.sendTelemetryLog) {
-      return ca.client.sendTelemetryLog(ca.authInfo, eventName, info);
-    }
-  }
-
   public get autoComplete(): boolean {
     return this.context.globalState.get("CompletionAutomatically", true);
   }

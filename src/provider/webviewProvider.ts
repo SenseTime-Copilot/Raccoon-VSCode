@@ -100,7 +100,7 @@ async function appendCacheItem(context: ExtensionContext, cacheFile: string, dat
             } else {
               workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify([data], undefined, 2))));
             }
-          });
+          }, () => { });
         }, () => {
           return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(data ? [data] : []))));
         });
@@ -108,7 +108,7 @@ async function appendCacheItem(context: ExtensionContext, cacheFile: string, dat
       return workspace.fs.createDirectory(cacheDir)
         .then(() => {
           return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(data ? [data] : []))));
-        });
+        }, () => { });
     });
 }
 
@@ -117,7 +117,7 @@ async function getCacheItems(context: ExtensionContext, cacheFile: string): Prom
   let cacheUri = Uri.joinPath(cacheDir, cacheFile);
   return workspace.fs.readFile(cacheUri).then(content => {
     return JSON.parse(decoder.decode(content) || "[]");
-  });
+  }, () => { });
 }
 
 async function removeCacheItem(context: ExtensionContext, cacheFile: string, id?: number): Promise<void> {
@@ -133,7 +133,7 @@ async function removeCacheItem(context: ExtensionContext, cacheFile: string, id?
     } else {
       return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode('[]')));
     }
-  });
+  }, () => { });
 }
 
 export async function deleteAllCacheFiles(context: ExtensionContext): Promise<void> {
@@ -274,8 +274,8 @@ export class SenseCodeEditor extends Disposable {
   }
 
   private async restoreFromCache() {
-    return getCacheItems(this.context, this.cacheFile).then((items: Array<CacheItem>) => {
-      if (items.length > 0) {
+    return getCacheItems(this.context, this.cacheFile).then((items?: Array<CacheItem>) => {
+      if (items && items.length > 0) {
         this.sendMessage({ type: 'restoreFromCache', value: items });
         this.showWelcome();
       }

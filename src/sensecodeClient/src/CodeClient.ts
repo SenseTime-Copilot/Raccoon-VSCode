@@ -98,6 +98,4 @@ export interface CodeClient {
   getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData>;
 
   getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions): void;
-
-  sendTelemetryLog?(auth: AuthInfo, eventName: string, info: Record<string, any>): Promise<void>;
 }

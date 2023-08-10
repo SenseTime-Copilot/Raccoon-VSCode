@@ -8,11 +8,13 @@ import { SenseCodeAction } from "./provider/codeActionProvider";
 import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
 import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 import { SenseCodeTerminal } from "./provider/codeTerminal";
+import { SenseCodeTelemetry } from "./utils/telemetry";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let sensecodeManager: SenseCodeManager;
 export let telemetryReporter: vscode.TelemetryLogger;
+export let senseCodeTelemetry: SenseCodeTelemetry;
 
 class SenseCodeUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -31,6 +33,8 @@ export async function activate(context: vscode.ExtensionContext) {
   sensecodeManager = new SenseCodeManager(context);
   sensecodeManager.update();
 
+  senseCodeTelemetry = new SenseCodeTelemetry(context);
+
   const sender: vscode.TelemetrySender = {
     flush() {
     },
@@ -38,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
     },
     sendEventData(_eventName, data) {
       if (data) {
-        sensecodeManager.sendTelemetryLog(data['action'], {});
+        senseCodeTelemetry.sendTelemetry(data['action'], data);
       }
     },
   };

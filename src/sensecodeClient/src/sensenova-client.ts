@@ -372,8 +372,4 @@ export class SenseNovaClient implements CodeClient {
       }));
     });
   }
-
-  public async sendTelemetryLog(_auth: AuthInfo, _action: string, _info: Record<string, any>) {
-    return Promise.resolve();
-  }
 }
