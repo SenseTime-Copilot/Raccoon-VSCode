@@ -3,7 +3,7 @@ import { sensecodeManager, outlog, telemetryReporter } from '../extension';
 import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
-import { swords } from '../utils/swords';
+import { BanWords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
@@ -147,7 +147,7 @@ export async function deleteAllCacheFiles(context: ExtensionContext): Promise<vo
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
-  private static bannedWords: string[] = [];
+  private banWords: BanWords = BanWords.getInstance();
 
   private isSupportedScheme(d: TextDocument) {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-userdata");
@@ -156,11 +156,6 @@ export class SenseCodeEditor extends Disposable {
   constructor(private context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {
     super(() => { });
     appendCacheItem(context, cacheFile);
-    if (SenseCodeEditor.bannedWords.length === 0) {
-      for (let w of swords) {
-        SenseCodeEditor.bannedWords.push(decodeURIComponent(escape(atob(w))).trim());
-      }
-    }
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     context.subscriptions.push(
@@ -846,11 +841,9 @@ ${data.info.response}
 
     let streaming = sensecodeManager.streamResponse;
     let instruction = prompt.prompt;
-    for (let sw of SenseCodeEditor.bannedWords) {
-      if (instruction.content.includes(sw) || prompt.codeInfo?.code.includes(sw)) {
-        this.sendMessage({ type: 'showInfoTip', style: "error", category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
-        return;
-      }
+    if (this.banWords.checkBanWords([instruction.content, prompt.codeInfo?.code ?? ""])) {
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
+      return;
     }
 
     let promptHtml = prompt.generatePromptHtml(id, values);

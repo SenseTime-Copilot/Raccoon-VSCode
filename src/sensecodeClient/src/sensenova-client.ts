@@ -33,10 +33,10 @@ export class SenseNovaClient implements CodeClient {
     }
   }
 
-  public async setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo> {
+  public async setAccessKey(ak: string, sk: string): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
-        username: name,
+        username: this.clientConfig.username || "User",
       },
       weaverdKey: `${ak}#${sk}`
     };
@@ -65,7 +65,7 @@ export class SenseNovaClient implements CodeClient {
     let name = decoded.id_token?.username;
     let ret: AuthInfo = {
       account: {
-        username: name,
+        username: this.clientConfig.username || name || "User",
         avatar: undefined
       },
       refreshToken: data.refresh_token,
@@ -90,7 +90,7 @@ export class SenseNovaClient implements CodeClient {
 
       return {
         account: {
-          username: "User"
+          username: this.clientConfig.username || "User"
         },
         weaverdKey: query,
         refreshToken
@@ -201,7 +201,7 @@ export class SenseNovaClient implements CodeClient {
               throw new Error('Attemp to refresh access token but failed');
             }
           } else {
-            return Promise.reject(e);
+            return reject(e);
           }
         });
     });
@@ -270,7 +270,7 @@ export class SenseNovaClient implements CodeClient {
             try {
               let json = JSON.parse(content);
               tail = "";
-              if (json.error) {
+              if (json.status && json.status.code !== 0) {
                 callback(new MessageEvent(ResponseEvent.error, {
                   data: {
                     id: '',
@@ -280,20 +280,20 @@ export class SenseNovaClient implements CodeClient {
                         index: 0,
                         message: {
                           role: Role.assistant,
-                          content: json.error.message,
+                          content: json.status.message,
                         }
                       }
                     ]
                   }
                 }));
-              } else if (json.choices) {
-                for (let choice of json.choices) {
-                  let value = choice.message.content;
+              } else if (json.data && json.data.choices) {
+                for (let choice of json.data.choices) {
+                  let value = choice.delta;
                   let finishReason = choice["finish_reason"];
                   callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
                       data: {
-                        id: json.id,
+                        id: json.data.id,
                         created: new Date().valueOf(),
                         choices: [
                           {
@@ -374,5 +374,6 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public async sendTelemetryLog(_auth: AuthInfo, _action: string, _info: Record<string, any>) {
+    return Promise.resolve();
   }
 }

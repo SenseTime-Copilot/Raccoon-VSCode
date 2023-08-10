@@ -7,6 +7,7 @@ import { SenseCodeViewProvider } from "./provider/webviewProvider";
 import { SenseCodeAction } from "./provider/codeActionProvider";
 import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
 import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
+import { SenseCodeTerminal } from "./provider/codeTerminal";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -49,19 +50,14 @@ export async function activate(context: vscode.ExtensionContext) {
     return v ? undefined : "The value must not be empty";
   };
   context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
-    vscode.window.showInputBox({ placeHolder: "Your account name", validateInput, ignoreFocusOut: true }).then((name) => {
-      if (!name) {
+    vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
+      if (!ak) {
         return;
       }
-      vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
-        if (!ak) {
-          return;
+      vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
+        if (ak && sk) {
+          sensecodeManager.setAccessKey(ak, sk);
         }
-        vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
-          if (name && ak && sk) {
-            sensecodeManager.setAccessKey(name, ak, sk);
-          }
-        });
       });
     });
   }));
@@ -71,6 +67,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.help", async () => {
       vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`vscode:extension/${context.extension.id}`));
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.terminal", async () => {
+      new SenseCodeTerminal(context);
     })
   );
 

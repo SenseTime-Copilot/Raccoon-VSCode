@@ -67,6 +67,10 @@
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.key%"
                                 },
+                                "username": {
+                                    "type": "string",
+                                    "description": "%sensecode.config.engines.engine.username%"
+                                },
                                 "tokenLimit": {
                                     "type": "number",
                                     "minimum": 1,
@@ -162,13 +166,18 @@
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.help",
+                    "command": "sensecode.terminal",
                     "group": "navigation@3",
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.settings",
+                    "command": "sensecode.help",
                     "group": "navigation@4",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.settings",
+                    "group": "navigation@5",
                     "when": "view == sensecode.view"
                 }
             ],
@@ -202,7 +211,14 @@
                 "command": "sensecode.help",
                 "category": "SenseCode",
                 "title": "%sensecode.command.help%",
-                "icon": "$(book)",
+                "icon": "$(question)",
+                "enablement": "view == sensecode.view"
+            },
+            {
+                "command": "sensecode.terminal",
+                "category": "SenseCode",
+                "title": "%sensecode.command.terminal%",
+                "icon": "$(terminal)",
                 "enablement": "view == sensecode.view"
             },
             {

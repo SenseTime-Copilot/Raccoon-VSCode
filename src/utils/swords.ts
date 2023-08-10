@@ -1,4 +1,4 @@
-export const swords: string[] = [
+const swords: string[] = [
   "5aaI6YC8",
   "5amK5a2Q",
   "6IOh57Sn5aWX",
@@ -324,3 +324,32 @@ export const swords: string[] = [
   "dGVycm9yaXN0",
   "VGVycm9yaXM=",
 ];
+
+export class BanWords {
+  private static instance: BanWords | null = null;
+  private bannedWords: string[] = [];
+
+  private constructor() {
+    for (let w of swords) {
+      this.bannedWords.push(decodeURIComponent(escape(atob(w))).trim());
+    }
+  }
+
+  static getInstance(): BanWords {
+    if (!BanWords.instance) {
+      BanWords.instance = new BanWords();
+    }
+    return BanWords.instance;
+  }
+
+  checkBanWords(content: string[]): boolean {
+    for (let sw of this.bannedWords) {
+      for (let c of content) {
+        if (c.includes(sw)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+}

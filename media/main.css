@@ -1,13 +1,10 @@
-:root {
-    --container-padding: 0;
-    --input-padding-vertical: 6px;
-    --input-padding-horizontal: 4px;
-    --input-margin-vertical: 4px;
-    --input-margin-horizontal: 0;
+::selection {
+    color: var(--vscode-editor-selectionForeground);
+    background: var(--vscode-editor-selectionBackground);
 }
 
 body {
-    padding: 0 var(--container-padding);
+    padding: 0 0;
     color: var(--vscode-foreground);
     font-size: var(--vscode-font-size);
     font-weight: var(--vscode-font-weight);
@@ -17,7 +14,7 @@ body {
 
 ol,
 ul {
-    padding-left: var(--container-padding);
+    padding-left: 0;
 }
 
 a {
@@ -34,7 +31,7 @@ code {
 }
 
 button {
-    padding: var(--input-padding-vertical) var(--input-padding-horizontal);
+    padding: 6px 4px;
     text-align: center;
     outline: 1px solid transparent;
     outline-offset: 2px !important;
@@ -55,7 +52,7 @@ textarea {
     display: block;
     width: 100%;
     font-family: var(--vscode-font-family);
-    padding: var(--input-padding-vertical) var(--input-padding-horizontal);
+    padding: 6px 4px;
     color: var(--vscode-input-foreground);
     outline-color: var(--vscode-input-border);
     background-color: var(--vscode-input-background);

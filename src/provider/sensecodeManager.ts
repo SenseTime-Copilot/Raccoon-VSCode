@@ -143,19 +143,19 @@ export class SenseCodeManager {
       let aksk = c.config.key.split('#');
       let ak = aksk[0] ?? '';
       let sk = aksk[1] ?? '';
-      c.client.setAccessKey("User", ak, sk).then(async (ai) => {
+      c.client.setAccessKey(ak, sk).then(async (ai) => {
         await this.updateToken(c.config.label, ai);
       });
     }
   }
 
-  public async setAccessKey(name: string, ak: string, sk: string, clientName?: string): Promise<void> {
+  public async setAccessKey(ak: string, sk: string, clientName?: string): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      ca.client.setAccessKey(name, ak, sk).then(async ai => {
+      ca.client.setAccessKey(ak, sk).then(async ai => {
         await this.updateToken(ca?.config.label!, ai);
       });
     }
@@ -471,8 +471,10 @@ export class SenseCodeManager {
         ...config
       };
       ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);
-    } else {
+    } else if (!ca) {
       return Promise.reject(Error("Invalid client handle"));
+    } else {
+      return Promise.reject(Error(l10n.t("Unauthorized")));
     }
   }
 

@@ -10,6 +10,7 @@ export interface ClientConfig {
   config: any;
   tokenLimit: number;
   key?: string;
+  username?: string;
 }
 
 export interface ClientReqeustOptions {
@@ -88,7 +89,7 @@ export interface CodeClient {
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
-  setAccessKey(name: string, ak: string, sk: string): Promise<AuthInfo>;
+  setAccessKey(ak: string, sk: string): Promise<AuthInfo>;
 
   login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
 

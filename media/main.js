@@ -528,10 +528,13 @@ const vscode = acquireVsCodeApi();
       case "stopResponse": {
         updateChatBoxStatus("stop", message.id);
         const chatText = document.getElementById(`response-${message.id}`);
+        if (!chatText) {
+          break;
+        }
         if (chatText.classList.contains("empty")) {
           document.getElementById(`feedback-${message.id}`)?.classList?.add("empty");
         }
-        if (!chatText.dataset.response) {
+        if (!chatText.dataset.response || chatText.dataset.error) {
           break;
         }
         const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(chatText.dataset.response)), "text/html");
@@ -676,6 +679,9 @@ const vscode = acquireVsCodeApi();
         }
         updateChatBoxStatus("stop", message.id);
         document.getElementById(`feedback-${message.id}`)?.classList.add("error");
+        if (!chatText) {
+          break;
+        }
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
