@@ -140,7 +140,7 @@ export class SenseCodeManager {
       let ak = aksk[0] ?? '';
       let sk = aksk[1] ?? '';
       c.client.setAccessKey(ak, sk).then(async (ai) => {
-        await this.updateToken(c.config.label, ai);
+        await this.updateToken(c.config.label, ai, true);
       });
     }
   }
@@ -351,15 +351,14 @@ export class SenseCodeManager {
     return Object.keys(this._clients);
   }
 
-  public username(clientName?: string): string {
+  public username(clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca) {
-      return ca.config.username || ca.authInfo?.account.username || "User";
+    if (ca && ca.authInfo) {
+      return ca.config.username || ca.authInfo?.account.username;
     }
-    return "User";
   }
 
   public avatar(clientName?: string): string | undefined {

@@ -833,7 +833,8 @@ ${data.info.response}
     let timestamp = ts.toLocaleString();
 
     let loggedin = sensecodeManager.isClientLoggedin();
-    if (!loggedin) {
+    let username = sensecodeManager.username();
+    if (!loggedin || !username) {
       //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
@@ -858,7 +859,6 @@ ${data.info.response}
       return;
     }
 
-    let username = sensecodeManager.username();
     let avatar = sensecodeManager.avatar();
     let robot = sensecodeManager.getActiveClientLabel();
     this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
