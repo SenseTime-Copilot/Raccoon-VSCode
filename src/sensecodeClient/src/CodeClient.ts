@@ -8,7 +8,8 @@ export interface ClientConfig {
   label: string;
   url: string;
   config: any;
-  tokenLimit: number;
+  maxInputTokenNum: number;
+  totalTokenNum: number;
   key?: string;
   username?: string;
 }
@@ -50,7 +51,7 @@ export interface ChatRequestParam {
   n?: number | null;
   stream?: boolean | null;
   stop?: StopToken;
-  maxTokens?: number;
+  maxNewTokenNum?: number;
 }
 
 export enum FinishReason {
@@ -83,7 +84,9 @@ export interface CodeClient {
 
   get label(): string;
 
-  get tokenLimit(): number;
+  get maxInputTokenNum(): number;
+
+  get totalTokenNum(): number;
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 

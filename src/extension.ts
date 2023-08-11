@@ -112,7 +112,6 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       telemetryReporter.logUsage("suggestion-accepted",
         {
-          event: "suggestion-accepted",
           request,
           response,
           error,

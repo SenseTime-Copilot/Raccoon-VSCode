@@ -1,6 +1,6 @@
 import axios from "axios";
 import { commands, env, ExtensionContext, extensions, l10n, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, Message, ResponseData, Role, StopToken } from "../sensecodeClient/src/CodeClient";
+import { AuthInfo, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -18,16 +18,12 @@ const builtinEngines: ClientConfig[] = [
       model: "penrose-411",
       temperature: 0.5
     },
-    tokenLimit: 4096,
+    maxInputTokenNum: 4096,
+    totalTokenNum: 8192
   }
 ];
 
-export interface SenseCodeRequestParam {
-  messages: Array<Message>;
-  n: number | null;
-  stop: StopToken;
-  maxTokens: number;
-}
+type SenseCodeRequestParam = Pick<ChatRequestParam, "messages" | "n" | "stop" | "maxNewTokenNum">;
 
 export enum CompletionPreferenceType {
   speedPriority = "Speed Priority",
@@ -510,13 +506,24 @@ export class SenseCodeManager {
     this.context.globalState.update("Candidates", v);
   }
 
-  public maxToken(clientName?: string): number {
+  public maxInputTokenNum(clientName?: string): number {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      return ca.config.tokenLimit;
+      return ca.client.maxInputTokenNum;
+    }
+    return 0;
+  }
+
+  public totalTokenNum(clientName?: string): number {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    if (ca) {
+      return ca.client.totalTokenNum;
     }
     return 0;
   }

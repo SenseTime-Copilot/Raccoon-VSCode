@@ -45,8 +45,12 @@ export class SenseCodeClient implements CodeClient {
     return this.clientConfig.label;
   }
 
-  public get tokenLimit(): number {
-    return this.clientConfig.tokenLimit;
+  public get maxInputTokenNum(): number {
+    return this.clientConfig.maxInputTokenNum;
+  }
+
+  public get totalTokenNum(): number {
+    return this.clientConfig.totalTokenNum;
   }
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
@@ -214,7 +218,7 @@ export class SenseCodeClient implements CodeClient {
     config.n = requestParam.n ?? 1;
     config.stream = requestParam.stream ?? config.stream;
     config.stop = requestParam.stop ? requestParam.stop[0] : config.stop;
-    config.max_tokens = requestParam.maxTokens ?? config.max_tokens;
+    config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
     if (config.stream) {
       responseType = "stream";
     }

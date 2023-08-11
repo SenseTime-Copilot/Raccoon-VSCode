@@ -77,7 +77,6 @@ const vscode = acquireVsCodeApi();
       }
     }
     return {
-      event: "response-feedback",
       request: {
         languageid,
         code,

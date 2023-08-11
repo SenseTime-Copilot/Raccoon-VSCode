@@ -65,7 +65,7 @@ export function inlineCompletionProvider(
 
       showHideStatusBtn(document, statusBarItem);
 
-      let maxLength = sensecodeManager.maxToken() / 2;
+      let maxLength = sensecodeManager.maxInputTokenNum() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
       if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
@@ -122,7 +122,7 @@ export function inlineCompletionProvider(
             mt = 256;
           } else if (lenPreference === CompletionPreferenceType.bestEffort) {
             // TODO: need max new token
-            mt = sensecodeManager.maxToken();
+            mt = sensecodeManager.totalTokenNum() - sensecodeManager.maxInputTokenNum();
           }
 
           let temp = `${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle>`;
@@ -140,7 +140,7 @@ ${temp}`
             {
               messages: [{ role: Role.system, content: "" }, completionPrompt],
               n: sensecodeManager.candidates,
-              maxTokens: mt,
+              maxNewTokenNum: mt,
               stop: stopToken
             },
             {

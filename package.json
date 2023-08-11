@@ -63,6 +63,20 @@
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.url%"
                                 },
+                                "totalTokenNum": {
+                                    "type": "number",
+                                    "minimum": 1,
+                                    "description": "%sensecode.config.engines.engine.total_token_num%"
+                                },
+                                "maxInputTokenNum": {
+                                    "type": "number",
+                                    "minimum": 1,
+                                    "description": "%sensecode.config.engines.engine.max_input_token_num%"
+                                },
+                                "config": {
+                                    "type": "object",
+                                    "description": "%sensecode.config.engines.engine.config%"
+                                },
                                 "key": {
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.key%"
@@ -70,22 +84,14 @@
                                 "username": {
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.username%"
-                                },
-                                "tokenLimit": {
-                                    "type": "number",
-                                    "minimum": 1,
-                                    "description": "%sensecode.config.engines.engine.token_limit%"
-                                },
-                                "config": {
-                                    "type": "object",
-                                    "description": "%sensecode.config.engines.engine.config%"
                                 }
                             },
                             "required": [
                                 "type",
                                 "label",
                                 "url",
-                                "tokenLimit",
+                                "totalTokenNum",
+                                "maxInputTokenNum",
                                 "config"
                             ]
                         }

@@ -698,7 +698,7 @@ ${msg.code}
 \`\`\`
                 `;
                   let info = { action: "correct", correction, ...data.info };
-                  telemetryReporter.logUsage(data.info.event, info);
+                  telemetryReporter.logUsage("response-feedback", info);
                   await new Promise((f) => setTimeout(f, 2000));
                   panel.dispose();
                   progress.report({ message: "Thanks for your feedback.", increment: 100 });
@@ -795,7 +795,7 @@ ${data.info.response}
             });
             break;
           }
-          telemetryReporter.logUsage(data.info.event, data.info);
+          telemetryReporter.logUsage("response-feedback", data.info);
           break;
         }
         default:
@@ -853,7 +853,7 @@ ${data.info.response}
       return;
     }
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
-    let maxTokens = sensecodeManager.maxToken();
+    let maxTokens = sensecodeManager.maxInputTokenNum();
     if (el > maxTokens) {
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
       return;
@@ -903,7 +903,6 @@ ${data.info.response}
             {
               messages: msgs,
               n: 1,
-              maxTokens: sensecodeManager.maxToken(),
               stop: ["<|end|>"]
             },
             (event) => {
@@ -949,7 +948,6 @@ ${data.info.response}
             {
               messages: msgs,
               n: 1,
-              maxTokens: sensecodeManager.maxToken(),
               stop: ["<|end|>"]
             },
             {

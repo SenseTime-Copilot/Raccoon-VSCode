@@ -150,7 +150,6 @@ export class SenseCodeTerminal {
             {
               messages: [{ role: Role.system, content: "" }, { role: Role.user, content: question }],
               n: 1,
-              maxTokens: sensecodeManager.maxToken(),
               stop: ["<|end|>"]
             },
             (event) => {
