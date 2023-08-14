@@ -92,6 +92,28 @@ const vscode = acquireVsCodeApi();
     };
   };
 
+  function buildQuestion(username, avatar, timestamp, id, innerHTML, editRequired) {
+    let questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
+                              <span class="flex gap-2 flex flex-row-reverse text-xl">
+                                ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
+                                <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
+                                  <b class="text-sm">${username}</b>
+                                  <div class="opacity-30 leading-3">
+                                    ${timestamp}
+                                  </div>
+                                </span>
+                              </span>
+                              <div class="-mt-6 ml-1">
+                                <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
+                                <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
+                              </div>
+                            </h2>`;
+    return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${editRequired ? "editRequired" : ""}">
+             ${questionTitle}
+             ${innerHTML}
+           </div>`;
+  }
+
   showInfoTip = function (message) {
     var ew = document.getElementById('msg-wrapper');
     if (ew.querySelector(`.${message.category}`)) {
@@ -142,20 +164,6 @@ const vscode = acquireVsCodeApi();
       case 'restoreFromCache': {
         for (let item of message.value) {
           if (item.question) {
-            let questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
-                                  <span class="flex gap-2 flex flex-row-reverse text-xl">
-                                    ${questionIcon}
-                                    <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
-                                      <b class="text-sm">${item.name}</b>
-                                      <div class="opacity-30 leading-3">
-                                        ${item.timestamp}
-                                      </div>
-                                    </span>
-                                  </span>
-                                  <div class="-mt-6 ml-1">
-                                    <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${item.id}>${cancelIcon}</button>
-                                  </div>
-                                </h2>`;
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.question)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
 
@@ -185,7 +193,7 @@ const vscode = acquireVsCodeApi();
               const foldButton = document.createElement("button");
               foldButton.dataset.id = item.id;
               foldButton.innerHTML = foldIcon;
-              foldButton.classList.add("fold-btn","expend-code", "rounded", "hidden");
+              foldButton.classList.add("fold-btn", "expend-code", "rounded", "hidden");
 
               // Create unfold button
               const unfoldButton = document.createElement("button");
@@ -198,10 +206,7 @@ const vscode = acquireVsCodeApi();
               preCode.parentElement.prepend(buttonWrapper);
             });
             let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${markedResponse.documentElement.innerHTML}</div>`;
-            list.innerHTML += `<div id="question-${item.id}" class="p-4 question-element-gnc w-full">
-                      ${questionTitle}
-                      ${html}
-                    </div>`;
+            list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, false);
           } else if (item.answer) {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.answer)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
@@ -370,65 +375,19 @@ const vscode = acquireVsCodeApi();
         updateChatBoxStatus("start");
         toggleSubMenuList();
         let id = message.id;
-        var replaceElems = document.getElementsByClassName("replace");
+        var replaceElems = document.getElementsByClassName("editRequired");
         for (var e of replaceElems) {
           e.remove();
         }
 
         let promptInfo = message.value;
-        const edit = promptInfo.status === "editRequired";
-
-        let actionBtns = `
-          <div class="-mt-6 ml-1">
-            <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
-          </div>
-         `;
-        if (edit) {
-          actionBtns = `
-          <div class="-mt-6 ml-1">
-            <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
-          </div>`;
-        }
-
-        let questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
-                              <span class="flex gap-2 flex flex-row-reverse text-xl">
-                                ${questionIcon}
-                                <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
-                                  <b class="text-sm">${message.username || l10nForUI["Question"]}</b>
-                                  <div class="opacity-30 leading-3">
-                                    ${message.timestamp}
-                                  </div>
-                                </span>
-                              </span>
-                              ${actionBtns}
-                            </h2>`;
-        if (message.avatar && message.username) {
-          questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
-                            <span class="flex gap-2 flex flex-row-reverse text-xl">
-                              <img src="${message.avatar}"/ class="w-8 h-8 rounded-full">
-                              <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
-                                <b class="text-sm">${message.username}</b>
-                                <div class="opacity-30 leading-3">
-                                  ${message.timestamp}
-                                </div>
-                              </span>
-                            </span>
-                            ${actionBtns}
-                          </h2>`;
-        }
-
-        list.innerHTML +=
-          `<div id="question-${id}" class="p-4 pb-8 question-element-gnc w-full ${edit ? "replace" : ""}">
-            ${questionTitle}
-            ${promptInfo.html}
-            ${edit ? `<div class="flex justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Enter]">${sendIcon}</vscode-button></div>` : ""}
-          </div>`;
+        list.innerHTML += buildQuestion(message.username, message.avatar, message.timestamp, id, promptInfo.html, promptInfo.status === "editRequired");
 
         document.getElementById(`question-${id}`).querySelectorAll('pre code').forEach((el) => {
           hljs.highlightElement(el);
         });
 
-        if (edit) {
+        if (promptInfo.status === "editRequired") {
           document.getElementById("chat-button-wrapper")?.classList?.add("editing");
           document.getElementById("question-input").disabled = true;
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
@@ -1067,7 +1026,7 @@ const vscode = acquireVsCodeApi();
 
     if (e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
-      var readyQuestion = document.getElementsByClassName("replace");
+      var readyQuestion = document.getElementsByClassName("editRequired");
       if (readyQuestion.length > 0) {
         document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
         document.getElementById("question-input").disabled = false;
@@ -1080,7 +1039,7 @@ const vscode = acquireVsCodeApi();
 
     if (e.key === "Escape") {
       e.preventDefault();
-      var replaceElems = document.getElementsByClassName("replace");
+      var replaceElems = document.getElementsByClassName("editRequired");
       for (var p of replaceElems) {
         p.remove();
       }
@@ -1120,7 +1079,7 @@ const vscode = acquireVsCodeApi();
             history: collectHistory()
           });
         } else {
-          var readyQuestion = document.getElementsByClassName("replace");
+          var readyQuestion = document.getElementsByClassName("editRequired");
           if (readyQuestion.length > 0) {
             document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
             document.getElementById("question-input").disabled = false;

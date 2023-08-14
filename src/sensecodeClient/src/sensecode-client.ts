@@ -248,11 +248,11 @@ export class SenseCodeClient implements CodeClient {
               this.onChangeAuthInfo(newToken);
             }
             if (!newToken) {
-              throw new Error('Attemp to refresh access token but get nothing');
+              return Promise.reject(new Error('Attemp to refresh access token but get nothing'));
             }
             return this._postPrompt(newToken, requestParam, options, true);
           } catch (er: any) {
-            throw new Error('Attemp to refresh access token but failed');
+            return Promise.reject(new Error('Attemp to refresh access token but failed'));
           }
         } else {
           return Promise.reject(e);
@@ -408,22 +408,6 @@ export class SenseCodeClient implements CodeClient {
               message: {
                 role: Role.assistant,
                 content: error.response?.statusText || error.message
-              }
-            }
-          ]
-        }
-      }));
-    }).catch(err => {
-      callback(new MessageEvent(ResponseEvent.error, {
-        data: {
-          id: '',
-          created: new Date().valueOf(),
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: Role.assistant,
-                content: err.message,
               }
             }
           ]

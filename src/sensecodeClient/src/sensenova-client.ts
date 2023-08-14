@@ -60,20 +60,35 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    return Promise.resolve(undefined);
     return Promise.resolve(`https://login.stage.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}`);
   }
 
   private async parseAuthInfo(data: any): Promise<AuthInfo> {
-    let decoded: any = jwt_decode(data.id_token);
-    let name = decoded.id_token?.username;
+    let queries: string[] = decodeURIComponent(data).split("&");
+    let name = undefined;
+    let refreshToken: string | undefined = undefined;
+    let weaverdKey: string | undefined = undefined;
+    for (let q of queries) {
+      if (q.startsWith("token=")) {
+        weaverdKey = q.slice(6);
+        let decoded: any = jwt_decode(weaverdKey);
+        name = decoded.username;
+      } else if (q.startsWith("refresh=")) {
+        refreshToken = q.slice(8);
+      } else if (q.startsWith("expires=")) {
+
+      }
+    }
+    if (!weaverdKey) {
+      return Promise.reject();
+    }
     let ret: AuthInfo = {
       account: {
         username: name || "User",
         avatar: undefined
       },
-      refreshToken: data.refresh_token,
-      weaverdKey: data.access_token,
+      refreshToken,
+      weaverdKey,
     };
 
     return ret;
@@ -82,24 +97,11 @@ export class SenseNovaClient implements CodeClient {
   public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
-    if (false) {
-      if (!query) {
-        return Promise.reject();
-      }
-
-      return this.parseAuthInfo(query);
-    } else {
-      query = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTE1MTk4MzMsImp0aSI6IjEzMmJmMjFkLWNlNzQtNDI2Ni04NDE2LTAzZTkxMWNhZmM3OSIsImlhdCI6MTY5MTQ5MTAzMywiaXNzIjoic3NvLnNlbnNlbm92YS5jb20iLCJuYmYiOjE2OTE0OTEwMzMsInN1YiI6IjE5MDYzNDA3Mjg0NDgxNzA2OSIsInR5cGUiOiJwYXNzd29yZCIsInNvdXJjZSI6Im5vdmEifQ.FXpTQ8XZkOXO8GSdOoFeqpPZJXbrvEq1TGGBk3EjO8eL2WNEj6u-y7SEPETyGllfDSdKCcm1GmOJFAWuiakbazQQniKtbGfkPMx51g3tVOF-775bjHeWkgWUQGCPT_GSLl1U8SrKqfvKvtzfZ-dgDEBAce0CzVhXcHqcLRigTvMJJdtxptikIUpn1xT_FQls842bHDCKopeqy1k918qH1Fbhq--_wMgTDmKiqgXHXjcfUp_0x4fY5Rv0bKdHeb_B1-5kULnQtbG8bf5aKsKjnTTPrMNxfBXs4uBnxTFVJRVjVw6f3KUei_dklCFbH9ljHXmAGlXAWFP5sIUmb5_cHw';
-      let refreshToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTE1MTk4MzMsImp0aSI6IjEzMmJmMjFkLWNlNzQtNDI2Ni04NDE2LTAzZTkxMWNhZmM3OSIsImlhdCI6MTY5MTQ5MTAzMywiaXNzIjoic3NvLnNlbnNlbm92YS5jb20iLCJuYmYiOjE2OTE0OTEwMzMsInN1YiI6IjE5MDYzNDA3Mjg0NDgxNzA2OSIsInR5cGUiOiJwYXNzd29yZCIsInNvdXJjZSI6Im5vdmEifQ.FXpTQ8XZkOXO8GSdOoFeqpPZJXbrvEq1TGGBk3EjO8eL2WNEj6u-y7SEPETyGllfDSdKCcm1GmOJFAWuiakbazQQniKtbGfkPMx51g3tVOF-775bjHeWkgWUQGCPT_GSLl1U8SrKqfvKvtzfZ-dgDEBAce0CzVhXcHqcLRigTvMJJdtxptikIUpn1xT_FQls842bHDCKopeqy1k918qH1Fbhq--_wMgTDmKiqgXHXjcfUp_0x4fY5Rv0bKdHeb_B1-5kULnQtbG8bf5aKsKjnTTPrMNxfBXs4uBnxTFVJRVjVw6f3KUei_dklCFbH9ljHXmAGlXAWFP5sIUmb5_cHw';
-
-      return {
-        account: {
-          username: "User"
-        },
-        weaverdKey: query,
-        refreshToken
-      };
+    if (!query) {
+      return Promise.reject();
     }
+
+    return this.parseAuthInfo(query);
   }
 
   private async apiKeyRaw(auth: AuthInfo): Promise<string> {
@@ -198,11 +200,11 @@ export class SenseNovaClient implements CodeClient {
                 this.onChangeAuthInfo(newToken);
               }
               if (!newToken) {
-                throw new Error('Attemp to refresh access token but get nothing');
+                reject(new Error('Attemp to refresh access token but get nothing'));
               }
               return this._postPrompt(newToken, requestParam, options, true);
             } catch (er: any) {
-              throw new Error('Attemp to refresh access token but failed');
+              reject(new Error('Attemp to refresh access token but failed'));
             }
           } else {
             return reject(e);
@@ -353,22 +355,6 @@ export class SenseNovaClient implements CodeClient {
               message: {
                 role: Role.assistant,
                 content: error.response?.statusText || error.message
-              }
-            }
-          ]
-        }
-      }));
-    }).catch(err => {
-      callback(new MessageEvent(ResponseEvent.error, {
-        data: {
-          id: '',
-          created: new Date().valueOf(),
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: Role.assistant,
-                content: err.message,
               }
             }
           ]

@@ -192,11 +192,6 @@
                     "command": "sensecode.clear",
                     "group": "navigation@1",
                     "when": "resourceScheme == sensecode"
-                },
-                {
-                    "command": "sensecode.openEditor",
-                    "group": "navigation@2",
-                    "when": "resourceScheme == sensecode"
                 }
             ]
         },

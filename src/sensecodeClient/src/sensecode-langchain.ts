@@ -57,7 +57,7 @@ class PenroseModel extends BaseChatModel {
       stream: options?.stream,
       n: options?.n ?? 1,
       stop: options?.stop,
-      maxTokens: options?.maxTokens ?? 0,
+      maxNewTokenNum: options?.maxNewTokenNum ?? 0,
       temperature: options?.temperature
     };
   }

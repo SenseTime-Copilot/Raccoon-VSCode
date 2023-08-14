@@ -861,9 +861,11 @@ ${data.info.response}
 
     let avatar = sensecodeManager.avatar();
     let robot = sensecodeManager.getActiveClientLabel();
-    this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
 
-    if (promptHtml.status === RenderStatus.resolved) {
+    if (promptHtml.status === RenderStatus.editRequired) {
+      this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
+    } else {
+      this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
       try {
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
