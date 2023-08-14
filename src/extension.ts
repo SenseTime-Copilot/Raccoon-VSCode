@@ -42,7 +42,11 @@ export async function activate(context: vscode.ExtensionContext) {
     },
     sendEventData(_eventName, data) {
       if (data) {
-        senseCodeTelemetry.sendTelemetry(data['action'], data);
+        let ctx = data.context;
+        let action = data.action;
+        data.context = undefined;
+        data.action = undefined;
+        senseCodeTelemetry.sendTelemetry(action, data, ctx);
       }
     },
   };
