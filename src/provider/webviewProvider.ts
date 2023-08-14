@@ -7,7 +7,6 @@ import { BanWords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
-import { buildHeader } from '../utils/buildRequestHeader';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -697,8 +696,15 @@ export class SenseCodeEditor extends Disposable {
 ${msg.code}
 \`\`\`
                 `;
-                  let info = { action: "correct", correction, ...data.info };
-                  telemetryReporter.logUsage("response-feedback", info);
+                  let info = {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    'common.client': env.appName,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    'common.username': sensecodeManager.username() || "User",
+                    correction,
+                    ...data.info
+                  };
+                  telemetryReporter.logUsage("correct", info);
                   await new Promise((f) => setTimeout(f, 2000));
                   panel.dispose();
                   progress.report({ message: "Thanks for your feedback.", increment: 100 });
@@ -795,7 +801,16 @@ ${data.info.response}
             });
             break;
           }
-          telemetryReporter.logUsage("response-feedback", data.info);
+          let action = data.info.action;
+          delete data.info.action;
+          let reportInfo = {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'common.client': env.appName,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'common.username': sensecodeManager.username() || 'User',
+            ...data.info
+          };
+          telemetryReporter.logUsage(action, reportInfo);
           break;
         }
         default:
@@ -898,6 +913,12 @@ ${data.info.response}
         }
         appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, question: instruction.content });
         historyMsgs = historyMsgs.reverse();
+        telemetryReporter.logUsage(prompt.type, {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          'common.client': env.appName,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          'common.username': username
+        });
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
         if (streaming) {
           let signal = this.stopList[id].signal;
@@ -941,7 +962,6 @@ ${data.info.response}
               }
             },
             {
-              headers: buildHeader(this.context.extension, username, prompt.type),
               signal
             }
           );
@@ -953,7 +973,6 @@ ${data.info.response}
               stop: ["<|end|>"]
             },
             {
-              headers: buildHeader(this.context.extension, username, prompt.type),
               signal: this.stopList[id].signal
             })
             .then(rs => {

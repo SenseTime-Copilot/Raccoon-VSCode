@@ -92,7 +92,7 @@ const vscode = acquireVsCodeApi();
     };
   };
 
-  function buildQuestion(username, avatar, timestamp, id, innerHTML, editRequired) {
+  function buildQuestion(username, avatar, timestamp, id, innerHTML, status) {
     let questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
                               <span class="flex gap-2 flex flex-row-reverse text-xl">
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
@@ -108,9 +108,10 @@ const vscode = acquireVsCodeApi();
                                 <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
                               </div>
                             </h2>`;
-    return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${editRequired ? "editRequired" : ""}">
+    return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${status}">
              ${questionTitle}
              ${innerHTML}
+             <div class="send-btns flex justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Enter]">${sendIcon}</vscode-button></div>
            </div>`;
   }
 
@@ -206,7 +207,7 @@ const vscode = acquireVsCodeApi();
               preCode.parentElement.prepend(buttonWrapper);
             });
             let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${markedResponse.documentElement.innerHTML}</div>`;
-            list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, false);
+            list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.answer) {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.answer)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
@@ -381,7 +382,7 @@ const vscode = acquireVsCodeApi();
         }
 
         let promptInfo = message.value;
-        list.innerHTML += buildQuestion(message.username, message.avatar, message.timestamp, id, promptInfo.html, promptInfo.status === "editRequired");
+        list.innerHTML += buildQuestion(message.username, message.avatar, message.timestamp, id, promptInfo.html, promptInfo.status);
 
         document.getElementById(`question-${id}`).querySelectorAll('pre code').forEach((el) => {
           hljs.highlightElement(el);

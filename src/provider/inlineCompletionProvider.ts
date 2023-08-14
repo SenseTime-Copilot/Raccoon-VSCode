@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { sensecodeManager, outlog } from "../extension";
+import { sensecodeManager, outlog, telemetryReporter } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 import { CompletionPreferenceType } from "./sensecodeManager";
 import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
-import { buildHeader } from "../utils/buildRequestHeader";
 
 let lastRequest = null;
 
@@ -98,7 +97,7 @@ export function inlineCompletionProvider(
             }
           );
         });
-        let username = sensecodeManager.username() || "User";
+        let username = sensecodeManager.username() || "none";
         let stopToken: string[] = ["<|end|>"];
         let requestId = new Date().getTime();
         lastRequest = requestId;
@@ -136,6 +135,13 @@ export function inlineCompletionProvider(
 ${temp}`
           };
 
+          telemetryReporter.logUsage('inline completion', {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'common.client': vscode.env.appName,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'common.username': username
+          });
+
           data = await sensecodeManager.getCompletions(
             {
               messages: [{ role: Role.system, content: "" }, completionPrompt],
@@ -144,7 +150,6 @@ ${temp}`
               stop: stopToken
             },
             {
-              headers: buildHeader(extension.extension, username, 'inline completion'),
               signal: controller.signal
             });
         } catch (err: any) {
@@ -226,12 +231,9 @@ ${temp}`
               document.uri,
               new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
               continueFlag[i],
-              {
-                type: "code completion",
-                language: getDocumentLanguage(document.languageId),
-                code: [codeSnippets.prefix, codeSnippets.suffix]
-              },
-              completions, "", i.toString(), ts]
+              username,
+              i.toString()
+            ]
           };
           items.push({
             insertText: prefix + completion,

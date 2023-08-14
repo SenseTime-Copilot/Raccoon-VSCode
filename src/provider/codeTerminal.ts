@@ -2,12 +2,11 @@ import {
   ThemeIcon,
   window,
   EventEmitter,
-  ExtensionContext,
-  l10n
+  l10n,
+  env
 } from 'vscode';
-import { sensecodeManager } from '../extension';
+import { sensecodeManager, telemetryReporter } from '../extension';
 import { ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
-import { buildHeader } from '../utils/buildRequestHeader';
 import { BanWords } from '../utils/swords';
 
 function isNonPrintableCharacter(char: string): boolean {
@@ -66,7 +65,7 @@ export class SenseCodeTerminal {
   private curHistoryId = -1;
   private banWords: BanWords = BanWords.getInstance();
 
-  constructor(context: ExtensionContext) {
+  constructor() {
     let writeEmitter = new EventEmitter<string>();
     let un = sensecodeManager.username() || "User";
     let terminal = window.createTerminal({
@@ -146,6 +145,12 @@ export class SenseCodeTerminal {
           this.cancel = new AbortController();
           this.responsing = true;
 
+          telemetryReporter.logUsage('free chat terminal', {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'common.client': env.appName,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'common.username': username
+          });
           sensecodeManager.getCompletionsStreaming(
             {
               messages: [{ role: Role.system, content: "" }, { role: Role.user, content: question }],
@@ -190,7 +195,6 @@ export class SenseCodeTerminal {
               }
             },
             {
-              headers: buildHeader(context.extension, username, 'free chat terminal'),
               signal: this.cancel?.signal
             }
           ).catch(e => {

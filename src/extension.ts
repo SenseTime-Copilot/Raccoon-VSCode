@@ -14,7 +14,6 @@ let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let sensecodeManager: SenseCodeManager;
 export let telemetryReporter: vscode.TelemetryLogger;
-export let senseCodeTelemetry: SenseCodeTelemetry;
 
 class SenseCodeUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -33,20 +32,18 @@ export async function activate(context: vscode.ExtensionContext) {
   sensecodeManager = new SenseCodeManager(context);
   sensecodeManager.update();
 
-  senseCodeTelemetry = new SenseCodeTelemetry(context);
+  let senseCodeTelemetry: SenseCodeTelemetry = new SenseCodeTelemetry(context);
 
   const sender: vscode.TelemetrySender = {
     flush() {
     },
     sendErrorData(_error, _data) {
     },
-    sendEventData(_eventName, data) {
+    sendEventData(eventName, data) {
       if (data) {
         let ctx = data.context;
-        let action = data.action;
-        data.context = undefined;
-        data.action = undefined;
-        senseCodeTelemetry.sendTelemetry(action, data, ctx);
+        delete data.context;
+        senseCodeTelemetry.sendTelemetry(eventName, data, ctx);
       }
     },
   };
@@ -80,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.terminal", async () => {
-      new SenseCodeTerminal(context);
+      new SenseCodeTerminal();
     })
   );
 
@@ -107,7 +104,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, request, response, error, action, generate_at) => {
+    vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, username, selection) => {
       let editor = vscode.window.activeTextEditor;
       if (editor) {
         let start = range.start.line;
@@ -116,15 +113,13 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       telemetryReporter.logUsage("suggestion-accepted",
         {
-          request,
-          response,
-          error,
-          action,
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          generate_at,
+          'common.client': vscode.env.appName,
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          report_at: new Date().valueOf()
-        });
+          'common.username': username,
+          selection
+        }
+      );
       if (continueFlag && sensecodeManager.autoComplete) {
         setTimeout(() => {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
