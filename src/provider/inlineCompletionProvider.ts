@@ -4,6 +4,7 @@ import { sensecodeManager, outlog, telemetryReporter } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 import { CompletionPreferenceType } from "./sensecodeManager";
 import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { buildHeader } from "../utils/buildRequestHeader";
 
 let lastRequest = null;
 
@@ -97,7 +98,6 @@ export function inlineCompletionProvider(
             }
           );
         });
-        let username = sensecodeManager.username() || "none";
         let stopToken: string[] = ["<|end|>"];
         let requestId = new Date().getTime();
         lastRequest = requestId;
@@ -135,12 +135,7 @@ export function inlineCompletionProvider(
 ${temp}`
           };
 
-          telemetryReporter.logUsage('inline completion', {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'common.client': vscode.env.appName,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'common.username': username
-          });
+          telemetryReporter.logUsage('inline completion');
 
           data = await sensecodeManager.getCompletions(
             {
@@ -150,6 +145,7 @@ ${temp}`
               stop: stopToken
             },
             {
+              headers: buildHeader('inline completion'),
               signal: controller.signal
             });
         } catch (err: any) {
@@ -199,7 +195,6 @@ ${temp}`
         // Add the generated code to the inline suggestion list
         let items = new Array<vscode.InlineCompletionItem>();
         let continueFlag = new Array<boolean>();
-        let ts = new Date().valueOf();
         let codeArray = data.choices;
         const completions = Array<string>();
         for (let i = 0; i < codeArray.length; i++) {
@@ -231,7 +226,6 @@ ${temp}`
               document.uri,
               new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
               continueFlag[i],
-              username,
               i.toString()
             ]
           };

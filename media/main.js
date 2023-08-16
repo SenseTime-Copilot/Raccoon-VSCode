@@ -576,7 +576,7 @@ const vscode = acquireVsCodeApi();
         } else {
         }
 
-        list.innerHTML += `<div class="p-4 w-full message-element-gnc ${message.category || ""}" ${message.username ? `date-username="${message.username}"` : ""}>
+        list.innerHTML += `<div class="p-4 w-full message-element-gnc ${message.category || ""}">
                             <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
                               <span class="flex gap-2 flex text-xl">
                                 ${aiIcon}

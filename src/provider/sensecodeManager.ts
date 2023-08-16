@@ -32,7 +32,6 @@ export enum CompletionPreferenceType {
 }
 
 interface ClientAndAuthInfo {
-  config: ClientConfig;
   client: CodeClient;
   authInfo?: AuthInfo;
 }
@@ -115,11 +114,11 @@ export class SenseCodeManager {
           client = new SenseCodeClient(meta, e, outlog.debug);
         }
         if (client) {
-          let ca: ClientAndAuthInfo = { config: e, client, authInfo: authinfos[e.label] };
+          let ca: ClientAndAuthInfo = { client, authInfo: authinfos[e.label] };
           client.onDidChangeAuthInfo((ai) => {
             this.updateToken(e.label, ai, true);
           });
-          this.appendClient(ca);
+          this.appendClient(e.label, ca, e.config.key);
         }
       }
     }
@@ -129,14 +128,14 @@ export class SenseCodeManager {
     }
   }
 
-  private appendClient(c: ClientAndAuthInfo) {
-    this._clients[c.config.label] = c;
-    if (!c.authInfo && c.config.key) {
-      let aksk = c.config.key.split('#');
+  private appendClient(name: string, c: ClientAndAuthInfo, key?: string) {
+    this._clients[name] = c;
+    if (!c.authInfo && key) {
+      let aksk = key.split('#');
       let ak = aksk[0] ?? '';
       let sk = aksk[1] ?? '';
       c.client.setAccessKey(ak, sk).then(async (ai) => {
-        await this.updateToken(c.config.label, ai, true);
+        await this.updateToken(name, ai, true);
       });
     }
   }
@@ -148,7 +147,7 @@ export class SenseCodeManager {
     }
     if (ca) {
       ca.client.setAccessKey(ak, sk).then(async ai => {
-        await this.updateToken(ca?.config.label!, ai);
+        await this.updateToken(ca!.client.label, ai);
       });
     }
   }
@@ -241,6 +240,10 @@ export class SenseCodeManager {
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
   }
 
+  public get devConfig(): any {
+    return this.configuration.get("Dev");
+  }
+
   public async updateEngineList(): Promise<void> {
     return this.getProxy().then((ext) => {
       return this.buildAllClient(ext);
@@ -271,7 +274,7 @@ export class SenseCodeManager {
   }
 
   public getActiveClientLabel(): string | undefined {
-    return this.getActiveClient()?.config.label;
+    return this.getActiveClient()?.client.label;
   }
 
   public async setActiveClient(clientName: string | undefined) {
@@ -347,13 +350,23 @@ export class SenseCodeManager {
     return Object.keys(this._clients);
   }
 
+  public userId(clientName?: string): string | undefined {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    if (ca && ca.authInfo) {
+      return ca.authInfo.account.userId;
+    }
+  }
+
   public username(clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca && ca.authInfo) {
-      return ca.config.username || ca.authInfo?.account.username;
+      return ca.authInfo?.account.username;
     }
   }
 
@@ -404,7 +417,7 @@ export class SenseCodeManager {
       return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
-          this.updateToken(ca.config.label, token);
+          this.updateToken(ca.client.label, token);
           return true;
         } else {
           return false;
@@ -430,7 +443,7 @@ export class SenseCodeManager {
             commands.executeCommand("vscode.open", logoutUrl);
           }
           if (ca) {
-            this.updateToken(ca.config.label);
+            this.updateToken(ca.client.label);
           }
         }, (e) => {
           progress.report({ increment: 100 });

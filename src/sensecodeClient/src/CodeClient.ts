@@ -21,6 +21,7 @@ export interface ClientReqeustOptions {
 
 export interface AccountInfo {
   username: string;
+  userId?: string;
   avatar?: string;
 }
 

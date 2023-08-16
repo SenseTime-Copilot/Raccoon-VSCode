@@ -95,7 +95,8 @@ export class SenseCodeClient implements CodeClient {
     let name = decoded.id_token?.username;
     let ret: AuthInfo = {
       account: {
-        username: name || "User",
+        username: this.clientConfig.username || name || "User",
+        userId: name,
         avatar: undefined
       },
       refreshToken: data.refresh_token,
@@ -136,6 +137,7 @@ export class SenseCodeClient implements CodeClient {
     let auth: AuthInfo = {
       account: {
         username: "User",
+        userId: undefined
       },
       weaverdKey: `${ak}#${sk}`
     };

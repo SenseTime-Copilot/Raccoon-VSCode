@@ -8,6 +8,7 @@ import {
 import { sensecodeManager, telemetryReporter } from '../extension';
 import { ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { BanWords } from '../utils/swords';
+import { buildHeader } from '../utils/buildRequestHeader';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -145,12 +146,7 @@ export class SenseCodeTerminal {
           this.cancel = new AbortController();
           this.responsing = true;
 
-          telemetryReporter.logUsage('free chat terminal', {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'common.client': env.appName,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'common.username': username
-          });
+          telemetryReporter.logUsage('free chat terminal');
           sensecodeManager.getCompletionsStreaming(
             {
               messages: [{ role: Role.system, content: "" }, { role: Role.user, content: question }],
@@ -195,6 +191,7 @@ export class SenseCodeTerminal {
               }
             },
             {
+              headers: buildHeader('free chat terminal'),
               signal: this.cancel?.signal
             }
           ).catch(e => {

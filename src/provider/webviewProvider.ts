@@ -7,6 +7,7 @@ import { BanWords } from '../utils/swords';
 import { CompletionPreferenceType } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
+import { buildHeader } from '../utils/buildRequestHeader';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -269,7 +270,7 @@ export class SenseCodeEditor extends Disposable {
       detail += loginHint;
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot);
-    this.sendMessage({ type: 'addMessage', category, username, robot, value: welcomMsg + detail, timestamp });
+    this.sendMessage({ type: 'addMessage', category, robot, value: welcomMsg + detail, timestamp });
   }
 
   private async restoreFromCache() {
@@ -301,6 +302,7 @@ export class SenseCodeEditor extends Disposable {
       esList += `<vscode-option value="${label}">${label}</vscode-option>`;
     }
     esList += "</vscode-dropdown>";
+    let userId: string | undefined = undefined;
     let username: string | undefined = undefined;
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
@@ -325,6 +327,7 @@ export class SenseCodeEditor extends Disposable {
                       </vscode-link>`;
       }, () => { });
     } else {
+      userId = sensecodeManager.userId();
       username = sensecodeManager.username();
       let avatar = sensecodeManager.avatar();
       if (avatar) {
@@ -347,7 +350,7 @@ export class SenseCodeEditor extends Disposable {
       }, () => { });
     }
     let accountInfo = `
-        <div class="flex gap-2 items-center w-full">
+        <div class="flex gap-2 items-center w-full" title="${userId || ""}">
           ${avatarEle}
           <span class="grow font-bold text-base">${username || l10n.t("Unknown")}</span>
           ${loginout}
@@ -697,10 +700,6 @@ ${msg.code}
 \`\`\`
                 `;
                   let info = {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    'common.client': env.appName,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    'common.username': sensecodeManager.username() || "User",
                     correction,
                     ...data.info
                   };
@@ -802,15 +801,7 @@ ${data.info.response}
             break;
           }
           let action = data.info.action;
-          delete data.info.action;
-          let reportInfo = {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'common.client': env.appName,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'common.username': sensecodeManager.username() || 'User',
-            ...data.info
-          };
-          telemetryReporter.logUsage(action, reportInfo);
+          telemetryReporter.logUsage(action);
           break;
         }
         default:
@@ -850,7 +841,6 @@ ${data.info.response}
     let loggedin = sensecodeManager.isClientLoggedin();
     let username = sensecodeManager.username();
     if (!loggedin || !username) {
-      //this.sendMessage({ type: 'addMessage', category: "no-account", value: loginHint });
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
     }
@@ -870,8 +860,11 @@ ${data.info.response}
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
     let maxTokens = sensecodeManager.maxInputTokenNum();
     if (el > maxTokens) {
-      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
-      return;
+      let devConfig = sensecodeManager.devConfig;
+      if (devConfig && devConfig.inputTokenCountLimit === true) {
+        this.sendMessage({ type: 'showInfoTip', style: "error", category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
+        return;
+      }
     }
 
     let avatar = sensecodeManager.avatar();
@@ -913,12 +906,7 @@ ${data.info.response}
         }
         appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, question: instruction.content });
         historyMsgs = historyMsgs.reverse();
-        telemetryReporter.logUsage(prompt.type, {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          'common.client': env.appName,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          'common.username': username
-        });
+        telemetryReporter.logUsage(prompt.type);
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
         if (streaming) {
           let signal = this.stopList[id].signal;
@@ -962,6 +950,7 @@ ${data.info.response}
               }
             },
             {
+              headers: buildHeader(prompt.type),
               signal
             }
           );
@@ -973,6 +962,7 @@ ${data.info.response}
               stop: ["<|end|>"]
             },
             {
+              headers: buildHeader(prompt.type),
               signal: this.stopList[id].signal
             })
             .then(rs => {

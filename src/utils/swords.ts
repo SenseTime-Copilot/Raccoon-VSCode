@@ -1,3 +1,5 @@
+import { sensecodeManager } from "../extension";
+
 const swords: string[] = [
   "5aaI6YC8",
   "5amK5a2Q",
@@ -343,6 +345,10 @@ export class BanWords {
   }
 
   checkBanWords(content: string[]): boolean {
+    let devConfig = sensecodeManager.devConfig;
+    if (devConfig && devConfig.bannedWords === false) {
+      return false;
+    }
     for (let sw of this.bannedWords) {
       for (let c of content) {
         if (c.includes(sw)) {

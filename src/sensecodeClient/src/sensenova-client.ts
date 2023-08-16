@@ -36,7 +36,8 @@ export class SenseNovaClient implements CodeClient {
   public async setAccessKey(ak: string, sk: string): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
-        username: "User",
+        username: this.clientConfig.username || "User",
+        userId: undefined
       },
       weaverdKey: `${ak}#${sk}`
     };
@@ -84,7 +85,8 @@ export class SenseNovaClient implements CodeClient {
     }
     let ret: AuthInfo = {
       account: {
-        username: name || "User",
+        username: this.clientConfig.username || name || "User",
+        userId: name,
         avatar: undefined
       },
       refreshToken,
