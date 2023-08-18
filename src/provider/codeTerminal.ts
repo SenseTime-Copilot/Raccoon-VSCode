@@ -3,7 +3,6 @@ import {
   window,
   EventEmitter,
   l10n,
-  env
 } from 'vscode';
 import { sensecodeManager, telemetryReporter } from '../extension';
 import { ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
@@ -41,11 +40,12 @@ function isDownKey(char: string): boolean {
 }
 
 function ignoreKeys(char: string): boolean {
+  if (isUpKey(char) || isDownKey(char)) {
+    return false;
+  }
   if (char.length >= 3) {
     const c1 = char.charCodeAt(0);
-    const c2 = char.charCodeAt(1);
-    const c3 = char.charCodeAt(2);
-    return c1 === 27 && c2 === 91 && (c3 !== 65 && c3 !== 66);
+    return c1 < 32;
   }
   return false;
 }
@@ -68,7 +68,7 @@ export class SenseCodeTerminal {
 
   constructor() {
     let writeEmitter = new EventEmitter<string>();
-    let un = sensecodeManager.username() || "User";
+    let un = sensecodeManager.username();
     let terminal = window.createTerminal({
       name: "SenseCode",
       isTransient: true,
@@ -77,18 +77,19 @@ export class SenseCodeTerminal {
         onDidWrite: writeEmitter.event,
         open: () => {
           let ai = sensecodeManager.getActiveClientLabel() || "SenseCode";
-          let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un, ai);
-          writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n\r\n\x1b[1;34m' + un + " > \x1b[0m");
+          let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);
+          writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
+          writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");
         },
         close: () => { },
         handleInput: (input: string) => {
-          let username = sensecodeManager.username() || "User";
+          let username = sensecodeManager.username() || "You";
           let question = '';
           if (isUpKey(input)) {
             if (this.history.length > this.curHistoryId + 1) {
               this.curHistoryId++;
               this.cacheInput = this.history[this.curHistoryId];
-              writeEmitter.fire("\x1b[1M\x1b[1;34m" + username + " > \x1b[0m" + this.cacheInput);
+              writeEmitter.fire("\x1b[1M" + this.cacheInput);
             }
             return;
           } else if (isDownKey(input)) {
@@ -96,9 +97,9 @@ export class SenseCodeTerminal {
               this.curHistoryId--;
               if (this.curHistoryId >= 0 && this.history.length > this.curHistoryId) {
                 this.cacheInput = this.history[this.curHistoryId];
-                writeEmitter.fire("\x1b[1M\x1b[1;34m" + username + " > \x1b[0m" + this.cacheInput);
+                writeEmitter.fire("\x1b[1M" + this.cacheInput);
               } else {
-                writeEmitter.fire("\x1b[1M\x1b[1;34m" + username + " > \x1b[0m");
+                writeEmitter.fire("\x1b[1M");
               }
             }
             return;
@@ -108,11 +109,17 @@ export class SenseCodeTerminal {
 
           this.curHistoryId = -1;
 
-          if (input === '\r') {
+          if (input === '\t') {
+            return;
+          } else if (input === '\r') {
             question = this.cacheInput;
+            if (!question) {
+              return;
+            }
             this.cacheInput = '';
             let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
-            writeEmitter.fire("\r\n\x1b[1;96m" + robot + " > \x1b[0m\r\n");
+            writeEmitter.fire("\x1b[38;5;232m⮨");
+            writeEmitter.fire("\r\n\r\n\x1b[1;96m" + robot + " > \x1b[0m\r\n");
             this.history = [question, ...this.history];
           } else if (isBksp(input)) {
             if (this.cacheInput.length > 0) {
@@ -128,18 +135,23 @@ export class SenseCodeTerminal {
             if (this.responsing) {
               this.cancel?.abort();
             } else {
-              writeEmitter.fire('\r\n\x1b[1;34m' + username + " > \x1b[0m");
+              if (this.cacheInput) {
+                this.cacheInput = '';
+                writeEmitter.fire('\r\n');
+              }
+              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
             }
             return;
           } else {
-            this.cacheInput += input;
-            writeEmitter.fire(input);
+            let msg =  input.replace(/\r/g, "\r\n");
+            this.cacheInput += msg;
+            writeEmitter.fire(msg);
             return;
           }
 
           if (this.banWords.checkBanWords([question])) {
-            writeEmitter.fire(`\r\n\x1b[1;31merror: ${l10n.t("Incomprehensible Question")}\x1b[0m\r\n`);
-            writeEmitter.fire('\r\n\x1b[1;34m' + username + " > \x1b[0m");
+            writeEmitter.fire(`\x1b[1;31merror: ${l10n.t("Incomprehensible Question")}\x1b[0m\r\n`);
+            writeEmitter.fire('\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
             return;
           }
 
@@ -156,7 +168,7 @@ export class SenseCodeTerminal {
             (event) => {
               if (this.cancel?.signal.aborted) {
                 this.responsing = false;
-                writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m");
+                writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                 return;
               }
               let content: string | undefined = undefined;
@@ -167,7 +179,7 @@ export class SenseCodeTerminal {
               switch (event.type) {
                 case ResponseEvent.cancel: {
                   this.responsing = false;
-                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m");
+                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
                 }
                 case ResponseEvent.finish:
@@ -179,13 +191,13 @@ export class SenseCodeTerminal {
                 }
                 case ResponseEvent.error: {
                   this.responsing = false;
-                  writeEmitter.fire(`\r\n\x1b[1;31merror: ${content}\x1b[0m`);
-                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m");
+                  writeEmitter.fire(`\x1b[1;31merror: ${content}\x1b[0m`);
+                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
                 }
                 case ResponseEvent.done: {
                   this.responsing = false;
-                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m");
+                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
                 }
               }
@@ -196,8 +208,8 @@ export class SenseCodeTerminal {
             }
           ).catch(e => {
             this.responsing = false;
-            writeEmitter.fire(`\r\n\x1b[1;31merror: ${e.message}\x1b[0m`);
-            writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m");
+            writeEmitter.fire(`\x1b[1;31merror: ${e.message}\x1b[0m`);
+            writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
           });
         }
       }

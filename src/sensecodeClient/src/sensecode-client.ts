@@ -33,7 +33,7 @@ export class SenseCodeClient implements CodeClient {
 
   public async logout(_auth: AuthInfo): Promise<string | undefined> {
     if (this.clientConfig.key) {
-      return Promise.reject(new Error("Not Authorized From Web"));
+      return Promise.reject(new Error("Can not clear Access Key from settings"));
     } else if (this.logoutUrl) {
       return axios.get(this.logoutUrl).then(() => {
         return undefined;
@@ -133,13 +133,13 @@ export class SenseCodeClient implements CodeClient {
       });
   }
 
-  public async setAccessKey(ak: string, sk: string): Promise<AuthInfo> {
+  public async setAccessKey(key: string): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
-        username: "User",
+        username: this.clientConfig.username || "User",
         userId: undefined
       },
-      weaverdKey: `${ak}#${sk}`
+      weaverdKey: key
     };
     return auth;
   }
@@ -325,6 +325,22 @@ export class SenseCodeClient implements CodeClient {
                 }));
               }
               continue;
+            } else {
+              callback(new MessageEvent(ResponseEvent.error, {
+                data: {
+                  id: '',
+                  created: new Date().valueOf(),
+                  choices: [
+                    {
+                      index: 0,
+                      message: {
+                        role: Role.assistant,
+                        content: '',
+                      }
+                    }
+                  ]
+                }
+              }));
             }
 
             if (content === '[DONE]') {

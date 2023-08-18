@@ -21,6 +21,7 @@
     "sensecode.command.setAccessKey": "设置 Access Key",
     "sensecode.command.help": "帮助",
     "sensecode.command.terminal": "SenseCode 终端",
+    "sensecode.command.notebook.new": "SenseCode NoteBook",
     "sensecode.command.openEditor": "在编辑器内打开新的 SenseCode 代码助手实例",
     "sensecode.command.ask": "向 SenseCode 提问...",
     "sensecode.command.settings": "设置",

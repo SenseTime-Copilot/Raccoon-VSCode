@@ -52,7 +52,8 @@
                                     "description": "%sensecode.config.engines.engine.type%",
                                     "enum": [
                                         "sensecore",
-                                        "sensenova"
+                                        "sensenova",
+                                        "openai"
                                     ]
                                 },
                                 "label": {
@@ -156,6 +157,11 @@
             }
         ],
         "menus": {
+            "file/newFile": [
+                {
+                    "command": "sensecode.notebook.new"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "sensecode.ask",
@@ -180,13 +186,18 @@
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.help",
+                    "command": "sensecode.notebook.new",
                     "group": "navigation@4",
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.settings",
+                    "command": "sensecode.help",
                     "group": "navigation@5",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.settings",
+                    "group": "navigation@6",
                     "when": "view == sensecode.view"
                 }
             ],
@@ -260,6 +271,12 @@
                 "category": "SenseCode",
                 "title": "%sensecode.command.onSuggestionAccepted%",
                 "enablement": "editorTextFocus && !editorReadonly"
+            },
+            {
+                "command": "sensecode.notebook.new",
+                "category": "SenseCode",
+                "title": "%sensecode.command.notebook.new%",
+                "icon": "$(notebook)"
             }
         ],
         "keybindings": [
@@ -285,12 +302,24 @@
             {
                 "id": "sensecode",
                 "extensions": [
-                    ".sensecode"
+                    ".sensecode",
+                    ".scnb"
                 ],
                 "icon": {
                     "light": "media/sensecode-logo.png",
                     "dark": "media/sensecode-logo.png"
                 }
+            }
+        ],
+        "notebooks": [
+            {
+                "type": "sensecode",
+                "displayName": "SenseCode Notebook",
+                "selector": [
+                    {
+                        "filenamePattern": "*.scnb"
+                    }
+                ]
             }
         ],
         "resourceLabelFormatters": [

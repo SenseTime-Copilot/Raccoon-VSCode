@@ -74,13 +74,19 @@ const guide = `
       </ol>
       `;
 
-interface CacheItem {
+export enum CacheItemType {
+  question = "question",
+  answer = "answer",
+  error = "error",
+  data = "data"
+}
+
+export interface CacheItem {
   id: number;
   timestamp: string;
   name: string;
-  question?: string;
-  answer?: string;
-  error?: string;
+  type: CacheItemType;
+  value: string;
 }
 
 async function appendCacheItem(context: ExtensionContext, cacheFile: string, data?: CacheItem): Promise<void> {
@@ -524,9 +530,9 @@ export class SenseCodeEditor extends Disposable {
           if (data.action === 'delete') {
             removeCacheItem(this.context, this.cacheFile, data.id);
           } else if (data.action === 'answer') {
-            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, answer: data.value });
+            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.answer, value: data.value });
           } else if (data.action === 'error') {
-            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, error: data.value });
+            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.error, value: data.value });
           }
           break;
         }
@@ -904,7 +910,7 @@ ${data.info.response}
             });
           }
         }
-        appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, question: instruction.content });
+        appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, type: CacheItemType.question, value: instruction.content });
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
@@ -972,7 +978,7 @@ ${data.info.response}
               this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
               this.sendMessage({ type: 'stopResponse', id });
             }, (err) => {
-              this.sendMessage({ type: 'addError', error: err.response.statusText, id, timestamp: new Date().toLocaleString() });
+              this.sendMessage({ type: 'addError', error: err.response?.statusText || err.message, id, timestamp: new Date().toLocaleString() });
               this.sendMessage({ type: 'stopResponse', id });
             });
         }

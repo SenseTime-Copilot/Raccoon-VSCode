@@ -51,6 +51,19 @@ export function inlineCompletionProvider(
       }
 
       if (!editor.selection.isEmpty && context.triggerKind !== vscode.InlineCompletionTriggerKind.Automatic) {
+        const cursorPosition = editor.selection.active;
+        let selectionNextChar = new vscode.Selection(
+          cursorPosition.line,
+          cursorPosition.character,
+          cursorPosition.line,
+          cursorPosition.character + 1
+        );
+        let nextChar = document.getText(selectionNextChar);
+        const checkString = "]}) \n\t'\"";
+        if (!checkString.includes(nextChar)) {
+          updateStatusBarItem(statusBarItem);
+          return;
+        }
         vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
         return;
       }
@@ -73,19 +86,6 @@ export function inlineCompletionProvider(
         return;
       }
 
-      const cursorPosition = editor.selection.active;
-      let selectionNextChar = new vscode.Selection(
-        cursorPosition.line,
-        cursorPosition.character,
-        cursorPosition.line,
-        cursorPosition.character + 1
-      );
-      let nextChar = document.getText(selectionNextChar);
-      const checkString = "]}) \n\t'\"";
-      if (!checkString.includes(nextChar)) {
-        updateStatusBarItem(statusBarItem);
-        return;
-      }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
         const controller = new AbortController();
         cancel.onCancellationRequested(_e => {

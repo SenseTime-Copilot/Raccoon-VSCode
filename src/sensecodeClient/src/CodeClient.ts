@@ -1,6 +1,7 @@
 export enum ClientType {
   sensecore = "sensecore",
   sensenova = "sensenova",
+  openai = "openai"
 }
 
 export interface ClientConfig {
@@ -93,7 +94,7 @@ export interface CodeClient {
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
-  setAccessKey(ak: string, sk: string): Promise<AuthInfo>;
+  setAccessKey(key: string): Promise<AuthInfo>;
 
   login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
 

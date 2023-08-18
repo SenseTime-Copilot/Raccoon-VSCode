@@ -8,6 +8,7 @@ import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { deleteAllCacheFiles, SenseCodeViewProvider } from "./webviewProvider";
+import { OpenAIClient } from "../sensecodeClient/src/openai-client";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -44,7 +45,6 @@ interface CodeExtension {
 export class SenseCodeManager {
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
-  private context: ExtensionContext;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
   private detectedProxyVersion = '0.0.0';
   private readonly requiredProxyExtension = "SenseTime.sensetimeproxy";
@@ -75,12 +75,18 @@ export class SenseCodeManager {
     return undefined;
   }
 
-  constructor(context: ExtensionContext) {
+  constructor(private readonly context: ExtensionContext) {
+    let flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
+    this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    let ret = context.globalState.get<boolean>(flag);
+    if (!ret) {
+      this.resetAllCacheData();
+      context.globalState.update(flag, true);
+    }
+
     context.subscriptions.push(extensions.onDidChange(() => {
       this.updateEngineList();
     }));
-    this.context = context;
-    this.configuration = workspace.getConfiguration("SenseCode", undefined);
     this.updateEngineList();
   }
 
@@ -112,13 +118,14 @@ export class SenseCodeManager {
             redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
           };
           client = new SenseCodeClient(meta, e, outlog.debug);
+        } else if (e.type === ClientType.openai) {
+          client = new OpenAIClient(e, outlog.debug);
         }
         if (client) {
-          let ca: ClientAndAuthInfo = { client, authInfo: authinfos[e.label] };
           client.onDidChangeAuthInfo((ai) => {
             this.updateToken(e.label, ai, true);
           });
-          this.appendClient(e.label, ca, e.config.key);
+          this.appendClient(e.label, { client, authInfo: authinfos[e.label] }, e);
         }
       }
     }
@@ -128,25 +135,27 @@ export class SenseCodeManager {
     }
   }
 
-  private appendClient(name: string, c: ClientAndAuthInfo, key?: string) {
+  private async appendClient(name: string, c: ClientAndAuthInfo, cfg: ClientConfig) {
     this._clients[name] = c;
-    if (!c.authInfo && key) {
-      let aksk = key.split('#');
-      let ak = aksk[0] ?? '';
-      let sk = aksk[1] ?? '';
-      c.client.setAccessKey(ak, sk).then(async (ai) => {
+    if (cfg.key) {
+      await c.client.setAccessKey(cfg.key).then(async (ai) => {
         await this.updateToken(name, ai, true);
       });
+    } else if (c.authInfo) {
+      if (cfg.username) {
+        c.authInfo.account.username = cfg.username;
+      }
+      await this.updateToken(name, c.authInfo, true);
     }
   }
 
-  public async setAccessKey(ak: string, sk: string, clientName?: string): Promise<void> {
+  public async setAccessKey(key: string, clientName?: string): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      ca.client.setAccessKey(ak, sk).then(async ai => {
+      await ca.client.setAccessKey(key).then(async ai => {
         await this.updateToken(ca!.client.label, ai);
       });
     }
@@ -224,16 +233,20 @@ export class SenseCodeManager {
 
   private clearStatusData(): void {
     deleteAllCacheFiles(this.context);
-    this.context.globalState.update("privacy", undefined);
-    this.context.globalState.update("ActiveClient", undefined);
-    this.context.globalState.update("CompletionAutomatically", undefined);
-    this.context.globalState.update("CompletionPreference", undefined);
-    this.context.globalState.update("StreamResponse", undefined);
-    this.context.globalState.update("Candidates", undefined);
-    this.context.globalState.update("Delay", undefined);
-    this.configuration.update("Prompt", undefined, true);
-    this.context.secrets.delete("SenseCode.tokens");
+    this.resetAllCacheData();
     this.updateEngineList();
+  }
+
+  private async resetAllCacheData() {
+    await this.context.globalState.update("privacy", undefined);
+    await this.context.globalState.update("ActiveClient", undefined);
+    await this.context.globalState.update("CompletionAutomatically", undefined);
+    await this.context.globalState.update("CompletionPreference", undefined);
+    await this.context.globalState.update("StreamResponse", undefined);
+    await this.context.globalState.update("Candidates", undefined);
+    await this.context.globalState.update("Delay", undefined);
+    await this.configuration.update("Prompt", undefined, true);
+    await this.context.secrets.delete("SenseCode.tokens");
   }
 
   public update(): void {
@@ -347,7 +360,10 @@ export class SenseCodeManager {
   }
 
   public get clientsLabel(): string[] {
-    return Object.keys(this._clients);
+    let es = this.configuration.get<ClientConfig[]>("Engines", []);
+    return builtinEngines.concat(es).map((v, _idx, _arr) => {
+      return v.label;
+    });
   }
 
   public userId(clientName?: string): string | undefined {
@@ -365,7 +381,7 @@ export class SenseCodeManager {
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca && ca.authInfo) {
+    if (ca && ca.client) {
       return ca.authInfo?.account.username;
     }
   }
@@ -380,7 +396,7 @@ export class SenseCodeManager {
     }
   }
 
-  public getAuthUrlLogin(clientName?: string) {
+  public async getAuthUrlLogin(clientName?: string): Promise<string> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
@@ -464,6 +480,8 @@ export class SenseCodeManager {
         ...config
       };
       return ca.client.getCompletions(ca.authInfo, params, options);
+    } else if (ca) {
+      return Promise.reject(Error(l10n.t("Unauthorized")));
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
@@ -480,10 +498,10 @@ export class SenseCodeManager {
         ...config
       };
       ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);
-    } else if (!ca) {
-      return Promise.reject(Error("Invalid client handle"));
-    } else {
+    } else if (ca) {
       return Promise.reject(Error(l10n.t("Unauthorized")));
+    } else {
+      return Promise.reject(Error("Invalid client handle"));
     }
   }
 

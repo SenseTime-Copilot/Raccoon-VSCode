@@ -1,28 +1,10 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions } from "./CodeClient";
-import jwt_decode from "jwt-decode";
-import sign = require('jwt-encode');
 
-export interface SenseNovaClientMeta {
-  clientId: string;
-  redirectUrl: string;
-}
-
-function generateSignature(_urlString: string, _date: string, ak: string, sk: string) {
-  let t = new Date().valueOf();
-  let data = {
-    iss: ak,
-    exp: Math.floor(t / 1000) + 1800,
-    nbf: Math.floor(t / 1000) - 5
-  };
-  return "Bearer " + sign(data, sk);
-}
-
-export class SenseNovaClient implements CodeClient {
-  private onChangeAuthInfo?: (token: AuthInfo | undefined) => void;
-
-  constructor(private readonly meta: SenseNovaClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
+export class OpenAIClient implements CodeClient {
+  private _username?: string;
+  constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
   public async logout(_auth: AuthInfo): Promise<string | undefined> {
@@ -34,9 +16,10 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public async setAccessKey(key: string): Promise<AuthInfo> {
+    this._username = this.clientConfig.username || "User";
     let auth: AuthInfo = {
       account: {
-        username: this.clientConfig.username || "User",
+        username: this._username,
         userId: undefined
       },
       weaverdKey: key
@@ -48,6 +31,10 @@ export class SenseNovaClient implements CodeClient {
     return this.clientConfig.label;
   }
 
+  get username(): string {
+    return this._username || "User";
+  }
+
   public get maxInputTokenNum(): number {
     return this.clientConfig.maxInputTokenNum;
   }
@@ -56,54 +43,15 @@ export class SenseNovaClient implements CodeClient {
     return this.clientConfig.totalTokenNum;
   }
 
-  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
-    this.onChangeAuthInfo = handler;
+  onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    return Promise.resolve(`https://login.stage.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}`);
+    return Promise.resolve(undefined);
   }
 
-  private async parseAuthInfo(data: any): Promise<AuthInfo> {
-    let queries: string[] = decodeURIComponent(data).split("&");
-    let name = undefined;
-    let refreshToken: string | undefined = undefined;
-    let weaverdKey: string | undefined = undefined;
-    for (let q of queries) {
-      if (q.startsWith("token=")) {
-        weaverdKey = q.slice(6);
-        let decoded: any = jwt_decode(weaverdKey);
-        name = decoded.username;
-      } else if (q.startsWith("refresh=")) {
-        refreshToken = q.slice(8);
-      } else if (q.startsWith("expires=")) {
-
-      }
-    }
-    if (!weaverdKey) {
-      return Promise.reject();
-    }
-    let ret: AuthInfo = {
-      account: {
-        username: this.clientConfig.username || name || "User",
-        userId: name,
-        avatar: undefined
-      },
-      refreshToken,
-      weaverdKey,
-    };
-
-    return ret;
-  }
-
-  public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
-    let url = new URL(callbackUrl);
-    let query = url.search?.slice(1);
-    if (!query) {
-      return Promise.reject();
-    }
-
-    return this.parseAuthInfo(query);
+  public async login(_callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
+    return Promise.reject();
   }
 
   private async apiKeyRaw(auth: AuthInfo): Promise<string> {
@@ -116,26 +64,7 @@ export class SenseNovaClient implements CodeClient {
     }
   }
 
-  private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    if (this.clientConfig.key) {
-      return Promise.resolve(auth);
-    }
-    if (auth.refreshToken) {
-      let url = `/oauth2/token`;
-      return axios.post(url)
-        .then((resp) => {
-          if (resp && resp.status === 200) {
-            return this.parseAuthInfo(resp.data);
-          }
-          return Promise.reject();
-        }, (err) => {
-          throw err;
-        });
-    }
-    return Promise.reject();
-  }
-
-  private _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<any | IncomingMessage> {
     return new Promise(async (resolve, reject) => {
       let date: string = new Date().toUTCString();
       let headers = options ? {
@@ -146,12 +75,7 @@ export class SenseNovaClient implements CodeClient {
 
       let key = await this.apiKeyRaw(auth);
       if (key) {
-        if (key.includes("#")) {
-          let aksk = key.split("#");
-          headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
-        } else {
-          headers["X-Sensenova-Token"] = key;
-        }
+        headers["Authorization"] = `Bearer ${key}`;
       }
 
       let responseType: ResponseType | undefined = undefined;
@@ -162,17 +86,14 @@ export class SenseNovaClient implements CodeClient {
         })
         : [];
       config.key = undefined;
-      config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
+      config.stop = requestParam.stop ? requestParam.stop[0] : null;
       config.stream = requestParam.stream;
-      config.max_new_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
+      config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
       if (config.stream) {
         responseType = "stream";
       }
 
       let payload = {
-        messages: requestParam.messages.filter((m) => {
-          return !!m.content;
-        }),
         ...config
       };
 
@@ -194,23 +115,7 @@ export class SenseNovaClient implements CodeClient {
             reject(res.data);
           }
         }).catch(async e => {
-          if (!skipRetry && e.response?.status === 401) {
-            let newToken: AuthInfo | undefined = undefined;
-            try {
-              newToken = await this.refreshToken(auth);
-              if (this.onChangeAuthInfo) {
-                this.onChangeAuthInfo(newToken);
-              }
-              if (!newToken) {
-                reject(new Error('Attemp to refresh access token but get nothing'));
-              }
-              this._postPrompt(newToken, requestParam, options, true).then(resolve, reject);
-            } catch (er: any) {
-              reject(new Error('Attemp to refresh access token but failed'));
-            }
-          } else {
-            return reject(e);
-          }
+          return reject(e);
         });
     });
   }
@@ -218,7 +123,7 @@ export class SenseNovaClient implements CodeClient {
   public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData> {
     requestParam.stream = false;
     return this._postPrompt(auth, requestParam, options).then(resp => {
-      let codeArray = resp.data.choices;
+      let codeArray = resp.choices;
       const choices = Array<Choice>();
       for (let i = 0; i < codeArray.length; i++) {
         const completion = codeArray[i];
@@ -227,13 +132,13 @@ export class SenseNovaClient implements CodeClient {
           finishReason: completion.finish_reason,
           message: {
             role: Role.assistant,
-            content: completion.message
+            content: completion.message.content
           }
         });
       }
       return {
-        id: resp.data.id,
-        created: new Date().valueOf(),
+        id: resp.id,
+        created: resp.created,
         choices
       };
     });
@@ -278,7 +183,7 @@ export class SenseNovaClient implements CodeClient {
             try {
               let json = JSON.parse(content);
               tail = "";
-              if (json.status && json.status.code !== 0) {
+              if (json.error) {
                 callback(new MessageEvent(ResponseEvent.error, {
                   data: {
                     id: '',
@@ -288,27 +193,26 @@ export class SenseNovaClient implements CodeClient {
                         index: 0,
                         message: {
                           role: Role.assistant,
-                          content: json.status.message,
+                          content: json.error.message,
                         }
                       }
                     ]
                   }
                 }));
-              } else if (json.data && json.data.choices) {
-                for (let choice of json.data.choices) {
-                  let value = choice.delta;
+              } else if (json.choices) {
+                for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
                   callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
                       data: {
-                        id: json.data.id,
-                        created: new Date().valueOf(),
+                        id: json.id,
+                        created: json.created,
                         choices: [
                           {
                             index: choice.index,
                             message: {
                               role: Role.assistant,
-                              content: value
+                              content: choice.delta.content
                             },
                             finishReason
                           }

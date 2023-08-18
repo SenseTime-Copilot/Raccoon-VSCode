@@ -9,6 +9,7 @@ import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
 import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 import { SenseCodeTerminal } from "./provider/codeTerminal";
 import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
+import { SenseCodeNotebook } from "./provider/notebook";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -61,15 +62,10 @@ export async function activate(context: vscode.ExtensionContext) {
     return v ? undefined : "The value must not be empty";
   };
   context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
-    vscode.window.showInputBox({ placeHolder: "Access Key ID", password: true, validateInput, ignoreFocusOut: true }).then((ak) => {
-      if (!ak) {
-        return;
+    vscode.window.showInputBox({ placeHolder: "Access Key", password: true, validateInput, ignoreFocusOut: true }).then((key) => {
+      if (key) {
+        sensecodeManager.setAccessKey(key);
       }
-      vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then((sk) => {
-        if (ak && sk) {
-          sensecodeManager.setAccessKey(ak, sk);
-        }
-      });
     });
   }));
 
@@ -187,6 +183,8 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEditorProvider.viewType, new SenseCodeEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
+
+  SenseCodeNotebook.rigister(context);
 
 }
 export function deactivate() { }

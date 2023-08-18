@@ -164,8 +164,8 @@ const vscode = acquireVsCodeApi();
       }
       case 'restoreFromCache': {
         for (let item of message.value) {
-          if (item.question) {
-            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.question)), "text/html");
+          if (item.type === 'question') {
+            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
 
             preCodeList.forEach((preCode, index) => {
@@ -208,8 +208,8 @@ const vscode = acquireVsCodeApi();
             });
             let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${markedResponse.documentElement.innerHTML}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
-          } else if (item.answer) {
-            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.answer)), "text/html");
+          } else if (item.type === "answer") {
+            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
 
             preCodeList.forEach((preCode, index) => {

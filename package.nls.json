@@ -21,6 +21,7 @@
     "sensecode.command.setAccessKey": "Set Access Key",
     "sensecode.command.help": "Help",
     "sensecode.command.terminal": "SenseCode Terminal",
+    "sensecode.command.notebook.new": "SenseCode NoteBook",
     "sensecode.command.openEditor": "Open new SenseCode Assistant instance in editor",
     "sensecode.command.ask": "Ask SenseCode...",
     "sensecode.command.settings": "Settings",
