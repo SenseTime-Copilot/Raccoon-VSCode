@@ -671,7 +671,7 @@ export class SenseCodeEditor extends Disposable {
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
-            { modal: true, detail: l10n.t("It will clear all settings, and log out all your accounts.") },
+            { modal: true, detail: l10n.t("It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• Privacy acception status\n\n\tAnd reset all other settings to default\n") },
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
@@ -798,6 +798,10 @@ ${data.info.response}
           break;
         }
         case 'telemetry': {
+          if (data.info.action === 'bug-report') {
+            commands.executeCommand("workbench.action.openIssueReporter", {extensionId: this.context.extension.id});
+            break;
+          }
           if (!env.isTelemetryEnabled) {
             window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
               if (v === "OK") {

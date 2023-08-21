@@ -3,13 +3,13 @@
     "name": "sensecode",
     "displayName": "SenseCode",
     "description": "%sensecode.description%",
-    "homepage": "https://sensecore.cn",
+    "homepage": "https://sensecode.ai",
     "repository": {
         "type": "git",
-        "url": "https://gitlab.bj.sensetime.com/elementary/studio/sensecode-vscode-extension.git"
+        "url": "https://github.com/SenseCore/SenseCode.git"
     },
     "bugs": {
-        "email": "sensecode@sensetime.com"
+        "url": "https://github.com/SenseCore/SenseCode/issues"
     },
     "icon": "media/sensecode-logo.png",
     "version": "0.50.0",

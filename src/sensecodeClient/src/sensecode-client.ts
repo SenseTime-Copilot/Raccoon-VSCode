@@ -335,7 +335,7 @@ export class SenseCodeClient implements CodeClient {
                       index: 0,
                       message: {
                         role: Role.assistant,
-                        content: '',
+                        content: msg,
                       }
                     }
                   ]

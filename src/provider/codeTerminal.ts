@@ -5,9 +5,10 @@ import {
   l10n,
 } from 'vscode';
 import { sensecodeManager, telemetryReporter } from '../extension';
-import { ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
+import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { BanWords } from '../utils/swords';
 import { buildHeader } from '../utils/buildRequestHeader';
+import { CacheItem, CacheItemType } from './webviewProvider';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -60,9 +61,10 @@ function isBksp(char: string): boolean {
 
 export class SenseCodeTerminal {
   private cacheInput: string = '';
+  private cacheOutput: string = '';
   private cancel?: AbortController;
   private responsing: boolean = false;
-  private history: string[] = [];
+  private history: CacheItem[] = [];
   private curHistoryId = -1;
   private banWords: BanWords = BanWords.getInstance();
 
@@ -86,17 +88,23 @@ export class SenseCodeTerminal {
           let username = sensecodeManager.username() || "You";
           let question = '';
           if (isUpKey(input)) {
-            if (this.history.length > this.curHistoryId + 1) {
+            let qlist = this.history.filter((v, _idx, _arr) => {
+              return v.type === CacheItemType.question;
+            }).reverse();
+            if (qlist.length > this.curHistoryId + 1) {
               this.curHistoryId++;
-              this.cacheInput = this.history[this.curHistoryId];
+              this.cacheInput = qlist[this.curHistoryId].value;
               writeEmitter.fire("\x1b[1M" + this.cacheInput);
             }
             return;
           } else if (isDownKey(input)) {
+            let qlist = this.history.filter((v, _idx, _arr) => {
+              return v.type === CacheItemType.question;
+            }).reverse();
             if (this.curHistoryId >= 0) {
               this.curHistoryId--;
-              if (this.curHistoryId >= 0 && this.history.length > this.curHistoryId) {
-                this.cacheInput = this.history[this.curHistoryId];
+              if (this.curHistoryId >= 0 && qlist.length > this.curHistoryId) {
+                this.cacheInput = qlist[this.curHistoryId].value;
                 writeEmitter.fire("\x1b[1M" + this.cacheInput);
               } else {
                 writeEmitter.fire("\x1b[1M");
@@ -117,10 +125,25 @@ export class SenseCodeTerminal {
               return;
             }
             this.cacheInput = '';
+            this.cacheOutput = '';
+            this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
+
             let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
-            writeEmitter.fire("\x1b[38;5;232m⮨");
+            let suffix = '⮨';
+            if (window.activeTextEditor && window.activeTextEditor.selection) {
+              let code = window.activeTextEditor.document.getText(window.activeTextEditor.selection);
+              if (code.trim()) {
+                if (window.activeTextEditor.document.languageId !== "plaintext") {
+                  code = `\n\`\`\`${window.activeTextEditor.document.languageId}\n${code}\n\`\`\`\n`;
+                } else {
+                  code = `\n\`\`\`\n${code}\n\`\`\`\n`;
+                }
+                question += code;
+                suffix = ' [CODE]⮨';
+              }
+            }
+            writeEmitter.fire("\x1b[38;5;232m" + suffix);
             writeEmitter.fire("\r\n\r\n\x1b[1;96m" + robot + " > \x1b[0m\r\n");
-            this.history = [question, ...this.history];
           } else if (isBksp(input)) {
             if (this.cacheInput.length > 0) {
               if (this.cacheInput.charCodeAt(this.cacheInput.length - 1) > 255) {
@@ -143,7 +166,7 @@ export class SenseCodeTerminal {
             }
             return;
           } else {
-            let msg =  input.replace(/\r/g, "\r\n");
+            let msg = input.replace(/\r/g, "\r\n");
             this.cacheInput += msg;
             writeEmitter.fire(msg);
             return;
@@ -157,17 +180,39 @@ export class SenseCodeTerminal {
 
           this.cancel = new AbortController();
           this.responsing = true;
+          let totalLens: number[] = [];
+          for (let h of this.history) {
+            let len = h.value.length;
+            for (let i = 0; i < totalLens.length; i++) {
+              totalLens[i] += len;
+            }
+            totalLens.push(len);
+          }
+
+          for (let j = 0; j < totalLens.length; j++) {
+            if ((totalLens[j] + question.length) <= sensecodeManager.maxInputTokenNum() / 2) {
+              break;
+            } else {
+              this.history.shift();
+            }
+          }
+
+          let hlist: Array<Message> = this.history.map((v, _idx, _arr) => {
+            return { role: v.type === CacheItemType.question ? Role.user : Role.assistant, content: v.value };
+          });
 
           telemetryReporter.logUsage('free chat terminal');
           sensecodeManager.getCompletionsStreaming(
             {
-              messages: [{ role: Role.system, content: "" }, { role: Role.user, content: question }],
+              messages: [{ role: Role.system, content: "" }, ...hlist, { role: Role.user, content: question }],
               n: 1,
               stop: ["<|end|>"]
             },
             (event) => {
               if (this.cancel?.signal.aborted) {
                 this.responsing = false;
+                this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
+                this.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                 return;
               }
@@ -179,24 +224,31 @@ export class SenseCodeTerminal {
               switch (event.type) {
                 case ResponseEvent.cancel: {
                   this.responsing = false;
+                  this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
+                  this.cacheOutput = "";
                   writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
                 }
                 case ResponseEvent.finish:
                 case ResponseEvent.data: {
                   if (content) {
+                    this.cacheOutput += content;
                     writeEmitter.fire(content.replace(/\n/g, '\r\n'));
                   }
                   break;
                 }
                 case ResponseEvent.error: {
                   this.responsing = false;
+                  this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.error, value: content || "" }]);
+                  this.cacheOutput = "";
                   writeEmitter.fire(`\x1b[1;31merror: ${content}\x1b[0m`);
                   writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
                 }
                 case ResponseEvent.done: {
                   this.responsing = false;
+                  this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
+                  this.cacheOutput = "";
                   writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
                 }
@@ -208,6 +260,8 @@ export class SenseCodeTerminal {
             }
           ).catch(e => {
             this.responsing = false;
+            this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.error, value: e.message }]);
+            this.cacheOutput = "";
             writeEmitter.fire(`\x1b[1;31merror: ${e.message}\x1b[0m`);
             writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
           });

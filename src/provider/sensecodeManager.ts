@@ -122,10 +122,10 @@ export class SenseCodeManager {
           client = new OpenAIClient(e, outlog.debug);
         }
         if (client) {
-          client.onDidChangeAuthInfo((ai) => {
-            this.updateToken(e.label, ai, true);
+          client.onDidChangeAuthInfo(async (ai) => {
+            await this.updateToken(e.label, ai, true);
           });
-          this.appendClient(e.label, { client, authInfo: authinfos[e.label] }, e);
+          await this.appendClient(e.label, { client, authInfo: authinfos[e.label] }, e);
         }
       }
     }
@@ -138,14 +138,14 @@ export class SenseCodeManager {
   private async appendClient(name: string, c: ClientAndAuthInfo, cfg: ClientConfig) {
     this._clients[name] = c;
     if (cfg.key) {
-      await c.client.setAccessKey(cfg.key).then(async (ai) => {
-        await this.updateToken(name, ai, true);
+      return c.client.setAccessKey(cfg.key).then(async (ai) => {
+        return this.updateToken(name, ai, true);
       });
     } else if (c.authInfo) {
       if (cfg.username) {
         c.authInfo.account.username = cfg.username;
       }
-      await this.updateToken(name, c.authInfo, true);
+      return this.updateToken(name, c.authInfo, true);
     }
   }
 
@@ -156,7 +156,7 @@ export class SenseCodeManager {
     }
     if (ca) {
       await ca.client.setAccessKey(key).then(async ai => {
-        await this.updateToken(ca!.client.label, ai);
+        return this.updateToken(ca!.client.label, ai);
       });
     }
   }
@@ -246,6 +246,8 @@ export class SenseCodeManager {
     await this.context.globalState.update("Candidates", undefined);
     await this.context.globalState.update("Delay", undefined);
     await this.configuration.update("Prompt", undefined, true);
+
+    await this.context.globalState.update("SenseCode.tokenRefreshed", false);
     await this.context.secrets.delete("SenseCode.tokens");
   }
 

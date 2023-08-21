@@ -406,7 +406,17 @@ const vscode = acquireVsCodeApi();
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
                       <span class="flex gap-1 opacity-30 items-center">
                         <div class="spinner thinking">
-                            <span class="material-symbols-rounded">autorenew</span>
+                          <div class='sk-cube-grid'>
+                            <div class='sk-cube sk-cube-1'></div>
+                            <div class='sk-cube sk-cube-2'></div>
+                            <div class='sk-cube sk-cube-3'></div>
+                            <div class='sk-cube sk-cube-4'></div>
+                            <div class='sk-cube sk-cube-5'></div>
+                            <div class='sk-cube sk-cube-6'></div>
+                            <div class='sk-cube sk-cube-7'></div>
+                            <div class='sk-cube sk-cube-8'></div>
+                            <div class='sk-cube sk-cube-9'></div>
+                          </div>
                         </div>
                         <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
                       </span>
@@ -426,7 +436,17 @@ const vscode = acquireVsCodeApi();
                 </div>
                 <div class="connecting-text">${l10nForUI["Connecting..."]}</div>
                 <div class="spinner typing">
-                  <span class="material-symbols-rounded">rotate_right</span>
+                  <div class='sk-cube-grid'>
+                    <div class='sk-cube sk-cube-1'></div>
+                    <div class='sk-cube sk-cube-2'></div>
+                    <div class='sk-cube sk-cube-3'></div>
+                    <div class='sk-cube sk-cube-4'></div>
+                    <div class='sk-cube sk-cube-5'></div>
+                    <div class='sk-cube sk-cube-6'></div>
+                    <div class='sk-cube sk-cube-7'></div>
+                    <div class='sk-cube sk-cube-8'></div>
+                    <div class='sk-cube sk-cube-9'></div>
+                  </div>
                 </div>
                 <div class="typing-text">${l10nForUI["Typing..."]}</div>
               </span>

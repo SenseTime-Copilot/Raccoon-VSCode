@@ -25,7 +25,7 @@
   "SenseCode: Input your Key...": "SenseCode: Input your Key...",
   "No code selected": "No code selected",
   "No active editor found": "No active editor found",
-  "It will clear all settings, and log out all your accounts.": "It will clear all settings, and log out all your accounts.",
+  "It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• Privacy acception status\n\n\tAnd reset all other settings to default\n": "It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• Privacy acception status\n\n\tAnd reset all other settings to default\n",
   "Unknown": "Unknown",
   "Login failed": "Login failed",
   "Unauthorized": "Unauthorized",

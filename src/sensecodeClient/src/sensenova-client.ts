@@ -61,7 +61,7 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    return Promise.resolve(`https://login.stage.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}`);
+    return Promise.resolve(`https://login.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}`);
   }
 
   private async parseAuthInfo(data: any): Promise<AuthInfo> {
