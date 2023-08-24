@@ -375,7 +375,7 @@ export class SenseCodeClient implements CodeClient {
                         index: json.index,
                         message: {
                           role: Role.assistant,
-                          content: json.error,
+                          content: json.error.message,
                         }
                       }
                     ]
