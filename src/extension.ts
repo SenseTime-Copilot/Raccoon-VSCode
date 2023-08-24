@@ -46,6 +46,8 @@ export async function activate(context: vscode.ExtensionContext) {
     },
     sendEventData(eventName, data) {
       let devConfig = sensecodeManager.devConfig;
+      // TODO: change to default on
+      // if (devConfig && devConfig.telemetry === false) {
       if (!devConfig || devConfig.telemetry !== true) {
         return;
       }

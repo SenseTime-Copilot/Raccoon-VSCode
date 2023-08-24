@@ -104,7 +104,7 @@ export class SenseCodeManager {
     for (let e of es) {
       if (e.type && e.label && e.url) {
         let client;
-        if (e.type === proxy?.exports?.filterType()) {
+        if (proxy?.exports?.filterEnabled(e)) {
           client = proxy?.exports.factory(e, outlog.debug);
         } else if (e.type === ClientType.sensenova) {
           const meta: SenseNovaClientMeta = {

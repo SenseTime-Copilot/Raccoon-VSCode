@@ -186,7 +186,8 @@
         "menus": {
             "file/newFile": [
                 {
-                    "command": "sensecode.notebook.new"
+                    "command": "sensecode.notebook.new",
+                    "when": "scnb"
                 }
             ],
             "editor/context": [
@@ -215,7 +216,7 @@
                 {
                     "command": "sensecode.notebook.new",
                     "group": "navigation@4",
-                    "when": "view == sensecode.view"
+                    "when": "view == sensecode.view && scnb"
                 },
                 {
                     "command": "sensecode.help",

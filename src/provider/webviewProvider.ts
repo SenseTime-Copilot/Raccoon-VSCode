@@ -678,7 +678,7 @@ export class SenseCodeEditor extends Disposable {
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
-            { modal: true, detail: l10n.t("It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• Privacy acception status\n\n\tAnd reset all other settings to default\n") },
+            { modal: true, detail: l10n.t("It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• Privacy acception status\n\n\tAnd reset all other settings to default.\n") },
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
@@ -878,7 +878,8 @@ ${data.info.response}
     let maxTokens = sensecodeManager.maxInputTokenNum();
     if (el > maxTokens) {
       let devConfig = sensecodeManager.devConfig;
-      if (devConfig && devConfig.inputTokenCountLimit === true) {
+      if (devConfig && devConfig.inputTokenCountLimit === false) {
+      } else {
         this.sendMessage({ type: 'showInfoTip', style: "error", category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
         return;
       }

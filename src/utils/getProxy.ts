@@ -1,9 +1,9 @@
 import axios from "axios";
 import { commands, env, extensions, UIKind, Uri, window, Extension } from "vscode";
-import { ClientType, ClientConfig, CodeClient } from "../sensecodeClient/src/CodeClient";
+import { ClientConfig, CodeClient } from "../sensecodeClient/src/CodeClient";
 
 export interface CodeExtension {
-  filterType: () => ClientType;
+  filterEnabled: (clientConfig: ClientConfig) => boolean;
   factory: (clientConfig: ClientConfig, debug?: (message: string, ...args: any[]) => void) => CodeClient | undefined;
 }
 
