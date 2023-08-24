@@ -8,8 +8,7 @@ import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { deleteAllCacheFiles, SenseCodeViewProvider } from "./webviewProvider";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
-import { getProxy } from "../utils/getProxy";
-import { CodeExtension } from "../utils/getProxy";
+import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -80,7 +79,7 @@ export class SenseCodeManager {
       })
     );
     context.subscriptions.push(extensions.onDidChange(() => {
-      getProxy().then(p => {
+      checkSensetimeEnv().then(p => {
         if ((p && !this.proxy) || (!p && this.proxy) || (p && this.proxy && p.packageJSON.version !== this.proxy.packageJSON.version)) {
           this.proxy = p;
           this.updateEngineList(this.proxy);

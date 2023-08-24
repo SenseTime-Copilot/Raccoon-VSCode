@@ -10,13 +10,10 @@ export interface CodeExtension {
 const requiredProxyVersion = '0.50.0';
 const proxyUrl = `http://kestrel.sensetime.com/tools/sensetimeproxy-${requiredProxyVersion}.vsix`;
 
-export async function getProxy(): Promise<Extension<CodeExtension> | undefined> {
+async function getProxy(): Promise<Extension<CodeExtension> | undefined> {
   let es = extensions.all;
   for (let e of es) {
     if (e.id === "SenseTime.sensetimeproxy") {
-      if (e.packageJSON.version !== requiredProxyVersion) {
-        continue;
-      }
       if (e.isActive) {
         return e;
       } else {
@@ -29,33 +26,55 @@ export async function getProxy(): Promise<Extension<CodeExtension> | undefined> 
   return undefined;
 }
 
-export async function checkSensetimeEnv(): Promise<void> {
-  if (env.uiKind === UIKind.Web) {
-    return Promise.resolve();
+function checkProxyVersion(proxy: Extension<CodeExtension> | undefined): boolean | undefined {
+  if (!proxy) {
+    return undefined;
   }
-  await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(async (e) => {
-    if (e.response?.status === 500) {
-      let proxy = await getProxy();
-      if (!proxy) {
-        window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
-          (v) => {
-            if (v === "下载") {
-              commands.executeCommand('vscode.open', Uri.parse(proxyUrl));
-            }
-            if (v === "已安装, 去启用") {
-              commands.executeCommand('workbench.extensions.search', '@installed sensetimeproxy');
-            }
+
+  return proxy.packageJSON.version === requiredProxyVersion;
+}
+
+export async function checkSensetimeEnv(showError?: boolean): Promise<Extension<CodeExtension> | undefined> {
+  if (env.uiKind === UIKind.Web) {
+    return Promise.resolve(undefined);
+  }
+  return axios.get(`https://sso.sensetime.com/enduser/sp/sso/`)
+    .then(() => {
+      return undefined;
+    })
+    .catch(async (e) => {
+      if (e.response?.status === 500) {
+        let proxy = await getProxy();
+        let status = checkProxyVersion(proxy);
+        if (status === undefined) {
+          if (showError) {
+            window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
+              (v) => {
+                if (v === "下载") {
+                  commands.executeCommand('vscode.open', Uri.parse(proxyUrl));
+                }
+                if (v === "已安装, 去启用") {
+                  commands.executeCommand('workbench.extensions.search', '@installed sensetimeproxy');
+                }
+              }
+            );
           }
-        );
-      } else if (proxy.packageJSON.version !== requiredProxyVersion) {
-        window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "下载").then(
-          (v) => {
-            if (v === "下载") {
-              commands.executeCommand('vscode.open', Uri.parse(proxyUrl));
-            }
+          return undefined;
+        } else if (!status) {
+          if (showError) {
+            window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "下载").then(
+              (v) => {
+                if (v === "下载") {
+                  commands.executeCommand('vscode.open', Uri.parse(proxyUrl));
+                }
+              }
+            );
           }
-        );
+          return undefined;
+        } else {
+          return proxy;
+        }
       }
-    }
-  });
+      return undefined;
+    });
 }
