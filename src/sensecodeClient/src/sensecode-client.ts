@@ -3,7 +3,7 @@ import FormData = require("form-data");
 import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
 
 export interface SenseCodeClientMeta {
   clientId: string;
@@ -31,16 +31,6 @@ export class SenseCodeClient implements CodeClient {
   constructor(private readonly meta: SenseCodeClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public async logout(_auth: AuthInfo): Promise<string | undefined> {
-    if (this.clientConfig.key) {
-      return Promise.reject(new Error("Can not clear Access Key from settings"));
-    } else if (this.logoutUrl) {
-      return axios.get(this.logoutUrl).then(() => {
-        return undefined;
-      });
-    }
-  }
-
   public get label(): string {
     return this.clientConfig.label;
   }
@@ -53,29 +43,75 @@ export class SenseCodeClient implements CodeClient {
     return this.clientConfig.totalTokenNum;
   }
 
-  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
+  public get authMethods(): AuthMethod[] {
+    return [AuthMethod.browser, AuthMethod.accesskey];
+  }
+
+  public getAuthUrlLogin(codeVerifier: string): Promise<string | undefined> {
+    let key = this.clientConfig.key;
+    if (key && typeof key === "object") {
+      let aksk = key as AccessKey;
+      return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
+    }
+
+    let baseUrl = this.getAuthBaseUrl();
+    let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64");
+    let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
+    return Promise.resolve(url);
+  }
+
+  public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
+    let url = new URL(callbackUrl);
+    let query = url.search?.slice(1);
+    if (!query) {
+      return Promise.reject();
+    }
+    if (url.protocol === "authorization:") {
+      let auth: AuthInfo = {
+        account: {
+          username: this.clientConfig.username || "User",
+          userId: undefined
+        },
+        weaverdKey: query
+      };
+      return auth;
+    } else {
+      try {
+        let data = JSON.parse('{"' + decodeURIComponent(query).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
+        return this.loginSenseCore(data.code, codeVerifer, data.state);
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    }
+  }
+
+  public async logout(_auth: AuthInfo): Promise<string | undefined> {
+    if (this.clientConfig.key) {
+      return Promise.reject(new Error("Can not clear Access Key from settings"));
+    } else if (this.logoutUrl) {
+      return axios.get(this.logoutUrl).then(() => {
+        return undefined;
+      });
+    }
+  }
+
+  public onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
     this.onChangeAuthInfo = handler;
   }
 
-  private async apiKeyRaw(auth: AuthInfo): Promise<string> {
+  private async apiKeyRaw(auth: AuthInfo): Promise<string | AccessKey> {
     if (this.clientConfig.key) {
-      return Promise.resolve(this.clientConfig.key);
+      return Promise.resolve(this.clientConfig.key );
     } else if (auth.weaverdKey) {
+      let key = auth.weaverdKey;
+      if (key.includes("&")) {
+        let aksk = key.split("&");
+        return Promise.resolve({ accessKeyId: aksk[0], secretAccessKey: aksk[1] });
+      }
       return Promise.resolve(auth.weaverdKey);
     } else {
       return Promise.reject();
     }
-  }
-
-  public getAuthUrlLogin(codeVerifier: string): Promise<string | undefined> {
-    if (this.clientConfig.key) {
-      return Promise.resolve(undefined);
-    }
-
-    let baseUrl = this.getAuthBaseUrl();
-    let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64url");
-    let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
-    return Promise.resolve(url);
   }
 
   private getAuthBaseUrl() {
@@ -133,31 +169,6 @@ export class SenseCodeClient implements CodeClient {
       });
   }
 
-  public async setAccessKey(key: string): Promise<AuthInfo> {
-    let auth: AuthInfo = {
-      account: {
-        username: this.clientConfig.username || "User",
-        userId: undefined
-      },
-      weaverdKey: key
-    };
-    return auth;
-  }
-
-  public async login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo> {
-    let url = new URL(callbackUrl);
-    let query = url.search?.slice(1);
-    if (!query) {
-      return Promise.reject();
-    }
-    try {
-      let data = JSON.parse('{"' + decodeURIComponent(query).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
-      return this.loginSenseCore(data.code, codeVerifer, data.state);
-    } catch (e) {
-      return Promise.reject(e);
-    }
-  }
-
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
     if (this.clientConfig.key) {
       return Promise.resolve(auth);
@@ -199,11 +210,11 @@ export class SenseCodeClient implements CodeClient {
     let date: string = new Date().toUTCString();
     let authHeader = '';
     if (key) {
-      if (key.includes("#")) {
-        let aksk = key.split("#");
-        authHeader = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
-      } else {
+      if (typeof key === 'string') {
         authHeader = `Bearer ${key}`;
+      } else {
+        let aksk = key as AccessKey;
+        authHeader = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
       }
     }
 

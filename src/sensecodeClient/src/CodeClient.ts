@@ -4,6 +4,17 @@ export enum ClientType {
   openai = "openai"
 }
 
+export enum AuthMethod {
+  browser = "browser",
+  apikey = "apikey",
+  accesskey = "accesskey",
+}
+
+export interface AccessKey {
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
 export interface ClientConfig {
   type: ClientType;
   label: string;
@@ -11,7 +22,7 @@ export interface ClientConfig {
   config: any;
   maxInputTokenNum: number;
   totalTokenNum: number;
-  key?: string;
+  key?: string | AccessKey;
   username?: string;
 }
 
@@ -90,15 +101,15 @@ export interface CodeClient {
 
   get totalTokenNum(): number;
 
-  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
+  get authMethods(): AuthMethod[];
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
-
-  setAccessKey(key: string): Promise<AuthInfo>;
 
   login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
 
   logout(auth: AuthInfo): Promise<string | undefined>;
+
+  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 
   getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData>;
 

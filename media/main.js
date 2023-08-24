@@ -62,8 +62,8 @@ const vscode = acquireVsCodeApi();
     var promptNode = document.getElementById(`prompt-${id}`);
     var valuesNode = document.getElementById(`values-${id}`);
     var responseNode = document.getElementById(`response-${id}`);
-    var response = responseNode.dataset.response;
-    var error = responseNode.dataset.error;
+    var response = responseNode?.dataset?.response;
+    var error = responseNode?.dataset?.error;
     var languageid;
     var code;
     if (valuesNode) {
@@ -80,7 +80,7 @@ const vscode = acquireVsCodeApi();
       request: {
         languageid,
         code,
-        ...promptNode.dataset
+        ...promptNode?.dataset
       },
       response: [response],
       error,

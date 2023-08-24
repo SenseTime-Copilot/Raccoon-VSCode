@@ -1,6 +1,5 @@
-import axios from "axios";
-import { commands, env, ExtensionContext, extensions, l10n, UIKind, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
-import { AuthInfo, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { commands, env, ExtensionContext, extensions, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Extension, Uri } from "vscode";
+import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -9,6 +8,8 @@ import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { deleteAllCacheFiles, SenseCodeViewProvider } from "./webviewProvider";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
+import { getProxy } from "../utils/getProxy";
+import { CodeExtension } from "../utils/getProxy";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -37,45 +38,25 @@ interface ClientAndAuthInfo {
   authInfo?: AuthInfo;
 }
 
-interface CodeExtension {
-  filterType: () => ClientType;
-  factory: (clientConfig: ClientConfig, debug?: (message: string, ...args: any[]) => void) => CodeClient | undefined;
+type ChangeScope = "prompt" | "engines" | "active" | "authorization";
+
+export interface StatusChangeEvent {
+  scope: ChangeScope[];
+  quiet?: boolean;
 }
 
 export class SenseCodeManager {
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
-  private detectedProxyVersion = '0.0.0';
-  private readonly requiredProxyExtension = "SenseTime.sensetimeproxy";
-  private readonly requiredProxyVersion = '0.50.0';
+  private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
+  public onDidChangeStatus = this.changeStatusEmitter.event;
 
   private randomUUID(): string {
     return randomBytes(20).toString('hex');
   }
 
-  private async getProxy(): Promise<CodeExtension | undefined> {
-    let proxy: CodeExtension | undefined = undefined;
-    let es = extensions.all;
-    for (let e of es) {
-      if (e.id === this.requiredProxyExtension) {
-        this.detectedProxyVersion = e.packageJSON.version;
-        if (e.isActive) {
-          proxy = e.exports as CodeExtension;
-        } else {
-          await e.activate().then((apis) => {
-            proxy = apis as CodeExtension;
-          }, () => {
-            console.log(`Activate '${this.requiredProxyExtension}' failed`);
-          });
-        }
-        return proxy;
-      }
-    }
-    return undefined;
-  }
-
-  constructor(private readonly context: ExtensionContext) {
+  constructor(private readonly context: ExtensionContext, private proxy: Extension<CodeExtension> | undefined) {
     let flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
     let ret = context.globalState.get<boolean>(flag);
@@ -83,14 +64,33 @@ export class SenseCodeManager {
       this.resetAllCacheData();
       context.globalState.update(flag, true);
     }
-
+    context.subscriptions.push(
+      workspace.onDidChangeConfiguration(async (e) => {
+        if (e.affectsConfiguration("SenseCode")) {
+          this.update();
+          if (e.affectsConfiguration("SenseCode.Prompt")) {
+            this.changeStatusEmitter.fire({ scope: ["prompt"] });
+          }
+          if (e.affectsConfiguration("SenseCode.Engines")) {
+            this.updateEngineList(this.proxy).then(() => {
+              this.changeStatusEmitter.fire({ scope: ["engines"] });
+            });
+          }
+        }
+      })
+    );
     context.subscriptions.push(extensions.onDidChange(() => {
-      this.updateEngineList();
+      getProxy().then(p => {
+        if ((p && !this.proxy) || (!p && this.proxy) || (p && this.proxy && p.packageJSON.version !== this.proxy.packageJSON.version)) {
+          this.proxy = p;
+          this.updateEngineList(this.proxy);
+        }
+      });
     }));
-    this.updateEngineList();
+    this.updateEngineList(this.proxy);
   }
 
-  private async buildAllClient(ext?: CodeExtension): Promise<void> {
+  private async updateEngineList(proxy?: Extension<CodeExtension>): Promise<void> {
     let tks = await this.context.secrets.get("SenseCode.tokens");
     let authinfos: any = {};
     if (tks) {
@@ -104,8 +104,8 @@ export class SenseCodeManager {
     for (let e of es) {
       if (e.type && e.label && e.url) {
         let client;
-        if (e.type === ext?.filterType()) {
-          client = ext.factory(e, outlog.debug);
+        if (e.type === proxy?.exports?.filterType()) {
+          client = proxy?.exports.factory(e, outlog.debug);
         } else if (e.type === ClientType.sensenova) {
           const meta: SenseNovaClientMeta = {
             clientId: "",
@@ -129,79 +129,45 @@ export class SenseCodeManager {
         }
       }
     }
-
-    if (env.uiKind !== UIKind.Web) {
-      this.checkSensetimeEnv(!!ext);
-    }
   }
 
   private async appendClient(name: string, c: ClientAndAuthInfo, cfg: ClientConfig) {
     this._clients[name] = c;
-    if (cfg.key) {
-      return c.client.setAccessKey(cfg.key).then(async (ai) => {
-        return this.updateToken(name, ai, true);
-      });
-    } else if (c.authInfo) {
+    if (c.authInfo) {
       if (cfg.username) {
         c.authInfo.account.username = cfg.username;
       }
       return this.updateToken(name, c.authInfo, true);
     }
-  }
 
-  public async setAccessKey(key: string, clientName?: string): Promise<void> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
-    if (ca) {
-      await ca.client.setAccessKey(key).then(async ai => {
-        return this.updateToken(ca!.client.label, ai);
+    let url = await c.client.getAuthUrlLogin("");
+    if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
+      c.client.login(url, "").then((ai) => {
+        if (cfg.username) {
+          ai.account.username = cfg.username;
+        }
+        this.updateToken(name, ai, true);
       });
     }
   }
 
-  private async updateToken(clientName: string, ai?: AuthInfo, quite?: boolean) {
+  private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
     let tks = await this.context.secrets.get("SenseCode.tokens");
     let authinfos: any = {};
     if (tks) {
       try {
         authinfos = JSON.parse(tks);
         authinfos[clientName] = ai;
-        let ca = this.getClient(clientName);
-        if (ca) {
-          ca.authInfo = ai;
-        }
       } catch (e) { }
+    } else {
+      authinfos[clientName] = ai;
     }
-    await this.context.globalState.update("SenseCode.tokenRefreshed", quite);
-    this.context.secrets.store("SenseCode.tokens", JSON.stringify(authinfos));
-  }
-
-  private async checkSensetimeEnv(proxyReady: boolean): Promise<void> {
-    await axios.get(`https://sso.sensetime.com/enduser/sp/sso/`).catch(e => {
-      if (e.response?.status === 500) {
-        if (!proxyReady) {
-          window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
-            (v) => {
-              if (v === "下载") {
-                commands.executeCommand('vscode.open', Uri.parse(`http://kestrel.sensetime.com/tools/sensetimeproxy-${this.requiredProxyVersion}.vsix`));
-              }
-              if (v === "已安装, 去启用") {
-                commands.executeCommand('workbench.extensions.search', '@installed sensetimeproxy');
-              }
-            }
-          );
-        } else if (this.detectedProxyVersion !== this.requiredProxyVersion) {
-          window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "下载").then(
-            (v) => {
-              if (v === "下载") {
-                commands.executeCommand('vscode.open', Uri.parse(`http://kestrel.sensetime.com/tools/sensetimeproxy-${this.requiredProxyVersion}.vsix`));
-              }
-            }
-          );
-        }
-      }
+    let ca = this.getClient(clientName);
+    if (ca) {
+      ca.authInfo = ai;
+    }
+    return this.context.secrets.store("SenseCode.tokens", JSON.stringify(authinfos)).then(() => {
+      this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
     });
   }
 
@@ -224,17 +190,18 @@ export class SenseCodeManager {
         );
       }
     }
-    Promise.all(logoutAct).then(() => {
-      this.clearStatusData();
-    }, () => {
-      this.clearStatusData();
+    Promise.all(logoutAct).then(async () => {
+      await this.clearStatusData();
+    }, async () => {
+      await this.clearStatusData();
     });
   }
 
-  private clearStatusData(): void {
+  private async clearStatusData(): Promise<void> {
     deleteAllCacheFiles(this.context);
-    this.resetAllCacheData();
-    this.updateEngineList();
+    return this.resetAllCacheData().then(() => {
+      return this.updateEngineList(this.proxy);
+    });
   }
 
   private async resetAllCacheData() {
@@ -247,8 +214,8 @@ export class SenseCodeManager {
     await this.context.globalState.update("Delay", undefined);
     await this.configuration.update("Prompt", undefined, true);
 
-    await this.context.globalState.update("SenseCode.tokenRefreshed", false);
     await this.context.secrets.delete("SenseCode.tokens");
+    this.changeStatusEmitter.fire({ scope: ["authorization", "active", "engines", "prompt"] });
   }
 
   public update(): void {
@@ -257,12 +224,6 @@ export class SenseCodeManager {
 
   public get devConfig(): any {
     return this.configuration.get("Dev");
-  }
-
-  public async updateEngineList(): Promise<void> {
-    return this.getProxy().then((ext) => {
-      return this.buildAllClient(ext);
-    });
   }
 
   private getClient(client?: string): ClientAndAuthInfo | undefined {
@@ -296,6 +257,7 @@ export class SenseCodeManager {
     let originClientState = this.context.globalState.get<string>("ActiveClient");
     if (originClientState !== clientName) {
       await this.context.globalState.update("ActiveClient", clientName);
+      this.changeStatusEmitter.fire({ scope: ["active"] });
     }
   }
 
@@ -398,20 +360,42 @@ export class SenseCodeManager {
     }
   }
 
-  public async getAuthUrlLogin(clientName?: string): Promise<string> {
+  public async getAuthUrlLogin(clientName?: string): Promise<string | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      if (env.uiKind === UIKind.Web) {
-        return Promise.resolve("command:sensecode.setAccessKey");
-      }
+      let authMethods = ca.client.authMethods;
       let verifier = this.seed;
       verifier += env.machineId;
-      return ca.client.getAuthUrlLogin(verifier).then((url) => {
-        return url ?? "command:sensecode.setAccessKey";
-      });
+      let url = await ca.client.getAuthUrlLogin(verifier);
+      if (url) {
+        if (Uri.parse(url).scheme === 'authorization') {
+          if (ca.authInfo) {
+            return undefined;
+          }
+          return ca.client.login(url, verifier).then(async (token) => {
+            if (ca && token) {
+              this.updateToken(ca.client.label, token);
+            }
+            return undefined;
+          }, (_err) => {
+            return undefined;
+          });
+        } else {
+          if (env.uiKind === UIKind.Desktop && authMethods.includes(AuthMethod.browser)) {
+            return url;
+          }
+        }
+      }
+      if (authMethods.includes(AuthMethod.accesskey)) {
+        return Promise.resolve("command:sensecode.setAccessKey");
+      } else if (authMethods.includes(AuthMethod.apikey)) {
+        return Promise.resolve("command:sensecode.setApiKey");
+      } else {
+        return Promise.reject();
+      }
     } else {
       return Promise.reject();
     }

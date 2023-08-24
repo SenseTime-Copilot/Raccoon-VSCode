@@ -51,6 +51,14 @@ function ignoreKeys(char: string): boolean {
   return false;
 }
 
+function isEsc(char: string): boolean {
+  if (char.length === 1) {
+    const c1 = char.charCodeAt(0);
+    return c1 === 27;
+  }
+  return false;
+}
+
 function isBksp(char: string): boolean {
   if (char.length === 1) {
     const c1 = char.charCodeAt(0);
@@ -65,48 +73,78 @@ export class SenseCodeTerminal {
   private cancel?: AbortController;
   private responsing: boolean = false;
   private history: CacheItem[] = [];
+  private inputHistory: string[] = [];
+  private id: number = 0;
   private curHistoryId = -1;
   private banWords: BanWords = BanWords.getInstance();
 
   constructor() {
     let writeEmitter = new EventEmitter<string>();
-    let un = sensecodeManager.username();
+    let changeNameEmitter = new EventEmitter<string>();
+    sensecodeManager.onDidChangeStatus((e) => {
+      if (e.scope.includes("active")) {
+        writeEmitter.fire('\r\n');
+        welcome();
+      }
+    });
     let terminal = window.createTerminal({
-      name: "SenseCode",
+      name: `SenseCode`,
       isTransient: true,
       iconPath: new ThemeIcon('sensecode-icon'),
       pty: {
         onDidWrite: writeEmitter.event,
-        open: () => {
-          let ai = sensecodeManager.getActiveClientLabel() || "SenseCode";
-          let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);
-          writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
-          writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");
-        },
+        onDidChangeName: changeNameEmitter.event,
+        open: () => { welcome(); },
         close: () => { },
         handleInput: (input: string) => {
           let username = sensecodeManager.username() || "You";
+          let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
           let question = '';
-          if (isUpKey(input)) {
-            let qlist = this.history.filter((v, _idx, _arr) => {
-              return v.type === CacheItemType.question;
-            }).reverse();
+          if (isCtrlC(input)) {
+            if (this.responsing) {
+              this.cancel?.abort();
+            } else {
+              if (this.cacheInput) {
+                this.cacheInput = '';
+                writeEmitter.fire('\r\n');
+              }
+              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
+            }
+            return;
+          }
+          if (this.responsing) {
+            return;
+          }
+          if (isEsc(input)) {
+            if (this.history.length > 0) {
+              this.history = [];
+              this.curHistoryId = -1;
+              if (this.cacheInput) {
+                writeEmitter.fire("\x1b[1M");
+              }
+              this.cacheInput = "";
+              this.cacheOutput = "";
+              writeEmitter.fire("\r\n\x1b[7m  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  new session  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  \x1b[0m\r\n\r\n");
+              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
+            }
+            return;
+          } else if (isUpKey(input)) {
+            let qlist = this.inputHistory;
             if (qlist.length > this.curHistoryId + 1) {
               this.curHistoryId++;
-              this.cacheInput = qlist[this.curHistoryId].value;
+              this.cacheInput = qlist[this.curHistoryId];
               writeEmitter.fire("\x1b[1M" + this.cacheInput);
             }
             return;
           } else if (isDownKey(input)) {
-            let qlist = this.history.filter((v, _idx, _arr) => {
-              return v.type === CacheItemType.question;
-            }).reverse();
+            let qlist = this.inputHistory;
             if (this.curHistoryId >= 0) {
               this.curHistoryId--;
               if (this.curHistoryId >= 0 && qlist.length > this.curHistoryId) {
-                this.cacheInput = qlist[this.curHistoryId].value;
+                this.cacheInput = qlist[this.curHistoryId];
                 writeEmitter.fire("\x1b[1M" + this.cacheInput);
               } else {
+                this.cacheInput = "";
                 writeEmitter.fire("\x1b[1M");
               }
             }
@@ -124,11 +162,11 @@ export class SenseCodeTerminal {
             if (!question) {
               return;
             }
+            this.id = new Date().valueOf();
             this.cacheInput = '';
             this.cacheOutput = '';
-            this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
+            this.inputHistory = [question, ...this.inputHistory];
 
-            let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
             let suffix = '⮨';
             if (window.activeTextEditor && window.activeTextEditor.selection) {
               let code = window.activeTextEditor.document.getText(window.activeTextEditor.selection);
@@ -152,17 +190,6 @@ export class SenseCodeTerminal {
                 writeEmitter.fire("\b \b");
               }
               this.cacheInput = this.cacheInput.slice(0, -1);
-            }
-            return;
-          } else if (isCtrlC(input)) {
-            if (this.responsing) {
-              this.cancel?.abort();
-            } else {
-              if (this.cacheInput) {
-                this.cacheInput = '';
-                writeEmitter.fire('\r\n');
-              }
-              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
             }
             return;
           } else {
@@ -201,6 +228,8 @@ export class SenseCodeTerminal {
             return { role: v.type === CacheItemType.question ? Role.user : Role.assistant, content: v.value };
           });
 
+          this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
+
           telemetryReporter.logUsage('free chat terminal');
           sensecodeManager.getCompletionsStreaming(
             {
@@ -211,7 +240,7 @@ export class SenseCodeTerminal {
             (event) => {
               if (this.cancel?.signal.aborted) {
                 this.responsing = false;
-                this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
+                this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
                 this.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                 return;
@@ -224,7 +253,7 @@ export class SenseCodeTerminal {
               switch (event.type) {
                 case ResponseEvent.cancel: {
                   this.responsing = false;
-                  this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
+                  this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
                   this.cacheOutput = "";
                   writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
@@ -239,7 +268,7 @@ export class SenseCodeTerminal {
                 }
                 case ResponseEvent.error: {
                   this.responsing = false;
-                  this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.error, value: content || "" }]);
+                  this.history.pop();
                   this.cacheOutput = "";
                   writeEmitter.fire(`\x1b[1;31merror: ${content}\x1b[0m`);
                   writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
@@ -247,7 +276,7 @@ export class SenseCodeTerminal {
                 }
                 case ResponseEvent.done: {
                   this.responsing = false;
-                  this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
+                  this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
                   this.cacheOutput = "";
                   writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                   break;
@@ -260,7 +289,7 @@ export class SenseCodeTerminal {
             }
           ).catch(e => {
             this.responsing = false;
-            this.history = this.history.concat([{ id: 0, timestamp: "", name: username, type: CacheItemType.error, value: e.message }]);
+            this.history.pop();
             this.cacheOutput = "";
             writeEmitter.fire(`\x1b[1;31merror: ${e.message}\x1b[0m`);
             writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
@@ -269,6 +298,15 @@ export class SenseCodeTerminal {
       }
     });
     terminal.show();
+
+    function welcome() {
+      let un = sensecodeManager.username();
+      let ai = sensecodeManager.getActiveClientLabel() || "SenseCode";
+      ai = sensecodeManager.getActiveClientLabel() || "SenseCode";
+      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);
+      writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
+      writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");
+    }
   }
 
 }

@@ -10,6 +10,7 @@ import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 import { SenseCodeTerminal } from "./provider/codeTerminal";
 import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
 import { SenseCodeNotebook } from "./provider/notebook";
+import { checkSensetimeEnv, getProxy } from "./utils/getProxy";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -30,7 +31,10 @@ export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
   context.subscriptions.push(outlog);
 
-  sensecodeManager = new SenseCodeManager(context);
+  let proxy = await getProxy();
+  checkSensetimeEnv();
+
+  sensecodeManager = new SenseCodeManager(context, proxy);
   sensecodeManager.update();
 
   let senseCodeTelemetry: SenseCodeTelemetry = new SenseCodeTelemetry(vscode.env.appName, vscode.env.machineId);
@@ -61,10 +65,23 @@ export async function activate(context: vscode.ExtensionContext) {
   let validateInput = function (v: string) {
     return v ? undefined : "The value must not be empty";
   };
+
   context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
-    vscode.window.showInputBox({ placeHolder: "Access Key", password: true, validateInput, ignoreFocusOut: true }).then((key) => {
+    vscode.window.showInputBox({ placeHolder: "Access Key Id", password: true, validateInput, ignoreFocusOut: true }).then(async (accessKeyId) => {
+      if (accessKeyId) {
+        vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then(async (secretAccessKey) => {
+          if (secretAccessKey) {
+            sensecodeManager.getTokenFromLoginResult(`authorization://accesskey?${accessKeyId}&${secretAccessKey}`);
+          }
+        });
+      }
+    });
+  }));
+
+  context.subscriptions.push(vscode.commands.registerCommand("sensecode.setApiKey", () => {
+    vscode.window.showInputBox({ placeHolder: "API Key", password: true, validateInput, ignoreFocusOut: true }).then(async (key) => {
       if (key) {
-        sensecodeManager.setAccessKey(key);
+        sensecodeManager.getTokenFromLoginResult(`authorization://apikey?${key}`);
       }
     });
   }));
@@ -73,7 +90,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.help", async () => {
-      vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`vscode:extension/${context.extension.id}`));
+      vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`${vscode.env.uriScheme}:extension/${context.extension.id}`));
     })
   );
 
@@ -185,6 +202,5 @@ export async function activate(context: vscode.ExtensionContext) {
   }));
 
   SenseCodeNotebook.rigister(context);
-
 }
 export function deactivate() { }

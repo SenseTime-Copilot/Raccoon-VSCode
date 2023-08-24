@@ -122,7 +122,27 @@ async function getCacheItems(context: ExtensionContext, cacheFile: string): Prom
   let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
   let cacheUri = Uri.joinPath(cacheDir, cacheFile);
   return workspace.fs.readFile(cacheUri).then(content => {
-    return JSON.parse(decoder.decode(content) || "[]");
+    try {
+      let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
+      let answerReady = false;
+      return h.filter((v, idx, arr) => {
+        if ((idx) >= arr.length) {
+          answerReady = false;
+          return false;
+        } else if (v.type === CacheItemType.question && arr[idx + 1].type === CacheItemType.answer) {
+          answerReady = true;
+          return true;
+        } else if (answerReady && v.type === CacheItemType.answer) {
+          answerReady = false;
+          return true;
+        } else {
+          answerReady = false;
+          return false;
+        }
+      });
+    } catch {
+      return [];
+    }
   }, () => { });
 }
 
@@ -164,31 +184,17 @@ export class SenseCodeEditor extends Disposable {
     appendCacheItem(context, cacheFile);
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
-    context.subscriptions.push(
-      workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration("SenseCode")) {
-          sensecodeManager.update();
-          if (e.affectsConfiguration("SenseCode.Prompt")) {
-            this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
-          }
-          if (e.affectsConfiguration("SenseCode.Engines")) {
-            await sensecodeManager.updateEngineList();
-            this.updateSettingPage("full");
-          }
-        }
-      })
-    );
-    context.subscriptions.push(
-      context.secrets.onDidChange(async (e) => {
-        if (e.key === "SenseCode.tokens") {
-          let refreshing = this.context.globalState.get("SenseCode.tokenRefreshed");
-          if (refreshing) {
-          } else {
-            this.showWelcome();
-          }
-        }
-      })
-    );
+    sensecodeManager.onDidChangeStatus(async (e) => {
+      if (e.scope.includes("authorization") && !e.quiet) {
+        this.showWelcome();
+      } else if (e.scope.includes("prompt")) {
+        this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
+      } else if (e.scope.includes("engines")) {
+        this.updateSettingPage("full");
+      } else if (e.scope.includes("active")) {
+        this.updateSettingPage("full");
+      }
+    });
     context.subscriptions.push(
       window.onDidChangeActiveTextEditor((e) => {
         let doc: TextDocument | undefined = undefined;
@@ -251,7 +257,7 @@ export class SenseCodeEditor extends Disposable {
       <span class="material-symbols-rounded">question_mark</span>
       <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
       <div class="flex grow justify-end">
-        <vscode-link href="vscode:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+        <vscode-link href="${env.uriScheme}:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
       </div>
     </div>`;
     let ts = new Date();
@@ -341,6 +347,9 @@ export class SenseCodeEditor extends Disposable {
       }
       await sensecodeManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
+          loginout = `<vscode-link class="justify-end" title="${l10n.t("Authorized by key from settings")}">
+                      <span class="material-symbols-rounded px-1" style="color: var(--foreground);opacity: var(--disabled-opacity);cursor: auto;">password</span>
+                    </vscode-link>`;
           return;
         }
         let url = Uri.parse(authUrl);
@@ -605,8 +614,6 @@ export class SenseCodeEditor extends Disposable {
         }
         case 'activeEngine': {
           sensecodeManager.setActiveClient(data.value);
-          this.updateSettingPage("full");
-          this.showWelcome();
           break;
         }
         case 'logout': {
@@ -799,7 +806,7 @@ ${data.info.response}
         }
         case 'telemetry': {
           if (data.info.action === 'bug-report') {
-            commands.executeCommand("workbench.action.openIssueReporter", {extensionId: this.context.extension.id});
+            commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id });
             break;
           }
           if (!env.isTelemetryEnabled) {
@@ -1124,7 +1131,6 @@ ${data.info.response}
               </div>
               <script>
                 const l10nForUI = {
-                  "Question": "${l10n.t("Question")}",
                   "Cancel": "${l10n.t("Cancel")}",
                   "Delete": "${l10n.t("Delete this chat entity")}",
                   "Send": "${l10n.t("Send")}",

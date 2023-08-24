@@ -1,6 +1,6 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AccessKey, AuthMethod } from "./CodeClient";
 import jwt_decode from "jwt-decode";
 import sign = require('jwt-encode');
 
@@ -25,25 +25,6 @@ export class SenseNovaClient implements CodeClient {
   constructor(private readonly meta: SenseNovaClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public async logout(_auth: AuthInfo): Promise<string | undefined> {
-    if (this.clientConfig.key) {
-      return Promise.reject(new Error("Can not clear Access Key from settings"));
-    } else {
-      return Promise.resolve(undefined);
-    }
-  }
-
-  public async setAccessKey(key: string): Promise<AuthInfo> {
-    let auth: AuthInfo = {
-      account: {
-        username: this.clientConfig.username || "User",
-        userId: undefined
-      },
-      weaverdKey: key
-    };
-    return auth;
-  }
-
   public get label(): string {
     return this.clientConfig.label;
   }
@@ -56,12 +37,50 @@ export class SenseNovaClient implements CodeClient {
     return this.clientConfig.totalTokenNum;
   }
 
-  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
-    this.onChangeAuthInfo = handler;
+  public get authMethods(): AuthMethod[] {
+    return [AuthMethod.browser, AuthMethod.accesskey];
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
+    let key = this.clientConfig.key;
+    if (key && typeof key === "object") {
+      let aksk = key as AccessKey;
+      return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
+    }
+
     return Promise.resolve(`https://login.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}`);
+  }
+
+  public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
+    let url = new URL(callbackUrl);
+    let query = url.search?.slice(1);
+    if (!query) {
+      return Promise.reject();
+    }
+    if (url.protocol === "authorization:") {
+      let auth: AuthInfo = {
+        account: {
+          username: this.clientConfig.username || "User",
+          userId: undefined
+        },
+        weaverdKey: query
+      };
+      return auth;
+    } else {
+      return this.parseAuthInfo(query);
+    }
+  }
+
+  public async logout(_auth: AuthInfo): Promise<string | undefined> {
+    if (this.clientConfig.key) {
+      return Promise.reject(new Error("Can not clear Access Key from settings"));
+    } else {
+      return Promise.resolve(undefined);
+    }
+  }
+
+  onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {
+    this.onChangeAuthInfo = handler;
   }
 
   private async parseAuthInfo(data: any): Promise<AuthInfo> {
@@ -96,20 +115,15 @@ export class SenseNovaClient implements CodeClient {
     return ret;
   }
 
-  public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
-    let url = new URL(callbackUrl);
-    let query = url.search?.slice(1);
-    if (!query) {
-      return Promise.reject();
-    }
-
-    return this.parseAuthInfo(query);
-  }
-
-  private async apiKeyRaw(auth: AuthInfo): Promise<string> {
+  private async apiKeyRaw(auth: AuthInfo): Promise<string | AccessKey> {
     if (this.clientConfig.key) {
       return Promise.resolve(this.clientConfig.key);
     } else if (auth.weaverdKey) {
+      let key = auth.weaverdKey;
+      if (key.includes("&")) {
+        let aksk = key.split("&");
+        return Promise.resolve({ accessKeyId: aksk[0], secretAccessKey: aksk[1] });
+      }
       return Promise.resolve(auth.weaverdKey);
     } else {
       return Promise.reject();
@@ -146,11 +160,11 @@ export class SenseNovaClient implements CodeClient {
 
       let key = await this.apiKeyRaw(auth);
       if (key) {
-        if (key.includes("#")) {
-          let aksk = key.split("#");
-          headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk[0], aksk[1]);
+        if (typeof key === 'string') {
+          headers["X-Sensenova-Token"] = key as string;
         } else {
-          headers["X-Sensenova-Token"] = key;
+          let aksk = key as AccessKey;
+          headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
         }
       }
 

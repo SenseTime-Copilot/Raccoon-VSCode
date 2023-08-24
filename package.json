@@ -78,8 +78,35 @@
                                     "type": "object",
                                     "description": "%sensecode.config.engines.engine.config%"
                                 },
+                                "authorization": {
+                                    "type": "array",
+                                    "description": "%sensecode.config.engines.engine.authorization%",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "browser",
+                                            "apikey",
+                                            "accesskey"
+                                        ]
+                                    }
+                                },
                                 "key": {
-                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "accessKeyId": {
+                                                    "type": "string"
+                                                },
+                                                "secretAccessKey": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    ],
                                     "description": "%sensecode.config.engines.engine.key%"
                                 },
                                 "username": {
@@ -215,11 +242,6 @@
                 "category": "SenseCode",
                 "title": "%sensecode.command.settings%",
                 "icon": "$(gear)",
-                "enablement": "view == sensecode.view"
-            },
-            {
-                "command": "sensecode.setAccessKey",
-                "title": "%sensecode.command.setAccessKey%",
                 "enablement": "view == sensecode.view"
             },
             {

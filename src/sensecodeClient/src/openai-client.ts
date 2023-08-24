@@ -1,38 +1,13 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
 
 export class OpenAIClient implements CodeClient {
-  private _username?: string;
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
-  }
-
-  public async logout(_auth: AuthInfo): Promise<string | undefined> {
-    if (this.clientConfig.key) {
-      return Promise.reject(new Error("Can not clear Access Key from settings"));
-    } else {
-      return Promise.resolve(undefined);
-    }
-  }
-
-  public async setAccessKey(key: string): Promise<AuthInfo> {
-    this._username = this.clientConfig.username || "User";
-    let auth: AuthInfo = {
-      account: {
-        username: this._username,
-        userId: undefined
-      },
-      weaverdKey: key
-    };
-    return auth;
   }
 
   public get label(): string {
     return this.clientConfig.label;
-  }
-
-  get username(): string {
-    return this._username || "User";
   }
 
   public get maxInputTokenNum(): number {
@@ -43,20 +18,47 @@ export class OpenAIClient implements CodeClient {
     return this.clientConfig.totalTokenNum;
   }
 
-  onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {
+  public get authMethods(): AuthMethod[] {
+    return [AuthMethod.apikey];
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
+    if (this.clientConfig.key) {
+      return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
+    }
     return Promise.resolve(undefined);
   }
 
-  public async login(_callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
-    return Promise.reject();
+  public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
+    let url = new URL(callbackUrl);
+    let weaverdKey = url.search?.slice(1);
+    if (!weaverdKey) {
+      return Promise.reject();
+    }
+    let auth: AuthInfo = {
+      account: {
+        username: this.clientConfig.username || "User",
+        userId: undefined
+      },
+      weaverdKey
+    };
+    return auth;
+  }
+
+  public async logout(_auth: AuthInfo): Promise<string | undefined> {
+    if (this.clientConfig.key) {
+      return Promise.reject(new Error("Can not clear Access Key from settings"));
+    } else {
+      return Promise.resolve(undefined);
+    }
+  }
+
+  public onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {
   }
 
   private async apiKeyRaw(auth: AuthInfo): Promise<string> {
-    if (this.clientConfig.key) {
-      return Promise.resolve(this.clientConfig.key);
+    if (typeof this.clientConfig.key === "string") {
+      return Promise.resolve(this.clientConfig.key as string);
     } else if (auth.weaverdKey) {
       return Promise.resolve(auth.weaverdKey);
     } else {
