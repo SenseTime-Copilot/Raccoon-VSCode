@@ -152,14 +152,14 @@ ${temp}`
           if (err.message === "canceled") {
             return;
           }
-          let errInfo = err.message || err.response?.data?.error;
-          outlog.error(errInfo);
+          outlog.error(err);
+          let error = err.response?.data?.error || err.message;
           if (!cancel.isCancellationRequested) {
             updateStatusBarItem(
               statusBarItem,
               {
-                text: `$(alert)${err.response?.statusText || ""}`,
-                tooltip: new vscode.MarkdownString(errInfo)
+                text: `$(alert)${err.response?.statusText || err.response?.status || ""}`,
+                tooltip: new vscode.MarkdownString(error)
               }
             );
           } else {

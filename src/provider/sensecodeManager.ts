@@ -34,6 +34,7 @@ export enum CompletionPreferenceType {
 
 interface ClientAndAuthInfo {
   client: CodeClient;
+  proxy?: Extension<CodeExtension>;
   authInfo?: AuthInfo;
 }
 
@@ -89,7 +90,7 @@ export class SenseCodeManager {
     this.updateEngineList(this.proxy);
   }
 
-  private async updateEngineList(proxy?: Extension<CodeExtension>): Promise<void> {
+  private async updateEngineList(proxyExt?: Extension<CodeExtension>): Promise<void> {
     let tks = await this.context.secrets.get("SenseCode.tokens");
     let authinfos: any = {};
     if (tks) {
@@ -103,8 +104,10 @@ export class SenseCodeManager {
     for (let e of es) {
       if (e.type && e.label && e.url) {
         let client;
-        if (proxy?.exports?.filterEnabled(e)) {
-          client = proxy?.exports.factory(e, outlog.debug);
+        let proxy = undefined;
+        if (proxyExt?.exports?.filterEnabled(e)) {
+          client = proxyExt?.exports.factory(e, outlog.debug);
+          proxy = proxyExt;
         } else if (e.type === ClientType.sensenova) {
           const meta: SenseNovaClientMeta = {
             clientId: "",
@@ -124,7 +127,7 @@ export class SenseCodeManager {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.label, ai, true);
           });
-          await this.appendClient(e.label, { client, authInfo: authinfos[e.label] }, e);
+          await this.appendClient(e.label, { client, proxy, authInfo: authinfos[e.label] }, e);
         }
       }
     }
@@ -266,6 +269,14 @@ export class SenseCodeManager {
       ca = this.getClient(clientName);
     }
     return (ca && ca.authInfo);
+  }
+
+  public getClientProxy(clientName?: string): Extension<CodeExtension> | undefined {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    return (ca && ca.proxy);
   }
 
   public get prompt(): SenseCodePrompt[] {

@@ -318,6 +318,11 @@ export class SenseCodeEditor extends Disposable {
     let username: string | undefined = undefined;
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
+    let withProxy = "";
+    let proxy = sensecodeManager.getClientProxy();
+    if (proxy) {
+      withProxy = `<span title="[${proxy.packageJSON.displayName}] Activated" class="material-symbols-rounded" style="font-size: 24px;opacity: 0.7;cursor: help;">shield_lock</span>`;
+    }
     if (!sensecodeManager.isClientLoggedin()) {
       await sensecodeManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
@@ -334,8 +339,8 @@ export class SenseCodeEditor extends Disposable {
         } else {
           title = `${l10n.t("Login")} [${authUrl}]`;
         }
-        loginout = `<vscode-link class="justify-end" title="${title}" href="${url.toString(true)}">
-                        <span class="material-symbols-rounded px-1" style="font-size: 24px;">${icon}</span>
+        loginout = `<vscode-link title="${title}" href="${url.toString(true)}">
+                        <span class="material-symbols-rounded" style="font-size: 24px;">${icon}</span>
                       </vscode-link>`;
       }, () => { });
     } else {
@@ -347,8 +352,8 @@ export class SenseCodeEditor extends Disposable {
       }
       await sensecodeManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
-          loginout = `<vscode-link class="justify-end" title="${l10n.t("Authorized by key from settings")}">
-                      <span class="material-symbols-rounded px-1" style="color: var(--foreground);opacity: var(--disabled-opacity);cursor: auto;">password</span>
+          loginout = `<vscode-link title="${l10n.t("Authorized by key from settings")}">
+                      <span class="material-symbols-rounded" style="color: var(--foreground);opacity: 0.7;cursor: auto;">password</span>
                     </vscode-link>`;
           return;
         }
@@ -359,8 +364,8 @@ export class SenseCodeEditor extends Disposable {
           icon = 'key_off';
           title = l10n.t("Clear Access Key");
         }
-        loginout = `<vscode-link class="justify-end" title="${title}">
-                      <span id="logout" class="material-symbols-rounded px-1" style="font-size: 24px;">${icon}</span>
+        loginout = `<vscode-link title="${title}">
+                      <span id="logout" class="material-symbols-rounded" style="font-size: 24px;">${icon}</span>
                     </vscode-link>`;
       }, () => { });
     }
@@ -368,6 +373,7 @@ export class SenseCodeEditor extends Disposable {
         <div class="flex gap-2 items-center w-full" title="${userId || ""}">
           ${avatarEle}
           <span class="grow font-bold text-base">${username || l10n.t("Unknown")}</span>
+          ${withProxy}
           ${loginout}
         </div>
         `;
@@ -990,7 +996,11 @@ ${data.info.response}
               this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
               this.sendMessage({ type: 'stopResponse', id });
             }, (err) => {
-              this.sendMessage({ type: 'addError', error: err.response?.statusText || err.message, id, timestamp: new Date().toLocaleString() });
+              let error = err.response?.statusText || err.message;
+              if (err.response?.data?.error) {
+                error = err.response.data.error;
+              }
+              this.sendMessage({ type: 'addError', error, id, timestamp: new Date().toLocaleString() });
               this.sendMessage({ type: 'stopResponse', id });
             });
         }
@@ -1000,9 +1010,11 @@ ${data.info.response}
           this.sendMessage({ type: 'stopResponse', id });
           return;
         }
-        let errInfo = err.response?.statusText || err.message || err.response.data.error;
-        outlog.error(errInfo);
-        this.sendMessage({ type: 'addError', error: errInfo, id });
+        let error = err.response?.statusText || err.message;
+        if (err.response?.data?.error) {
+          error = err.response.data.error;
+        }
+        this.sendMessage({ type: 'addError', error, id });
       }
     }
   }
