@@ -153,6 +153,10 @@ textarea::placeholder {
     width: 100%;
 }
 
+#setting-page::-webkit-scrollbar {
+    display: none;
+}
+
 .attach-btn-left,
 .attach-btn-right {
     border-radius: calc(var(--corner-radius) * 1px);

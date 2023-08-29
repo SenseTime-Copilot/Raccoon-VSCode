@@ -1,12 +1,10 @@
 # SenseCode
 
-SenseCode 是基于商汤 SenseCore 大装置 及 SenseNova 日日新大模型而开发的代码助手。
+SenseCode 是基于商汤 [SenseCore](https://sensecore.cn/) 大装置 及 [SenseNova](https://platform.sensenova.cn/) 日日新大模型而开发的代码助手。
 
 ## 登录账号
 
 您可以在 SenseCode 助手 侧边栏视图可见时，点击面板标题栏上的 `齿轮图标` 进入设置页面进行登录。
-
-> SenseCode 当前处于对特定企业用户邀约测试阶段，尚未对企业和个人用户全面开放。如您对 SenseCode 感兴趣，敬请发送邮件至 <sensecode@sensetime.com>，并留下您的企业或个人信息。
 
 ## 编辑器内代码补全
 

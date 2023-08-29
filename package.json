@@ -6,10 +6,10 @@
     "homepage": "https://sensecode.ai",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SenseCore/SenseCode.git"
+        "url": "https://github.com/SenseCore/SenseCode-VSCode.git"
     },
     "bugs": {
-        "url": "https://github.com/SenseCore/SenseCode/issues"
+        "url": "https://github.com/SenseCore/SenseCode-VSCode/issues"
     },
     "icon": "media/sensecode-logo.png",
     "version": "0.50.0",
