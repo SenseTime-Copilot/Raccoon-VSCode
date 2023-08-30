@@ -118,7 +118,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
-      return vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
+      let editor = vscode.window.activeTextEditor;
+      if (!editor) {
+      } else if (!editor.selection.isEmpty) {
+        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
+      } else {
+        vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
+      }
     })
   );
 
@@ -161,7 +167,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
-      [{ scheme: "file" }, { scheme: "untitled" }, { scheme: "git" }],
+      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, { scheme: "untitled" }, { scheme: "git" }],
       inlineProvider
     )
   );

@@ -31,10 +31,6 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
-      let editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
       let loggedin = sensecodeManager.isClientLoggedin();
       if (!loggedin) {
         updateStatusBarItem(
@@ -47,24 +43,6 @@ export function inlineCompletionProvider(
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !sensecodeManager.autoComplete) {
-        return;
-      }
-
-      if (!editor.selection.isEmpty && context.triggerKind !== vscode.InlineCompletionTriggerKind.Automatic) {
-        const cursorPosition = editor.selection.active;
-        let selectionNextChar = new vscode.Selection(
-          cursorPosition.line,
-          cursorPosition.character,
-          cursorPosition.line,
-          cursorPosition.character + 1
-        );
-        let nextChar = document.getText(selectionNextChar);
-        const checkString = "]}) \n\t'\"";
-        if (!checkString.includes(nextChar)) {
-          updateStatusBarItem(statusBarItem);
-          return;
-        }
-        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
         return;
       }
 

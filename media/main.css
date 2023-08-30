@@ -47,6 +47,11 @@ button:focus {
     color: var(--progress-background);
 }
 
+button.bug:hover, button.bug:focus {
+    color: inherit;
+    transform: scale(1.1);
+}
+
 input:not([type='checkbox']),
 textarea {
     display: block;
