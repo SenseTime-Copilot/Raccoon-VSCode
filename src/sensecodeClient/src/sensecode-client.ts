@@ -55,7 +55,7 @@ export class SenseCodeClient implements CodeClient {
     }
 
     let baseUrl = this.getAuthBaseUrl();
-    let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64");
+    let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64").replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
     return Promise.resolve(url);
   }

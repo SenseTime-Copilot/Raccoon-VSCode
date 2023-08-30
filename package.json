@@ -12,7 +12,7 @@
         "url": "https://github.com/SenseCore/SenseCode-VSCode/issues"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.50.0",
+    "version": "0.50.1",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
