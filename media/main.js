@@ -350,7 +350,6 @@ const vscode = acquireVsCodeApi();
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
           shortcuts += `  <button class="flex gap-2 items-center"
-                                        title='${p.type !== "custom" ? p.prompt + ": {code}" : p.prompt}'
                                         onclick='vscode.postMessage({
                                             type: "sendQuestion",
                                             prompt: ${JSON.stringify(p)}
@@ -358,6 +357,7 @@ const vscode = acquireVsCodeApi();
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
                             ${p.label}
+                            ${p.shortcut ? `<span class="grow text-right opacity-40">/${p.shortcut}</span>` : ""}
                           </button>
                       `;
         }

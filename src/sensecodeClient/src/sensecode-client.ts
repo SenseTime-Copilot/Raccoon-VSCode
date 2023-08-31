@@ -101,7 +101,7 @@ export class SenseCodeClient implements CodeClient {
 
   private async apiKeyRaw(auth: AuthInfo): Promise<string | AccessKey> {
     if (this.clientConfig.key) {
-      return Promise.resolve(this.clientConfig.key );
+      return Promise.resolve(this.clientConfig.key);
     } else if (auth.weaverdKey) {
       let key = auth.weaverdKey;
       if (key.includes("&")) {
@@ -116,11 +116,13 @@ export class SenseCodeClient implements CodeClient {
 
   private getAuthBaseUrl() {
     let baseUrl = 'https://signin.sensecore.cn';
-    if (this.clientConfig.url.includes(".sensecoreapi.cn")) {
+    if (this.clientConfig.url.includes("ams.st-sh-01.sensecoreapi.cn")) {
+      baseUrl = 'https://signin.st-sh-01.sensecore.cn';
+    } else if (this.clientConfig.url.includes("ams.sensecoreapi.cn")) {
       baseUrl = 'https://signin.sensecore.cn';
-    } else if (this.clientConfig.url.includes(".sensecoreapi.tech")) {
+    } else if (this.clientConfig.url.includes("ams.sensecoreapi.tech")) {
       baseUrl = 'https://signin.sensecore.tech';
-    } else if (this.clientConfig.url.includes(".sensecoreapi.dev")) {
+    } else if (this.clientConfig.url.includes("ams.sensecoreapi.dev")) {
       baseUrl = 'https://signin.sensecore.dev';
     }
     return baseUrl;
@@ -136,6 +138,7 @@ export class SenseCodeClient implements CodeClient {
         avatar: undefined
       },
       refreshToken: data.refresh_token,
+      expiration: decoded.exp,
       weaverdKey: data.access_token,
     };
 
@@ -170,44 +173,44 @@ export class SenseCodeClient implements CodeClient {
   }
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    if (this.clientConfig.key) {
-      return Promise.resolve(auth);
-    }
-    if (auth.refreshToken) {
-      let baseUrl = 'https://signin.sensecore.cn';
-      if (this.clientConfig.url.includes(".sensecoreapi.cn")) {
-        baseUrl = 'https://signin.sensecore.cn';
-      } else if (this.clientConfig.url.includes(".sensecoreapi.tech")) {
-        baseUrl = 'https://signin.sensecore.tech';
-      } else if (this.clientConfig.url.includes(".sensecoreapi.dev")) {
-        baseUrl = 'https://signin.sensecore.dev';
-      }
-      let url = `${baseUrl}/oauth2/token`;
-      let date: string = new Date().toUTCString();
-      let headers = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Date": date,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Content-Type": "application/x-www-form-urlencoded"
-      };
-      return axios.post(url,
-        `grant_type=refresh_token&client_id=${this.meta.clientId}&refresh_token=${auth.refreshToken}&redirect_uri=${this.meta.redirectUrl}`,
-        { headers })
-        .then((resp) => {
-          if (resp && resp.status === 200) {
-            return this.parseAuthInfo(resp.data);
-          }
-          return Promise.reject();
-        }, (err) => {
-          throw err;
-        });
-    }
-    return Promise.reject();
+    let baseUrl = this.getAuthBaseUrl();
+    let url = `${baseUrl}/oauth2/token`;
+    let date: string = new Date().toUTCString();
+    let headers = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Date": date,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Content-Type": "application/x-www-form-urlencoded"
+    };
+    return axios.post(url,
+      `grant_type=refresh_token&client_id=${this.meta.clientId}&refresh_token=${auth.refreshToken}&redirect_uri=${this.meta.redirectUrl}`,
+      { headers })
+      .then((resp) => {
+        if (resp && resp.status === 200) {
+          return this.parseAuthInfo(resp.data);
+        }
+        throw new Error();
+      }, () => {
+        throw new Error();
+      });
   }
 
-  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<any | IncomingMessage> {
+    let ts = new Date();
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + 60) > auth.expiration) {
+      try {
+        let newToken = await this.refreshToken(auth);
+        auth = newToken;
+        if (this.onChangeAuthInfo) {
+          this.onChangeAuthInfo(newToken);
+        }
+      } catch (er: any) {
+        return Promise.reject(new Error('The authentication information has expired, please log in again'));
+      }
+    }
+
     let key = await this.apiKeyRaw(auth);
-    let date: string = new Date().toUTCString();
+    let date: string = ts.toUTCString();
     let authHeader = '';
     if (key) {
       if (typeof key === 'string') {
@@ -252,24 +255,6 @@ export class SenseCodeClient implements CodeClient {
           this.debug(`${JSON.stringify(res.data)}`);
         }
         return res.data;
-      }).catch(async e => {
-        if (!skipRetry && e.response?.status === 401) {
-          let newToken: AuthInfo | undefined = undefined;
-          try {
-            newToken = await this.refreshToken(auth);
-            if (this.onChangeAuthInfo) {
-              this.onChangeAuthInfo(newToken);
-            }
-            if (!newToken) {
-              return Promise.reject(new Error('Attemp to refresh access token but get nothing'));
-            }
-            return this._postPrompt(newToken, requestParam, options, true);
-          } catch (er: any) {
-            return Promise.reject(new Error('Attemp to refresh access token but failed'));
-          }
-        } else {
-          return Promise.reject(e);
-        }
       });
   }
 

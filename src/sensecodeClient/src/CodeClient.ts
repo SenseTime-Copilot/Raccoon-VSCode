@@ -40,6 +40,7 @@ export interface AccountInfo {
 export interface AuthInfo {
   account: AccountInfo;
   weaverdKey: string;
+  expiration?: number;
   refreshToken?: string;
 }
 
@@ -75,7 +76,7 @@ export enum FinishReason {
 
 export interface Choice {
   index: number;
-  message: Message;
+  message?: Message;
   finishReason?: FinishReason;
 }
 

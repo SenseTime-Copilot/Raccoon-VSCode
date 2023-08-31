@@ -253,21 +253,28 @@ export class OpenAIClient implements CodeClient {
         }));
       }
     }, (error) => {
-      callback(new MessageEvent(ResponseEvent.error, {
-        data: {
-          id: '',
-          created: new Date().valueOf(),
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: Role.assistant,
-                content: error.response?.statusText || error.message
+      error.response.data.on('data', async (v: any) => {
+        let errInfo = error.response?.statusText || error.message;
+        let msgstr: string = v.toString();
+        try {
+          errInfo = JSON.parse(msgstr).error.message;
+        } catch { }
+        callback(new MessageEvent(ResponseEvent.error, {
+          data: {
+            id: '',
+            created: new Date().valueOf(),
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: Role.assistant,
+                  content: errInfo
+                }
               }
-            }
-          ]
-        }
-      }));
+            ]
+          }
+        }));
+      });
     });
   }
 }

@@ -106,10 +106,10 @@ class PenroseModel extends BaseChatModel {
             }
             for (const part of event.data?.choices ?? []) {
               if (event.type === ResponseEvent.error) {
-                void runManager?.handleLLMError(new Error(part.message.content));
+                void runManager?.handleLLMError(new Error(part.message?.content));
               } else {
                 void runManager?.handleLLMNewToken(
-                  part.message.content ?? "",
+                  part.message?.content ?? "",
                   {
                     prompt: 0,
                     completion: part.index,

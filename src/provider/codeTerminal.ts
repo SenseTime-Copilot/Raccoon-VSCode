@@ -247,7 +247,7 @@ export class SenseCodeTerminal {
               }
               let content: string | undefined = undefined;
               let data = event.data;
-              if (data && data.choices && data.choices[0]) {
+              if (data && data.choices && data.choices[0] && data.choices[0].message) {
                 content = data.choices[0].message.content;
               }
               switch (event.type) {

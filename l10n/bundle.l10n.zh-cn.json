@@ -93,6 +93,7 @@
   "Copy to clipboard": "复制至剪贴板",
   "Insert the below code at cursor": "将以下代码插入到光标位置",
   "Active engine not set": "未设置活动的后端引擎",
+  "Help": "帮助",
   "Generation": "注释生成代码",
   "Code Correction": "代码修正",
   "Refactoring": "代码重构",

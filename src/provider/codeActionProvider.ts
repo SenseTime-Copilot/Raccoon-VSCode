@@ -18,6 +18,9 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       )
     ];
     for (let p of ps) {
+      if (p.type === PromptType.help) {
+        continue;
+      }
       let kind = vscode.CodeActionKind.QuickFix.append('sensecode');
       let name = `SenseCode: `;
       if (p.type === PromptType.customPrompt) {

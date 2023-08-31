@@ -177,7 +177,7 @@ ${temp}`
         const completions = Array<string>();
         for (let i = 0; i < codeArray.length; i++) {
           const completion = codeArray[i];
-          let tmpstr: string = completion.message.content || "";
+          let tmpstr: string = completion.message?.content || "";
           if (!tmpstr.trim()) {
             outlog.debug('[Ignore: Empty Suggestion]');
             continue;

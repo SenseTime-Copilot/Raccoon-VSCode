@@ -1,22 +1,22 @@
-import * as vscode from "vscode";
+import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookController, NotebookControllerAffinity, NotebookData, NotebookDocument, NotebookSerializer, Uri, commands, notebooks, workspace, CancellationToken, NotebookCellStatusBarItem, ProviderResult, StatusBarAlignment, NotebookCellStatusBarAlignment } from "vscode";
 
 import { sensecodeManager } from "../extension";
-import { Role } from "../sensecodeClient/src/CodeClient";
+import { Message, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { CacheItem, CacheItemType } from "./webviewProvider";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-class SenseCodeNotebookSerializer implements vscode.NotebookSerializer {
-  deserializeNotebook(data: Uint8Array): vscode.NotebookData {
+class SenseCodeNotebookSerializer implements NotebookSerializer {
+  deserializeNotebook(data: Uint8Array): NotebookData {
     try {
-      let cells: vscode.NotebookCellData[] = [];
+      let cells: NotebookCellData[] = [];
       let items = JSON.parse(decoder.decode(data)) as Array<CacheItem>;
       for (let item of items) {
         switch (item.type) {
           case CacheItemType.question:
-            let cell = new vscode.NotebookCellData(vscode.NotebookCellKind.Code, item.value, "sensecode");
+            let cell = new NotebookCellData(NotebookCellKind.Code, item.value, "sensecode");
             cell.metadata = { id: item.id };
             cells.push(cell);
             break;
@@ -32,31 +32,31 @@ class SenseCodeNotebookSerializer implements vscode.NotebookSerializer {
                 q.outputs = [];
               }
               if (item.type === CacheItemType.answer) {
-                q.outputs.push(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(item.value, "text/markdown")]));
+                q.outputs.push(new NotebookCellOutput([NotebookCellOutputItem.text(item.value, "text/markdown")]));
               } else {
-                q.outputs.push(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(new Error(item.value))]));
+                q.outputs.push(new NotebookCellOutput([NotebookCellOutputItem.error(new Error(item.value))]));
               }
             }
             break;
           case CacheItemType.data:
-            cells.push(new vscode.NotebookCellData(vscode.NotebookCellKind.Markup, item.value, "text/markdown"));
+            cells.push(new NotebookCellData(NotebookCellKind.Markup, item.value, "text/markdown"));
             break;
           default:
             break;
         }
       }
-      return new vscode.NotebookData(cells);
+      return new NotebookData(cells);
     } catch (error) {
       return { cells: [] };
     }
   }
 
-  serializeNotebook(data: vscode.NotebookData): Uint8Array {
+  serializeNotebook(data: NotebookData): Uint8Array {
     let result: Array<CacheItem> = [];
     let idx = 0;
     for (let cell of data.cells) {
       idx++;
-      if (cell.kind === vscode.NotebookCellKind.Code) {
+      if (cell.kind === NotebookCellKind.Code) {
         let item: CacheItem = {
           id: idx,
           type: CacheItemType.question,
@@ -96,20 +96,20 @@ class SenseCodeNotebookSerializer implements vscode.NotebookSerializer {
 }
 
 class SenseCodeNotebookController {
-  private controller: vscode.NotebookController;
-  constructor(context: vscode.ExtensionContext, private readonly id: string, viewType: string) {
-    this.controller = vscode.notebooks.createNotebookController(id, viewType, id);
+  private controller: NotebookController;
+  constructor(context: ExtensionContext, private readonly id: string, viewType: string) {
+    this.controller = notebooks.createNotebookController(id, viewType, id);
     this.controller.supportsExecutionOrder = true;
     this.controller.supportedLanguages = ["sensecode"];
     this.controller.executeHandler = this.execute.bind(this);
     context.subscriptions.push(this.controller);
   }
 
-  public setAffinity(notebook: vscode.NotebookDocument) {
-    this.controller.updateNotebookAffinity(notebook, vscode.NotebookControllerAffinity.Preferred);
+  public setAffinity(notebook: NotebookDocument) {
+    this.controller.updateNotebookAffinity(notebook, NotebookControllerAffinity.Preferred);
   }
 
-  private execute(cells: vscode.NotebookCell[], _notebook: vscode.NotebookDocument, controller: vscode.NotebookController) {
+  private execute(cells: NotebookCell[], notebook: NotebookDocument, controller: NotebookController) {
     for (let cell of cells) {
       let cancel = new AbortController();
       let execution = controller.createNotebookCellExecution(cell);
@@ -119,41 +119,76 @@ class SenseCodeNotebookController {
       });
 
       let content = cell.document.getText();
+      let result = "";
 
       execution.start(new Date().valueOf());
       execution.clearOutput();
-      sensecodeManager.getCompletions(
+      let history: Message[] = [];
+      let aboveCells = notebook.getCells().filter((c, _i, _a) => {
+        return c.index < cell.index;
+      });
+      for (let c of aboveCells) {
+        if (c.outputs[0].items[0].mime === 'text/markdown') {
+          history.push({
+            role: Role.user,
+            content: c.document.getText()
+          }, {
+            role: Role.assistant,
+            content: decoder.decode(c.outputs[0].items[0].data)
+          });
+        }
+      }
+      sensecodeManager.getCompletionsStreaming(
         {
           messages: [
             { role: Role.system, content: "" },
+            ...history,
             { role: Role.user, content }
           ],
           stop: ["<|end|>"]
+        },
+        (event) => {
+          let value: string | undefined = undefined;
+          let data = event.data;
+          if (data && data.choices && data.choices[0] && data.choices[0].message) {
+            value = data.choices[0].message.content;
+          }
+          switch (event.type) {
+            case ResponseEvent.cancel: {
+              if (result) {
+                let output = NotebookCellOutputItem.text(result, "text/markdown");
+                execution.appendOutput({ items: [output] });
+              }
+              execution.end(false, new Date().valueOf());
+              break;
+            }
+            case ResponseEvent.finish:
+            case ResponseEvent.data: {
+              if (value) {
+                result += value;
+              }
+              break;
+            }
+            case ResponseEvent.error: {
+              let err = new Error(value);
+              err.stack = undefined;
+              execution.appendOutput({ items: [NotebookCellOutputItem.error(err)] });
+              execution.end(false, new Date().valueOf());
+              break;
+            }
+            case ResponseEvent.done: {
+              let output = NotebookCellOutputItem.text(result, "text/markdown");
+              execution.appendOutput({ items: [output] });
+              execution.end(true, new Date().valueOf());
+              break;
+            }
+          }
         },
         {
           headers: buildHeader("notebook"),
           signal: cancel.signal
         },
-        this.id)
-        .then((response) => {
-          for (let r of response.choices) {
-            execution.appendOutput(new vscode.NotebookCellOutput([
-              vscode.NotebookCellOutputItem.text(r.message.content, "text/markdown"),
-            ]));
-          }
-          execution.end(true, new Date().valueOf());
-        }, (err) => {
-          err.stack = undefined;
-          let output = vscode.NotebookCellOutputItem.error(err);
-          execution.appendOutput({ items: [output] });
-          execution.end(false, new Date().valueOf());
-        })
-        .catch(e => {
-          e.stack = undefined;
-          let output = vscode.NotebookCellOutputItem.error(e);
-          execution.appendOutput({ items: [output] });
-          execution.end(false, new Date().valueOf());
-        });
+        this.id);
     }
   }
 
@@ -166,8 +201,8 @@ class SenseCodeNotebookController {
 export class SenseCodeNotebook {
   public static readonly notebookType = 'sensecode';
   private static defaultController: SenseCodeNotebookController;
-  static rigister(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.workspace.registerNotebookSerializer(SenseCodeNotebook.notebookType, new SenseCodeNotebookSerializer()));
+  static rigister(context: ExtensionContext) {
+    context.subscriptions.push(workspace.registerNotebookSerializer(SenseCodeNotebook.notebookType, new SenseCodeNotebookSerializer()));
     for (let c of sensecodeManager.clientsLabel) {
       let ctrl = new SenseCodeNotebookController(context, c, SenseCodeNotebook.notebookType);
       if (!SenseCodeNotebook.defaultController) {
@@ -175,36 +210,36 @@ export class SenseCodeNotebook {
       }
       context.subscriptions.push(ctrl);
     }
-    context.subscriptions.push(vscode.commands.registerCommand("sensecode.notebook.new",
+    context.subscriptions.push(commands.registerCommand("sensecode.notebook.new",
       () => {
         if (!context.extension.isActive) {
           return;
         }
-        let rootUri: vscode.Uri | undefined = undefined;
+        let rootUri: Uri | undefined = undefined;
         let defaultName = "Untitled";
-        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-          rootUri = vscode.workspace.workspaceFolders[0].uri;
+        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+          rootUri = workspace.workspaceFolders[0].uri;
         }
 
         let count = 0;
-        function newfile(root: vscode.Uri, name: string) {
-          let uri = vscode.Uri.joinPath(root, `${name}.scnb`);
-          vscode.workspace.fs.stat(uri).then(
+        function newfile(root: Uri, name: string) {
+          let uri = Uri.joinPath(root, `${name}.scnb`);
+          workspace.fs.stat(uri).then(
             (_stat) => {
               count++;
               newfile(root, `${defaultName}-${count}`);
             },
             () => {
               let enc = new TextEncoder();
-              vscode.workspace.fs.writeFile(uri, enc.encode("")).then(
+              workspace.fs.writeFile(uri, enc.encode("")).then(
                 () => {
-                  vscode.workspace.openNotebookDocument(uri).then((d) => {
+                  workspace.openNotebookDocument(uri).then((d) => {
                     SenseCodeNotebook.defaultController?.setAffinity(d);
-                    vscode.window.showNotebookDocument(d);
+                    window.showNotebookDocument(d);
                   });
                 },
                 () => {
-                  vscode.window.showErrorMessage(`Can not craete file ${uri.toString()}`, 'Close');
+                  window.showErrorMessage(`Can not craete file ${uri.toString()}`, 'Close');
                 }
               );
             }
@@ -214,18 +249,18 @@ export class SenseCodeNotebook {
           newfile(rootUri, defaultName);
         } else {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          vscode.window.showSaveDialog({ filters: { 'SenseCode Notebook': ['scnb'] } }).then((uri) => {
+          window.showSaveDialog({ filters: { 'SenseCode Notebook': ['scnb'] } }).then((uri) => {
             if (uri) {
               let enc = new TextEncoder();
-              vscode.workspace.fs.writeFile(uri, enc.encode("")).then(
+              workspace.fs.writeFile(uri, enc.encode("")).then(
                 () => {
-                  vscode.workspace.openNotebookDocument(uri).then((d) => {
+                  workspace.openNotebookDocument(uri).then((d) => {
                     SenseCodeNotebook.defaultController?.setAffinity(d);
-                    vscode.window.showNotebookDocument(d);
+                    window.showNotebookDocument(d);
                   });
                 },
                 () => {
-                  vscode.window.showErrorMessage(`Can not craete file ${uri.toString()}`, 'Close');
+                  window.showErrorMessage(`Can not craete file ${uri.toString()}`, 'Close');
                 }
               );
             }

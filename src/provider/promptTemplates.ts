@@ -2,6 +2,7 @@ import { l10n } from "vscode";
 import { Message, Role } from "../sensecodeClient/src/CodeClient";
 
 export enum PromptType {
+  help = "help",
   codeGeneration = "code generation",
   testSampleGeneration = "test sample generation",
   codeLanguageConversion = "code language conversion",
@@ -15,6 +16,7 @@ export interface SenseCodePrompt {
   label: string;
   type: PromptType;
   message: Message;
+  shortcut?: string;
   code?: string;
   languageid?: string;
   args?: any;
@@ -186,47 +188,45 @@ export class PromptInfo {
 }
 
 export const builtinPrompts: SenseCodePrompt[] = [
+  /*
+  {
+    label: l10n.t("Help"),
+    type: PromptType.help,
+    shortcut: "help",
+    message: {
+      role: Role.function,
+      content: 'Show help information'
+    },
+    icon: "help"
+  },
+  */
   {
     label: l10n.t("Generation"),
     type: PromptType.codeGeneration,
+    //shortcut: "generate",
     message: {
       role: Role.user,
-      content: `
-### Instruction:
-Task type: ${PromptType.codeGeneration}. ${l10n.t("Please provide an explanation at the end")}.
-
-### Input:
-{code}
-`},
+      content: `${PromptType.codeGeneration}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`
+    },
     brush: true,
     icon: "gradient"
   },
   {
     label: l10n.t("Add Test"),
     type: PromptType.testSampleGeneration,
+    //shortcut: "test",
     message: {
       role: Role.user,
-      content: `
-### Instruction:
-Task type: ${PromptType.testSampleGeneration}. ${l10n.t("Please provide an explanation at the end")}.
-
-### Input:
-{code}
-`},
+      content: `${PromptType.testSampleGeneration}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`},
     icon: "science"
   },
   {
     label: l10n.t("Code Conversion"),
     type: PromptType.codeLanguageConversion,
+    //shortcut: "translate",
     message: {
       role: Role.user,
-      content: `
-### Instruction:
-Task type: ${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an explanation at the end")}. ${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.
-
-### Input:
-{code}
-`},
+      content: `${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an explanation at the end")}. ${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.\n\n{code}`},
     args: {
       language: {
         type: "enum",
@@ -255,30 +255,20 @@ Task type: ${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an exp
   {
     label: l10n.t("Code Correction"),
     type: PromptType.codeErrorCorrection,
+    //shortcut: "fix",
     message: {
       role: Role.user,
-      content: `
-### Instruction:
-Task type: ${PromptType.codeErrorCorrection}. ${l10n.t("Please provide an explanation at the end")}.
-
-### Input:
-{code}
-`},
+      content: `${PromptType.codeErrorCorrection}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`},
     brush: true,
     icon: "add_task"
   },
   {
     label: l10n.t("Refactoring"),
     type: PromptType.codeRefactoringOptimization,
+    //shortcut: "refactor",
     message: {
       role: Role.user,
-      content: `
-### Instruction:
-Task type: ${PromptType.codeRefactoringOptimization}. ${l10n.t("Please provide an explanation at the end")}.
-
-### Input:
-{code}
-`},
+      content: `${PromptType.codeRefactoringOptimization}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`},
     brush: true,
     icon: "construction"
   }

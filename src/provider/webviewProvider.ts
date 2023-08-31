@@ -948,7 +948,7 @@ ${data.info.response}
                 rts = new Date(data.created).toLocaleString();
               }
               if (data && data.choices && data.choices[0]) {
-                content = data.choices[0].message.content;
+                content = data.choices[0].message?.content || "";
               }
               switch (event.type) {
                 case ResponseEvent.cancel: {
@@ -990,7 +990,7 @@ ${data.info.response}
               signal: this.stopList[id].signal
             })
             .then(rs => {
-              let content = rs.choices[0]?.message.content || "";
+              let content = rs.choices[0]?.message?.content || "";
               let stopReason = rs.choices[0]?.finishReason;
               outlog.debug(content + (stopReason ? `\n<StopReason: ${stopReason}>` : ""));
               this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
