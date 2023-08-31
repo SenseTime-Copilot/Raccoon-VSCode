@@ -144,11 +144,11 @@ export class SenseCodeManager {
 
     let url = await c.client.getAuthUrlLogin("");
     if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
-      c.client.login(url, "").then((ai) => {
+      return c.client.login(url, "").then((ai) => {
         if (cfg.username) {
           ai.account.username = cfg.username;
         }
-        this.updateToken(name, ai, true);
+        return this.updateToken(name, ai, true);
       });
     }
   }

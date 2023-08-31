@@ -108,7 +108,7 @@ export function inlineCompletionProvider(
           }
           const completionPrompt: Message = {
             role: Role.user,
-            content: `<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
+            content: `<fim_prefix>Please do not provide any explanations at the end. Please complete the following ${getDocumentLanguage(document.languageId) || ""} code.
 
 ${temp}`
           };

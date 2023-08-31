@@ -141,10 +141,8 @@ export class PromptInfo {
     prompthtml = prompthtml.replace("{code}", codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
     } else {
-      prompthtml = prompthtml.replace("\n### Instruction:\n", "");
       prompthtml = prompthtml.replace(`${l10n.t("Please provide an explanation at the end")}.`, "");
-      prompthtml = prompthtml.replace(/Task type:[^\.]*./, `<p class="instruction-label">${renderHtml.prompt.label.replace("...", "")}</p>`);
-      prompthtml = prompthtml.replace("\n### Input:\n", "");
+      prompthtml = `<p class="instruction-label">${renderHtml.prompt.label.replace("...", "")}</p>` + prompthtml;
     }
 
     if (renderHtml.status === RenderStatus.editRequired) {
@@ -206,7 +204,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
     //shortcut: "generate",
     message: {
       role: Role.user,
-      content: `${PromptType.codeGeneration}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`
+      content: `{code}`
     },
     brush: true,
     icon: "gradient"
@@ -217,7 +215,8 @@ export const builtinPrompts: SenseCodePrompt[] = [
     //shortcut: "test",
     message: {
       role: Role.user,
-      content: `${PromptType.testSampleGeneration}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`},
+      content: `{code}`
+    },
     icon: "science"
   },
   {
@@ -226,7 +225,8 @@ export const builtinPrompts: SenseCodePrompt[] = [
     //shortcut: "translate",
     message: {
       role: Role.user,
-      content: `${PromptType.codeLanguageConversion}. ${l10n.t("Please provide an explanation at the end")}. ${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.\n\n{code}`},
+      content: `${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.\n{code}`
+    },
     args: {
       language: {
         type: "enum",
@@ -258,7 +258,8 @@ export const builtinPrompts: SenseCodePrompt[] = [
     //shortcut: "fix",
     message: {
       role: Role.user,
-      content: `${PromptType.codeErrorCorrection}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`},
+      content: `{code}`
+    },
     brush: true,
     icon: "add_task"
   },
@@ -268,7 +269,8 @@ export const builtinPrompts: SenseCodePrompt[] = [
     //shortcut: "refactor",
     message: {
       role: Role.user,
-      content: `${PromptType.codeRefactoringOptimization}. ${l10n.t("Please provide an explanation at the end")}.\n\n{code}`},
+      content: `{code}`
+    },
     brush: true,
     icon: "construction"
   }

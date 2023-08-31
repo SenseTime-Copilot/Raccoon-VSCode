@@ -206,7 +206,11 @@ const vscode = acquireVsCodeApi();
 
               preCode.parentElement.prepend(buttonWrapper);
             });
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${markedResponse.documentElement.innerHTML}</div>`;
+            let labelInstruction = '';
+            if (item.instruction) {
+              labelInstruction = `<p class="instruction-label">${item.instruction.replace("...", "")}</p>`;
+            }
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${labelInstruction} ${markedResponse.documentElement.innerHTML}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");

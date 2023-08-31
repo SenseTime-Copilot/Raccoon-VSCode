@@ -86,6 +86,7 @@ export interface CacheItem {
   timestamp: string;
   name: string;
   type: CacheItemType;
+  instruction?: string;
   value: string;
 }
 
@@ -928,7 +929,12 @@ ${data.info.response}
             });
           }
         }
-        appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, type: CacheItemType.question, value: instruction.content });
+        appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
+
+        if (prompt.type !== PromptType.customPrompt && prompt.type !== PromptType.freeChat) {
+          instruction.content = `${l10n.t(prompt.label)}. ${l10n.t("Please provide an explanation at the end")}.\n${instruction.content}`;
+        }
+
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
         let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
