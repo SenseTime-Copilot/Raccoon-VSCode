@@ -354,6 +354,7 @@ const vscode = acquireVsCodeApi();
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
           shortcuts += `  <button class="flex gap-2 items-center"
+                                 ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}
                                         onclick='vscode.postMessage({
                                             type: "sendQuestion",
                                             prompt: ${JSON.stringify(p)}
@@ -361,7 +362,7 @@ const vscode = acquireVsCodeApi();
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
                             ${p.label}
-                            ${p.shortcut ? `<span class="grow text-right opacity-40">/${p.shortcut}</span>` : ""}
+                            ${p.shortcut ? `<span class="shortcut grow text-right opacity-40">/${p.shortcut}</span>` : ""}
                           </button>
                       `;
         }
@@ -590,10 +591,9 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addMessage": {
+        list.querySelectorAll(".progress-ring").forEach(elem => elem.remove());
         let lastElem = list.lastElementChild;
-        if (lastElem && lastElem.classList.contains("progress-ring")) {
-          lastElem.remove();
-        } else if (lastElem && lastElem.classList.contains("message-element-gnc")) {
+        if (lastElem && lastElem.classList.contains("message-element-gnc")) {
           if (lastElem.classList.contains(message.category)) {
             lastElem.remove();
           }
@@ -781,13 +781,24 @@ const vscode = acquireVsCodeApi();
       document.getElementById("question").classList.remove("prompt-ready");
     }
     var list = document.getElementById("ask-list");
-    if (q.value === '/') {
-      list.classList.remove("hidden");
-      var btns = list.querySelectorAll("button");
-      btns.forEach((btn, _index) => {
-        btn.classList.remove('selected');
+    if (q.value.startsWith('/')) {
+      let allAction = list.querySelectorAll("button");
+      allAction.forEach((btn, _index) => {
+        btn.classList.add('hidden');
       });
-      btns[0].classList.add('selected');
+      var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
+        return q.value === '/' || sc.dataset.shortcut.startsWith(q.value);
+      });
+      if (btns.length > 0) {
+        list.classList.remove("hidden");
+        btns.forEach((btn, _index) => {
+          btn.classList.remove('hidden');
+          btn.classList.remove('selected');
+        });
+        btns[0].classList.add('selected');  
+      } else {
+        list.classList.add("hidden");
+      }
     } else {
       list.classList.add("hidden");
     }
@@ -868,11 +879,13 @@ const vscode = acquireVsCodeApi();
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
     if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
-      var btns = list.querySelectorAll("button");
+      var btns = Array.from(list.querySelectorAll("button")).filter((b, _i, _a)=>{
+        return !b.classList.contains('hidden');
+      });
       if (e.key === "Enter") {
         e.preventDefault();
         for (let i = 0; i < btns.length; i++) {
-          if (btns[i].classList.contains('selected')) {
+          if (!list.classList.contains("pin") && btns[i].classList.contains('selected')) {
             btns[i].click();
             break;
           }

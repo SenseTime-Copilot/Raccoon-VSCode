@@ -13,66 +13,66 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 const guide = `
-      <h3>${l10n.t("Coding with SenseCode")}</h3>
-      <ol>
-      <li>
-        ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts SenseCode thinking")}:
-        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-          <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
-          <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
-        </code>
-      </li>
-      <li>
-      ${l10n.t("When multi candidates generated, use <code>Alt+[</code> or <code>Alt+]</code> to switch between them")}:
-        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-          <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
-          <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
-        </code>
-      </li>
-      <li>
-      ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
-        <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
-          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
-          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
-        </code>
-      </li>
-      </ol>
-      <h3>${l10n.t("Ask SenseCode")}</h3>
-      <ol>
-      <li>
-      ${l10n.t("Select code in editor")}:
-        <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-        <div class="flex" style="display: flex; padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
-          <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
-          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
-          <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
-          <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
-        </div>
-        </code>
-      </li>
-      <li>
-      ${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask SenseCode")}:
-          <a onclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
-            <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
-          </a>
-      </li>
-      <li>
-      ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>Alt+/</code>)")}:
-            <div class="flex flex-col m-2 text-xs" style="border: 1px solid var(--vscode-editorSuggestWidget-border);background-color: var(--vscode-editorSuggestWidget-background);">
-            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
-            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
-            <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
-      </li>
-      </ol>
-      `;
+<h3>${l10n.t("Coding with SenseCode")}</h3>
+<ol>
+<li>
+  ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts SenseCode thinking")}:
+  <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+    <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
+    <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
+  </code>
+</li>
+<li>
+${l10n.t("When multi candidates generated, use <code>Alt+[</code> or <code>Alt+]</code> to switch between them")}:
+  <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+    <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
+    <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
+  </code>
+</li>
+<li>
+${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
+  <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+    <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
+    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
+    <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
+    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
+    <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+  </code>
+</li>
+</ol>
+<h3>${l10n.t("Ask SenseCode")}</h3>
+<ol>
+<li>
+${l10n.t("Select code in editor")}:
+  <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+  <div class="flex" style="display: flex; padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
+    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+    <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
+    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
+    <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
+    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
+    <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+  </div>
+  </code>
+</li>
+<li>
+${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask SenseCode")}:
+    <a onclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
+      <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
+    </a>
+</li>
+<li>
+${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>Alt+/</code>)")}:
+      <div class="flex flex-col m-2 text-xs" style="border: 1px solid var(--vscode-editorSuggestWidget-border);background-color: var(--vscode-editorSuggestWidget-background);">
+      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
+      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
+      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
+</li>
+</ol>
+`;
 
 export enum CacheItemType {
   question = "question",
@@ -194,6 +194,7 @@ export class SenseCodeEditor extends Disposable {
         this.updateSettingPage("full");
       } else if (e.scope.includes("active")) {
         this.updateSettingPage("full");
+        this.showWelcome(true);
       }
     });
     context.subscriptions.push(
@@ -250,22 +251,16 @@ export class SenseCodeEditor extends Disposable {
     this.showPage();
   }
 
-  private showWelcome(full?: boolean) {
+  private showWelcome(quiet?: boolean) {
     sensecodeManager.update();
-    this.sendMessage({ type: 'updateSettingPage', action: "close" });
-    let helpLink = `
-    <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-      <span class="material-symbols-rounded">question_mark</span>
-      <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
-      <div class="flex grow justify-end">
-        <vscode-link href="${env.uriScheme}:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
-      </div>
-    </div>`;
+    if (!quiet) {
+      this.sendMessage({ type: 'updateSettingPage', action: "close" });
+    }
     let ts = new Date();
     let timestamp = ts.toLocaleString();
-    let detail = full ? (guide + helpLink) : '';
+    let detail = '';
     let name = sensecodeManager.username();
-    let category = "welcome" + (full ? "-full" : "");
+    let category = "welcome";
     let username = '';
     let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
     if (name) {
@@ -282,16 +277,23 @@ export class SenseCodeEditor extends Disposable {
           </div>`;
       detail += loginHint;
     }
-    let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot);
-    this.sendMessage({ type: 'addMessage', category, robot, value: welcomMsg + detail, timestamp });
+    let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
+      + `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+  <span class="material-symbols-rounded">flag</span>
+  <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
+  <div class="flex grow justify-end">
+    <vscode-link href='#' onclick='vscode.postMessage({type: "sendQuestion", prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+  </div>
+</div>`;
+    this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg + detail, timestamp });
   }
 
   private async restoreFromCache() {
     return getCacheItems(this.context, this.cacheFile).then((items?: Array<CacheItem>) => {
       if (items && items.length > 0) {
         this.sendMessage({ type: 'restoreFromCache', value: items });
-        this.showWelcome();
       }
+      this.showWelcome();
     });
   }
 
@@ -513,7 +515,6 @@ export class SenseCodeEditor extends Disposable {
     this.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
         case 'welcome': {
-          this.showWelcome(true);
           await this.restoreFromCache();
           break;
         }
@@ -558,6 +559,28 @@ export class SenseCodeEditor extends Disposable {
             editor = window.activeTextEditor;
           }
           let prompt: SenseCodePrompt = data.prompt;
+          if (prompt.message.role === Role.function) {
+            switch (prompt.type) {
+              case PromptType.help: {
+                let tm = new Date();
+                let id = tm.valueOf();
+                let timestamp = tm.toLocaleString();
+                let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
+                let helplink = `
+<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+  <span class="material-symbols-rounded">question_mark</span>
+  <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
+  <div class="flex grow justify-end">
+    <vscode-link href="${env.uriScheme}:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+  </div>
+</div>`;
+                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + helplink, timestamp });
+                this.sendMessage({ type: 'stopResponse', id });
+                break;
+              }
+            }
+            break;
+          }
           if (editor && !data.values) {
             prompt.code = editor.document.getText(editor.selection);
             if (editor.document.languageId !== "plaintext") {
@@ -1036,7 +1059,7 @@ ${data.info.response}
       this.stopList[id].abort();
     }
     this.sendMessage({ type: "clear" });
-    this.showWelcome(true);
+    this.showWelcome();
   }
 
   private async getWebviewHtml(webview: Webview) {

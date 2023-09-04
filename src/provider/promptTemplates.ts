@@ -186,22 +186,10 @@ export class PromptInfo {
 }
 
 export const builtinPrompts: SenseCodePrompt[] = [
-  /*
-  {
-    label: l10n.t("Help"),
-    type: PromptType.help,
-    shortcut: "help",
-    message: {
-      role: Role.function,
-      content: 'Show help information'
-    },
-    icon: "help"
-  },
-  */
   {
     label: l10n.t("Generation"),
     type: PromptType.codeGeneration,
-    //shortcut: "generate",
+    shortcut: "generate",
     message: {
       role: Role.user,
       content: `{code}`
@@ -212,7 +200,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
   {
     label: l10n.t("Add Test"),
     type: PromptType.testSampleGeneration,
-    //shortcut: "test",
+    shortcut: "test",
     message: {
       role: Role.user,
       content: `{code}`
@@ -222,7 +210,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
   {
     label: l10n.t("Code Conversion"),
     type: PromptType.codeLanguageConversion,
-    //shortcut: "translate",
+    shortcut: "translate",
     message: {
       role: Role.user,
       content: `${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.\n{code}`
@@ -255,7 +243,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
   {
     label: l10n.t("Code Correction"),
     type: PromptType.codeErrorCorrection,
-    //shortcut: "fix",
+    shortcut: "fix",
     message: {
       role: Role.user,
       content: `{code}`
@@ -266,7 +254,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
   {
     label: l10n.t("Refactoring"),
     type: PromptType.codeRefactoringOptimization,
-    //shortcut: "refactor",
+    shortcut: "refactor",
     message: {
       role: Role.user,
       content: `{code}`
