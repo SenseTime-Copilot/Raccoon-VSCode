@@ -10,6 +10,7 @@ import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 import { SenseCodeTerminal } from "./provider/codeTerminal";
 import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
 import { SenseCodeNotebook } from "./provider/notebook";
+import DiffContentProvider from "./provider/diffContentProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -206,6 +207,8 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEditorProvider.viewType, new SenseCodeEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
+
+  DiffContentProvider.register(context);
 
   SenseCodeNotebook.rigister(context);
 }

@@ -8,6 +8,7 @@ import { CompletionPreferenceType } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
+import { diffCode } from './diffContentProvider';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -613,6 +614,14 @@ export class SenseCodeEditor extends Disposable {
           }
           break;
         }
+        case 'diff': {
+          if (data.languageid && data.origin && data.value) {
+            diffCode(data.languageid, data.origin, data.value);
+          } else {
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-diff-content', value: l10n.t("No diff content"), id: new Date().valueOf() });
+          }
+          break;
+        }
         case 'editCode': {
           let found = false;
           const editor = window.activeTextEditor || this.lastTextEditor;
@@ -637,14 +646,6 @@ export class SenseCodeEditor extends Disposable {
           if (!found) {
             this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-active-editor', value: l10n.t("No active editor found"), id: new Date().valueOf() });
           }
-          break;
-        }
-        case 'openNew': {
-          const document = await workspace.openTextDocument({
-            content: data.value,
-            language: data.language
-          });
-          window.showTextDocument(document);
           break;
         }
         case 'activeEngine': {
@@ -1182,6 +1183,7 @@ ${data.info.response}
                   "Delete": "${l10n.t("Delete this chat entity")}",
                   "Send": "${l10n.t("Send")}",
                   "ToggleWrap": "${l10n.t("Toggle line wrap")}",
+                  "Diff": "${l10n.t("Diff with original code")}",
                   "Copy": "${l10n.t("Copy to clipboard")}",
                   "Insert": "${l10n.t("Insert the below code at cursor")}",
                   "Thinking...": "${l10n.t("Thinking...")}",

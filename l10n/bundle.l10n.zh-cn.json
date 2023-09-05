@@ -91,6 +91,7 @@
   "Code attached": "已附加代码",
   "Stop": "停止",
   "Toggle line wrap": "切换自动换行模式",
+  "Diff with original code": "与原始代码比较",
   "Copy to clipboard": "复制至剪贴板",
   "Insert the below code at cursor": "将以下代码插入到光标位置",
   "Active engine not set": "未设置活动的后端引擎",

@@ -25,6 +25,7 @@ const vscode = acquireVsCodeApi();
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
+  const diffIcon = `<span class="material-symbols-rounded">difference</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
   const unfoldIcon = '<span class="material-symbols-rounded">expand</span>';
@@ -169,7 +170,7 @@ const vscode = acquireVsCodeApi();
             const preCodeList = markedResponse.querySelectorAll("pre > code");
 
             preCodeList.forEach((preCode, index) => {
-              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "fold");
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "fold", "mt-4");
               preCode.classList.forEach((cls, _idx, _arr) => {
                 if (cls.startsWith('language-')) {
                   preCode.parentElement.dataset.lang = cls.slice(9);
@@ -540,6 +541,13 @@ const vscode = acquireVsCodeApi();
           const buttonWrapper = document.createElement("div");
           buttonWrapper.classList.add("code-actions-wrapper");
 
+          const diff = document.createElement("button");
+          diff.dataset.id = message.id;
+          diff.title = l10nForUI["Diff"];
+          diff.innerHTML = diffIcon;
+
+          diff.classList.add("diff-element-gnc", "rounded");
+
           // Create wrap to clipboard button
           const wrapButton = document.createElement("button");
           wrapButton.dataset.id = message.id;
@@ -563,7 +571,7 @@ const vscode = acquireVsCodeApi();
 
           insert.classList.add("edit-element-gnc", "rounded");
 
-          buttonWrapper.append(wrapButton, copyButton, insert);
+          buttonWrapper.append(wrapButton, diff, copyButton, insert);
 
           preCode.parentElement.prepend(buttonWrapper);
         });
@@ -795,7 +803,7 @@ const vscode = acquireVsCodeApi();
           btn.classList.remove('hidden');
           btn.classList.remove('selected');
         });
-        btns[0].classList.add('selected');  
+        btns[0].classList.add('selected');
       } else {
         list.classList.add("hidden");
       }
@@ -879,7 +887,7 @@ const vscode = acquireVsCodeApi();
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
     if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
-      var btns = Array.from(list.querySelectorAll("button")).filter((b, _i, _a)=>{
+      var btns = Array.from(list.querySelectorAll("button")).filter((b, _i, _a) => {
         return !b.classList.contains('hidden');
       });
       if (e.key === "Enter") {
@@ -1304,6 +1312,33 @@ const vscode = acquireVsCodeApi();
         setTimeout(() => {
           targetButton.innerHTML = clipboardIcon;
         }, 1500);
+      });
+
+      return;
+    }
+
+    if (targetButton?.classList?.contains("diff-element-gnc")) {
+      e.preventDefault();
+      let id = targetButton?.dataset.id;
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "diff-code") });
+      var valuesNode = document.getElementById(`values-${id}`);
+      var languageid;
+      var origin;
+      if (valuesNode) {
+        var v1 = valuesNode.getElementsByClassName("languageid-value");
+        if (v1[0]) {
+          languageid = v1[0].textContent;
+        }
+        var v2 = valuesNode.getElementsByClassName("code-value");
+        if (v2[0]) {
+          origin = v2[0].textContent;
+        }
+      }
+      vscode.postMessage({
+        type: "diff",
+        languageid,
+        origin,
+        value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
 
       return;
