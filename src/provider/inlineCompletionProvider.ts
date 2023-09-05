@@ -8,15 +8,17 @@ import { buildHeader } from "../utils/buildRequestHeader";
 
 let lastRequest = null;
 
-export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem) {
+export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   let lang = "";
   if (doc) {
     lang = getDocumentLanguage(doc.languageId);
   }
-  if (!lang) {
-    statusBarItem.hide();
-  } else {
+  if (lang) {
     statusBarItem.show();
+    return true;
+  } else {
+    statusBarItem.hide();
+    return false;
   }
 }
 
@@ -31,6 +33,10 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
+      if (!showHideStatusBtn(document, statusBarItem)) {
+        return;
+      }
+
       let loggedin = sensecodeManager.isClientLoggedin();
       if (!loggedin) {
         updateStatusBarItem(
@@ -53,8 +59,6 @@ export function inlineCompletionProvider(
         }
         return;
       }
-
-      showHideStatusBtn(document, statusBarItem);
 
       let maxLength = sensecodeManager.maxInputTokenNum() / 2;
       let codeSnippets = await captureCode(document, position, maxLength);

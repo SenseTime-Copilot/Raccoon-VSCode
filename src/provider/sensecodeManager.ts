@@ -49,6 +49,7 @@ export class SenseCodeManager {
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
+  private proxy: Extension<CodeExtension> | undefined;
   private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
   public onDidChangeStatus = this.changeStatusEmitter.event;
 
@@ -56,12 +57,16 @@ export class SenseCodeManager {
     return randomBytes(20).toString('hex');
   }
 
-  constructor(private readonly context: ExtensionContext, private proxy: Extension<CodeExtension> | undefined) {
+  constructor(private readonly context: ExtensionContext) {
     let flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
+
+    outlog.debug(`------------------- ${flag} -------------------`);
+
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
     let ret = context.globalState.get<boolean>(flag);
     if (!ret) {
-      this.resetAllCacheData();
+      //outlog.debug('Clear settings');
+      //this.resetAllCacheData();
       context.globalState.update(flag, true);
     }
     context.subscriptions.push(
@@ -72,25 +77,28 @@ export class SenseCodeManager {
             this.changeStatusEmitter.fire({ scope: ["prompt"] });
           }
           if (e.affectsConfiguration("SenseCode.Engines")) {
-            this.updateEngineList(this.proxy).then(() => {
+            this.initialClients().then(() => {
               this.changeStatusEmitter.fire({ scope: ["engines"] });
             });
           }
         }
       })
     );
+
     context.subscriptions.push(extensions.onDidChange(() => {
       checkSensetimeEnv().then(p => {
         if ((p && !this.proxy) || (!p && this.proxy) || (p && this.proxy && p.packageJSON.version !== this.proxy.packageJSON.version)) {
           this.proxy = p;
-          this.updateEngineList(this.proxy);
+          this.initialClients();
         }
       });
     }));
-    this.updateEngineList(this.proxy);
   }
 
-  private async updateEngineList(proxyExt?: Extension<CodeExtension>): Promise<void> {
+  public async initialClients(): Promise<void> {
+    let proxyExt = await checkSensetimeEnv(true);
+    this.proxy = proxyExt;
+
     let tks = await this.context.secrets.get("SenseCode.tokens");
     let authinfos: any = {};
     if (tks) {
@@ -105,7 +113,7 @@ export class SenseCodeManager {
       if (e.type && e.label && e.url) {
         let client;
         let proxy = undefined;
-        if (proxyExt?.exports?.filterEnabled(e)) {
+        if (proxyExt?.exports?.filterEnabled(e) && !e.key) {
           client = proxyExt?.exports.factory(e, outlog.debug);
           proxy = proxyExt;
         } else if (e.type === ClientType.sensenova) {
@@ -150,6 +158,9 @@ export class SenseCodeManager {
         }
         return this.updateToken(name, ai, true);
       });
+    } else {
+      outlog.debug(`Append client ${name} [Unauthorized]`);
+      return Promise.resolve();
     }
   }
 
@@ -168,6 +179,7 @@ export class SenseCodeManager {
     if (ca) {
       ca.authInfo = ai;
     }
+    outlog.debug(`Append client ${clientName}: [Authorized - ${ai?.account.username}]`);
     return this.context.secrets.store("SenseCode.tokens", JSON.stringify(authinfos)).then(() => {
       this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
     });
@@ -202,7 +214,7 @@ export class SenseCodeManager {
   private async clearStatusData(): Promise<void> {
     deleteAllCacheFiles(this.context);
     return this.resetAllCacheData().then(() => {
-      return this.updateEngineList(this.proxy);
+      return this.initialClients();
     });
   }
 
@@ -316,6 +328,7 @@ export class SenseCodeManager {
         let p: SenseCodePrompt = {
           label: label,
           type: PromptType.customPrompt,
+          shortcut: customPrompts[label].shortcut,
           message: {
             role: Role.user,
             content: `${customPrompts[label].prompt}`

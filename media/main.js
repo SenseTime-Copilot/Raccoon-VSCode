@@ -93,7 +93,7 @@ const vscode = acquireVsCodeApi();
   };
 
   function buildQuestion(username, avatar, timestamp, id, innerHTML, status) {
-    let questionTitle = `<h2 class="avatar place-content-between my-1 -mx-2 flex flex-row-reverse">
+    let questionTitle = `<h2 class="avatar place-content-between mb-4 -mx-2 flex flex-row-reverse">
                               <span class="flex gap-2 flex flex-row-reverse text-xl">
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
                                 <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
@@ -111,7 +111,7 @@ const vscode = acquireVsCodeApi();
     return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${status}">
              ${questionTitle}
              ${innerHTML}
-             <div class="send-btns flex justify-end" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Enter]">${sendIcon}</vscode-button></div>
+             <div class="send-btns flex justify-end mt-4" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Enter]">${sendIcon}</vscode-button></div>
            </div>`;
   }
 
@@ -210,7 +210,7 @@ const vscode = acquireVsCodeApi();
             if (item.instruction) {
               labelInstruction = `<p class="instruction-label">${item.instruction.replace("...", "")}</p>`;
             }
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body mt-4 leading-loose w-full">${labelInstruction} ${markedResponse.documentElement.innerHTML}</div>`;
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2 leading-loose w-full">${labelInstruction} ${markedResponse.documentElement.innerHTML}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");

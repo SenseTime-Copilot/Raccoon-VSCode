@@ -251,7 +251,7 @@ export class SenseCodeEditor extends Disposable {
     this.showPage();
   }
 
-  private showWelcome(quiet?: boolean) {
+  private async showWelcome(quiet?: boolean) {
     sensecodeManager.update();
     if (!quiet) {
       this.sendMessage({ type: 'updateSettingPage', action: "close" });
@@ -266,20 +266,25 @@ export class SenseCodeEditor extends Disposable {
     if (name) {
       username = ` @${name}`;
     } else {
+      let url = await sensecodeManager.getAuthUrlLogin();
+      let login = `<vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>`;
+      if (url) {
+        login = `<vscode-link href="${url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>`;
+      }
       const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-            <span class='material-symbols-rounded'>priority_high</span>
+            <span class='material-symbols-rounded'>person</span>
             <div class='inline-block leading-loose'>
-              ${l10n.t("It seems that you have not had an account to <b>{0}</b>, please <b>login</b> in settings first.", robot)}
+              ${l10n.t("Login to <b>{0}</b>", robot)}
             </div>
             <div class="flex grow justify-end">
-              <vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>
+              ${login}
             </div>
           </div>`;
       detail += loginHint;
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
       + `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-  <span class="material-symbols-rounded">flag</span>
+  <span class="material-symbols-rounded">celebration</span>
   <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
   <div class="flex grow justify-end">
     <vscode-link href='#' onclick='vscode.postMessage({type: "sendQuestion", prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
@@ -568,7 +573,7 @@ export class SenseCodeEditor extends Disposable {
                 let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
                 let helplink = `
 <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-  <span class="material-symbols-rounded">question_mark</span>
+  <span class="material-symbols-rounded">book</span>
   <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
   <div class="flex grow justify-end">
     <vscode-link href="${env.uriScheme}:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>

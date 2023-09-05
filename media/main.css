@@ -47,7 +47,8 @@ button:focus {
     color: var(--progress-background);
 }
 
-button.bug:hover, button.bug:focus {
+button.bug:hover,
+button.bug:focus {
     color: inherit;
     transform: scale(1.1);
 }
@@ -246,6 +247,7 @@ textarea::placeholder {
 #qa-list-wrapper {
     margin: 0;
     background: var(--vscode-sideBar-background);
+    border-top: 1px solid var(--panel-view-border);
 }
 
 #chat-button-wrapper {
@@ -596,6 +598,8 @@ button.disabled,
     padding: 0.25rem 1rem;
     width: 100%;
     background: none !important;
+    text-align: left;
+    white-space: nowrap;
 }
 
 
@@ -717,7 +721,7 @@ button.disabled,
 }
 
 .answer-element-gnc:last-child {
-    border-bottom: none;
+    border-bottom: 2px solid var(--panel-view-border);
 }
 
 .answer-element-gnc:before {

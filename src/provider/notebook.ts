@@ -1,4 +1,4 @@
-import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookController, NotebookControllerAffinity, NotebookData, NotebookDocument, NotebookSerializer, Uri, commands, notebooks, workspace, CancellationToken, NotebookCellStatusBarItem, ProviderResult, StatusBarAlignment, NotebookCellStatusBarAlignment } from "vscode";
+import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookController, NotebookControllerAffinity, NotebookData, NotebookDocument, NotebookSerializer, Uri, commands, notebooks, workspace } from "vscode";
 
 import { sensecodeManager } from "../extension";
 import { Message, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
@@ -34,12 +34,12 @@ class SenseCodeNotebookSerializer implements NotebookSerializer {
               if (item.type === CacheItemType.answer) {
                 q.outputs.push(new NotebookCellOutput([NotebookCellOutputItem.text(item.value, "text/markdown")]));
               } else {
-                q.outputs.push(new NotebookCellOutput([NotebookCellOutputItem.error(new Error(item.value))]));
+                q.outputs.push(new NotebookCellOutput([NotebookCellOutputItem.error(JSON.parse(item.value))]));
               }
             }
             break;
           case CacheItemType.data:
-            cells.push(new NotebookCellData(NotebookCellKind.Markup, item.value, "text/markdown"));
+            cells.push(new NotebookCellData(NotebookCellKind.Markup, item.value, "markdown"));
             break;
           default:
             break;
@@ -68,13 +68,18 @@ class SenseCodeNotebookSerializer implements NotebookSerializer {
         if (cell.outputs && cell.outputs.length > 0) {
           for (let output of cell.outputs) {
             for (let oi of output.items) {
-              let type = oi.mime === 'text/markdown' ? CacheItemType.answer : CacheItemType.error;
+              let type = CacheItemType.answer;
+              let value = decoder.decode(oi.data);
+              if (oi.mime === 'text/markdown') {
+              } else {
+                type = CacheItemType.error;
+              }
               let out: CacheItem = {
                 id: idx,
                 type,
                 timestamp: "",
                 name: "Assistant",
-                value: decoder.decode(oi.data)
+                value
               };
               result.push(out);
             }
@@ -91,16 +96,22 @@ class SenseCodeNotebookSerializer implements NotebookSerializer {
         result.push(item);
       }
     }
-    return encoder.encode(JSON.stringify(result));
+    return encoder.encode(JSON.stringify(result, undefined, 2));
   }
 }
 
 class SenseCodeNotebookController {
   private controller: NotebookController;
+  private cancel: AbortController = new AbortController();
   constructor(context: ExtensionContext, private readonly id: string, viewType: string) {
     this.controller = notebooks.createNotebookController(id, viewType, id);
     this.controller.supportsExecutionOrder = true;
     this.controller.supportedLanguages = ["sensecode"];
+    this.controller.interruptHandler = (_notebook: NotebookDocument) => {
+      if (this.cancel && !this.cancel.signal.aborted) {
+        this.cancel.abort();
+      }
+    };
     this.controller.executeHandler = this.execute.bind(this);
     context.subscriptions.push(this.controller);
   }
@@ -109,14 +120,17 @@ class SenseCodeNotebookController {
     this.controller.updateNotebookAffinity(notebook, NotebookControllerAffinity.Preferred);
   }
 
-  private execute(cells: NotebookCell[], notebook: NotebookDocument, controller: NotebookController) {
+  private async execute(cells: NotebookCell[], notebook: NotebookDocument, controller: NotebookController) {
+    if (this.cancel.signal.aborted) {
+      this.cancel = new AbortController();
+    }
     for (let cell of cells) {
-      let cancel = new AbortController();
+      await notebook.save();
+      if (this.cancel && this.cancel.signal.aborted) {
+        return;
+      }
       let execution = controller.createNotebookCellExecution(cell);
       execution.executionOrder = cell.index + 1;
-      execution.token.onCancellationRequested(() => {
-        cancel.abort();
-      });
 
       let content = cell.document.getText();
       let result = "";
@@ -128,7 +142,7 @@ class SenseCodeNotebookController {
         return c.index < cell.index;
       });
       for (let c of aboveCells) {
-        if (c.outputs[0].items[0].mime === 'text/markdown') {
+        if (c.outputs[0] && c.outputs[0].items[0]?.mime === 'text/markdown') {
           history.push({
             role: Role.user,
             content: c.document.getText()
@@ -138,57 +152,67 @@ class SenseCodeNotebookController {
           });
         }
       }
-      sensecodeManager.getCompletionsStreaming(
-        {
-          messages: [
-            { role: Role.system, content: "" },
-            ...history,
-            { role: Role.user, content }
-          ],
-          stop: ["<|end|>"]
-        },
-        (event) => {
-          let value: string | undefined = undefined;
-          let data = event.data;
-          if (data && data.choices && data.choices[0] && data.choices[0].message) {
-            value = data.choices[0].message.content;
-          }
-          switch (event.type) {
-            case ResponseEvent.cancel: {
-              if (result) {
+      await new Promise((resolve, _reject) => {
+        sensecodeManager.getCompletionsStreaming(
+          {
+            messages: [
+              { role: Role.system, content: "" },
+              ...history,
+              { role: Role.user, content }
+            ],
+            stop: ["<|end|>"]
+          },
+          (event) => {
+            let value: string | undefined = undefined;
+            let data = event.data;
+            if (data && data.choices && data.choices[0] && data.choices[0].message) {
+              value = data.choices[0].message.content;
+            }
+            if (this.cancel && this.cancel.signal.aborted) {
+              return;
+            }
+            switch (event.type) {
+              case ResponseEvent.cancel: {
+                if (result) {
+                  let output = NotebookCellOutputItem.text(result, "text/markdown");
+                  execution.appendOutput({ items: [output] });
+                }
+                execution.end(false, new Date().valueOf());
+                resolve(undefined);
+                break;
+              }
+              case ResponseEvent.finish:
+              case ResponseEvent.data: {
+                if (value) {
+                  result += value;
+                }
+                break;
+              }
+              case ResponseEvent.error: {
+                let err = new Error(value);
+                err.stack = undefined;
+                execution.appendOutput({ items: [NotebookCellOutputItem.error(err)] });
+                execution.end(false, new Date().valueOf());
+                this.cancel.abort();
+                resolve(undefined);
+                break;
+              }
+              case ResponseEvent.done: {
                 let output = NotebookCellOutputItem.text(result, "text/markdown");
                 execution.appendOutput({ items: [output] });
+                execution.end(true, new Date().valueOf());
+                resolve(undefined);
+                break;
               }
-              execution.end(false, new Date().valueOf());
-              break;
             }
-            case ResponseEvent.finish:
-            case ResponseEvent.data: {
-              if (value) {
-                result += value;
-              }
-              break;
-            }
-            case ResponseEvent.error: {
-              let err = new Error(value);
-              err.stack = undefined;
-              execution.appendOutput({ items: [NotebookCellOutputItem.error(err)] });
-              execution.end(false, new Date().valueOf());
-              break;
-            }
-            case ResponseEvent.done: {
-              let output = NotebookCellOutputItem.text(result, "text/markdown");
-              execution.appendOutput({ items: [output] });
-              execution.end(true, new Date().valueOf());
-              break;
-            }
-          }
-        },
-        {
-          headers: buildHeader("notebook"),
-          signal: cancel.signal
-        },
-        this.id);
+          },
+          {
+            headers: buildHeader("notebook"),
+            signal: this.cancel.signal
+          },
+          this.id
+        );
+      });
     }
   }
 

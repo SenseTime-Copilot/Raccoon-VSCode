@@ -10,7 +10,6 @@ import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 import { SenseCodeTerminal } from "./provider/codeTerminal";
 import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
 import { SenseCodeNotebook } from "./provider/notebook";
-import { checkSensetimeEnv } from "./utils/getProxy";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -31,10 +30,10 @@ export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
   context.subscriptions.push(outlog);
 
-  let proxy = await checkSensetimeEnv(true);
-
-  sensecodeManager = new SenseCodeManager(context, proxy);
+  sensecodeManager = new SenseCodeManager(context);
   sensecodeManager.update();
+
+  await sensecodeManager.initialClients();
 
   let senseCodeTelemetry: SenseCodeTelemetry = new SenseCodeTelemetry(vscode.env.appName, vscode.env.machineId);
 

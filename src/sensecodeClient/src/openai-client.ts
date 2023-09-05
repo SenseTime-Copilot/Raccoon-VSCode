@@ -253,6 +253,10 @@ export class OpenAIClient implements CodeClient {
         }));
       }
     }, (error) => {
+      if (error.message === 'canceled') {
+        callback(new MessageEvent(ResponseEvent.cancel));
+        return;
+      }
       error.response.data.on('data', async (v: any) => {
         let errInfo = error.response?.statusText || error.message;
         let msgstr: string = v.toString();
