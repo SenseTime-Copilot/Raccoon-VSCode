@@ -82,7 +82,7 @@ export class SenseCodeTerminal {
     let writeEmitter = new EventEmitter<string>();
     let changeNameEmitter = new EventEmitter<string>();
     sensecodeManager.onDidChangeStatus((e) => {
-      if (e.scope.includes("active")) {
+      if (e.scope.includes("active") || e.scope.includes("authorization") || e.scope.includes("engines")) {
         writeEmitter.fire('\r\n');
         welcome();
       }
