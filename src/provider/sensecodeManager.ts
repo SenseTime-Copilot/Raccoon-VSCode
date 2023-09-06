@@ -6,7 +6,7 @@ import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
-import { deleteAllCacheFiles, SenseCodeViewProvider } from "./webviewProvider";
+import { SenseCodeViewProvider } from "./webviewProvider";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
 import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
 
@@ -212,7 +212,6 @@ export class SenseCodeManager {
   }
 
   private async clearStatusData(): Promise<void> {
-    deleteAllCacheFiles(this.context);
     return this.resetAllCacheData().then(() => {
       return this.initialClients();
     });

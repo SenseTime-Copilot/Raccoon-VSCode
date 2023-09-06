@@ -9,9 +9,7 @@ import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient'
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
-
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 
 const guide = `
 <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -75,107 +73,11 @@ ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (defau
 </ol>
 `;
 
-export enum CacheItemType {
-  question = "question",
-  answer = "answer",
-  error = "error",
-  data = "data"
-}
-
-export interface CacheItem {
-  id: number;
-  timestamp: string;
-  name: string;
-  type: CacheItemType;
-  instruction?: string;
-  value: string;
-}
-
-async function appendCacheItem(context: ExtensionContext, cacheFile: string, data?: CacheItem): Promise<void> {
-  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
-  let cacheUri = Uri.joinPath(cacheDir, cacheFile);
-  return workspace.fs.stat(cacheDir)
-    .then(() => {
-      return workspace.fs.stat(cacheUri)
-        .then(() => {
-          if (!data) {
-            return;
-          }
-          workspace.fs.readFile(cacheUri).then(content => {
-            let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");
-            if (items) {
-              workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify([...items, data], undefined, 2))));
-            } else {
-              workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify([data], undefined, 2))));
-            }
-          }, () => { });
-        }, () => {
-          return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(data ? [data] : []))));
-        });
-    }, async () => {
-      return workspace.fs.createDirectory(cacheDir)
-        .then(() => {
-          return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(data ? [data] : []))));
-        }, () => { });
-    });
-}
-
-async function getCacheItems(context: ExtensionContext, cacheFile: string): Promise<Array<CacheItem>> {
-  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
-  let cacheUri = Uri.joinPath(cacheDir, cacheFile);
-  return workspace.fs.readFile(cacheUri).then(content => {
-    try {
-      let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
-      let answerReady = false;
-      return h.filter((v, idx, arr) => {
-        if ((idx) >= arr.length) {
-          answerReady = false;
-          return false;
-        } else if (v.type === CacheItemType.question && arr[idx + 1].type === CacheItemType.answer) {
-          answerReady = true;
-          return true;
-        } else if (answerReady && v.type === CacheItemType.answer) {
-          answerReady = false;
-          return true;
-        } else {
-          answerReady = false;
-          return false;
-        }
-      });
-    } catch {
-      return [];
-    }
-  }, () => { });
-}
-
-async function removeCacheItem(context: ExtensionContext, cacheFile: string, id?: number): Promise<void> {
-  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
-  let cacheUri = Uri.joinPath(cacheDir, cacheFile);
-  return workspace.fs.readFile(cacheUri).then(content => {
-    if (id) {
-      let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");
-      let log = items.filter((v, _idx, _arr) => {
-        return v.id !== id;
-      });
-      return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(log, undefined, 2))));
-    } else {
-      return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode('[]')));
-    }
-  }, () => { });
-}
-
-export async function deleteAllCacheFiles(context: ExtensionContext): Promise<void> {
-  let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
-  return workspace.fs.stat(cacheDir)
-    .then(() => {
-      workspace.fs.delete(cacheDir, { recursive: true });
-    });
-}
-
 export class SenseCodeEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
   private banWords: BanWords = BanWords.getInstance();
+  private cache: HistoryCache;
 
   private isSupportedScheme(d: TextDocument) {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-userdata");
@@ -183,7 +85,7 @@ export class SenseCodeEditor extends Disposable {
 
   constructor(private context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {
     super(() => { });
-    appendCacheItem(context, cacheFile);
+    this.cache = new HistoryCache(context, cacheFile);
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     sensecodeManager.onDidChangeStatus(async (e) => {
@@ -295,7 +197,7 @@ export class SenseCodeEditor extends Disposable {
   }
 
   private async restoreFromCache() {
-    return getCacheItems(this.context, this.cacheFile).then((items?: Array<CacheItem>) => {
+    return this.cache.getCacheItems().then((items?: Array<CacheItem>) => {
       if (items && items.length > 0) {
         this.sendMessage({ type: 'restoreFromCache', value: items });
       }
@@ -551,11 +453,11 @@ export class SenseCodeEditor extends Disposable {
         }
         case 'flushLog': {
           if (data.action === 'delete') {
-            removeCacheItem(this.context, this.cacheFile, data.id);
+            this.cache.removeCacheItem(data.id);
           } else if (data.action === 'answer') {
-            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.answer, value: data.value });
+            this.cache.appendCacheItem({ id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.answer, value: data.value });
           } else if (data.action === 'error') {
-            appendCacheItem(this.context, this.cacheFile, { id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.error, value: data.value });
+            this.cache.appendCacheItem({ id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.error, value: data.value });
           }
           break;
         }
@@ -701,7 +603,7 @@ export class SenseCodeEditor extends Disposable {
           window.withProgress({
             location: { viewId: "sensecode.view" }
           }, async (progress, _cancel) => {
-            return deleteAllCacheFiles(this.context).then(() => {
+            return this.cache.deleteAllCacheFiles().then(() => {
               progress.report({ increment: 100 });
               this.sendMessage({ type: 'showInfoTip', style: "message", category: 'clear-cache-done', value: l10n.t("Clear cache files done"), id: new Date().valueOf() });
             }, () => {
@@ -719,6 +621,7 @@ export class SenseCodeEditor extends Disposable {
             .then(v => {
               if (v === l10n.t("OK")) {
                 commands.executeCommand("keybindings.editor.resetKeybinding", "sensecode.inlineSuggest.trigger");
+                this.cache.deleteAllCacheFiles();
                 sensecodeManager.clear();
               }
             });
@@ -958,7 +861,7 @@ ${data.info.response}
             });
           }
         }
-        appendCacheItem(this.context, this.cacheFile, { id, name: username, timestamp: timestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
+        this.cache.appendCacheItem({ id, name: username, timestamp: timestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
 
         if (prompt.type !== PromptType.customPrompt && prompt.type !== PromptType.freeChat) {
           instruction.content = `${l10n.t(prompt.label)}. ${l10n.t("Please provide an explanation at the end")}.\n${instruction.content}`;
@@ -1258,6 +1161,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     }
     if (SenseCodeViewProvider.editor) {
       if (prompt) {
+        await new Promise((f) => setTimeout(f, 1000));
         return SenseCodeViewProvider.editor.sendApiRequest(prompt);
       } else {
         await new Promise((f) => setTimeout(f, 300));

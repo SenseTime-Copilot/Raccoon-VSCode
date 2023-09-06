@@ -8,7 +8,7 @@ import { sensecodeManager, telemetryReporter } from '../extension';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { BanWords } from '../utils/swords';
 import { buildHeader } from '../utils/buildRequestHeader';
-import { CacheItem, CacheItemType } from './webviewProvider';
+import { CacheItem, CacheItemType } from '../utils/historyCache';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);

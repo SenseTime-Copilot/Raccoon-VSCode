@@ -3,7 +3,7 @@ import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellK
 import { sensecodeManager } from "../extension";
 import { Message, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { CacheItem, CacheItemType } from "./webviewProvider";
+import { CacheItem, CacheItemType } from '../utils/historyCache';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
