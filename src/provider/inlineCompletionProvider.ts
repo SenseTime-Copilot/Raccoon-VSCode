@@ -141,7 +141,7 @@ ${temp}`
               statusBarItem,
               {
                 text: `$(alert)${err.response?.statusText || err.response?.status || ""}`,
-                tooltip: new vscode.MarkdownString(error)
+                tooltip: error
               }
             );
           } else {

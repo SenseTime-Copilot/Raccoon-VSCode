@@ -38,7 +38,7 @@ interface ClientAndAuthInfo {
   authInfo?: AuthInfo;
 }
 
-type ChangeScope = "prompt" | "engines" | "active" | "authorization";
+type ChangeScope = "prompt" | "engines" | "active" | "authorization" | "config";
 
 export interface StatusChangeEvent {
   scope: ChangeScope[];
@@ -228,7 +228,7 @@ export class SenseCodeManager {
     await this.configuration.update("Prompt", undefined, true);
 
     await this.context.secrets.delete("SenseCode.tokens");
-    this.changeStatusEmitter.fire({ scope: ["authorization", "active", "engines", "prompt"] });
+    this.changeStatusEmitter.fire({ scope: ["authorization", "active", "engines", "prompt", "config"] });
   }
 
   public update(): void {
@@ -518,7 +518,9 @@ export class SenseCodeManager {
   }
 
   public set autoComplete(v: boolean) {
-    this.context.globalState.update("CompletionAutomatically", v);
+    this.context.globalState.update("CompletionAutomatically", v).then(()=>{
+      this.changeStatusEmitter.fire({scope: ["config"]});
+    });
   }
 
   public get completionPreference(): CompletionPreferenceType {
@@ -526,7 +528,9 @@ export class SenseCodeManager {
   }
 
   public set completionPreference(v: CompletionPreferenceType) {
-    this.context.globalState.update("CompletionPreference", v);
+    this.context.globalState.update("CompletionPreference", v).then(()=>{
+      this.changeStatusEmitter.fire({scope: ["config"]});
+    });
   }
 
   public get streamResponse(): boolean {
@@ -534,7 +538,9 @@ export class SenseCodeManager {
   }
 
   public set streamResponse(v: boolean) {
-    this.context.globalState.update("StreamResponse", v);
+    this.context.globalState.update("StreamResponse", v).then(()=>{
+      this.changeStatusEmitter.fire({scope: ["config"]});
+    });
   }
 
   public get candidates(): number {
@@ -542,7 +548,9 @@ export class SenseCodeManager {
   }
 
   public set candidates(v: number) {
-    this.context.globalState.update("Candidates", v);
+    this.context.globalState.update("Candidates", v).then(()=>{
+      this.changeStatusEmitter.fire({scope: ["config"]});
+    });
   }
 
   public maxInputTokenNum(clientName?: string): number {
@@ -572,6 +580,8 @@ export class SenseCodeManager {
   }
 
   public set delay(v: number) {
-    this.context.globalState.update("Delay", v);
+    this.context.globalState.update("Delay", v).then(()=>{
+      this.changeStatusEmitter.fire({scope: ["config"]});
+    });
   }
 }

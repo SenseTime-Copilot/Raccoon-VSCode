@@ -149,12 +149,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // create a new status bar item that we can now manage
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    100
+    -1
   );
-  statusBarItem.color = new vscode.ThemeColor("statusBar.remoteForeground");
-  statusBarItem.backgroundColor = new vscode.ThemeColor("statusBar.remoteBackground");
+
   statusBarItem.command = "sensecode.settings";
   updateStatusBarItem(statusBarItem);
+
+  sensecodeManager.onDidChangeStatus((_e) => {
+    updateStatusBarItem(statusBarItem);
+  });
 
   let inlineProvider: vscode.InlineCompletionItemProvider;
 
