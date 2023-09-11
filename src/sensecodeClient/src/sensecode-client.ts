@@ -230,10 +230,15 @@ export class SenseCodeClient implements CodeClient {
 
     let responseType: ResponseType | undefined = undefined;
     let config = { ...this.clientConfig.config };
-    config.messages = requestParam.messages ?? [];
+
+    let systemPrompt = [];
+    if (config.model === 'penrose-411') {
+      systemPrompt.push({ role: Role.system, content: "" });
+    }
+
+    config.messages = requestParam.messages ? [...systemPrompt, ...requestParam.messages] : [];
     config.n = requestParam.n ?? 1;
     config.stream = requestParam.stream ?? config.stream;
-    config.stop = requestParam.stop ? requestParam.stop[0] : config.stop;
     config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
     if (config.stream) {
       responseType = "stream";
@@ -263,9 +268,16 @@ export class SenseCodeClient implements CodeClient {
     return this._postPrompt(auth, requestParam, options).then(data => {
       let choices: Choice[] = [];
       for (let choice of data.choices) {
+        let message: any;
+        if (choice.message) {
+          message = {
+            role: choice.message.role,
+            content: choice.message.content?.replace(/<\|text\|>/g, '').replace(/<\|endofblock\|>/g, '') || ""
+          };
+        }
         choices.push({
           index: choice.index,
-          message: choice.message,
+          message,
           finishReason: choice.finish_reason
         });
       }
@@ -369,6 +381,13 @@ export class SenseCodeClient implements CodeClient {
               } else if (json.choices) {
                 for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
+                  let message: any;
+                  if (choice.message) {
+                    message = {
+                      role: choice.message.role,
+                      content: choice.message.content?.replace(/<\|text\|>/g, '').replace(/<\|endofblock\|>/g, '') || ""
+                    };
+                  }
                   callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
                       data: {
@@ -377,7 +396,7 @@ export class SenseCodeClient implements CodeClient {
                         choices: [
                           {
                             index: choice.index,
-                            message: choice.message,
+                            message,
                             finishReason
                           }
                         ]

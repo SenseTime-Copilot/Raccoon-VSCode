@@ -18,6 +18,7 @@ const builtinEngines: ClientConfig[] = [
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
     config: {
       model: "penrose-411",
+      stop: "<|end|>",
       temperature: 0.5
     },
     maxInputTokenNum: 4096,
@@ -25,7 +26,7 @@ const builtinEngines: ClientConfig[] = [
   }
 ];
 
-type SenseCodeRequestParam = Pick<ChatRequestParam, "messages" | "n" | "stop" | "maxNewTokenNum">;
+type SenseCodeRequestParam = Pick<ChatRequestParam, "messages" | "n" |  "maxNewTokenNum">;
 
 export enum CompletionPreferenceType {
   speedPriority = "Speed Priority",

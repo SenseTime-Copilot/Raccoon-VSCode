@@ -877,14 +877,13 @@ ${data.info.response}
 
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
-        let msgs = [{ role: Role.system, content: '' }, ...historyMsgs, instruction];
+        let msgs = [...historyMsgs, instruction];
         if (streaming) {
           let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
             {
               messages: msgs,
-              n: 1,
-              stop: ["<|end|>"]
+              n: 1
             },
             (event) => {
               let rts = new Date().toLocaleString();
@@ -928,8 +927,7 @@ ${data.info.response}
           await sensecodeManager.getCompletions(
             {
               messages: msgs,
-              n: 1,
-              stop: ["<|end|>"]
+              n: 1
             },
             {
               headers: buildHeader(prompt.type),

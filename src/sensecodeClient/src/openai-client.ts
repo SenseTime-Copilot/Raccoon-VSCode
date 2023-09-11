@@ -88,7 +88,6 @@ export class OpenAIClient implements CodeClient {
         })
         : [];
       config.key = undefined;
-      config.stop = requestParam.stop ? requestParam.stop[0] : null;
       config.stream = requestParam.stream;
       config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
       if (config.stream) {

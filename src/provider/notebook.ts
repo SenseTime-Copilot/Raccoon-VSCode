@@ -156,11 +156,9 @@ class SenseCodeNotebookController {
         sensecodeManager.getCompletionsStreaming(
           {
             messages: [
-              { role: Role.system, content: "" },
               ...history,
               { role: Role.user, content }
-            ],
-            stop: ["<|end|>"]
+            ]
           },
           (event) => {
             let value: string | undefined = undefined;

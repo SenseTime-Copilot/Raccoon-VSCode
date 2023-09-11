@@ -80,7 +80,6 @@ export function inlineCompletionProvider(
             }
           );
         });
-        let stopToken: string[] = ["<|end|>"];
         let requestId = new Date().getTime();
         lastRequest = requestId;
         if (lastRequest !== requestId) {
@@ -121,10 +120,9 @@ ${temp}`
 
           data = await sensecodeManager.getCompletions(
             {
-              messages: [{ role: Role.system, content: "" }, completionPrompt],
+              messages: [completionPrompt],
               n: sensecodeManager.candidates,
-              maxNewTokenNum: mt,
-              stop: stopToken
+              maxNewTokenNum: mt
             },
             {
               headers: buildHeader('inline completion'),

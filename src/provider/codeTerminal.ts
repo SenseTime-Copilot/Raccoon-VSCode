@@ -236,9 +236,8 @@ export class SenseCodeTerminal {
           telemetryReporter.logUsage('free chat terminal');
           sensecodeManager.getCompletionsStreaming(
             {
-              messages: [{ role: Role.system, content: "" }, ...hlist, { role: Role.user, content: question }],
-              n: 1,
-              stop: ["<|end|>"]
+              messages: [...hlist, { role: Role.user, content: question }],
+              n: 1
             },
             (event) => {
               if (this.cancel?.signal.aborted) {

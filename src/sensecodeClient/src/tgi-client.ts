@@ -69,7 +69,6 @@ export class TGIClient implements CodeClient {
     config.stream = requestParam.stream;
     config.parameters = { ...this.clientConfig.config };
     config.parameters.n = requestParam.n ?? 1;
-    config.parameters.stop = requestParam.stop;
     config.max_new_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
     if (config.stream) {
       responseType = "stream";

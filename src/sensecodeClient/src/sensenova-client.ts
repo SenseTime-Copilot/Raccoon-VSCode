@@ -176,7 +176,6 @@ export class SenseNovaClient implements CodeClient {
         })
         : [];
       config.key = undefined;
-      config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
       config.stream = requestParam.stream;
       config.max_new_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
       if (config.stream) {
