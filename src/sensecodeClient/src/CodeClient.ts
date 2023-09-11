@@ -1,7 +1,8 @@
 export enum ClientType {
   sensecore = "sensecore",
   sensenova = "sensenova",
-  openai = "openai"
+  openai = "openai",
+  tgi = "tgi"
 }
 
 export enum AuthMethod {

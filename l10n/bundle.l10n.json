@@ -1,5 +1,4 @@
 {
-  "We highly respect the privacy of your code. Do you accept sharing the generated code only for research purposes to make SenseCode better? Otherwise, the code won't be stored and is only used to assist your programming.": "We highly respect the privacy of your code. Do you accept sharing the generated code only for research purposes to make SenseCode better? Otherwise, the code won't be stored and is only used to assist your programming.",
   "Accept": "Accept",
   "Decline": "Decline",
   "OK": "OK",
@@ -67,6 +66,7 @@
   "Clear cache files": "Clear cache files",
   "Clear cache files done": "Clear cache files done",
   "Clear cache files failed": "Clear cache files failed",
+  "Join the User Experience Improvement Program": "Join the User Experience Improvement Program",
   "Clear all settings": "Clear all settings",
   "Clear all settings?": "Clear all settings?",
   "User cancelled": "User cancelled",

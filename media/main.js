@@ -846,6 +846,8 @@ const vscode = acquireVsCodeApi();
       vscode.postMessage({ type: "responseMode", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
       vscode.postMessage({ type: "activeEngine", value: e.target._value });
+    } else if (e.target.id === "privacy") {
+      vscode.postMessage({ type: "privacy", value: e.target._checked });
     } else {
     }
   });
@@ -1191,9 +1193,6 @@ const vscode = acquireVsCodeApi();
 
     if (e.target.id === "clearCacheFiles") {
       vscode.postMessage({ type: "clearCacheFiles" });
-      document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
-      document.getElementById("question-input").disabled = false;
-      document.getElementById("question-input").focus();
       return;
     }
 

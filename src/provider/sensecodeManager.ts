@@ -9,6 +9,7 @@ import { randomBytes } from "crypto";
 import { SenseCodeViewProvider } from "./webviewProvider";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
 import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
+import { TGIClient } from "../sensecodeClient/src/tgi-client";
 
 const builtinEngines: ClientConfig[] = [
   {
@@ -130,6 +131,8 @@ export class SenseCodeManager {
           client = new SenseCodeClient(meta, e, outlog.debug);
         } else if (e.type === ClientType.openai) {
           client = new OpenAIClient(e, outlog.debug);
+        } else if (e.type === ClientType.tgi) {
+          client = new TGIClient(e, outlog.debug);
         }
         if (client) {
           client.onDidChangeAuthInfo(async (ai) => {

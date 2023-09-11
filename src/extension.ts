@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { SenseCodeManager } from "./provider/sensecodeManager";
-import { checkPrivacy } from "./utils/checkPrivacy";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { SenseCodeViewProvider } from "./provider/webviewProvider";
@@ -60,8 +59,6 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   };
   telemetryReporter = vscode.env.createTelemetryLogger(sender);
-
-  checkPrivacy(context);
 
   let validateInput = function (v: string) {
     return v ? undefined : "The value must not be empty";

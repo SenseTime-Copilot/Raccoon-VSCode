@@ -103,6 +103,8 @@ export class SenseCodeTerminal {
           if (isCtrlC(input)) {
             if (this.responsing) {
               this.cancel?.abort();
+              this.responsing = false;
+              writeEmitter.fire('\r\n');
             } else {
               if (this.cacheInput) {
                 this.cacheInput = '';
@@ -169,10 +171,11 @@ export class SenseCodeTerminal {
 
             let suffix = '⮨';
             if (window.activeTextEditor && window.activeTextEditor.selection) {
-              let code = window.activeTextEditor.document.getText(window.activeTextEditor.selection);
+              let doc = window.activeTextEditor.document;
+              let code = doc.getText(window.activeTextEditor.selection);
               if (code.trim()) {
-                if (window.activeTextEditor.document.languageId !== "plaintext") {
-                  code = `\n\`\`\`${window.activeTextEditor.document.languageId}\n${code}\n\`\`\`\n`;
+                if (doc.languageId !== "plaintext") {
+                  code = `\n\`\`\`${doc.languageId}\n${code}\n\`\`\`\n`;
                 } else {
                   code = `\n\`\`\`\n${code}\n\`\`\`\n`;
                 }

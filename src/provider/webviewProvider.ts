@@ -399,11 +399,15 @@ export class SenseCodeEditor extends Disposable {
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <vscode-button id="clearAll" class="mx-2 self-center w-60">
+      <div class="flex items-center">
+        <vscode-checkbox id="privacy" ${this.context.globalState.get("privacy") ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
+      </div>
+      <div class="flex flex-col grow place-content-end py-4">
+      <vscode-button id="clearAll" class="mx-2 self-center w-60" appearance="secondary">
         ${l10n.t("Clear all settings")}
         <span slot="start" class="material-symbols-rounded">settings_power</span>
       </vscode-button>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);padding-bottom: 4rem;"></vscode-divider>
+      </div>
     </div>
     `;
     this.sendMessage({ type: 'updateSettingPage', value: settingPage, action });
@@ -627,6 +631,10 @@ export class SenseCodeEditor extends Disposable {
             });
           break;
         }
+        case 'privacy': {
+          this.context.globalState.update("privacy", data.value);
+          break;
+        }
         case 'correct': {
           if (!env.isTelemetryEnabled) {
             window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
@@ -792,7 +800,7 @@ ${data.info.response}
   public async sendApiRequest(prompt: PromptInfo, values?: any, history?: any[]) {
     let ts = new Date();
     let id = ts.valueOf();
-    let timestamp = ts.toLocaleString();
+    let reqTimestamp = ts.toLocaleString();
 
     let loggedin = sensecodeManager.isClientLoggedin();
     let username = sensecodeManager.username();
@@ -828,9 +836,9 @@ ${data.info.response}
     let robot = sensecodeManager.getActiveClientLabel();
 
     if (promptHtml.status === RenderStatus.editRequired) {
-      this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
+      this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
     } else {
-      this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp });
+      this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
       try {
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
@@ -861,7 +869,7 @@ ${data.info.response}
             });
           }
         }
-        this.cache.appendCacheItem({ id, name: username, timestamp: timestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
+        this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
 
         if (prompt.type !== PromptType.customPrompt && prompt.type !== PromptType.freeChat) {
           instruction.content = `${l10n.t(prompt.label)}. ${l10n.t("Please provide an explanation at the end")}.\n${instruction.content}`;
@@ -882,7 +890,7 @@ ${data.info.response}
               let rts = new Date().toLocaleString();
               let content: string | undefined = undefined;
               let data = event.data;
-              if (data && data.created) {
+              if (data) {
                 rts = new Date(data.created).toLocaleString();
               }
               if (data && data.choices && data.choices[0]) {
@@ -930,15 +938,17 @@ ${data.info.response}
             .then(rs => {
               let content = rs.choices[0]?.message?.content || "";
               let stopReason = rs.choices[0]?.finishReason;
+              let rts = new Date(rs.created).toLocaleString();
               outlog.debug(content + (stopReason ? `\n<StopReason: ${stopReason}>` : ""));
-              this.sendMessage({ type: 'addResponse', id, value: content, timestamp: new Date(rs.created).toLocaleString() });
+              this.sendMessage({ type: 'addResponse', id, value: content, timestamp: rts });
               this.sendMessage({ type: 'stopResponse', id });
             }, (err) => {
               let error = err.response?.statusText || err.message;
               if (err.response?.data?.error) {
                 error = err.response.data.error;
               }
-              this.sendMessage({ type: 'addError', error, id, timestamp: new Date().toLocaleString() });
+              let rts = new Date().toLocaleString();
+              this.sendMessage({ type: 'addError', error, id, timestamp: rts });
               this.sendMessage({ type: 'stopResponse', id });
             });
         }

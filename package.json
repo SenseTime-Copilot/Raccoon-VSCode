@@ -57,7 +57,8 @@
                                     "enum": [
                                         "sensecore",
                                         "sensenova",
-                                        "openai"
+                                        "openai",
+                                        "tgi"
                                     ]
                                 },
                                 "label": {
