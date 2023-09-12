@@ -5,7 +5,7 @@
     "sensecode.config.engines.engine.type": "Engine type, must be one of `sensecode`, `sensenova`, `openai`",
     "sensecode.config.engines.engine.label": "Engine label for UI dispaly",
     "sensecode.config.engines.engine.url": "Engine API URL",
-    "sensecode.config.engines.engine.authorization": "Authorization methods, could be `browser`, `apikey`, `accesskey`",
+    "sensecode.config.engines.engine.fill_mode_template": "Provide your own format template, in which `[languageId]`, `[prefix]`, `[suffix]` is replaced by luanguage ID, contents before & after the cursor (e.g. `<fim_prefix>Completion following [languageId] code:\\n[prefix]<fim_suffix>[suffix]<fim_middle>`)",
     "sensecode.config.engines.engine.key": "API Key for the engine, if not set, bring you to get it from authorization methods",
     "sensecode.config.engines.engine.username": "User name for UI dispaly, optional",
     "sensecode.config.engines.engine.total_token_num": "The total tokens to this backend engine",

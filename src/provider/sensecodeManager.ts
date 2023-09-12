@@ -26,7 +26,7 @@ const builtinEngines: ClientConfig[] = [
   }
 ];
 
-type SenseCodeRequestParam = Pick<ChatRequestParam, "messages" | "n" |  "maxNewTokenNum">;
+type SenseCodeRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum">;
 
 export enum CompletionPreferenceType {
   speedPriority = "Speed Priority",
@@ -356,6 +356,16 @@ export class SenseCodeManager {
     });
   }
 
+  public buildFillPrompt(languageId: string, prefix: string, suffix: string, clientName?: string): string | undefined {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    if (ca) {
+      return ca.client.buildFillPrompt(languageId, prefix, suffix);
+    }
+  }
+
   public userId(clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
@@ -522,8 +532,8 @@ export class SenseCodeManager {
   }
 
   public set autoComplete(v: boolean) {
-    this.context.globalState.update("CompletionAutomatically", v).then(()=>{
-      this.changeStatusEmitter.fire({scope: ["config"]});
+    this.context.globalState.update("CompletionAutomatically", v).then(() => {
+      this.changeStatusEmitter.fire({ scope: ["config"] });
     });
   }
 
@@ -532,8 +542,8 @@ export class SenseCodeManager {
   }
 
   public set completionPreference(v: CompletionPreferenceType) {
-    this.context.globalState.update("CompletionPreference", v).then(()=>{
-      this.changeStatusEmitter.fire({scope: ["config"]});
+    this.context.globalState.update("CompletionPreference", v).then(() => {
+      this.changeStatusEmitter.fire({ scope: ["config"] });
     });
   }
 
@@ -542,8 +552,8 @@ export class SenseCodeManager {
   }
 
   public set streamResponse(v: boolean) {
-    this.context.globalState.update("StreamResponse", v).then(()=>{
-      this.changeStatusEmitter.fire({scope: ["config"]});
+    this.context.globalState.update("StreamResponse", v).then(() => {
+      this.changeStatusEmitter.fire({ scope: ["config"] });
     });
   }
 
@@ -552,8 +562,8 @@ export class SenseCodeManager {
   }
 
   public set candidates(v: number) {
-    this.context.globalState.update("Candidates", v).then(()=>{
-      this.changeStatusEmitter.fire({scope: ["config"]});
+    this.context.globalState.update("Candidates", v).then(() => {
+      this.changeStatusEmitter.fire({ scope: ["config"] });
     });
   }
 
@@ -584,8 +594,8 @@ export class SenseCodeManager {
   }
 
   public set delay(v: number) {
-    this.context.globalState.update("Delay", v).then(()=>{
-      this.changeStatusEmitter.fire({scope: ["config"]});
+    this.context.globalState.update("Delay", v).then(() => {
+      this.changeStatusEmitter.fire({ scope: ["config"] });
     });
   }
 }

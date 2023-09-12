@@ -47,6 +47,13 @@ export class SenseCodeClient implements CodeClient {
     return [AuthMethod.browser, AuthMethod.accesskey];
   }
 
+  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
+    if (!this.clientConfig.fillModeTemplate) {
+      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
+    }
+    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
+  }
+
   public getAuthUrlLogin(codeVerifier: string): Promise<string | undefined> {
     let key = this.clientConfig.key;
     if (key && typeof key === "object") {
@@ -230,6 +237,13 @@ export class SenseCodeClient implements CodeClient {
 
     let responseType: ResponseType | undefined = undefined;
     let config = { ...this.clientConfig.config };
+
+    if (requestParam.model) {
+      config.model = requestParam.model;
+    }
+    if (requestParam.stop) {
+      config.stop = requestParam.stop[0];
+    }
 
     let systemPrompt = [];
     if (config.model === 'penrose-411') {

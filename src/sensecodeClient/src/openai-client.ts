@@ -22,6 +22,13 @@ export class OpenAIClient implements CodeClient {
     return [AuthMethod.apikey];
   }
 
+  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
+    if (!this.clientConfig.fillModeTemplate) {
+      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
+    }
+    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
+  }
+
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);

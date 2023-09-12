@@ -41,6 +41,13 @@ export class SenseNovaClient implements CodeClient {
     return [AuthMethod.browser, AuthMethod.accesskey];
   }
 
+  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
+    if (!this.clientConfig.fillModeTemplate) {
+      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
+    }
+    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
+  }
+
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
     let key = this.clientConfig.key;
     if (key && typeof key === "object") {

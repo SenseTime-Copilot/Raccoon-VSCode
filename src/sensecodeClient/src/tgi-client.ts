@@ -1,6 +1,6 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
 
 export class TGIClient implements CodeClient {
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
@@ -20,6 +20,13 @@ export class TGIClient implements CodeClient {
 
   public get authMethods(): AuthMethod[] {
     return [];
+  }
+
+  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
+    if (!this.clientConfig.fillModeTemplate) {
+      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
+    }
+    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {

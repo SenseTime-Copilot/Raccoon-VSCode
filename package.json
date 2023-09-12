@@ -12,7 +12,7 @@
         "url": "https://github.com/SenseCore/SenseCode-VSCode/issues"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.50.4",
+    "version": "0.50.5",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -83,17 +83,9 @@
                                     "type": "object",
                                     "description": "%sensecode.config.engines.engine.config%"
                                 },
-                                "authorization": {
-                                    "type": "array",
-                                    "description": "%sensecode.config.engines.engine.authorization%",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "browser",
-                                            "apikey",
-                                            "accesskey"
-                                        ]
-                                    }
+                                "fillModeTemplate": {
+                                    "type": "string",
+                                    "description": "%sensecode.config.engines.engine.fill_mode_template%"
                                 },
                                 "key": {
                                     "oneOf": [
@@ -126,7 +118,8 @@
                                 "totalTokenNum",
                                 "maxInputTokenNum",
                                 "config"
-                            ]
+                            ],
+                            "additionalProperties": false
                         }
                     },
                     "SenseCode.Prompt": {

@@ -105,15 +105,18 @@ export function inlineCompletionProvider(
             mt = sensecodeManager.totalTokenNum() - sensecodeManager.maxInputTokenNum();
           }
 
-          let temp = `${codeSnippets.prefix}<fim_suffix>${codeSnippets.suffix}<fim_middle>`;
-          if (!codeSnippets.suffix) {
-            temp = `${codeSnippets.prefix}<fim_middle><fim_suffix>`;
+          let content = sensecodeManager.buildFillPrompt(getDocumentLanguage(document.languageId), codeSnippets.prefix, codeSnippets.suffix);
+          if (!content) {
+            updateStatusBarItem(statusBarItem,
+              {
+                text: "$(exclude)",
+                tooltip: vscode.l10n.t("Out of service")
+              });
+            return;
           }
           const completionPrompt: Message = {
             role: Role.user,
-            content: `<fim_prefix>Please do not provide any explanations at the end. Please complete the following ${getDocumentLanguage(document.languageId) || ""} code.
-
-${temp}`
+            content
           };
 
           telemetryReporter.logUsage('inline completion');
@@ -138,7 +141,7 @@ ${temp}`
             updateStatusBarItem(
               statusBarItem,
               {
-                text: `$(alert)${err.response?.statusText || err.response?.status || ""}`,
+                text: `$(error)${err.response?.statusText || err.response?.status || ""}`,
                 tooltip: error
               }
             );
