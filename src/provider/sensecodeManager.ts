@@ -11,15 +11,37 @@ import { OpenAIClient } from "../sensecodeClient/src/openai-client";
 import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
 import { TGIClient } from "../sensecodeClient/src/tgi-client";
 
-const builtinEngines: ClientConfig[] = [
+export interface ClientOption {
+  template: string;
+  parameters: any;
+}
+
+type SensecodeClientConfig = ClientConfig & {
+  options: { [key: string]: ClientOption };
+};
+
+const builtinEngines: SensecodeClientConfig[] = [
   {
     type: ClientType.sensecore,
     label: "SenseCode",
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
-    config: {
-      model: "penrose-411",
-      stop: "<|end|>",
-      temperature: 0.5
+    options: {
+      completion: {
+        template: "<fim_prefix>[prefix]<fim_suffix>[suffix]<fim_middle>",
+        parameters: {
+          model: "penrose-411",
+          stop: ["<|end|>"],
+          temperature: 0.5
+        }
+      },
+      assistant: {
+        template: "[prefix]",
+        parameters: {
+          model: "penrose-l",
+          stop: ["<|endofmessage|>"],
+          temperature: 0.5
+        }
+      }
     },
     maxInputTokenNum: 4096,
     totalTokenNum: 8192
@@ -36,6 +58,7 @@ export enum CompletionPreferenceType {
 
 interface ClientAndAuthInfo {
   client: CodeClient;
+  options: { [key: string]: ClientOption };
   proxy?: Extension<CodeExtension>;
   authInfo?: AuthInfo;
 }
@@ -108,7 +131,7 @@ export class SenseCodeManager {
         authinfos = JSON.parse(tks);
       } catch (e) { }
     }
-    let es = this.configuration.get<ClientConfig[]>("Engines", []);
+    let es = this.configuration.get<SensecodeClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
     this._clients = {};
     for (let e of es) {
@@ -139,17 +162,17 @@ export class SenseCodeManager {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.label, ai, true);
           });
-          await this.appendClient(e.label, { client, proxy, authInfo: authinfos[e.label] }, e);
+          await this.appendClient(e.label, { client, options: e.options, proxy, authInfo: authinfos[e.label] }, e.username);
         }
       }
     }
   }
 
-  private async appendClient(name: string, c: ClientAndAuthInfo, cfg: ClientConfig) {
+  private async appendClient(name: string, c: ClientAndAuthInfo, username?: string) {
     this._clients[name] = c;
     if (c.authInfo) {
-      if (cfg.username) {
-        c.authInfo.account.username = cfg.username;
+      if (username) {
+        c.authInfo.account.username = username;
       }
       return this.updateToken(name, c.authInfo, true);
     }
@@ -157,8 +180,8 @@ export class SenseCodeManager {
     let url = await c.client.getAuthUrlLogin("");
     if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
       return c.client.login(url, "").then((ai) => {
-        if (cfg.username) {
-          ai.account.username = cfg.username;
+        if (username) {
+          ai.account.username = username;
         }
         return this.updateToken(name, ai, true);
       });
@@ -350,19 +373,21 @@ export class SenseCodeManager {
   }
 
   public get clientsLabel(): string[] {
-    let es = this.configuration.get<ClientConfig[]>("Engines", []);
+    let es = this.configuration.get<SensecodeClientConfig[]>("Engines", []);
     return builtinEngines.concat(es).map((v, _idx, _arr) => {
       return v.label;
     });
   }
 
-  public buildFillPrompt(languageId: string, prefix: string, suffix: string, clientName?: string): string | undefined {
+  public buildFillPrompt(preset: string, prefix: string, suffix?: string, clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      return ca.client.buildFillPrompt(languageId, prefix, suffix);
+      if (ca.options[preset]?.template) {
+        return ca.options[preset]?.template.replace("[prefix]", prefix).replace("[suffix]", suffix || "");
+      }
     }
   }
 
@@ -491,14 +516,14 @@ export class SenseCodeManager {
     });
   }
 
-  public async getCompletions(config: SenseCodeRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
+  public async getCompletions(preset: string, config: SenseCodeRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca && ca.authInfo) {
       let params: ChatRequestParam = {
-        model: "",
+        ...ca.options[preset].parameters,
         ...config
       };
       return ca.client.getCompletions(ca.authInfo, params, options);
@@ -509,14 +534,14 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
+  public async getCompletionsStreaming(preset: string, config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca && ca.authInfo) {
       let params: ChatRequestParam = {
-        model: "",
+        ...ca.options[preset].parameters,
         ...config
       };
       ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);

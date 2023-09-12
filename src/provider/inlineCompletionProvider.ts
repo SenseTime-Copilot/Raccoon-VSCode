@@ -105,7 +105,7 @@ export function inlineCompletionProvider(
             mt = sensecodeManager.totalTokenNum() - sensecodeManager.maxInputTokenNum();
           }
 
-          let content = sensecodeManager.buildFillPrompt(getDocumentLanguage(document.languageId), codeSnippets.prefix, codeSnippets.suffix);
+          let content = sensecodeManager.buildFillPrompt("completion", codeSnippets.prefix, codeSnippets.suffix);
           if (!content) {
             updateStatusBarItem(statusBarItem,
               {
@@ -122,6 +122,7 @@ export function inlineCompletionProvider(
           telemetryReporter.logUsage('inline completion');
 
           data = await sensecodeManager.getCompletions(
+            "completion",
             {
               messages: [completionPrompt],
               n: sensecodeManager.candidates,

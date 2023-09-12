@@ -36,7 +36,7 @@
     "main": "./dist/extension.js",
     "browser": "./dist/web/extension.js",
     "l10n": "./l10n",
-    "extensionKind":[
+    "extensionKind": [
         "ui",
         "workspace"
     ],
@@ -79,9 +79,39 @@
                                     "minimum": 1,
                                     "description": "%sensecode.config.engines.engine.max_input_token_num%"
                                 },
-                                "config": {
+                                "options": {
                                     "type": "object",
-                                    "description": "%sensecode.config.engines.engine.config%"
+                                    "description": "%sensecode.config.engines.engine.options%",
+                                    "properties": {
+                                        "compeletion": {
+                                            "type": "object",
+                                            "description": "%sensecode.config.engines.engine.options.completion%",
+                                            "properties": {
+                                                "template": {
+                                                    "type": "string",
+                                                    "description": "%sensecode.config.engines.engine.options.completion.template%"
+                                                },
+                                                "parameters": {
+                                                    "type": "object",
+                                                    "description": "%sensecode.config.engines.engine.options.completion.parameters%"
+                                                }
+                                            }
+                                        },
+                                        "assistant": {
+                                            "type": "object",
+                                            "description": "%sensecode.config.engines.engine.options.assistant%",
+                                            "properties": {
+                                                "template": {
+                                                    "type": "string",
+                                                    "description": "%sensecode.config.engines.engine.options.assistant.template%"
+                                                },
+                                                "parameters": {
+                                                    "type": "object",
+                                                    "description": "%sensecode.config.engines.engine.options.assistant.parameters%"
+                                                }
+                                            }
+                                        }
+                                    }
                                 },
                                 "fillModeTemplate": {
                                     "type": "string",
@@ -117,7 +147,7 @@
                                 "url",
                                 "totalTokenNum",
                                 "maxInputTokenNum",
-                                "config"
+                                "options"
                             ],
                             "additionalProperties": false
                         }

@@ -22,13 +22,6 @@ export class TGIClient implements CodeClient {
     return [];
   }
 
-  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
-    if (!this.clientConfig.fillModeTemplate) {
-      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
-    }
-    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
-  }
-
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
     return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
   }
@@ -71,12 +64,18 @@ export class TGIClient implements CodeClient {
     headers["Content-Type"] = "application/json";
 
     let responseType: ResponseType | undefined = undefined;
-    let config = { ...this.clientConfig.config };
+    let config: any = {};
     config.inputs = requestParam.messages.map((v, _i, _arr) => `<|${v.role}|>${v.content}<|end|>`).join("") + `<|${Role.assistant}|>`;
     config.stream = requestParam.stream;
-    config.parameters = { ...this.clientConfig.config };
-    config.parameters.n = requestParam.n ?? 1;
-    config.max_new_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
+    config.parameters = {
+      model: requestParam.model,
+      stop: requestParam.stop,
+      temperature: requestParam.temperature,
+      n: requestParam.n ?? 1,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      max_new_tokens : requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum))
+    };
+
     if (config.stream) {
       responseType = "stream";
     }
@@ -108,8 +107,8 @@ export class TGIClient implements CodeClient {
         choices.push({
           index: 0,
           message: {
-            role:Role.assistant,
-            content:data.generated_text
+            role: Role.assistant,
+            content: data.generated_text
           }
         });
       }

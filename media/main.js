@@ -1251,10 +1251,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('bug')) {
-      if (!targetButton?.classList?.contains('checked')) {
-        targetButton?.classList?.add("checked", "pointer-events-none");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "bug-report") });
-      }
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "bug-report") });
       return;
     }
 

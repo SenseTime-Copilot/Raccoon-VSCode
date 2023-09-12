@@ -235,6 +235,7 @@ export class SenseCodeTerminal {
 
           telemetryReporter.logUsage('free chat terminal');
           sensecodeManager.getCompletionsStreaming(
+            "assistant",
             {
               messages: [...hlist, { role: Role.user, content: question }],
               n: 1

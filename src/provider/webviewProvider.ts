@@ -881,6 +881,7 @@ ${data.info.response}
         if (streaming) {
           let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
+            "assistant",
             {
               messages: msgs,
               n: 1
@@ -925,6 +926,7 @@ ${data.info.response}
           );
         } else {
           await sensecodeManager.getCompletions(
+            "assistant",
             {
               messages: msgs,
               n: 1

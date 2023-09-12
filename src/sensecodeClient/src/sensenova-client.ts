@@ -41,13 +41,6 @@ export class SenseNovaClient implements CodeClient {
     return [AuthMethod.browser, AuthMethod.accesskey];
   }
 
-  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
-    if (!this.clientConfig.fillModeTemplate) {
-      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
-    }
-    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
-  }
-
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
     let key = this.clientConfig.key;
     if (key && typeof key === "object") {
@@ -176,13 +169,16 @@ export class SenseNovaClient implements CodeClient {
       }
 
       let responseType: ResponseType | undefined = undefined;
-      let config = { ...this.clientConfig.config };
+      let config: any = {};
+      config.model = requestParam.model;
+      config.stop = requestParam.stop;
+      config.temperature = requestParam.temperature;
+  
       config.messages = requestParam.messages
         ? requestParam.messages.filter((v, _idx, _arr) => {
           return v.role !== Role.system;
         })
         : [];
-      config.key = undefined;
       config.stream = requestParam.stream;
       config.max_new_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
       if (config.stream) {

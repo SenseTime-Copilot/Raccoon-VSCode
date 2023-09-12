@@ -154,6 +154,7 @@ class SenseCodeNotebookController {
       }
       await new Promise((resolve, _reject) => {
         sensecodeManager.getCompletionsStreaming(
+          "assistant",
           {
             messages: [
               ...history,

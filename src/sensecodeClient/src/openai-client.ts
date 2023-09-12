@@ -22,13 +22,6 @@ export class OpenAIClient implements CodeClient {
     return [AuthMethod.apikey];
   }
 
-  public buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined {
-    if (!this.clientConfig.fillModeTemplate) {
-      return `<fim_prefix>${prefix}<fim_suffix>${suffix}<fim_middle>`;
-    }
-    return this.clientConfig.fillModeTemplate.replace("[languageId]", languageId).replace("[prefix]", prefix).replace("[suffix]", suffix);
-  }
-
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
@@ -88,13 +81,16 @@ export class OpenAIClient implements CodeClient {
       }
 
       let responseType: ResponseType | undefined = undefined;
-      let config = { ...this.clientConfig.config };
+      let config: any = {};
+      config.model = requestParam.model;
+      config.temperature = requestParam.temperature;
+      config.stop = requestParam.stop;
       config.messages = requestParam.messages
         ? requestParam.messages.filter((v, _idx, _arr) => {
           return v.role !== Role.system;
         })
         : [];
-      config.key = undefined;
+      config.n = requestParam.n;
       config.stream = requestParam.stream;
       config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
       if (config.stream) {

@@ -20,10 +20,8 @@ export interface ClientConfig {
   type: ClientType;
   label: string;
   url: string;
-  config: any;
   maxInputTokenNum: number;
   totalTokenNum: number;
-  fillModeTemplate?: string;
   key?: string | AccessKey;
   username?: string;
 }
@@ -105,8 +103,6 @@ export interface CodeClient {
   get totalTokenNum(): number;
 
   get authMethods(): AuthMethod[];
-
-  buildFillPrompt(languageId: string, prefix: string, suffix: string): string | undefined;
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
