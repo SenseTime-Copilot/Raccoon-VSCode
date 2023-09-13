@@ -186,7 +186,7 @@ export class SenseCodeManager {
         return this.updateToken(name, ai, true);
       });
     } else {
-      outlog.debug(`Append client ${name} [Unauthorized]`);
+      outlog.debug(`Append client ${name}${c.proxy?"(with proxy)":""} [Unauthorized]`);
       return Promise.resolve();
     }
   }

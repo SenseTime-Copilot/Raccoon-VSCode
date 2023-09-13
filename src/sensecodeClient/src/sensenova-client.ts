@@ -48,7 +48,7 @@ export class SenseNovaClient implements CodeClient {
       return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
     }
 
-    return Promise.resolve(`https://login.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}`);
+    return Promise.resolve(`https://login.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}&refresh_expires_after=${60 * 60 * 24 * 7}`);
   }
 
   public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
@@ -71,11 +71,27 @@ export class SenseNovaClient implements CodeClient {
     }
   }
 
-  public async logout(_auth: AuthInfo): Promise<string | undefined> {
+  public async logout(auth: AuthInfo): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
     } else {
-      return Promise.resolve(undefined);
+      let date: string = new Date().toUTCString();
+      let headers: any = {};
+      headers["Date"] = date;
+      headers["Content-Type"] = "application/json";
+
+      let key = await this.apiKeyRaw(auth);
+      if (key) {
+        if (typeof key === 'string') {
+          headers["Authorization"] = `Bearer ${key}`;
+        } else {
+          let aksk = key as AccessKey;
+          headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
+        }
+      }
+      return axios.get(`https://iam-login.sensenova.cn/sensenova-sso/v1/logout`, { headers }).then(() => {
+        return undefined;
+      });
     }
   }
 
@@ -84,35 +100,31 @@ export class SenseNovaClient implements CodeClient {
   }
 
   private async parseAuthInfo(data: any): Promise<AuthInfo> {
-    let queries: string[] = decodeURIComponent(data).split("&");
-    let name = undefined;
-    let refreshToken: string | undefined = undefined;
-    let weaverdKey: string | undefined = undefined;
-    for (let q of queries) {
-      if (q.startsWith("token=")) {
-        weaverdKey = q.slice(6);
-        let decoded: any = jwt_decode(weaverdKey);
-        name = decoded.username;
-      } else if (q.startsWith("refresh=")) {
-        refreshToken = q.slice(8);
-      } else if (q.startsWith("expires=")) {
-
+    try {
+      let decoded = JSON.parse('{"' + decodeURIComponent(data).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
+      let weaverdKey = decoded.token;
+      let refreshToken = decoded.refresh;
+      let idToken: any = jwt_decode(weaverdKey);
+      let name = idToken.email.split("@")[0];
+      let expiration = idToken.exp;
+      if (!weaverdKey) {
+        return Promise.reject();
       }
-    }
-    if (!weaverdKey) {
+      let ret: AuthInfo = {
+        account: {
+          username: this.clientConfig.username || name || "User",
+          userId: idToken.email,
+          avatar: undefined
+        },
+        refreshToken,
+        expiration,
+        weaverdKey,
+      };
+
+      return ret;
+    } catch (e) {
       return Promise.reject();
     }
-    let ret: AuthInfo = {
-      account: {
-        username: this.clientConfig.username || name || "User",
-        userId: name,
-        avatar: undefined
-      },
-      refreshToken,
-      weaverdKey,
-    };
-
-    return ret;
   }
 
   private async apiKeyRaw(auth: AuthInfo): Promise<string | AccessKey> {
@@ -135,8 +147,15 @@ export class SenseNovaClient implements CodeClient {
       return Promise.resolve(auth);
     }
     if (auth.refreshToken) {
-      let url = `/oauth2/token`;
-      return axios.post(url)
+      let url = `https://iam-login.sensenova.cn/sensenova-sso/v1/token`;
+      return axios.post(url, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        grant_type: "refresh",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        refresh_token: auth.refreshToken,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        expires_after: 60 * 60 * 3
+      })
         .then((resp) => {
           if (resp && resp.status === 200) {
             return this.parseAuthInfo(resp.data);
@@ -149,7 +168,20 @@ export class SenseNovaClient implements CodeClient {
     return Promise.reject();
   }
 
-  private _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions, skipRetry?: boolean): Promise<any | IncomingMessage> {
+    let ts = new Date();
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+      try {
+        let newToken = await this.refreshToken(auth);
+        auth = newToken;
+        if (this.onChangeAuthInfo) {
+          this.onChangeAuthInfo(newToken);
+        }
+      } catch (er: any) {
+        return Promise.reject(new Error('The authentication information has expired, please log in again'));
+      }
+    }
+
     return new Promise(async (resolve, reject) => {
       let date: string = new Date().toUTCString();
       let headers = options ? {
@@ -161,7 +193,7 @@ export class SenseNovaClient implements CodeClient {
       let key = await this.apiKeyRaw(auth);
       if (key) {
         if (typeof key === 'string') {
-          headers["X-Sensenova-Token"] = key as string;
+          headers["Authorization"] = `Bearer ${key}`;
         } else {
           let aksk = key as AccessKey;
           headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
@@ -173,7 +205,7 @@ export class SenseNovaClient implements CodeClient {
       config.model = requestParam.model;
       config.stop = requestParam.stop;
       config.temperature = requestParam.temperature;
-  
+
       config.messages = requestParam.messages
         ? requestParam.messages.filter((v, _idx, _arr) => {
           return v.role !== Role.system;

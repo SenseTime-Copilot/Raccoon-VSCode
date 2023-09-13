@@ -283,7 +283,7 @@ export class SenseCodeEditor extends Disposable {
     let accountInfo = `
         <div class="flex gap-2 items-center w-full" title="${userId || ""}">
           ${avatarEle}
-          <span class="grow font-bold text-base">${username || l10n.t("Unknown")}</span>
+          <span class="grow font-bold text-base" ${userId ? `title="${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
           ${withProxy}
           ${loginout}
         </div>

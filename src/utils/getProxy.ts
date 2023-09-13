@@ -7,7 +7,7 @@ export interface CodeExtension {
   factory: (clientConfig: ClientConfig, debug?: (message: string, ...args: any[]) => void) => CodeClient | undefined;
 }
 
-const requiredProxyVersion = '0.50.4';
+const requiredProxyVersion = '0.50.5';
 const proxyUrl = `http://kestrel.sensetime.com/tools/sensetimeproxy-${requiredProxyVersion}.vsix`;
 
 async function getProxy(): Promise<Extension<CodeExtension> | undefined> {
