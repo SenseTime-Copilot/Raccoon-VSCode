@@ -1,5 +1,5 @@
 import axios from "axios";
-import { commands, env, extensions, UIKind, Uri, window, Extension } from "vscode";
+import { commands, env, extensions, UIKind, Uri, window, Extension, workspace, ExtensionContext, tasks, Task, ProcessExecution, TaskScope, ShellExecution, ShellQuoting } from "vscode";
 import { ClientConfig, CodeClient } from "../sensecodeClient/src/CodeClient";
 
 export interface CodeExtension {
@@ -34,7 +34,7 @@ function checkProxyVersion(proxy: Extension<CodeExtension> | undefined): boolean
   return proxy.packageJSON.version === requiredProxyVersion;
 }
 
-export async function checkSensetimeEnv(showError?: boolean): Promise<Extension<CodeExtension> | undefined> {
+export async function checkSensetimeEnv(context: ExtensionContext, showError?: boolean): Promise<Extension<CodeExtension> | undefined> {
   if (env.uiKind === UIKind.Web) {
     return Promise.resolve(undefined);
   }
@@ -48,10 +48,12 @@ export async function checkSensetimeEnv(showError?: boolean): Promise<Extension<
         let status = checkProxyVersion(proxy);
         if (status === undefined) {
           if (showError) {
-            window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "下载", "已安装, 去启用").then(
+            window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "安装", "已安装, 去启用").then(
               (v) => {
-                if (v === "下载") {
-                  commands.executeCommand('vscode.open', Uri.parse(proxyUrl));
+                if (v === "安装") {
+                  downloadAndInstallProxy(context).catch((reason)=>{
+                    window.showErrorMessage("安装失败 " + reason, "Close");
+                  });
                 }
                 if (v === "已安装, 去启用") {
                   commands.executeCommand('workbench.extensions.search', '@installed sensetimeproxy');
@@ -62,10 +64,12 @@ export async function checkSensetimeEnv(showError?: boolean): Promise<Extension<
           return undefined;
         } else if (!status) {
           if (showError) {
-            window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "下载").then(
+            window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "升级").then(
               (v) => {
-                if (v === "下载") {
-                  commands.executeCommand('vscode.open', Uri.parse(proxyUrl));
+                if (v === "升级") {
+                  downloadAndInstallProxy(context).catch((reason)=>{
+                    window.showErrorMessage("升级失败 " + reason, "Close");
+                  });
                 }
               }
             );
@@ -78,3 +82,30 @@ export async function checkSensetimeEnv(showError?: boolean): Promise<Extension<
       return undefined;
     });
 }
+
+async function downloadAndInstallProxy(context: ExtensionContext): Promise<void> {
+  let localfile = Uri.joinPath(context.globalStorageUri, `sensetimeproxy-${requiredProxyVersion}.vsix`);
+  return axios.get(proxyUrl, { responseType: 'arraybuffer' }).then((response) => {
+    workspace.fs.writeFile(localfile, new Uint8Array(response.data)).then(() => {
+      tasks.executeTask(
+        new Task({ type: "SenseCode Proxy Installer" },
+          TaskScope.Workspace,
+          'SenseCode Proxy Installer',
+          'SenseCode',
+          new ShellExecution(
+            { value: 'code', quoting: ShellQuoting.Escape },
+            [
+              '--install-extension',
+              `sensetimeproxy-${requiredProxyVersion}.vsix`,
+              '--force'
+            ],
+            {
+              cwd: context.globalStorageUri.fsPath
+            }
+          )
+        )
+      );
+    });
+  });
+}
+

@@ -1,16 +1,20 @@
 import axios, { ResponseType } from "axios";
-import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AccessKey, AuthMethod } from "./CodeClient";
 import jwt_decode from "jwt-decode";
 import sign = require('jwt-encode');
+import { IncomingMessage } from "http";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
+import { handleStreamError, makeCallbackData } from "./handleStreamError";
+
+const loginBaseUrl = 'https://login.test.sensenova.cn';
+const iamBaseUrl = 'https://iam-login.test.sensenova.cn';
 
 export interface SenseNovaClientMeta {
   clientId: string;
   redirectUrl: string;
 }
 
-function generateSignature(_urlString: string, _date: string, ak: string, sk: string) {
-  let t = new Date().valueOf();
+function generateSignature(_urlString: string, date: Date, ak: string, sk: string) {
+  let t = date.valueOf();
   let data = {
     iss: ak,
     exp: Math.floor(t / 1000) + 1800,
@@ -29,14 +33,6 @@ export class SenseNovaClient implements CodeClient {
     return this.clientConfig.label;
   }
 
-  public get maxInputTokenNum(): number {
-    return this.clientConfig.maxInputTokenNum;
-  }
-
-  public get totalTokenNum(): number {
-    return this.clientConfig.totalTokenNum;
-  }
-
   public get authMethods(): AuthMethod[] {
     return [AuthMethod.browser, AuthMethod.accesskey];
   }
@@ -48,7 +44,7 @@ export class SenseNovaClient implements CodeClient {
       return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
     }
 
-    return Promise.resolve(`https://login.sensenova.cn/#/login?redirect_url=${this.meta.redirectUrl}&refresh_expires_after=${60 * 60 * 24 * 7}`);
+    return Promise.resolve(`${loginBaseUrl}/#/login?redirect_url=${this.meta.redirectUrl}&refresh_expires_after=${60 * 60 * 24 * 7}`);
   }
 
   public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
@@ -75,9 +71,9 @@ export class SenseNovaClient implements CodeClient {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
     } else {
-      let date: string = new Date().toUTCString();
+      let date = new Date();
       let headers: any = {};
-      headers["Date"] = date;
+      headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
 
       let key = await this.apiKeyRaw(auth);
@@ -89,7 +85,7 @@ export class SenseNovaClient implements CodeClient {
           headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
         }
       }
-      return axios.get(`https://iam-login.sensenova.cn/sensenova-sso/v1/logout`, { headers }).then(() => {
+      return axios.get(`${iamBaseUrl}/sensenova-sso/v1/logout`, { headers }).then(() => {
         return undefined;
       });
     }
@@ -105,7 +101,7 @@ export class SenseNovaClient implements CodeClient {
       let weaverdKey = decoded.token;
       let refreshToken = decoded.refresh;
       let idToken: any = jwt_decode(weaverdKey);
-      let name = idToken.email.split("@")[0];
+      let name = idToken.email?.split("@")[0] || idToken.sub;
       let expiration = idToken.exp;
       if (!weaverdKey) {
         return Promise.reject();
@@ -113,7 +109,7 @@ export class SenseNovaClient implements CodeClient {
       let ret: AuthInfo = {
         account: {
           username: this.clientConfig.username || name || "User",
-          userId: idToken.email,
+          userId: idToken.sub,
           avatar: undefined
         },
         refreshToken,
@@ -147,120 +143,116 @@ export class SenseNovaClient implements CodeClient {
       return Promise.resolve(auth);
     }
     if (auth.refreshToken) {
-      let url = `https://iam-login.sensenova.cn/sensenova-sso/v1/token`;
+      let url = `${iamBaseUrl}/sensenova-sso/v1/token`;
       return axios.post(url, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         grant_type: "refresh",
         // eslint-disable-next-line @typescript-eslint/naming-convention
         refresh_token: auth.refreshToken,
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        expires_after: 60 * 60 * 3
+        expires_after: 60 * 60 * 3,
+        source: 'nova'
       })
         .then((resp) => {
           if (resp && resp.status === 200) {
-            return this.parseAuthInfo(resp.data);
+            let weaverdKey = resp.data.access_token;
+            let refreshToken = resp.data.refresh_token;
+            let idToken: any = jwt_decode(weaverdKey);
+            let name = idToken.email?.split("@")[0] || idToken.sub;
+            let expiration = idToken.exp;
+            if (!weaverdKey) {
+              return Promise.reject();
+            }
+            let ret: AuthInfo = {
+              account: {
+                username: this.clientConfig.username || name || "User",
+                userId: idToken.sub,
+                avatar: undefined
+              },
+              refreshToken,
+              expiration,
+              weaverdKey,
+            };
+
+            return ret;
           }
           return Promise.reject();
         }, (err) => {
+          console.log(JSON.stringify(auth.refreshToken));
+          console.log(JSON.stringify(err.response.data));
           throw err;
         });
     }
     return Promise.reject();
   }
 
-  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions, skipRetry?: boolean): Promise<any | IncomingMessage> {
+  private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<any | IncomingMessage> {
     let ts = new Date();
-    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
-      try {
-        let newToken = await this.refreshToken(auth);
-        auth = newToken;
-        if (this.onChangeAuthInfo) {
-          this.onChangeAuthInfo(newToken);
-        }
-      } catch (er: any) {
-        return Promise.reject(new Error('The authentication information has expired, please log in again'));
+    //if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+    try {
+      let newToken = await this.refreshToken(auth);
+      auth = newToken;
+      if (this.onChangeAuthInfo) {
+        this.onChangeAuthInfo(newToken);
+      }
+    } catch (er: any) {
+      return Promise.reject(new Error('The authentication information has expired, please log in again'));
+    }
+    //}
+
+    let date = new Date();
+    let headers = options ? {
+      ...options?.headers
+    } : {};
+    headers["Date"] = date.toUTCString();
+    headers["Content-Type"] = "application/json";
+
+    let key = await this.apiKeyRaw(auth);
+    if (key) {
+      if (typeof key === 'string') {
+        headers["Authorization"] = `Bearer ${key}`;
+      } else {
+        let aksk = key as AccessKey;
+        headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
       }
     }
 
-    return new Promise(async (resolve, reject) => {
-      let date: string = new Date().toUTCString();
-      let headers = options ? {
-        ...options?.headers
-      } : {};
-      headers["Date"] = date;
-      headers["Content-Type"] = "application/json";
+    let responseType: ResponseType | undefined = undefined;
+    let config: any = {};
+    config.model = requestParam.model;
+    config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
+    config.temperature = requestParam.temperature;
 
-      let key = await this.apiKeyRaw(auth);
-      if (key) {
-        if (typeof key === 'string') {
-          headers["Authorization"] = `Bearer ${key}`;
-        } else {
-          let aksk = key as AccessKey;
-          headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
+    config.stream = requestParam.stream;
+    config.max_new_tokens = requestParam.maxNewTokenNum;
+    if (config.stream) {
+      responseType = "stream";
+    }
+
+    let payload = {
+      messages: requestParam.messages.filter((m) => {
+        return !!m.content;
+      }),
+      ...config
+    };
+
+    if (this.debug) {
+      this.debug(`Request to: ${this.clientConfig.url}`);
+      let pc = { ...payload };
+      let content = pc.messages;
+      pc.messages = undefined;
+      this.debug(`Parameters: ${JSON.stringify(pc)}`);
+      this.debug(`Prompt:\n${JSON.stringify(content)}`);
+    }
+
+    return axios
+      .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
+      .then(async (res) => {
+        if (this.debug && !config.stream) {
+          this.debug(`${JSON.stringify(res.data)}`);
         }
-      }
-
-      let responseType: ResponseType | undefined = undefined;
-      let config: any = {};
-      config.model = requestParam.model;
-      config.stop = requestParam.stop;
-      config.temperature = requestParam.temperature;
-
-      config.messages = requestParam.messages
-        ? requestParam.messages.filter((v, _idx, _arr) => {
-          return v.role !== Role.system;
-        })
-        : [];
-      config.stream = requestParam.stream;
-      config.max_new_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
-      if (config.stream) {
-        responseType = "stream";
-      }
-
-      let payload = {
-        messages: requestParam.messages.filter((m) => {
-          return !!m.content;
-        }),
-        ...config
-      };
-
-      if (this.debug) {
-        this.debug(`Request to: ${this.clientConfig.url}`);
-        let pc = { ...payload };
-        let content = pc.messages;
-        pc.messages = undefined;
-        this.debug(`Parameters: ${JSON.stringify(pc)}`);
-        this.debug(`Prompt:\n${JSON.stringify(content)}`);
-      }
-
-      axios
-        .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
-        .then(async (res) => {
-          if (res?.status === 200) {
-            resolve(res.data);
-          } else {
-            reject(res.data);
-          }
-        }).catch(async e => {
-          if (!skipRetry && e.response?.status === 401) {
-            let newToken: AuthInfo | undefined = undefined;
-            try {
-              newToken = await this.refreshToken(auth);
-              if (this.onChangeAuthInfo) {
-                this.onChangeAuthInfo(newToken);
-              }
-              if (!newToken) {
-                reject(new Error('Attemp to refresh access token but get nothing'));
-              }
-              this._postPrompt(newToken, requestParam, options, true).then(resolve, reject);
-            } catch (er: any) {
-              reject(new Error('Attemp to refresh access token but failed'));
-            }
-          } else {
-            return reject(e);
-          }
-        });
-    });
+        return res.data;
+      });
   }
 
   public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData> {
@@ -327,42 +319,22 @@ export class SenseNovaClient implements CodeClient {
               let json = JSON.parse(content);
               tail = "";
               if (json.status && json.status.code !== 0) {
-                callback(new MessageEvent(ResponseEvent.error, {
-                  data: {
-                    id: '',
-                    created: new Date().valueOf(),
-                    choices: [
-                      {
-                        index: 0,
-                        message: {
-                          role: Role.assistant,
-                          content: json.status.message,
-                        }
-                      }
-                    ]
-                  }
-                }));
+                callback(new MessageEvent(
+                  ResponseEvent.error,
+                  {
+                    data: makeCallbackData('', 0, json.status.message)
+                  })
+                );
               } else if (json.data && json.data.choices) {
                 for (let choice of json.data.choices) {
                   let value = choice.delta;
                   let finishReason = choice["finish_reason"];
-                  callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
+                  callback(new MessageEvent(
+                    finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
-                      data: {
-                        id: json.data.id,
-                        created: new Date().valueOf(),
-                        choices: [
-                          {
-                            index: choice.index,
-                            message: {
-                              role: Role.assistant,
-                              content: value
-                            },
-                            finishReason
-                          }
-                        ]
-                      }
-                    }));
+                      data: makeCallbackData(json.data.id, choice.index, value, json.created * 1000, finishReason)
+                    })
+                  );
                 }
               }
             } catch (e: any) {
@@ -394,22 +366,8 @@ export class SenseNovaClient implements CodeClient {
           }
         }));
       }
-    }, (error) => {
-      callback(new MessageEvent(ResponseEvent.error, {
-        data: {
-          id: '',
-          created: new Date().valueOf(),
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: Role.assistant,
-                content: error.response?.statusText || error.message
-              }
-            }
-          ]
-        }
-      }));
+    }, (error: Error) => {
+      handleStreamError(error, callback);
     });
   }
 }

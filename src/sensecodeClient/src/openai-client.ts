@@ -1,6 +1,7 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
+import { handleStreamError, makeCallbackData } from "./handleStreamError";
 
 export class OpenAIClient implements CodeClient {
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
@@ -8,14 +9,6 @@ export class OpenAIClient implements CodeClient {
 
   public get label(): string {
     return this.clientConfig.label;
-  }
-
-  public get maxInputTokenNum(): number {
-    return this.clientConfig.maxInputTokenNum;
-  }
-
-  public get totalTokenNum(): number {
-    return this.clientConfig.totalTokenNum;
   }
 
   public get authMethods(): AuthMethod[] {
@@ -92,7 +85,7 @@ export class OpenAIClient implements CodeClient {
         : [];
       config.n = requestParam.n;
       config.stream = requestParam.stream;
-      config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
+      config.max_tokens = requestParam.maxNewTokenNum;
       if (config.stream) {
         responseType = "stream";
       }
@@ -188,41 +181,21 @@ export class OpenAIClient implements CodeClient {
               let json = JSON.parse(content);
               tail = "";
               if (json.error) {
-                callback(new MessageEvent(ResponseEvent.error, {
-                  data: {
-                    id: '',
-                    created: new Date().valueOf(),
-                    choices: [
-                      {
-                        index: 0,
-                        message: {
-                          role: Role.assistant,
-                          content: json.error.message,
-                        }
-                      }
-                    ]
-                  }
-                }));
+                callback(new MessageEvent(
+                  ResponseEvent.error,
+                  {
+                    data: makeCallbackData('', 0, json.error.message)
+                  })
+                );
               } else if (json.choices) {
                 for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
-                  callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
+                  callback(new MessageEvent(
+                    finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
-                      data: {
-                        id: json.id,
-                        created: json.created,
-                        choices: [
-                          {
-                            index: choice.index,
-                            message: {
-                              role: Role.assistant,
-                              content: choice.delta.content
-                            },
-                            finishReason
-                          }
-                        ]
-                      }
-                    }));
+                      data: makeCallbackData(json.id, choice.index, choice.delta.content, json.created, finishReason)
+                    })
+                  );
                 }
               }
             } catch (e: any) {
@@ -238,49 +211,16 @@ export class OpenAIClient implements CodeClient {
         if (this.debug) {
           this.debug("Unexpected response format");
         }
-        callback(new MessageEvent(ResponseEvent.error, {
-          data: {
-            id: '',
-            created: new Date().valueOf(),
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: Role.assistant,
-                  content: "Unexpected response format"
-                }
-              }
-            ]
-          }
-        }));
+        callback(new MessageEvent(
+          ResponseEvent.error,
+          {
+            data: makeCallbackData('', 0, 'Unexpected response format')
+          })
+        );
       }
-    }, (error) => {
-      if (error.message === 'canceled') {
-        callback(new MessageEvent(ResponseEvent.cancel));
-        return;
-      }
-      error.response.data.on('data', async (v: any) => {
-        let errInfo = error.response?.statusText || error.message;
-        let msgstr: string = v.toString();
-        try {
-          errInfo = JSON.parse(msgstr).error.message;
-        } catch { }
-        callback(new MessageEvent(ResponseEvent.error, {
-          data: {
-            id: '',
-            created: new Date().valueOf(),
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: Role.assistant,
-                  content: errInfo
-                }
-              }
-            ]
-          }
-        }));
-      });
-    });
+    }, (error: Error) => {
+      handleStreamError(error, callback);
+    }
+    );
   }
 }

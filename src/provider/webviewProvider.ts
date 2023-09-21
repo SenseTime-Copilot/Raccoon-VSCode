@@ -4,7 +4,7 @@ import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptT
 import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { BanWords } from '../utils/swords';
-import { CompletionPreferenceType } from './sensecodeManager';
+import { CompletionPreferenceType, ModelCapacity } from './sensecodeManager';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
 import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
@@ -620,7 +620,7 @@ export class SenseCodeEditor extends Disposable {
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
-            { modal: true, detail: l10n.t("It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• Privacy acception status\n\n\tAnd reset all other settings to default.\n") },
+            { modal: true, detail: l10n.t("It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• User experience improvement program\n\n\tAnd reset all other settings to default.\n") },
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
@@ -822,7 +822,7 @@ ${data.info.response}
       return;
     }
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
-    let maxTokens = sensecodeManager.maxInputTokenNum();
+    let maxTokens = sensecodeManager.maxInputTokenNum(ModelCapacity.assistant);
     if (el > maxTokens) {
       let devConfig = sensecodeManager.devConfig;
       if (devConfig && devConfig.inputTokenCountLimit === false) {
@@ -881,7 +881,7 @@ ${data.info.response}
         if (streaming) {
           let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
-            "assistant",
+            ModelCapacity.assistant,
             {
               messages: msgs,
               n: 1
@@ -926,7 +926,7 @@ ${data.info.response}
           );
         } else {
           await sensecodeManager.getCompletions(
-            "assistant",
+            ModelCapacity.assistant,
             {
               messages: msgs,
               n: 1
@@ -990,7 +990,7 @@ ${data.info.response}
     const vendorMarkedJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
     const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
-    const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MeterialSymbols', 'meterialSymbols.css'));
+    const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
     const avatarUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'sensecode-logo.png'));
 
     return `<!DOCTYPE html>

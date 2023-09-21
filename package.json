@@ -63,61 +63,67 @@
                                 },
                                 "label": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.label%"
+                                    "description": "%sensecode.config.engines.engine.label%",
+                                    "minLength": 1,
+                                    "maxLength": 32
                                 },
                                 "url": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.url%"
+                                    "description": "%sensecode.config.engines.engine.url%",
+                                    "format": "uri"
                                 },
-                                "totalTokenNum": {
-                                    "type": "number",
-                                    "minimum": 1,
-                                    "description": "%sensecode.config.engines.engine.total_token_num%"
-                                },
-                                "maxInputTokenNum": {
-                                    "type": "number",
-                                    "minimum": 1,
-                                    "description": "%sensecode.config.engines.engine.max_input_token_num%"
-                                },
-                                "options": {
+                                "completion": {
                                     "type": "object",
-                                    "description": "%sensecode.config.engines.engine.options%",
+                                    "description": "%sensecode.config.engines.engine.option%",
                                     "properties": {
-                                        "compeletion": {
-                                            "type": "object",
-                                            "description": "%sensecode.config.engines.engine.options.completion%",
-                                            "properties": {
-                                                "template": {
-                                                    "type": "string",
-                                                    "description": "%sensecode.config.engines.engine.options.completion.template%"
-                                                },
-                                                "parameters": {
-                                                    "type": "object",
-                                                    "description": "%sensecode.config.engines.engine.options.completion.parameters%"
-                                                }
-                                            }
+                                        "template": {
+                                            "type": "string",
+                                            "description": "%sensecode.config.engines.engine.option.template%"
                                         },
-                                        "assistant": {
+                                        "parameters": {
                                             "type": "object",
-                                            "description": "%sensecode.config.engines.engine.options.assistant%",
-                                            "properties": {
-                                                "template": {
-                                                    "type": "string",
-                                                    "description": "%sensecode.config.engines.engine.options.assistant.template%"
-                                                },
-                                                "parameters": {
-                                                    "type": "object",
-                                                    "description": "%sensecode.config.engines.engine.options.assistant.parameters%"
-                                                }
-                                            }
+                                            "description": "%sensecode.config.engines.engine.option.parameters%"
+                                        },
+                                        "totalTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
+                                        },
+                                        "maxInputTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 },
-                                "fillModeTemplate": {
-                                    "type": "string",
-                                    "description": "%sensecode.config.engines.engine.fill_mode_template%"
+                                "assistant": {
+                                    "type": "object",
+                                    "description": "%sensecode.config.engines.engine.option%",
+                                    "properties": {
+                                        "template": {
+                                            "type": "string",
+                                            "description": "%sensecode.config.engines.engine.option.template%"
+                                        },
+                                        "parameters": {
+                                            "type": "object",
+                                            "description": "%sensecode.config.engines.engine.option.parameters%"
+                                        },
+                                        "totalTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
+                                        },
+                                        "maxInputTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 },
                                 "key": {
+                                    "description": "%sensecode.config.engines.engine.key%",
                                     "oneOf": [
                                         {
                                             "type": "string"
@@ -126,28 +132,28 @@
                                             "type": "object",
                                             "properties": {
                                                 "accessKeyId": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "description": "%sensecode.config.engines.engine.key.ak%"
                                                 },
                                                 "secretAccessKey": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "description": "%sensecode.config.engines.engine.key.sk%"
                                                 }
                                             }
                                         }
-                                    ],
-                                    "description": "%sensecode.config.engines.engine.key%"
+                                    ]
                                 },
                                 "username": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.username%"
+                                    "description": "%sensecode.config.engines.engine.username%",
+                                    "minLength": 1,
+                                    "maxLength": 32
                                 }
                             },
                             "required": [
                                 "type",
                                 "label",
-                                "url",
-                                "totalTokenNum",
-                                "maxInputTokenNum",
-                                "options"
+                                "url"
                             ],
                             "additionalProperties": false
                         }

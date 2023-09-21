@@ -20,8 +20,6 @@ export interface ClientConfig {
   type: ClientType;
   label: string;
   url: string;
-  maxInputTokenNum: number;
-  totalTokenNum: number;
   key?: string | AccessKey;
   username?: string;
 }
@@ -97,10 +95,6 @@ export interface ResponseData {
 export interface CodeClient {
 
   get label(): string;
-
-  get maxInputTokenNum(): number;
-
-  get totalTokenNum(): number;
 
   get authMethods(): AuthMethod[];
 

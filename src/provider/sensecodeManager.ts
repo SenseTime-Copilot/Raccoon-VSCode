@@ -6,18 +6,24 @@ import { outlog } from "../extension";
 import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
-import { SenseCodeViewProvider } from "./webviewProvider";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
 import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
 import { TGIClient } from "../sensecodeClient/src/tgi-client";
 
+export enum ModelCapacity {
+  assistant = "assistant",
+  completion = "completion"
+}
+
 export interface ClientOption {
   template: string;
   parameters: any;
+  maxInputTokenNum: number;
+  totalTokenNum: number;
 }
 
 type SensecodeClientConfig = ClientConfig & {
-  options: { [key: string]: ClientOption };
+  [key in ModelCapacity]: ClientOption;
 };
 
 const builtinEngines: SensecodeClientConfig[] = [
@@ -25,26 +31,26 @@ const builtinEngines: SensecodeClientConfig[] = [
     type: ClientType.sensecore,
     label: "SenseCode",
     url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
-    options: {
-      completion: {
-        template: "<fim_prefix>[prefix]<fim_suffix>[suffix]<fim_middle>",
-        parameters: {
-          model: "penrose-411",
-          stop: ["<|end|>"],
-          temperature: 0.5
-        }
+    completion: {
+      template: "<fim_prefix>[prefix]<fim_suffix>[suffix]<fim_middle>",
+      parameters: {
+        model: "penrose-411",
+        stop: ["<|end|>"],
+        temperature: 0.5
       },
-      assistant: {
-        template: "[prefix]",
-        parameters: {
-          model: "penrose-l",
-          stop: ["<|endofmessage|>"],
-          temperature: 0.5
-        }
-      }
+      maxInputTokenNum: 4096,
+      totalTokenNum: 8192
     },
-    maxInputTokenNum: 4096,
-    totalTokenNum: 8192
+    assistant: {
+      template: "[prefix]",
+      parameters: {
+        model: "penrose-411",
+        stop: ["<|end|>"],
+        temperature: 0.5
+      },
+      maxInputTokenNum: 4096,
+      totalTokenNum: 8192
+    }
   }
 ];
 
@@ -58,7 +64,7 @@ export enum CompletionPreferenceType {
 
 interface ClientAndAuthInfo {
   client: CodeClient;
-  options: { [key: string]: ClientOption };
+  options: { [key in ModelCapacity]: ClientOption };
   proxy?: Extension<CodeExtension>;
   authInfo?: AuthInfo;
 }
@@ -71,6 +77,8 @@ export interface StatusChangeEvent {
 }
 
 export class SenseCodeManager {
+  protected static instance: SenseCodeManager | undefined = undefined;
+
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
@@ -82,7 +90,14 @@ export class SenseCodeManager {
     return randomBytes(20).toString('hex');
   }
 
-  constructor(private readonly context: ExtensionContext) {
+  public static getInstance(context: ExtensionContext): SenseCodeManager {
+    if (!SenseCodeManager.instance) {
+      SenseCodeManager.instance = new SenseCodeManager(context);
+    }
+    return SenseCodeManager.instance;
+  }
+
+  private constructor(private readonly context: ExtensionContext) {
     let flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
 
     outlog.debug(`------------------- ${flag} -------------------`);
@@ -111,7 +126,7 @@ export class SenseCodeManager {
     );
 
     context.subscriptions.push(extensions.onDidChange(() => {
-      checkSensetimeEnv().then(p => {
+      checkSensetimeEnv(context).then(p => {
         if ((p && !this.proxy) || (!p && this.proxy) || (p && this.proxy && p.packageJSON.version !== this.proxy.packageJSON.version)) {
           this.proxy = p;
           this.initialClients();
@@ -121,7 +136,7 @@ export class SenseCodeManager {
   }
 
   public async initialClients(): Promise<void> {
-    let proxyExt = await checkSensetimeEnv(true);
+    let proxyExt = await checkSensetimeEnv(this.context, true);
     this.proxy = proxyExt;
 
     let tks = await this.context.secrets.get("SenseCode.tokens");
@@ -138,7 +153,7 @@ export class SenseCodeManager {
       if (e.type && e.label && e.url) {
         let client;
         let proxy = undefined;
-        if (proxyExt?.exports?.filterEnabled(e) && !e.key) {
+        if (proxyExt?.exports?.filterEnabled(e)) {
           client = proxyExt?.exports.factory(e, outlog.debug);
           proxy = proxyExt;
         } else if (e.type === ClientType.sensenova) {
@@ -162,7 +177,7 @@ export class SenseCodeManager {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.label, ai, true);
           });
-          await this.appendClient(e.label, { client, options: e.options, proxy, authInfo: authinfos[e.label] }, e.username);
+          await this.appendClient(e.label, { client, options: e, proxy, authInfo: authinfos[e.label] }, e.username);
         }
       }
     }
@@ -186,27 +201,35 @@ export class SenseCodeManager {
         return this.updateToken(name, ai, true);
       });
     } else {
-      outlog.debug(`Append client ${name}${c.proxy?"(with proxy)":""} [Unauthorized]`);
+      outlog.debug(`Append client ${name}${c.proxy ? "(with proxy)" : ""} [Unauthorized]`);
       return Promise.resolve();
     }
   }
 
   private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
     let tks = await this.context.secrets.get("SenseCode.tokens");
-    let authinfos: any = {};
+    let authinfos: { [key: string]: AuthInfo } = {};
     if (tks) {
       try {
         authinfos = JSON.parse(tks);
-        authinfos[clientName] = ai;
+        if (ai) {
+          authinfos[clientName] = ai;
+        } else {
+          delete authinfos[clientName];
+        }
       } catch (e) { }
-    } else {
+    } else if (ai) {
       authinfos[clientName] = ai;
     }
     let ca = this.getClient(clientName);
     if (ca) {
       ca.authInfo = ai;
     }
-    outlog.debug(`Append client ${clientName}: [Authorized - ${ai?.account.username}]`);
+    if (ai) {
+      outlog.debug(`Append client ${clientName}: [Authorized - ${ai.account.username}]`);
+    } else {
+      outlog.debug(`Remove client ${clientName}`);
+    }
     return this.context.secrets.store("SenseCode.tokens", JSON.stringify(authinfos)).then(() => {
       this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
     });
@@ -379,14 +402,14 @@ export class SenseCodeManager {
     });
   }
 
-  public buildFillPrompt(preset: string, prefix: string, suffix?: string, clientName?: string): string | undefined {
+  public buildFillPrompt(capacity: ModelCapacity, prefix: string, suffix?: string, clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      if (ca.options[preset]?.template) {
-        return ca.options[preset]?.template.replace("[prefix]", prefix).replace("[suffix]", suffix || "");
+      if (ca.options[capacity]?.template) {
+        return ca.options[capacity]?.template.replace("[prefix]", prefix).replace("[suffix]", suffix || "");
       }
     }
   }
@@ -510,20 +533,26 @@ export class SenseCodeManager {
           }
         }, (e) => {
           progress.report({ increment: 100 });
-          SenseCodeViewProvider.showError(l10n.t(e.message));
+          window.showErrorMessage(l10n.t(e.message), l10n.t("Clear Access Key"), l10n.t("Close")).then((v)=>{
+            if (v === l10n.t("Clear Access Key")) {
+              if (ca) {
+                this.updateToken(ca.client.label);
+              }
+            }
+          });
         });
       }
     });
   }
 
-  public async getCompletions(preset: string, config: SenseCodeRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
+  public async getCompletions(capacity: ModelCapacity, config: SenseCodeRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca && ca.authInfo) {
+    if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
-        ...ca.options[preset].parameters,
+        ...ca.options[capacity].parameters,
         ...config
       };
       return ca.client.getCompletions(ca.authInfo, params, options);
@@ -534,14 +563,14 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(preset: string, config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
+  public async getCompletionsStreaming(capacity: ModelCapacity, config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca && ca.authInfo) {
+    if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
-        ...ca.options[preset].parameters,
+        ...ca.options[capacity].parameters,
         ...config
       };
       ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);
@@ -592,30 +621,30 @@ export class SenseCodeManager {
     });
   }
 
-  public maxInputTokenNum(clientName?: string): number {
+  public maxInputTokenNum(capacity: ModelCapacity, clientName?: string): number {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      return ca.client.maxInputTokenNum;
+      return ca.options[capacity]?.maxInputTokenNum;
     }
     return 0;
   }
 
-  public totalTokenNum(clientName?: string): number {
+  public totalTokenNum(capacity: ModelCapacity, clientName?: string): number {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca) {
-      return ca.client.totalTokenNum;
+      return ca.options[capacity]?.totalTokenNum;
     }
     return 0;
   }
 
   public get delay(): number {
-    return this.context.globalState.get("Delay", 1);
+    return this.context.globalState.get("Delay", 3);
   }
 
   public set delay(v: number) {

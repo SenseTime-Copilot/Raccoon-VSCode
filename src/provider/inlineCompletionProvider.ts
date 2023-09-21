@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { sensecodeManager, outlog, telemetryReporter } from "../extension";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
-import { CompletionPreferenceType } from "./sensecodeManager";
+import { CompletionPreferenceType, ModelCapacity } from "./sensecodeManager";
 import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 
@@ -60,7 +60,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let maxLength = sensecodeManager.maxInputTokenNum() / 2;
+      let maxLength = sensecodeManager.maxInputTokenNum(ModelCapacity.completion) / 2;
       let codeSnippets = await captureCode(document, position, maxLength);
 
       if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
@@ -102,10 +102,10 @@ export function inlineCompletionProvider(
             mt = 256;
           } else if (lenPreference === CompletionPreferenceType.bestEffort) {
             // TODO: need max new token
-            mt = sensecodeManager.totalTokenNum() - sensecodeManager.maxInputTokenNum();
+            mt = sensecodeManager.totalTokenNum(ModelCapacity.completion) - sensecodeManager.maxInputTokenNum(ModelCapacity.completion);
           }
 
-          let content = sensecodeManager.buildFillPrompt("completion", codeSnippets.prefix, codeSnippets.suffix);
+          let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, codeSnippets.prefix, codeSnippets.suffix);
           if (!content) {
             updateStatusBarItem(statusBarItem,
               {
@@ -122,7 +122,7 @@ export function inlineCompletionProvider(
           telemetryReporter.logUsage('inline completion');
 
           data = await sensecodeManager.getCompletions(
-            "completion",
+            ModelCapacity.completion,
             {
               messages: [completionPrompt],
               n: sensecodeManager.candidates,

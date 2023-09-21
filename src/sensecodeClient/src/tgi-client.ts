@@ -10,14 +10,6 @@ export class TGIClient implements CodeClient {
     return this.clientConfig.label;
   }
 
-  public get maxInputTokenNum(): number {
-    return this.clientConfig.maxInputTokenNum;
-  }
-
-  public get totalTokenNum(): number {
-    return this.clientConfig.totalTokenNum;
-  }
-
   public get authMethods(): AuthMethod[] {
     return [];
   }
@@ -73,7 +65,7 @@ export class TGIClient implements CodeClient {
       temperature: requestParam.temperature,
       n: requestParam.n ?? 1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      max_new_tokens : requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum))
+      max_new_tokens : requestParam.maxNewTokenNum
     };
 
     if (config.stream) {

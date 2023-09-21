@@ -9,6 +9,7 @@ import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient'
 import { BanWords } from '../utils/swords';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
+import { ModelCapacity } from './sensecodeManager';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -220,7 +221,7 @@ export class SenseCodeTerminal {
           }
 
           for (let j = 0; j < totalLens.length; j++) {
-            if ((totalLens[j] + question.length) <= sensecodeManager.maxInputTokenNum() / 2) {
+            if ((totalLens[j] + question.length) <= sensecodeManager.maxInputTokenNum(ModelCapacity.assistant) / 2) {
               break;
             } else {
               this.history.shift();
@@ -235,7 +236,7 @@ export class SenseCodeTerminal {
 
           telemetryReporter.logUsage('free chat terminal');
           sensecodeManager.getCompletionsStreaming(
-            "assistant",
+            ModelCapacity.assistant,
             {
               messages: [...hlist, { role: Role.user, content: question }],
               n: 1

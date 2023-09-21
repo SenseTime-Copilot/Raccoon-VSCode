@@ -4,6 +4,7 @@ import { sensecodeManager } from "../extension";
 import { Message, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { CacheItem, CacheItemType } from '../utils/historyCache';
+import { ModelCapacity } from "./sensecodeManager";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -154,7 +155,7 @@ class SenseCodeNotebookController {
       }
       await new Promise((resolve, _reject) => {
         sensecodeManager.getCompletionsStreaming(
-          "assistant",
+          ModelCapacity.assistant,
           {
             messages: [
               ...history,

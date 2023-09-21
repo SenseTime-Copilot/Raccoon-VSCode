@@ -30,7 +30,15 @@ export async function activate(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
   context.subscriptions.push(outlog);
 
-  sensecodeManager = new SenseCodeManager(context);
+  await vscode.workspace.fs.stat(context.globalStorageUri)
+    .then(
+      () => { },
+      async () => {
+        await vscode.workspace.fs.createDirectory(context.globalStorageUri);
+      }
+    );
+
+  sensecodeManager = SenseCodeManager.getInstance(context);
   sensecodeManager.update();
 
   await sensecodeManager.initialClients();

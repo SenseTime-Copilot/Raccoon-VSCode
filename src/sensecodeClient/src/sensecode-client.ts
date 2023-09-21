@@ -4,6 +4,7 @@ import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
+import { handleStreamError, makeCallbackData } from "./handleStreamError";
 
 export interface SenseCodeClientMeta {
   clientId: string;
@@ -33,14 +34,6 @@ export class SenseCodeClient implements CodeClient {
 
   public get label(): string {
     return this.clientConfig.label;
-  }
-
-  public get maxInputTokenNum(): number {
-    return this.clientConfig.maxInputTokenNum;
-  }
-
-  public get totalTokenNum(): number {
-    return this.clientConfig.totalTokenNum;
   }
 
   public get authMethods(): AuthMethod[] {
@@ -243,7 +236,7 @@ export class SenseCodeClient implements CodeClient {
     config.messages = requestParam.messages ? [...systemPrompt, ...requestParam.messages] : [];
     config.n = requestParam.n ?? 1;
     config.stream = requestParam.stream ?? config.stream;
-    config.max_tokens = requestParam.maxNewTokenNum ?? Math.max(32, (this.clientConfig.totalTokenNum - this.clientConfig.maxInputTokenNum));
+    config.max_tokens = requestParam.maxNewTokenNum;
     if (config.stream) {
       responseType = "stream";
     }
@@ -320,39 +313,23 @@ export class SenseCodeClient implements CodeClient {
             } else if (msg.startsWith("event:")) {
               content = msg.slice(6).trim();
               if (content === "error") {
-                callback(new MessageEvent(ResponseEvent.error, {
-                  data: {
-                    id: '',
-                    created: new Date().valueOf(),
-                    choices: [
-                      {
-                        index: 0,
-                        message: {
-                          role: Role.assistant,
-                          content: '',
-                        }
-                      }
-                    ]
-                  }
-                }));
+                callback(
+                  new MessageEvent(
+                    ResponseEvent.error,
+                    {
+                      data: makeCallbackData('', 0, '')
+                    })
+                );
               }
               continue;
             } else {
-              callback(new MessageEvent(ResponseEvent.error, {
-                data: {
-                  id: '',
-                  created: new Date().valueOf(),
-                  choices: [
-                    {
-                      index: 0,
-                      message: {
-                        role: Role.assistant,
-                        content: msg,
-                      }
-                    }
-                  ]
-                }
-              }));
+              callback(
+                new MessageEvent(
+                  ResponseEvent.error,
+                  {
+                    data: makeCallbackData('', 0, msg)
+                  })
+              );
             }
 
             if (content === '[DONE]') {
@@ -367,21 +344,12 @@ export class SenseCodeClient implements CodeClient {
               let json = JSON.parse(content);
               tail = "";
               if (json.error) {
-                callback(new MessageEvent(ResponseEvent.error, {
-                  data: {
-                    id: json.id,
-                    created: json.created * 1000,
-                    choices: [
-                      {
-                        index: json.index,
-                        message: {
-                          role: Role.assistant,
-                          content: json.error.message,
-                        }
-                      }
-                    ]
-                  }
-                }));
+                callback(new MessageEvent(
+                  ResponseEvent.error,
+                  {
+                    data: makeCallbackData(json.id, json.index, json.error.message, json.created * 1000)
+                  })
+                );
               } else if (json.choices) {
                 for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
@@ -392,20 +360,13 @@ export class SenseCodeClient implements CodeClient {
                       content: choice.message.content?.replace(/<\|text\|>/g, '').replace(/<\|endofblock\|>/g, '') || ""
                     };
                   }
-                  callback(new MessageEvent(finishReason ? ResponseEvent.finish : ResponseEvent.data,
-                    {
-                      data: {
-                        id: json.id,
-                        created: json.created * 1000,
-                        choices: [
-                          {
-                            index: choice.index,
-                            message,
-                            finishReason
-                          }
-                        ]
-                      }
-                    }));
+                  callback(
+                    new MessageEvent(
+                      finishReason ? ResponseEvent.finish : ResponseEvent.data,
+                      {
+                        data: makeCallbackData(json.id, choice.index, message.content, json.created * 1000, finishReason)
+                      })
+                  );
                 }
               }
             } catch (e: any) {
@@ -418,38 +379,15 @@ export class SenseCodeClient implements CodeClient {
           }
         });
       } else {
-        callback(new MessageEvent(ResponseEvent.error, {
-          data: {
-            id: '',
-            created: new Date().valueOf(),
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: Role.assistant,
-                  content: "Unexpected response format",
-                }
-              }
-            ]
-          }
-        }));
+        callback(new MessageEvent(
+          ResponseEvent.error,
+          {
+            data: makeCallbackData('', 0, "Unexpected response format")
+          })
+        );
       }
-    }, (error) => {
-      callback(new MessageEvent(ResponseEvent.error, {
-        data: {
-          id: '',
-          created: new Date().valueOf(),
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: Role.assistant,
-                content: error.response?.statusText || error.message
-              }
-            }
-          ]
-        }
-      }));
+    }, (error: Error) => {
+      handleStreamError(error, callback);
     });
   }
 }
