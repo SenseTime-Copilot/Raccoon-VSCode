@@ -317,7 +317,7 @@ export class SenseCodeClient implements CodeClient {
                   new MessageEvent(
                     ResponseEvent.error,
                     {
-                      data: makeCallbackData('', 0, '')
+                      data: makeCallbackData('', 0)
                     })
                 );
               }
@@ -364,7 +364,7 @@ export class SenseCodeClient implements CodeClient {
                     new MessageEvent(
                       finishReason ? ResponseEvent.finish : ResponseEvent.data,
                       {
-                        data: makeCallbackData(json.id, choice.index, message.content, json.created * 1000, finishReason)
+                        data: makeCallbackData(json.id, choice.index, message?.content, json.created * 1000, finishReason)
                       })
                   );
                 }

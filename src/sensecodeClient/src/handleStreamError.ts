@@ -1,18 +1,22 @@
 import axios from "axios";
-import { ResponseData, Role, ResponseEvent, FinishReason } from "./CodeClient";
+import { ResponseData, Role, ResponseEvent, FinishReason, Message } from "./CodeClient";
 import { IncomingMessage } from "http";
 
-export function makeCallbackData(id: string, index: number, content: string, created?: number, finishReason?: FinishReason): ResponseData {
+export function makeCallbackData(id: string, index: number, content?: string, created?: number, finishReason?: FinishReason): ResponseData {
+  let message: Message | undefined = undefined;
+  if (content) {
+    message = {
+      role: Role.assistant,
+      content
+    };
+  }
   return {
     id,
     created: created ?? new Date().valueOf(),
     choices: [
       {
         index,
-        message: {
-          role: Role.assistant,
-          content
-        },
+        message,
         finishReason
       }
     ]
