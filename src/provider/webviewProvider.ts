@@ -811,7 +811,6 @@ ${data.info.response}
 
     let streaming = sensecodeManager.streamResponse;
     let instruction = prompt.prompt;
-    instruction.content = sensecodeManager.buildFillPrompt(ModelCapacity.assistant, instruction.content) || "";
     if (this.banWords.checkBanWords([instruction.content, prompt.codeInfo?.code ?? ""])) {
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
       return;
@@ -878,7 +877,7 @@ ${data.info.response}
 
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
-        let msgs = [...historyMsgs, instruction];
+        let msgs = [...historyMsgs, { role: instruction.role, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, instruction.content) || "" }];
         if (streaming) {
           let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
