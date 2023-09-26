@@ -363,7 +363,7 @@ const vscode = acquireVsCodeApi();
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
                             ${p.label}
-                            ${p.shortcut ? `<span class="shortcut grow text-right opacity-40">/${p.shortcut}</span>` : ""}
+                            ${p.shortcut ? `<span class="shortcut grow text-right" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
                           </button>
                       `;
         }
@@ -795,11 +795,16 @@ const vscode = acquireVsCodeApi();
         btn.classList.add('hidden');
       });
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
-        return q.value === '/' || sc.dataset.shortcut.startsWith(q.value);
+        return q.value === '/' || sc.dataset.shortcut?.startsWith(q.value);
       });
       if (btns.length > 0) {
         list.classList.remove("hidden");
         btns.forEach((btn, _index) => {
+          var sc = btn.querySelector('.shortcut');
+          if (sc) {
+            sc.textContent = q.value.slice(1);
+            sc.dataset.suffix = btn.dataset.shortcut.slice(q.value.length);
+          }
           btn.classList.remove('hidden');
           btn.classList.remove('selected');
         });

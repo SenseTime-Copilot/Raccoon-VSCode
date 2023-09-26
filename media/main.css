@@ -607,6 +607,18 @@ button.disabled,
     color: var(--foreground);
 }
 
+span.shortcut:before {
+    content: '/';
+    opacity: 40%;
+    color: var(--input-placeholder-foreground);
+}
+
+span.shortcut:after {
+    content: attr(data-suffix);
+    opacity: 40%;
+    color: var(--input-placeholder-foreground);
+}
+
 #ask-list.pin button {
     width: auto;
     min-width: 220px;

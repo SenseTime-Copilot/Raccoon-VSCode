@@ -944,8 +944,8 @@ ${data.info.response}
               this.sendMessage({ type: 'stopResponse', id });
             }, (err) => {
               let error = err.response?.statusText || err.message;
-              if (err.response?.data?.error) {
-                error = err.response.data.error;
+              if (err.response?.data?.error?.message) {
+                error = err.response.data.error.message;
               }
               let rts = new Date().toLocaleString();
               this.sendMessage({ type: 'addError', error, id, timestamp: rts });

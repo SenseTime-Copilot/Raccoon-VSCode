@@ -82,7 +82,21 @@
                                         },
                                         "parameters": {
                                             "type": "object",
-                                            "description": "%sensecode.config.engines.engine.option.parameters%"
+                                            "description": "%sensecode.config.engines.engine.option.parameters%",
+                                            "properties": {
+                                                "model": {
+                                                    "type": "string"
+                                                },
+                                                "stop": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "temperature": {
+                                                    "type": "number"
+                                                }
+                                            }
                                         },
                                         "totalTokenNum": {
                                             "type": "number",
@@ -107,7 +121,21 @@
                                         },
                                         "parameters": {
                                             "type": "object",
-                                            "description": "%sensecode.config.engines.engine.option.parameters%"
+                                            "description": "%sensecode.config.engines.engine.option.parameters%",
+                                            "properties": {
+                                                "model": {
+                                                    "type": "string"
+                                                },
+                                                "stop": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "temperature": {
+                                                    "type": "number"
+                                                }
+                                            }
                                         },
                                         "totalTokenNum": {
                                             "type": "number",
