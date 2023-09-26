@@ -238,7 +238,7 @@ export class SenseCodeTerminal {
           sensecodeManager.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
-              messages: [...hlist, { role: Role.user, content: question }],
+              messages: [...hlist, { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, question) || "" }],
               n: 1
             },
             (event) => {

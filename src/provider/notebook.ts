@@ -159,7 +159,7 @@ class SenseCodeNotebookController {
           {
             messages: [
               ...history,
-              { role: Role.user, content }
+              { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, content) || "" }
             ]
           },
           (event) => {
