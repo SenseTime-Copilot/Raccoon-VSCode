@@ -285,6 +285,28 @@ textarea::placeholder {
     width: fit-content;
 }
 
+#question-sizer:after {
+    content: attr(data-value) " ";
+    visibility: hidden;
+    width: auto;
+    min-width: 1em;
+    font: inherit;
+    padding: 0.25em;
+    margin: 0;
+    resize: none;
+    background: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    grid-area: 2/1;
+    outline: none;
+    cursor: text;
+    max-height: 30vh;
+    white-space: pre-wrap;
+    text-align: justify;
+}
+
 #question-input {
     width: auto;
     min-width: 1em;
@@ -301,6 +323,12 @@ textarea::placeholder {
     outline: none;
     cursor: text;
     max-height: 30vh;
+    white-space: pre-wrap;
+    text-align: justify;
+}
+
+#question-input::-webkit-scrollbar {
+    display:none;
 }
 
 #question.history #question-input {
@@ -359,7 +387,7 @@ textarea::placeholder {
 
 .op-hint {
     position: absolute;
-    height: 14px;
+    height: 12px;
     bottom: 0px;
     left: 1.8rem;
     display: flex;
@@ -431,26 +459,6 @@ textarea::placeholder {
 
 #ask-list.pin+#question>#question-sizer[data-value="/"]:before {
     content: none;
-}
-
-#question-sizer:after {
-    content: attr(data-value) " ";
-    visibility: hidden;
-    white-space: pre-wrap;
-    width: auto;
-    min-width: 1em;
-    font: inherit;
-    padding: 0.25em;
-    margin: 0;
-    resize: none;
-    background: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    border: none;
-    grid-area: 2/1;
-    max-height: 30vh;
-    overflow: hidden;
 }
 
 #question button .material-symbols-rounded {

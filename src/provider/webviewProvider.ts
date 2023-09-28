@@ -1025,7 +1025,7 @@ ${data.info.response}
                 </vscode-panels>
                 <div id="msg-wrapper">
                 </div>
-                <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center p-1 gap-1">
+                <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center px-1 gap-1">
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
                     <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
                       StackOverflow [DuckDuckGo]

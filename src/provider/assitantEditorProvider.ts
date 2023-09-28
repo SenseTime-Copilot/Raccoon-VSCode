@@ -1,4 +1,4 @@
-import { CustomReadonlyEditorProvider, ExtensionContext, CancellationToken, Uri, CustomDocument, CustomDocumentOpenContext, WebviewPanel } from 'vscode';
+import { CustomReadonlyEditorProvider, ExtensionContext, CancellationToken, Uri, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands } from 'vscode';
 import { SenseCodeEditor } from './webviewProvider';
 
 export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
@@ -37,6 +37,7 @@ export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
     if (id) {
       this.id = id;
       this.editor = new SenseCodeEditor(this.context, webviewPanel.webview, `sensecode-${id}.json`);
+      commands.executeCommand('workbench.action.pinEditor', document.uri);
       SenseCodeEditorProvider.editors[id] = this.editor;
     }
   }

@@ -10,6 +10,7 @@ import { SenseCodeTerminal } from "./provider/codeTerminal";
 import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
 import { SenseCodeNotebook } from "./provider/notebook";
 import DiffContentProvider from "./provider/diffContentProvider";
+import { TextDocumentShowOptions } from "vscode";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -109,9 +110,13 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.openEditor", async () => {
       let id = new Date().valueOf();
+      let showOption: TextDocumentShowOptions | undefined = undefined;
+      if (vscode.window.tabGroups.all.length === 1) {
+        showOption = { viewColumn: vscode.ViewColumn.Beside };
+      }
       vscode.commands.executeCommand('vscode.openWith',
         vscode.Uri.parse(`sensecode://sensecode/assistant.sensecode?${id}`),
-        SenseCodeEditorProvider.viewType);
+        SenseCodeEditorProvider.viewType, showOption);
     })
   );
 
