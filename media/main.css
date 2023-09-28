@@ -531,7 +531,7 @@ button.disabled,
 #search-list,
 #ask-list {
     position: fixed;
-    bottom: 45px;
+    bottom: 38px;
     width: 100%;
     padding-bottom: 5px;
     background-color: var(--input-background);

@@ -10,6 +10,7 @@ import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
+import { SenseCodeSearchEditorProvider } from './searchEditorProvider';
 
 const guide = `
 <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -450,8 +451,13 @@ export class SenseCodeEditor extends Disposable {
         case 'searchQuery': {
           this.sendMessage({ type: 'addSearch', value: '?' + data.query });
           for (let url of data.searchUrl) {
-            let q = url.replace('${query}', encodeURIComponent(data.query));
-            commands.executeCommand("vscode.open", q);
+            if (url.startsWith("sensecode://sensecode.search/stackoverflow")) {
+              let q = url.replace('${query}', `${encodeURIComponent(JSON.stringify({ "query": data.query }))}`);
+              commands.executeCommand('vscode.openWith', Uri.parse(q), SenseCodeSearchEditorProvider.viewType);
+            } else {
+              let q = url.replace('${query}', encodeURIComponent(data.query));
+              commands.executeCommand("vscode.open", q);
+            }
           }
           break;
         }
@@ -742,10 +748,10 @@ ${data.info.response}
           <body>
           <div class="markdown-body" style="margin: 1rem 4rem;">
             <div id="info">${content}</div>
-              <div style="display: flex;flex-direction: column;">
-                <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${lang ? lang + " code" : "anwser"} here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
-                <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
-              </div>
+            <div style="display: flex;flex-direction: column;">
+              <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${lang ? lang + " code" : "anwser"} here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
+              <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
+            </div>
             </div>
           </body>
           </html>`;
@@ -1027,14 +1033,17 @@ ${data.info.response}
                 </div>
                 <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center px-1 gap-1">
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
-                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
+                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='sensecode://sensecode.search/stackoverflow.search?\${query}'>
+                      StackOverflow
+                    </vscode-checkbox>
+                    <vscode-checkbox class="px-2 py-1 m-0" title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
                       StackOverflow [DuckDuckGo]
                     </vscode-checkbox>
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in Quora' data-query='https://www.quora.com/search?q=\${query}'>
-                      Quora
+                      Quora [Web]
                     </vscode-checkbox>
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in Zhihu' data-query='https://www.zhihu.com/search?q=\${query}'>
-                      Zhihu
+                      Zhihu [Web]
                     </vscode-checkbox>
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in C++ Reference w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Adocs.python.org+\${query}'>
                       Python Reference [DuckDuckGo]
@@ -1043,7 +1052,7 @@ ${data.info.response}
                       C++ Reference [DuckDuckGo]
                     </vscode-checkbox>
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in MDN Web Docs' data-query='https://developer.mozilla.org/zh-CN/search?q=\${query}'>
-                      MDN Web Docs
+                      MDN Web Docs [Web]
                     </vscode-checkbox>
                   </div>
                   <div id="ask-list" class="flex flex-col hidden">

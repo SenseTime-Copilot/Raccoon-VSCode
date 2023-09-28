@@ -393,7 +393,9 @@
                 "id": "sensecode",
                 "extensions": [
                     ".sensecode",
-                    ".scnb"
+                    ".scnb",
+                    ".search",
+                    ".question"
                 ],
                 "icon": {
                     "light": "media/sensecode-logo.png",
@@ -415,8 +417,16 @@
         "resourceLabelFormatters": [
             {
                 "scheme": "sensecode",
+                "authority": "sensecode.editor",
                 "formatting": {
                     "label": "%sensecode.view.title%"
+                }
+            },
+            {
+                "scheme": "sensecode",
+                "authority": "sensecode.search",
+                "formatting": {
+                    "label": "${query.query}"
                 }
             }
         ],
@@ -445,6 +455,15 @@
                 "selector": [
                     {
                         "filenamePattern": "*.sensecode"
+                    }
+                ]
+            },
+            {
+                "viewType": "sensecode.search",
+                "displayName": "SenseCode Search Result",
+                "selector": [
+                    {
+                        "filenamePattern": "*.sensecode.search"
                     }
                 ]
             }

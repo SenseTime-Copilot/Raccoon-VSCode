@@ -11,6 +11,7 @@ import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
 import { SenseCodeNotebook } from "./provider/notebook";
 import DiffContentProvider from "./provider/diffContentProvider";
 import { TextDocumentShowOptions } from "vscode";
+import { SenseCodeSearchEditorProvider } from "./provider/searchEditorProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -115,7 +116,7 @@ export async function activate(context: vscode.ExtensionContext) {
         showOption = { viewColumn: vscode.ViewColumn.Beside };
       }
       vscode.commands.executeCommand('vscode.openWith',
-        vscode.Uri.parse(`sensecode://sensecode/assistant.sensecode?${id}`),
+        vscode.Uri.parse(`sensecode://sensecode.editor/assistant.sensecode?${id}`),
         SenseCodeEditorProvider.viewType, showOption);
     })
   );
@@ -218,6 +219,10 @@ export async function activate(context: vscode.ExtensionContext) {
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEditorProvider.viewType, new SenseCodeEditorProvider(context), {
+    webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
+  }));
+
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeSearchEditorProvider.viewType, new SenseCodeSearchEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 
