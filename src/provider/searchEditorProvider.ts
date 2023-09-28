@@ -84,7 +84,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                   .question, .answer {
                     margin: 0rem 0 0.5rem 0rem;
                     background-color: var(--list-hover-background);
-                    padding: 0.5rem 1rem;
+                    padding: 1rem;
                     border-radius: 4px;
                     border: 1px solid var(--vscode-button-border);
                   }
@@ -99,6 +99,9 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                     display: block;
                     max-width: calc(100% - 2rem);
                     padding: 0.5rem 1rem;
+                  }
+                  #question pre code {
+                    background-color: var(--list-hover-background);
                   }
                   .highlight {
                     padding: 0 2px;
@@ -140,8 +143,8 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                       a.classList.add("answer");
                       const content = new DOMParser().parseFromString(marked.parse(message.data.body_markdown), "text/html");
                       var votes = \`<div style="display: flex;grid-gap: 1rem;">
-                                        <vscode-tag><span class="material-symbols-rounded">thumb_up</span> <span>\${message.data.up_vote_count}</span></vscode-tag>
-                                        <vscode-tag><span class="material-symbols-rounded">thumb_down</span> <span>\${message.data.down_vote_count}</span></vscode-tag>
+                                        <vscode-tag class="up-vote"><span class="material-symbols-rounded">thumb_up</span> <span>\${message.data.up_vote_count}</span></vscode-tag>
+                                        <vscode-tag class="down-vote"><span class="material-symbols-rounded">thumb_down</span> <span>\${message.data.down_vote_count}</span></vscode-tag>
                                         <div style="flex-grow: 1; text-align: end;"><span class="material-symbols-rounded">tag</span> <vscode-link href='\${message.data.link}'>\${message.data.answer_id}</vscode-link></div>
                                     </div>\`;
                       var meta = \` <div style="display: flex;grid-gap: 1rem;justify-content: flex-end;">
@@ -179,7 +182,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
       let query = document.uri.query;
       if (query) {
         let q = JSON.parse(query);
-        await axios.get(`https://api.stackexchange.com/2.3/search/excerpts?order=desc&sort=votes&site=stackoverflow&q=${encodeURIComponent(q.query)}`)
+        await axios.get(`https://api.stackexchange.com/2.3/search/excerpts?order=desc&sort=relevance&site=stackoverflow&q=${encodeURIComponent(q.query)}`)
           .then((resp) => {
             if (resp.status === 200 && resp.data.items) {
               let page = `<h1>${q.query}</h1>`;
@@ -220,7 +223,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                   .question, .answer {
                     margin: 0rem 0 0.5rem 0rem;
                     background-color: var(--list-hover-background);
-                    padding: 0.5rem 1rem;
+                    padding: 1rem;
                     border-radius: 4px;
                     border: 1px solid var(--vscode-button-border);
                   }
@@ -235,6 +238,9 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                     display: block;
                     max-width: calc(100% - 2rem);
                     padding: 0.5rem 1rem;
+                  }
+                  #question pre code {
+                    background-color: var(--list-hover-background);
                   }
                   .highlight {
                     padding: 0 2px;
