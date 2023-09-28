@@ -1,26 +1,31 @@
 import axios from "axios";
-import { ResponseData, Role, ResponseEvent, FinishReason, Message } from "./CodeClient";
+import { ResponseData, Role, ResponseEvent, Message, FinishReason } from "./CodeClient";
 import { IncomingMessage } from "http";
 
-export function makeCallbackData(id: string, index: number, content?: string, created?: number, finishReason?: FinishReason): ResponseData {
-  let message: Message | undefined = undefined;
-  if (content) {
-    message = {
-      role: Role.assistant,
-      content
+export class ResponseDataBuilder {
+  private respData: ResponseData;
+  constructor(id?: string, created?: number) {
+    this.respData = {
+      id: id ?? "",
+      created: created ?? new Date().valueOf(),
+      choices: []
     };
   }
-  return {
-    id,
-    created: created ?? new Date().valueOf(),
-    choices: [
-      {
-        index,
+
+  get data(): ResponseData {
+    return this.respData;
+  }
+
+  append(message?: Message, finishReason?: FinishReason, index?: number) {
+    if (message || finishReason) {
+      this.respData.choices.push({
+        index: index ?? 0,
         message,
         finishReason
-      }
-    ]
-  };
+      });
+    }
+    return this;
+  }
 }
 
 export function handleStreamError(error: Error, callback: (event: MessageEvent<ResponseData>) => void): void {
@@ -33,28 +38,32 @@ export function handleStreamError(error: Error, callback: (event: MessageEvent<R
       try {
         errInfo = JSON.parse(msgstr).error.message;
       } catch { }
+      let message: any;
+      if (errInfo) {
+        message = {
+          role: Role.assistant,
+          content: errInfo
+        };
+      }
       callback(new MessageEvent(
         ResponseEvent.error,
         {
-          data: makeCallbackData('', 0, errInfo)
+          data: new ResponseDataBuilder().append(message).data
         }
       ));
     });
   } else {
-    callback(new MessageEvent(ResponseEvent.error, {
-      data: {
-        id: '',
-        created: new Date().valueOf(),
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: Role.assistant,
-              content: error.message
-            }
-          }
-        ]
-      }
-    }));
+    let message: any;
+    if (error.message) {
+      message = {
+        role: Role.assistant,
+        content: error.message
+      };
+    }
+    callback(new MessageEvent(ResponseEvent.error,
+      {
+        data: new ResponseDataBuilder().append(message).data
+      })
+    );
   }
 }

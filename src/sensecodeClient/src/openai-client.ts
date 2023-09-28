@@ -1,7 +1,7 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
-import { handleStreamError, makeCallbackData } from "./handleStreamError";
+import { handleStreamError, ResponseDataBuilder } from "./handleStreamError";
 
 export class OpenAIClient implements CodeClient {
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
@@ -184,16 +184,23 @@ export class OpenAIClient implements CodeClient {
                 callback(new MessageEvent(
                   ResponseEvent.error,
                   {
-                    data: makeCallbackData('', 0, json.error.message)
+                    data: new ResponseDataBuilder().append({ role: Role.assistant, content: json.error.message }).data
                   })
                 );
               } else if (json.choices) {
                 for (let choice of json.choices) {
                   let finishReason = choice["finish_reason"];
+                  let message: any;
+                  if (choice.delta?.content) {
+                    message = {
+                      role: Role.assistant,
+                      content: choice.delta.content
+                    };
+                  }
                   callback(new MessageEvent(
                     finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
-                      data: makeCallbackData(json.id, choice.index, choice.delta.content, json.created, finishReason)
+                      data: new ResponseDataBuilder(json.id, json.craeted).append(message, finishReason, choice.index).data
                     })
                   );
                 }
@@ -214,7 +221,7 @@ export class OpenAIClient implements CodeClient {
         callback(new MessageEvent(
           ResponseEvent.error,
           {
-            data: makeCallbackData('', 0, 'Unexpected response format')
+            data: new ResponseDataBuilder().append({ role: Role.assistant, content: 'Unexpected response format' }).data
           })
         );
       }

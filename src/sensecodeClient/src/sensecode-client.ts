@@ -4,7 +4,7 @@ import jwt_decode from "jwt-decode";
 import * as crypto from "crypto";
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
-import { handleStreamError, makeCallbackData } from "./handleStreamError";
+import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
 export interface SenseCodeClientMeta {
   clientId: string;
@@ -317,7 +317,7 @@ export class SenseCodeClient implements CodeClient {
                   new MessageEvent(
                     ResponseEvent.error,
                     {
-                      data: makeCallbackData('', 0)
+                      data: new ResponseDataBuilder().data
                     })
                 );
               }
@@ -327,7 +327,7 @@ export class SenseCodeClient implements CodeClient {
                 new MessageEvent(
                   ResponseEvent.error,
                   {
-                    data: makeCallbackData('', 0, msg)
+                    data: new ResponseDataBuilder().append({ role: Role.assistant, content: msg }).data
                   })
               );
             }
@@ -347,7 +347,7 @@ export class SenseCodeClient implements CodeClient {
                 callback(new MessageEvent(
                   ResponseEvent.error,
                   {
-                    data: makeCallbackData(json.id, json.index, json.error.message, json.created * 1000)
+                    data: new ResponseDataBuilder(json.id, json.created * 1000).append({ role: Role.assistant, content: json.error.message }, undefined, json.index).data
                   })
                 );
               } else if (json.choices) {
@@ -364,7 +364,7 @@ export class SenseCodeClient implements CodeClient {
                     new MessageEvent(
                       finishReason ? ResponseEvent.finish : ResponseEvent.data,
                       {
-                        data: makeCallbackData(json.id, choice.index, message?.content, json.created * 1000, finishReason)
+                        data: new ResponseDataBuilder(json.id, json.created * 1000).append(message, finishReason, choice.index).data
                       })
                   );
                 }
@@ -382,7 +382,7 @@ export class SenseCodeClient implements CodeClient {
         callback(new MessageEvent(
           ResponseEvent.error,
           {
-            data: makeCallbackData('', 0, "Unexpected response format")
+            data: new ResponseDataBuilder().append({ role: Role.assistant, content: "Unexpected response format" }).data
           })
         );
       }

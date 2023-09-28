@@ -3,7 +3,7 @@ import jwt_decode from "jwt-decode";
 import sign = require('jwt-encode');
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
-import { handleStreamError, makeCallbackData } from "./handleStreamError";
+import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
 const loginBaseUrl = 'https://login.test.sensenova.cn';
 const iamBaseUrl = 'https://iam-login.test.sensenova.cn';
@@ -322,17 +322,23 @@ export class SenseNovaClient implements CodeClient {
                 callback(new MessageEvent(
                   ResponseEvent.error,
                   {
-                    data: makeCallbackData('', 0, json.status.message)
+                    data: new ResponseDataBuilder().append({ role: Role.assistant, content: json.status.message }).data
                   })
                 );
               } else if (json.data && json.data.choices) {
                 for (let choice of json.data.choices) {
-                  let value = choice.delta;
                   let finishReason = choice["finish_reason"];
+                  let message: any;
+                  if (choice.delta) {
+                    message = {
+                      role: Role.assistant,
+                      content: choice.message.content?.replace(/<\|text\|>/g, '').replace(/<\|endofblock\|>/g, '') || ""
+                    };
+                  }
                   callback(new MessageEvent(
                     finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
-                      data: makeCallbackData(json.data.id, choice.index, value, json.created * 1000, finishReason)
+                      data: new ResponseDataBuilder(json.data.id, json.created * 1000).append(message, finishReason, choice.index).data
                     })
                   );
                 }
@@ -351,19 +357,7 @@ export class SenseNovaClient implements CodeClient {
           this.debug("Unexpected response format");
         }
         callback(new MessageEvent(ResponseEvent.error, {
-          data: {
-            id: '',
-            created: new Date().valueOf(),
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: Role.assistant,
-                  content: "Unexpected response format"
-                }
-              }
-            ]
-          }
+          data: new ResponseDataBuilder().append({ role: Role.assistant, content: "Unexpected response format" }).data
         }));
       }
     }, (error: Error) => {
