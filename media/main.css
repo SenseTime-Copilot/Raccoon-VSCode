@@ -328,7 +328,12 @@ textarea::placeholder {
 }
 
 #question-input::-webkit-scrollbar {
-    display:none;
+    display: none;
+}
+
+#question {
+    margin-bottom: 3px;
+    margin-top: 3px;
 }
 
 #question.history #question-input {
@@ -397,6 +402,7 @@ textarea::placeholder {
     width: calc(100% - 1.8rem);
 }
 
+.search-hint,
 .history-hint,
 #code-hint {
     display: none;
@@ -416,7 +422,8 @@ textarea::placeholder {
     z-index: 9999;
 }
 
-.history .op-hint .history-hint {
+.history .op-hint .history-hint,
+.search .op-hint .search-hint {
     display: inline-flex;
     opacity: 0.3;
     grid-gap: 0.1rem;
@@ -425,6 +432,15 @@ textarea::placeholder {
 .code-ready:not(.search) .op-hint #code-hint {
     display: inline-block;
     transform: none;
+}
+
+.search .search-hint {
+    display: inline-block;
+    transform: none;
+}
+
+.search .history-hint.trigger {
+    display: none;
 }
 
 #code-hint span.material-symbols-rounded {
@@ -531,7 +547,7 @@ button.disabled,
 #search-list,
 #ask-list {
     position: fixed;
-    bottom: 38px;
+    bottom: 44px;
     width: 100%;
     padding-bottom: 5px;
     background-color: var(--input-background);

@@ -822,7 +822,7 @@ const vscode = acquireVsCodeApi();
     var list = document.getElementById("search-list");
     if (q.value.startsWith('?') || q.value.startsWith('？')) {
       document.getElementById("question").classList.add("search");
-      list.classList.remove("hidden");
+      //list.classList.remove("hidden");
     } else {
       document.getElementById("question").classList.remove("search");
       var urls = list.querySelectorAll("vscode-checkbox");

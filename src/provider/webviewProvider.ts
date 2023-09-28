@@ -1062,7 +1062,10 @@ ${data.info.response}
                       history
                     </span>
                     <div class="op-hint">
-                      <div class="history-hint">
+                      <div class="search-hint">
+                        <span class="material-symbols-rounded">keyboard_return</span> Enter ${l10n.t("Search")}
+                      </div>
+                      <div class="history-hint trigger">
                         <span class="material-symbols-rounded">keyboard_return</span> Enter ${l10n.t("Send")}
                       </div>
                       <div class="history-hint">
