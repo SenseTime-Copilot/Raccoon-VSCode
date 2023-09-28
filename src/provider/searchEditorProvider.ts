@@ -51,7 +51,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                 .map((a: any, _idx, _arr) => {
                   return a.answer_id;
                 }).join(';');
-              axios.get(`https://api.stackexchange.com/2.3/answers/${answerIds}?order=desc&sort=votes&site=stackoverflow&filter=!*Mg4PjfwVMlOXFIn`)
+              axios.get(`https://api.stackexchange.com/2.3/answers/${answerIds}?order=desc&sort=votes&site=stackoverflow&filter=!T3AudpjY_(NGdBPHwj`)
                 .then((ainfo) => {
                   if (ainfo.status === 200 && ainfo.data.items) {
                     for (let ai of ainfo.data.items) {
@@ -139,15 +139,16 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                       const a = document.createElement("section");
                       a.classList.add("answer");
                       const content = new DOMParser().parseFromString(marked.parse(message.data.body_markdown), "text/html");
+                      var votes = \`<div style="display: flex;grid-gap: 1rem;">
+                                        <vscode-tag><span class="material-symbols-rounded">thumb_up</span> <span>\${message.data.up_vote_count}</span></vscode-tag>
+                                        <vscode-tag><span class="material-symbols-rounded">thumb_down</span> <span>\${message.data.down_vote_count}</span></vscode-tag>
+                                        <div style="flex-grow: 1; text-align: end;"><span class="material-symbols-rounded">tag</span> <vscode-link href='\${message.data.link}'>\${message.data.answer_id}</vscode-link></div>
+                                    </div>\`;
                       var meta = \` <div style="display: flex;grid-gap: 1rem;justify-content: flex-end;">
                                         <div><span class="material-symbols-rounded">person</span> <vscode-link href='\${message.data.owner.link}'>\${message.data.owner.display_name}</vscode-link></div>
                                         <div><span class="material-symbols-rounded">calendar_month</span> <vscode-link href="#" title="\${new Date(message.data.creation_date * 1000).toLocaleString()}">\${new Date(message.data.creation_date * 1000).toLocaleDateString()}</vscode-link></div>
-                                    </div>
-                                    <div style="display: flex;grid-gap: 1rem;margin-top: -1.2rem;">
-                                        <vscode-tag><span class="material-symbols-rounded">thumb_up</span> <span>\${message.data.up_vote_count}</span></vscode-tag>
-                                        <vscode-tag><span class="material-symbols-rounded">thumb_down</span> <span>\${message.data.down_vote_count}</span></vscode-tag>
                                     </div>\`;
-                      a.innerHTML = meta + content.documentElement.innerHTML;
+                      a.innerHTML = votes + content.documentElement.innerHTML + meta;
                       main.append(a);
                       break;
                     }
@@ -158,14 +159,14 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             <body>
             <div id="main" style="padding: 20px 0;width: 100%;max-width: 800px;">
             <h2>${data.title} <vscode-link href='${data.link}'><span class="material-symbols-rounded">open_in_new</span></vscode-link></h2>
+            <section id="question" data-content="${data.body_markdown}">
+            </section>
             <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-            <section id="meta" style="display: flex; grid-gap: 1rem;">
+            <section id="meta" style="display: flex; grid-gap: 1rem; justify-content: flex-end; margin-right: 1rem;">
                 <div><span class="material-symbols-rounded">person</span> <vscode-link href='${data.owner.link}'>${data.owner.display_name}</vscode-link></div>
                 <div><span class="material-symbols-rounded">calendar_month</span> <vscode-link href="#" title="${new Date(data.creation_date * 1000).toLocaleString()}">${new Date(data.creation_date * 1000).toLocaleDateString()}</vscode-link></div>
             </section>
             <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-            <section id="question" data-content="${data.body_markdown}">
-            </section>
             <h3>Answers</h3>
             </div>
             </body>
