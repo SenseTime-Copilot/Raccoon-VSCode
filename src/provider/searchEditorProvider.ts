@@ -28,6 +28,36 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             commands.executeCommand('vscode.openWith', Uri.parse(e.uri), SenseCodeSearchEditorProvider.viewType);
             break;
           }
+          case 'more': {
+            let page = e.value ?? 1;
+            webviewPanel.webview.postMessage({ type: "loading" });
+            axios.get(`https://api.stackexchange.com/2.3/search/excerpts?page=${page}&order=desc&sort=relevance&site=stackoverflow&q=${encodeURIComponent(e.query)}`)
+              .then((resp) => {
+                if (resp.status === 200 && resp.data.items) {
+                  let items = ``;
+                  for (let item of resp.data.items) {
+                    let section = `<section>`;
+                    section += `<vscode-link href='#' onclick='openDocument("sensecode://sensecode.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
+                    section += `<div class="${item.item_type}">`;
+                    let lines = item.excerpt.split('\n');
+                    for (let line of lines) {
+                      section += `<div>${line}</div>`;
+                    }
+                    section += `</div>`;
+                    section += `</section>`;
+                    items += section;
+                  }
+                  if (resp.data.items.length === 0) {
+                    items += '<section><div class="question">No Result</div></section>';
+                  }
+                  if (resp.data.has_more) {
+                    items += `<div id="more-btn" style="text-align: center;margin: 2rem auto;--button-padding-horizontal: 3rem;"><vscode-button onclick='vscode.postMessage({type:"more", query:"${e.query}", value:${page + 1}});'>MORE</vscode-button></div>`;
+                  }
+                  webviewPanel.webview.postMessage({ type: "result", value: items });
+                }
+              });
+            break;
+          }
         }
       }
     );
@@ -47,15 +77,14 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
           .then((resp) => {
             if (resp.status === 200 && resp.data.items) {
               let data = resp.data.items[0];
-              let answerIds = Array.from(data.answers)
-                .map((a: any, _idx, _arr) => {
-                  return a.answer_id;
-                }).join(';');
-              axios.get(`https://api.stackexchange.com/2.3/answers/${answerIds}?order=desc&sort=votes&site=stackoverflow&filter=!T3AudpjY_(NGdBPHwj`)
+              axios.get(`https://api.stackexchange.com/2.3/questions/${q.id}/answers?pagesize=100&order=desc&sort=votes&site=stackoverflow&filter=!T3AudpjY_(NGdBPHwj`)
                 .then((ainfo) => {
                   if (ainfo.status === 200 && ainfo.data.items) {
                     for (let ai of ainfo.data.items) {
                       webviewPanel.webview.postMessage({ type: "answer", data: ai });
+                    }
+                    if (ainfo.data.has_more) {
+                      webviewPanel.webview.postMessage({ type: "more" });
                     }
                   }
                 });
@@ -155,6 +184,13 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                       main.append(a);
                       break;
                     }
+                    case 'more': {
+                      var main = document.getElementById("main");
+                      const a = document.createElement("section");
+                      a.innerHTML = \`Open <vscode-link href='${data.link}'>${data.title}</vscode-link> to read more answers\`;
+                      main.append(a);
+                      break;
+                    }
                   }
                 });
                 </script>
@@ -188,7 +224,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
               let page = `<h1>${q.query}</h1>`;
               for (let item of resp.data.items) {
                 let section = `<section>`;
-                section += `<vscode-link href='#' onclick='openDocument("sensecode://sensecode.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h4>${item.title}</h4></vscode-link>`;
+                section += `<vscode-link href='#' onclick='openDocument("sensecode://sensecode.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
                 section += `<div class="${item.item_type}">`;
                 let lines = item.excerpt.split('\n');
                 for (let line of lines) {
@@ -200,6 +236,9 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
               }
               if (resp.data.items.length === 0) {
                 page += '<section><div class="question">No Result</div></section>';
+              }
+              if (resp.data.has_more) {
+                page += `<div id="more-btn" style="text-align: center;margin: 2rem auto;--button-padding-horizontal: 3rem;"><vscode-button onclick='vscode.postMessage({type:"more", query:"${q.query}", value:2});'>MORE</vscode-button></div>`;
               }
               webviewPanel.webview.html = `<!DOCTYPE html>
             <html lang="en">
@@ -255,10 +294,27 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                     uri
                   });
                 }
+                window.addEventListener("message", (event) => {
+                  const message = event.data;
+                  switch (message.type) {
+                    case 'result': {
+                      var container = document.getElementById("container");
+                      var morebtn = document.getElementById("more-btn");
+                      morebtn.remove();
+                      container.innerHTML += message.value;
+                      break;
+                    }
+                    case 'loading': {
+                      var morebtn = document.getElementById("more-btn");
+                      morebtn.innerHTML='<vscode-progress-ring style="width:100%"></vscode-progress-ring>';
+                      break;
+                    }
+                  }
+                });
                 </script>
             </head>
             <body>
-            <div style="padding: 20px 0;width: 100%;max-width: 800px;">
+            <div id="container" style="padding: 20px 0;width: 100%;max-width: 800px;">
             ${page}
             </div>
             </body>
