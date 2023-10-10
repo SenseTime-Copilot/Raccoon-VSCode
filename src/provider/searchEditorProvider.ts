@@ -129,6 +129,16 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                     max-width: calc(100% - 2rem);
                     padding: 0.5rem 1rem;
                   }
+                  blockquote {
+                    padding: 1px 1em;
+                    border-width: 0;
+                    border-left-width: 0.5em;
+                    border-style: solid;
+                    border-radius: 0 4px 4px 0;
+                  }
+                  hr {
+                    border-color: var(--vscode-menu-separatorBackground);
+                  }
                   #question pre code {
                     background-color: var(--list-hover-background);
                   }
@@ -198,6 +208,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             <body>
             <div id="main" style="padding: 20px 0;width: 100%;max-width: 800px;">
             <h2>${data.title} <vscode-link href='${data.link}'><span class="material-symbols-rounded">open_in_new</span></vscode-link></h2>
+            <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
             <section id="question" data-content="${data.body_markdown}">
             </section>
             <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>

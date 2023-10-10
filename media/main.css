@@ -547,11 +547,12 @@ button.disabled,
 #search-list,
 #ask-list {
     position: fixed;
-    bottom: 44px;
+    bottom: 43px;
     width: 100%;
     padding-bottom: 5px;
     background-color: var(--input-background);
     border-radius: 6px 6px 0 0;
+    border: 1px solid var(--vscode-welcomePage-tileBorder);
     z-index: 99999;
 }
 
@@ -741,6 +742,7 @@ span.shortcut:after {
     padding: 0 3px;
 }
 
+#qa-list-wrapper vscode-panels::-webkit-scrollbar,
 .question-element-gnc .pre-code-element::-webkit-scrollbar {
     display: none;
 }
@@ -748,12 +750,12 @@ span.shortcut:after {
 .message-element-gnc {
     user-select: none;
     background-color: var(--panel-view-background);
-    border-bottom: 2px solid var(--panel-view-border);
+    border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
 }
 
 .answer-element-gnc {
     background-color: var(--panel-view-background);
-    border-bottom: 2px solid var(--panel-view-border);
+    border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
 }
 
 .answer-element-gnc:last-child {
@@ -951,7 +953,7 @@ button.stopGenerate:hover,
 
 .history-seperator {
     height: 1rem;
-    border-bottom: 2px solid var(--panel-view-border);
+    border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
     margin-bottom: 0;
 }
 

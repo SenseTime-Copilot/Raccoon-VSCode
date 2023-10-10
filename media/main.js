@@ -1103,10 +1103,11 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.key === "/") {
-      document.getElementById("question-input").focus();
+    if (e.key === "Enter") {
+      e.preventDefault();
       // return;
     }
+    document.getElementById("question-input").focus();
   });
 
   document.addEventListener("click", (e) => {
