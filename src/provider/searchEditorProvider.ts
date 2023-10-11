@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { CustomReadonlyEditorProvider, CancellationToken, Uri, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, ExtensionContext } from 'vscode';
 
+const stackoverflowLogo = `
+<div style="display: inline-block; float: right; text-align: right; font-size: 8px; opacity: 0.6;">
+  POWERED BY <svg aria-hidden="true" class="native svg-icon iconLogoGlyphMd" width="12" height="12" viewBox="0 0 32 37"><path d="M26 33v-9h4v13H0V24h4v9h22Z" fill="#BCBBBB"></path><path d="m21.5 0-2.7 2 9.9 13.3 2.7-2L21.5 0ZM26 18.4 13.3 7.8l2.1-2.5 12.7 10.6-2.1 2.5ZM9.1 15.2l15 7 1.4-3-15-7-1.4 3Zm14 10.79.68-2.95-16.1-3.35L7 23l16.1 2.99ZM23 30H7v-3h16v3Z" fill="#F48024"></path></svg> STACK OVERFLOW
+</div>
+`;
+
 export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvider {
   public static readonly viewType = "sensecode.search";
 
@@ -137,7 +143,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                     border-radius: 0 4px 4px 0;
                   }
                   hr {
-                    border-color: var(--vscode-menu-separatorBackground);
+                    border-color: var(--panel-view-border);
                   }
                   #question pre code {
                     background-color: var(--list-hover-background);
@@ -148,6 +154,29 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                   }
                 </style>
                 <script>
+                function toRegex(chars) {
+                  var keys = Object.keys(chars).join('|');
+                  var regex = new RegExp('(?=(' + keys + '))\\\\1', 'g');
+                  return regex;
+                }
+                function unescape(str) {
+                    var chars = {
+                        '&quot;': '"',
+                        '&#34;': '"',
+                        '&apos;': '\\'',
+                        '&#39;': '\\'',
+                        '&amp;': '&',
+                        '&#38;': '&',
+                        '&gt;': '>',
+                        '&#62;': '>',
+                        '&lt;': '<',
+                        '&#60;': '<'
+                    }
+                    var regex = toRegex(chars);
+                    return str.replace(regex, function(m) {
+                        return chars[m];
+                    });
+                }
                 marked.setOptions({
                   renderer: new marked.Renderer(),
                   highlight: function (code, _lang) {
@@ -180,7 +209,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                       var main = document.getElementById("main");
                       const a = document.createElement("section");
                       a.classList.add("answer");
-                      const content = new DOMParser().parseFromString(marked.parse(message.data.body_markdown), "text/html");
+                      const content = new DOMParser().parseFromString(marked.parse(unescape(message.data.body_markdown)), "text/html");
                       var votes = \`<div style="display: flex;grid-gap: 1rem;">
                                         <vscode-tag class="up-vote"><span class="material-symbols-rounded">thumb_up</span> <span>\${message.data.up_vote_count}</span></vscode-tag>
                                         <vscode-tag class="down-vote"><span class="material-symbols-rounded">thumb_down</span> <span>\${message.data.down_vote_count}</span></vscode-tag>
@@ -207,6 +236,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             </head>
             <body>
             <div id="main" style="padding: 20px 0;width: 100%;max-width: 800px;">
+            ${stackoverflowLogo}
             <h2>${data.title} <vscode-link href='${data.link}'><span class="material-symbols-rounded">open_in_new</span></vscode-link></h2>
             <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
             <section id="question" data-content="${data.body_markdown}">
@@ -326,6 +356,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             </head>
             <body>
             <div id="container" style="padding: 20px 0;width: 100%;max-width: 800px;">
+            ${stackoverflowLogo}
             ${page}
             </div>
             </body>
