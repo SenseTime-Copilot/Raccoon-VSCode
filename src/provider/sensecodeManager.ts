@@ -9,6 +9,8 @@ import { randomBytes } from "crypto";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
 import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
 import { TGIClient } from "../sensecodeClient/src/tgi-client";
+import { GitUtils } from "../utils/gitUtils";
+import { Repository } from "../utils/git";
 
 export enum ModelCapacity {
   assistant = "assistant",
@@ -93,6 +95,35 @@ export class SenseCodeManager {
   public static getInstance(context: ExtensionContext): SenseCodeManager {
     if (!SenseCodeManager.instance) {
       SenseCodeManager.instance = new SenseCodeManager(context);
+      context.subscriptions.push(commands.registerCommand("sensecode.commit-msg", async () => {
+        let changes;
+        let root;
+        let repo: Repository | null | undefined;
+        if (window.activeTextEditor?.document.uri) {
+          root = workspace.getWorkspaceFolder(window.activeTextEditor?.document.uri)?.uri;
+        } else {
+          root = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : undefined;
+        }
+        if (root) {
+          repo = GitUtils.getInstance().api?.getRepository(root);
+          changes = await repo?.diff(true) || await repo?.diff();
+        }
+        if (changes) {
+          SenseCodeManager.instance?.getCompletions(
+            ModelCapacity.assistant,
+            {
+              messages: [{ role: Role.user, content: `Write a commit message for these changes, limited to 50 characters, and without quotation marks:\n${changes}\n` }],
+              n: 1
+            }
+          ).then((data) => {
+            let cmtmsg = data?.choices[0]?.message?.content;
+            if (cmtmsg && repo) {
+              repo.inputBox.value = cmtmsg;
+            }
+          }).catch(e => {
+          });
+        }
+      }));
     }
     return SenseCodeManager.instance;
   }
@@ -409,7 +440,28 @@ export class SenseCodeManager {
     }
     if (ca) {
       if (ca.options[capacity]?.template) {
-        return ca.options[capacity]?.template.replace("[prefix]", prefix).replace("[suffix]", suffix || "");
+        let _prefix = prefix.replace(/\r\n/g, '\n');
+        let _suffix = suffix?.replace(/\r\n/g, '\n') || "";
+        let prefixLines = '';
+        let prefixLCursor = '';
+        let _prefixLines = _prefix.split('\n');
+        if (_prefixLines.length > 0) {
+          prefixLCursor = _prefixLines[_prefixLines.length - 1];
+          delete _prefixLines[_prefixLines.length - 1];
+          prefixLines = _prefixLines.join('\n');
+        }
+        let suffixLines = '';
+        let _suffixLines = _suffix.split('\n') || [];
+        if (_suffixLines.length > 0) {
+          delete _suffixLines[0];
+          suffixLines = _suffixLines.join('\n');
+        }
+        return ca.options[capacity].template
+          .replace("[prefix]", _prefix)
+          .replace("[suffix]", _suffix)
+          .replace("[prefix.lines]", prefixLines)
+          .replace("[suffix.lines]", suffixLines)
+          .replace("[prefix.cursor]", prefixLCursor);
       }
     }
   }
@@ -533,7 +585,7 @@ export class SenseCodeManager {
           }
         }, (e) => {
           progress.report({ increment: 100 });
-          window.showErrorMessage(l10n.t(e.message), l10n.t("Clear Access Key"), l10n.t("Close")).then((v)=>{
+          window.showErrorMessage(l10n.t(e.message), l10n.t("Clear Access Key"), l10n.t("Close")).then((v) => {
             if (v === l10n.t("Clear Access Key")) {
               if (ca) {
                 this.updateToken(ca.client.label);

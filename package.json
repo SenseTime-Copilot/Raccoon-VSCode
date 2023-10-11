@@ -40,6 +40,9 @@
         "ui",
         "workspace"
     ],
+    "extensionDependencies": [
+        "vscode.git"
+    ],
     "contributes": {
         "configuration": [
             {
@@ -264,6 +267,12 @@
                     "when": "editorTextFocus"
                 }
             ],
+            "scm/title": [
+                {
+                    "command": "sensecode.commit-msg",
+                    "group": "navigation"
+                }
+            ],
             "view/title": [
                 {
                     "command": "sensecode.clear",
@@ -337,6 +346,12 @@
                 "command": "sensecode.ask",
                 "category": "SenseCode",
                 "title": "%sensecode.command.ask%"
+            },
+            {
+                "command": "sensecode.commit-msg",
+                "category": "SenseCode",
+                "title": "%sensecode.command.commit-msg%",
+                "icon": "$(sensecode-icon)"
             },
             {
                 "command": "sensecode.settings.reset",

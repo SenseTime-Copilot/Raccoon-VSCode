@@ -30,6 +30,7 @@
     "sensecode.command.notebook.new": "SenseCode NoteBook",
     "sensecode.command.openEditor": "Open new SenseCode Assistant instance in editor",
     "sensecode.command.ask": "Ask SenseCode...",
+    "sensecode.command.commit-msg": "Ask SenseCode to write a commit message",
     "sensecode.command.settings": "Settings",
     "sensecode.command.settingsReset": "Reset all settings",
     "sensecode.command.completionTrigger": "Code Inline Completion Trigger",
