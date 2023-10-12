@@ -51,7 +51,7 @@ export async function checkSensetimeEnv(context: ExtensionContext, showError?: b
             window.showWarningMessage("SenseTime 内网环境需安装 Proxy 插件并启用，通过 LDAP 账号登录使用", "安装", "已安装, 去启用").then(
               (v) => {
                 if (v === "安装") {
-                  downloadAndInstallProxy(context).catch((reason)=>{
+                  downloadAndInstallProxy(context).catch((reason) => {
                     window.showErrorMessage("安装失败 " + reason, "Close");
                   });
                 }
@@ -67,7 +67,7 @@ export async function checkSensetimeEnv(context: ExtensionContext, showError?: b
             window.showWarningMessage("SenseTime 内网环境所需的 Proxy 插件有更新版本，需要升级才能使用", "升级").then(
               (v) => {
                 if (v === "升级") {
-                  downloadAndInstallProxy(context).catch((reason)=>{
+                  downloadAndInstallProxy(context).catch((reason) => {
                     window.showErrorMessage("升级失败 " + reason, "Close");
                   });
                 }

@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { CustomReadonlyEditorProvider, CancellationToken, Uri, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, ExtensionContext } from 'vscode';
 
-const stackoverflowLogo = `
+const stackoverflow_Logo = `<svg aria-hidden="true" class="native svg-icon iconLogoGlyphMd" width="12" height="12" viewBox="0 0 32 37"><path d="M26 33v-9h4v13H0V24h4v9h22Z" fill="#BCBBBB"></path><path d="m21.5 0-2.7 2 9.9 13.3 2.7-2L21.5 0ZM26 18.4 13.3 7.8l2.1-2.5 12.7 10.6-2.1 2.5ZM9.1 15.2l15 7 1.4-3-15-7-1.4 3Zm14 10.79.68-2.95-16.1-3.35L7 23l16.1 2.99ZM23 30H7v-3h16v3Z" fill="#F48024"></path></svg>`;
+const poweredByStackoverflow = `
 <div style="display: inline-block; float: right; text-align: right; font-size: 8px; opacity: 0.6;">
-  POWERED BY <svg aria-hidden="true" class="native svg-icon iconLogoGlyphMd" width="12" height="12" viewBox="0 0 32 37"><path d="M26 33v-9h4v13H0V24h4v9h22Z" fill="#BCBBBB"></path><path d="m21.5 0-2.7 2 9.9 13.3 2.7-2L21.5 0ZM26 18.4 13.3 7.8l2.1-2.5 12.7 10.6-2.1 2.5ZM9.1 15.2l15 7 1.4-3-15-7-1.4 3Zm14 10.79.68-2.95-16.1-3.35L7 23l16.1 2.99ZM23 30H7v-3h16v3Z" fill="#F48024"></path></svg> STACK OVERFLOW
+  POWERED BY ${stackoverflow_Logo} STACK OVERFLOW
 </div>
 `;
 
@@ -79,10 +80,11 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
       let query = document.uri.query;
       if (query) {
         let q = JSON.parse(query);
-        await axios.get(`https://api.stackexchange.com/2.3/questions/${q.id}?order=desc&sort=votes&site=stackoverflow&filter=!*Mg4PjfftzEyAIgG`)
+        await axios.get(`https://api.stackexchange.com/2.3/questions/${q.id}?order=desc&sort=votes&site=stackoverflow&filter=!nNPvSNP4(R`)
           .then((resp) => {
             if (resp.status === 200 && resp.data.items) {
               let data = resp.data.items[0];
+              webviewPanel.webview.postMessage({ type: "question", data });
               axios.get(`https://api.stackexchange.com/2.3/questions/${q.id}/answers?pagesize=100&order=desc&sort=votes&site=stackoverflow&filter=!T3AudpjY_(NGdBPHwj`)
                 .then((ainfo) => {
                   if (ainfo.status === 200 && ainfo.data.items) {
@@ -190,11 +192,6 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                   smartypants: false,
                   xhtml: false
                 });
-                window.onload = (event) => {
-                  var q = document.getElementById("question");
-                  const content = new DOMParser().parseFromString(marked.parse(q.dataset.content), "text/html");
-                  q.innerHTML = content.documentElement.innerHTML;
-                };
                 const vscode = acquireVsCodeApi();
                 function openDocument(uri) {
                   vscode.postMessage({
@@ -205,6 +202,12 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                 window.addEventListener("message", (event) => {
                   const message = event.data;
                   switch (message.type) {
+                    case 'question': {
+                      var question = document.getElementById("question");
+                      const content = new DOMParser().parseFromString(marked.parse(unescape(message.data.body_markdown)), "text/html");
+                      question.innerHTML = content.documentElement.innerHTML;
+                      break;
+                    }
                     case 'answer': {
                       var main = document.getElementById("main");
                       const a = document.createElement("section");
@@ -226,7 +229,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                     case 'more': {
                       var main = document.getElementById("main");
                       const a = document.createElement("section");
-                      a.innerHTML = \`Open <vscode-link href='${data.link}'>${data.title}</vscode-link> to read more answers\`;
+                      a.innerHTML = \`<vscode-link href='${data.link}'>more answers on ${stackoverflow_Logo} stackoverflow</vscode-link>\`;
                       main.append(a);
                       break;
                     }
@@ -236,10 +239,10 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             </head>
             <body>
             <div id="main" style="padding: 20px 0;width: 100%;max-width: 800px;">
-            ${stackoverflowLogo}
+            ${poweredByStackoverflow}
             <h2>${data.title} <vscode-link href='${data.link}'><span class="material-symbols-rounded">open_in_new</span></vscode-link></h2>
             <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-            <section id="question" data-content="${data.body_markdown}">
+            <section id="question">
             </section>
             <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
             <section id="meta" style="display: flex; grid-gap: 1rem; justify-content: flex-end; margin-right: 1rem;">
@@ -356,7 +359,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
             </head>
             <body>
             <div id="container" style="padding: 20px 0;width: 100%;max-width: 800px;">
-            ${stackoverflowLogo}
+            ${poweredByStackoverflow}
             ${page}
             </div>
             </body>

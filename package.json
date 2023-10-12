@@ -256,8 +256,7 @@
         "menus": {
             "file/newFile": [
                 {
-                    "command": "sensecode.notebook.new",
-                    "when": "scnb"
+                    "command": "sensecode.notebook.new"
                 }
             ],
             "editor/context": [
