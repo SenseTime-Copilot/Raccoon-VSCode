@@ -758,6 +758,10 @@ span.shortcut:after {
     border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
 }
 
+.answer-element-gnc:not(:last-child) .regenerate {
+    display: none;
+}
+
 .answer-element-gnc:last-child {
     border-bottom: 2px solid var(--panel-view-border);
 }

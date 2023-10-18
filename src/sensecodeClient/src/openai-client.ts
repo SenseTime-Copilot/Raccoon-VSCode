@@ -7,8 +7,8 @@ export class OpenAIClient implements CodeClient {
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public get label(): string {
-    return this.clientConfig.label;
+  public get robotName(): string {
+    return this.clientConfig.robotname;
   }
 
   public get authMethods(): AuthMethod[] {
@@ -95,7 +95,7 @@ export class OpenAIClient implements CodeClient {
       };
 
       if (this.debug) {
-        this.debug(`Request to: ${this.clientConfig.url}`);
+        this.debug(`Request to: ${requestParam.url}`);
         let pc = { ...payload };
         let content = pc.messages;
         pc.messages = undefined;
@@ -104,7 +104,7 @@ export class OpenAIClient implements CodeClient {
       }
 
       axios
-        .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
+        .post(requestParam.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
         .then(async (res) => {
           if (res?.status === 200) {
             resolve(res.data);

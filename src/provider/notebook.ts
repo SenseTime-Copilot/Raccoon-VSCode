@@ -104,7 +104,7 @@ class SenseCodeNotebookSerializer implements NotebookSerializer {
 class SenseCodeNotebookController {
   private controller: NotebookController;
   private cancel: AbortController = new AbortController();
-  constructor(context: ExtensionContext, private readonly id: string, viewType: string) {
+  constructor(private readonly context: ExtensionContext, private readonly id: string, viewType: string) {
     this.controller = notebooks.createNotebookController(id, viewType, id);
     this.controller.supportsExecutionOrder = true;
     this.controller.supportedLanguages = ["sensecode"];
@@ -159,7 +159,7 @@ class SenseCodeNotebookController {
           {
             messages: [
               ...history,
-              { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, content) || "" }
+              { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', content) || "" }
             ]
           },
           (event) => {
@@ -207,7 +207,7 @@ class SenseCodeNotebookController {
             }
           },
           {
-            headers: buildHeader("notebook"),
+            headers: buildHeader(this.context.extension, "notebook"),
             signal: this.cancel.signal
           },
           this.id
@@ -227,7 +227,7 @@ export class SenseCodeNotebook {
   private static defaultController: SenseCodeNotebookController;
   static rigister(context: ExtensionContext) {
     context.subscriptions.push(workspace.registerNotebookSerializer(SenseCodeNotebook.notebookType, new SenseCodeNotebookSerializer()));
-    for (let c of sensecodeManager.clientsLabel) {
+    for (let c of sensecodeManager.robotNames) {
       let ctrl = new SenseCodeNotebookController(context, c, SenseCodeNotebook.notebookType);
       if (!SenseCodeNotebook.defaultController) {
         SenseCodeNotebook.defaultController = ctrl;

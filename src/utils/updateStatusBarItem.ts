@@ -48,7 +48,7 @@ export function updateStatusBarItem(
     }
     tip.appendMarkdown(`***\n\n`);
     tip.appendMarkdown(`<table>\n\n`);
-    tip.appendMarkdown(`<tr><td align="left">$(server-environment) ${l10n.t("Code engine")}</td><td>  </td><td align="right">${sensecodeManager.getActiveClientLabel()}</td></tr>\n\n`);
+    tip.appendMarkdown(`<tr><td align="left">$(server-environment) ${l10n.t("Code engine")}</td><td>  </td><td align="right">${sensecodeManager.getActiveClientRobotName()}</td></tr>\n\n`);
     if (sensecodeManager.autoComplete) {
       tip.appendMarkdown(`<tr><td align="left">$(play) ${l10n.t("Trigger Mode")}</td><td>  </td><td align="right">${l10n.t("Auto")}</td></tr>\n\n`);
     } else {

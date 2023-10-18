@@ -696,7 +696,7 @@ const vscode = acquireVsCodeApi();
   vscode.postMessage({ type: "welcome" });
   vscode.postMessage({ type: "listPrompt" });
 
-  const sendQuestion = (question) => {
+  const sendQuestion = (question, replace) => {
     const prompt = question.getElementsByClassName("prompt");
     if (prompt && prompt[0]) {
       var values = {};
@@ -707,6 +707,11 @@ const vscode = acquireVsCodeApi();
         promptTemp.languageid = valuesEle[0].getElementsByClassName("languageid-value")[0].textContent;
         promptTemp.code = valuesEle[0].getElementsByClassName("code-value")[0].textContent;
         values = { ...valuesEle[0].dataset };
+      }
+
+      if (replace) {
+        document.getElementById(`question-${replace}`)?.remove();
+        document.getElementById(replace)?.remove();
       }
 
       vscode.postMessage({
@@ -1256,7 +1261,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (targetButton?.classList?.contains('bug')) {
+    if (targetButton?.classList?.contains('bug') || e.target.id === "report-issue") {
       vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "bug-report") });
       return;
     }
@@ -1266,7 +1271,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       // targetButton?.classList?.add("pointer-events-none");
       const question = document.getElementById(`question-${id}`);
-      sendQuestion(question);
+      sendQuestion(question, id);
       vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "regenerate") });
       return;
     }

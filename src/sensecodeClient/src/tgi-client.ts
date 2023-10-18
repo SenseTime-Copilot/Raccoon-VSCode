@@ -6,8 +6,8 @@ export class TGIClient implements CodeClient {
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public get label(): string {
-    return this.clientConfig.label;
+  public get robotName(): string {
+    return this.clientConfig.robotname;
   }
 
   public get authMethods(): AuthMethod[] {
@@ -57,7 +57,7 @@ export class TGIClient implements CodeClient {
 
     let responseType: ResponseType | undefined = undefined;
     let config: any = {};
-    config.inputs = requestParam.messages.map((v, _i, _arr) => `<|${v.role}|>${v.content}<|end|>`).join("") + `<|${Role.assistant}|>`;
+    config.inputs = requestParam.messages.map((v, _i, _arr) => `${v.content}`).join("");
     config.stream = requestParam.stream;
     config.parameters = {
       model: requestParam.model,
@@ -65,7 +65,7 @@ export class TGIClient implements CodeClient {
       temperature: requestParam.temperature,
       n: requestParam.n ?? 1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      max_new_tokens : requestParam.maxNewTokenNum
+      max_new_tokens: requestParam.maxNewTokenNum
     };
 
     if (config.stream) {
@@ -73,7 +73,7 @@ export class TGIClient implements CodeClient {
     }
 
     if (this.debug) {
-      this.debug(`Request to: ${this.clientConfig.url}`);
+      this.debug(`Request to: ${requestParam.url}`);
       let pc = { ...config };
       let content = pc.inputs;
       pc.inputs = undefined;
@@ -82,7 +82,7 @@ export class TGIClient implements CodeClient {
     }
 
     return axios
-      .post(this.clientConfig.url, config, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
+      .post(requestParam.url, config, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
       .then(async (res) => {
         if (this.debug && !config.stream) {
           this.debug(`${JSON.stringify(res.data)}`);

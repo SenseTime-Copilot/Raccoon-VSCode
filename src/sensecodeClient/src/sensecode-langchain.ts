@@ -39,7 +39,7 @@ class PenroseModel extends BaseChatModel {
   }
 
   get callKeys(): string[] {
-    return ['model', 'messages', 'n', 'maxTokens', 'stream', 'stop', 'temperature'];
+    return ['url', 'model', 'messages', 'n', 'maxNewTokenNum', 'stream', 'stop', 'temperature'];
   }
 
   _combineLLMOutput?() {
@@ -52,6 +52,7 @@ class PenroseModel extends BaseChatModel {
 
   invocationParams(options?: this["ParsedCallOptions"]): ChatRequestParam {
     return {
+      url: options?.url ?? "",
       model: options?.model ?? "",
       messages: options?.messages ?? [],
       stream: options?.stream,

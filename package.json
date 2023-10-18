@@ -64,94 +64,22 @@
                                         "tgi"
                                     ]
                                 },
-                                "label": {
+                                "robotname": {
                                     "type": "string",
                                     "description": "%sensecode.config.engines.engine.label%",
                                     "minLength": 1,
                                     "maxLength": 32
                                 },
-                                "url": {
+                                "username": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.url%",
+                                    "description": "%sensecode.config.engines.engine.username%",
+                                    "minLength": 1,
+                                    "maxLength": 32
+                                },
+                                "authUrl": {
+                                    "type": "string",
+                                    "description": "%sensecode.config.engines.engine.authurl%",
                                     "format": "uri"
-                                },
-                                "completion": {
-                                    "type": "object",
-                                    "description": "%sensecode.config.engines.engine.option%",
-                                    "properties": {
-                                        "template": {
-                                            "type": "string",
-                                            "description": "%sensecode.config.engines.engine.option.template%"
-                                        },
-                                        "parameters": {
-                                            "type": "object",
-                                            "description": "%sensecode.config.engines.engine.option.parameters%",
-                                            "properties": {
-                                                "model": {
-                                                    "type": "string"
-                                                },
-                                                "stop": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "temperature": {
-                                                    "type": "number"
-                                                }
-                                            }
-                                        },
-                                        "totalTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
-                                        },
-                                        "maxInputTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                },
-                                "assistant": {
-                                    "type": "object",
-                                    "description": "%sensecode.config.engines.engine.option%",
-                                    "properties": {
-                                        "template": {
-                                            "type": "string",
-                                            "description": "%sensecode.config.engines.engine.option.template%"
-                                        },
-                                        "parameters": {
-                                            "type": "object",
-                                            "description": "%sensecode.config.engines.engine.option.parameters%",
-                                            "properties": {
-                                                "model": {
-                                                    "type": "string"
-                                                },
-                                                "stop": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "temperature": {
-                                                    "type": "number"
-                                                }
-                                            }
-                                        },
-                                        "totalTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
-                                        },
-                                        "maxInputTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
-                                        }
-                                    },
-                                    "additionalProperties": false
                                 },
                                 "key": {
                                     "description": "%sensecode.config.engines.engine.key%",
@@ -174,17 +102,106 @@
                                         }
                                     ]
                                 },
-                                "username": {
-                                    "type": "string",
-                                    "description": "%sensecode.config.engines.engine.username%",
-                                    "minLength": 1,
-                                    "maxLength": 32
+                                "completion": {
+                                    "type": "object",
+                                    "description": "%sensecode.config.engines.engine.option%",
+                                    "properties": {
+                                        "url": {
+                                            "type": "string",
+                                            "description": "%sensecode.config.engines.engine.url%",
+                                            "format": "uri"
+                                        },
+                                        "template": {
+                                            "type": "string",
+                                            "description": "%sensecode.config.engines.engine.option.template%"
+                                        },
+                                        "parameters": {
+                                            "type": "object",
+                                            "description": "%sensecode.config.engines.engine.option.parameters%",
+                                            "properties": {
+                                                "model": {
+                                                    "type": "string"
+                                                },
+                                                "stop": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "temperature": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        },
+                                        "totalTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
+                                        },
+                                        "maxInputTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
+                                        }
+                                    },
+                                    "required": [
+                                        "url",
+                                        "template"
+                                    ],
+                                    "additionalProperties": false
+                                },
+                                "assistant": {
+                                    "type": "object",
+                                    "description": "%sensecode.config.engines.engine.option%",
+                                    "properties": {
+                                        "url": {
+                                            "type": "string",
+                                            "description": "%sensecode.config.engines.engine.url%",
+                                            "format": "uri"
+                                        },
+                                        "template": {
+                                            "type": "string",
+                                            "description": "%sensecode.config.engines.engine.option.template%"
+                                        },
+                                        "parameters": {
+                                            "type": "object",
+                                            "description": "%sensecode.config.engines.engine.option.parameters%",
+                                            "properties": {
+                                                "model": {
+                                                    "type": "string"
+                                                },
+                                                "stop": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "temperature": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        },
+                                        "totalTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
+                                        },
+                                        "maxInputTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
+                                        }
+                                    },
+                                    "required": [
+                                        "url",
+                                        "template"
+                                    ],
+                                    "additionalProperties": false
                                 }
                             },
                             "required": [
                                 "type",
-                                "label",
-                                "url"
+                                "robotname"
                             ],
                             "additionalProperties": false
                         }
@@ -269,7 +286,8 @@
             "scm/title": [
                 {
                     "command": "sensecode.commit-msg",
-                    "group": "navigation"
+                    "group": "navigation@1000",
+                    "when": "config.git.enabled && !git.missing && scmProvider == git && gitOpenRepositoryCount != 0"
                 }
             ],
             "view/title": [
@@ -350,7 +368,7 @@
                 "command": "sensecode.commit-msg",
                 "category": "SenseCode",
                 "title": "%sensecode.command.commit-msg%",
-                "icon": "$(sensecode-icon)"
+                "icon": "$(wand)"
             },
             {
                 "command": "sensecode.settings.reset",

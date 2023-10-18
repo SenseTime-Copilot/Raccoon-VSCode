@@ -3,6 +3,7 @@ import {
   window,
   EventEmitter,
   l10n,
+  ExtensionContext,
 } from 'vscode';
 import { sensecodeManager, telemetryReporter } from '../extension';
 import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
@@ -79,7 +80,7 @@ export class SenseCodeTerminal {
   private curHistoryId = -1;
   private banWords: BanWords = BanWords.getInstance();
 
-  constructor() {
+  constructor(private readonly context: ExtensionContext) {
     let writeEmitter = new EventEmitter<string>();
     let changeNameEmitter = new EventEmitter<string>();
     sensecodeManager.onDidChangeStatus((e) => {
@@ -99,7 +100,7 @@ export class SenseCodeTerminal {
         close: () => { },
         handleInput: (input: string) => {
           let username = sensecodeManager.username() || "You";
-          let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
+          let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
           let question = '';
           if (isCtrlC(input)) {
             if (this.responsing) {
@@ -238,7 +239,7 @@ export class SenseCodeTerminal {
           sensecodeManager.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
-              messages: [...hlist, { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, question) || "" }],
+              messages: [...hlist, { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
               n: 1
             },
             (event) => {
@@ -288,7 +289,7 @@ export class SenseCodeTerminal {
               }
             },
             {
-              headers: buildHeader('free chat terminal'),
+              headers: buildHeader(this.context.extension, 'free chat terminal'),
               signal: this.cancel?.signal
             }
           ).catch(e => {
@@ -305,8 +306,8 @@ export class SenseCodeTerminal {
 
     function welcome() {
       let un = sensecodeManager.username();
-      let ai = sensecodeManager.getActiveClientLabel() || "SenseCode";
-      ai = sensecodeManager.getActiveClientLabel() || "SenseCode";
+      let ai = sensecodeManager.getActiveClientRobotName() || "SenseCode";
+      ai = sensecodeManager.getActiveClientRobotName() || "SenseCode";
       let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);
       writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
       writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");

@@ -29,8 +29,8 @@ export class SenseNovaClient implements CodeClient {
   constructor(private readonly meta: SenseNovaClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public get label(): string {
-    return this.clientConfig.label;
+  public get robotName(): string {
+    return this.clientConfig.robotname;
   }
 
   public get authMethods(): AuthMethod[] {
@@ -82,7 +82,7 @@ export class SenseNovaClient implements CodeClient {
           headers["Authorization"] = `Bearer ${key}`;
         } else {
           let aksk = key as AccessKey;
-          headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
+          headers["Authorization"] = generateSignature(`${iamBaseUrl}/sensenova-sso/v1/logout`, date, aksk.accessKeyId, aksk.secretAccessKey);
         }
       }
       return axios.get(`${iamBaseUrl}/sensenova-sso/v1/logout`, { headers }).then(() => {
@@ -188,17 +188,17 @@ export class SenseNovaClient implements CodeClient {
 
   private async _postPrompt(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<any | IncomingMessage> {
     let ts = new Date();
-    //if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
-    try {
-      let newToken = await this.refreshToken(auth);
-      auth = newToken;
-      if (this.onChangeAuthInfo) {
-        this.onChangeAuthInfo(newToken);
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+      try {
+        let newToken = await this.refreshToken(auth);
+        auth = newToken;
+        if (this.onChangeAuthInfo) {
+          this.onChangeAuthInfo(newToken);
+        }
+      } catch (er: any) {
+        return Promise.reject(new Error('The authentication information has expired, please log in again'));
       }
-    } catch (er: any) {
-      return Promise.reject(new Error('The authentication information has expired, please log in again'));
     }
-    //}
 
     let date = new Date();
     let headers = options ? {
@@ -213,7 +213,7 @@ export class SenseNovaClient implements CodeClient {
         headers["Authorization"] = `Bearer ${key}`;
       } else {
         let aksk = key as AccessKey;
-        headers["Authorization"] = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
+        headers["Authorization"] = generateSignature(requestParam.url, date, aksk.accessKeyId, aksk.secretAccessKey);
       }
     }
 
@@ -237,7 +237,7 @@ export class SenseNovaClient implements CodeClient {
     };
 
     if (this.debug) {
-      this.debug(`Request to: ${this.clientConfig.url}`);
+      this.debug(`Request to: ${requestParam.url}`);
       let pc = { ...payload };
       let content = pc.messages;
       pc.messages = undefined;
@@ -246,7 +246,7 @@ export class SenseNovaClient implements CodeClient {
     }
 
     return axios
-      .post(this.clientConfig.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
+      .post(requestParam.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
       .then(async (res) => {
         if (this.debug && !config.stream) {
           this.debug(`${JSON.stringify(res.data)}`);
@@ -329,16 +329,17 @@ export class SenseNovaClient implements CodeClient {
                 for (let choice of json.data.choices) {
                   let finishReason = choice["finish_reason"];
                   let message: any;
+                  let created = json.created && json.created * 1000;
                   if (choice.delta) {
                     message = {
                       role: Role.assistant,
-                      content: choice.message.content?.replace(/<\|text\|>/g, '').replace(/<\|endofblock\|>/g, '') || ""
+                      content: choice.delta || ""
                     };
                   }
                   callback(new MessageEvent(
                     finishReason ? ResponseEvent.finish : ResponseEvent.data,
                     {
-                      data: new ResponseDataBuilder(json.data.id, json.created * 1000).append(message, finishReason, choice.index).data
+                      data: new ResponseDataBuilder(json.data.id, created).append(message, finishReason, choice.index).data
                     })
                   );
                 }

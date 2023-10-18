@@ -1,5 +1,5 @@
-import { commands, env, ExtensionContext, extensions, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Extension, Uri } from "vscode";
-import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { commands, env, ExtensionContext, extensions, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Extension, Uri, ProgressLocation } from "vscode";
+import { AccessKey, AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -7,10 +7,11 @@ import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
-import { checkSensetimeEnv, CodeExtension } from "../utils/getProxy";
+import { checkSensetimeEnv, CodeExtension, getProxy } from "../utils/getProxy";
 import { TGIClient } from "../sensecodeClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
+import { buildHeader } from "../utils/buildRequestHeader";
 
 export enum ModelCapacity {
   assistant = "assistant",
@@ -18,6 +19,7 @@ export enum ModelCapacity {
 }
 
 export interface ClientOption {
+  url: string;
   template: string;
   parameters: any;
   maxInputTokenNum: number;
@@ -31,9 +33,10 @@ type SensecodeClientConfig = ClientConfig & {
 const builtinEngines: SensecodeClientConfig[] = [
   {
     type: ClientType.sensecore,
-    label: "SenseCode",
-    url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
+    robotname: "SenseCode",
+    authUrl: "https://signin.sensecore.cn/oauth2",
     completion: {
+      url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
       template: "<fim_prefix>[prefix]<fim_suffix>[suffix]<fim_middle>",
       parameters: {
         model: "penrose-411",
@@ -44,6 +47,7 @@ const builtinEngines: SensecodeClientConfig[] = [
       totalTokenNum: 8192
     },
     assistant: {
+      url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
       template: "[prefix]",
       parameters: {
         model: "penrose-411",
@@ -88,6 +92,8 @@ export class SenseCodeManager {
   private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
   public onDidChangeStatus = this.changeStatusEmitter.event;
 
+  private static abortCtrller: { [key: string]: AbortController } = {};
+
   private randomUUID(): string {
     return randomBytes(20).toString('hex');
   }
@@ -95,33 +101,64 @@ export class SenseCodeManager {
   public static getInstance(context: ExtensionContext): SenseCodeManager {
     if (!SenseCodeManager.instance) {
       SenseCodeManager.instance = new SenseCodeManager(context);
-      context.subscriptions.push(commands.registerCommand("sensecode.commit-msg", async () => {
-        let changes;
-        let root;
-        let repo: Repository | null | undefined;
-        if (window.activeTextEditor?.document.uri) {
-          root = workspace.getWorkspaceFolder(window.activeTextEditor?.document.uri)?.uri;
-        } else {
-          root = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : undefined;
+      context.subscriptions.push(commands.registerCommand("sensecode.commit-msg", async (...args: any[]) => {
+        let gitApi = GitUtils.getInstance().api;
+        if (!gitApi) {
+          return;
         }
-        if (root) {
-          repo = GitUtils.getInstance().api?.getRepository(root);
-          changes = await repo?.diff(true) || await repo?.diff();
+        let changes = '';
+        let targetRepo: Repository | null | undefined = undefined;
+        if (args[0] && args[0].rootUri) {
+          targetRepo = gitApi.getRepository(args[0].rootUri);
         }
+        if (!targetRepo) {
+          if (gitApi.repositories.length === 1) {
+            targetRepo = gitApi.repositories[0];
+          } else if (gitApi.repositories.length > 1) {
+            let rps = gitApi.repositories.map((repo, _idx, _arr) => { return repo.rootUri.toString(); });
+            let rpUri = await window.showQuickPick(rps);
+            if (rpUri) {
+              targetRepo = gitApi.getRepository(Uri.parse(rpUri));
+            }
+          }
+        }
+        if (!targetRepo) {
+          return;
+        }
+        if (SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()] && !SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
+          SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].abort();
+          return;
+        }
+        changes = await targetRepo.diff(true) || await targetRepo.diff();
         if (changes) {
-          SenseCodeManager.instance?.getCompletions(
+          targetRepo.inputBox.value = '';
+          SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()] = new AbortController();
+          return SenseCodeManager.instance?.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
-              messages: [{ role: Role.user, content: `Write a commit message for these changes, limited to 50 characters, and without quotation marks:\n${changes}\n` }],
+              messages: [{ role: Role.user, content: `Write a commit message summarizing following changes to the codebase, limited to 50 characters, and without quotation marks:\n\`\`\`diff\n${changes}\n\`\`\`` }],
               n: 1
+            },
+            (e) => {
+              if (e.type === ResponseEvent.error) {
+                SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
+                delete SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()];
+              } else if (e.type === ResponseEvent.data) {
+                let cmtmsg = e.data?.choices[0]?.message?.content;
+                if (cmtmsg && targetRepo) {
+                  targetRepo.inputBox.value += cmtmsg;
+                }
+              } else if (e.type === ResponseEvent.done || e.type === ResponseEvent.finish) {
+                delete SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()];
+              } else {
+                SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
+              }
+            },
+            {
+              headers: buildHeader(context.extension, "commit-message"),
+              signal: SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].signal
             }
-          ).then((data) => {
-            let cmtmsg = data?.choices[0]?.message?.content;
-            if (cmtmsg && repo) {
-              repo.inputBox.value = cmtmsg;
-            }
-          }).catch(e => {
-          });
+          );
         }
       }));
     }
@@ -132,6 +169,8 @@ export class SenseCodeManager {
     let flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
 
     outlog.debug(`------------------- ${flag} -------------------`);
+
+    checkSensetimeEnv(context, true);
 
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
     let ret = context.globalState.get<boolean>(flag);
@@ -157,7 +196,7 @@ export class SenseCodeManager {
     );
 
     context.subscriptions.push(extensions.onDidChange(() => {
-      checkSensetimeEnv(context).then(p => {
+      getProxy().then(p => {
         if ((p && !this.proxy) || (!p && this.proxy) || (p && this.proxy && p.packageJSON.version !== this.proxy.packageJSON.version)) {
           this.proxy = p;
           this.initialClients();
@@ -167,7 +206,7 @@ export class SenseCodeManager {
   }
 
   public async initialClients(): Promise<void> {
-    let proxyExt = await checkSensetimeEnv(this.context, true);
+    let proxyExt = await getProxy();
     this.proxy = proxyExt;
 
     let tks = await this.context.secrets.get("SenseCode.tokens");
@@ -181,7 +220,7 @@ export class SenseCodeManager {
     es = builtinEngines.concat(es);
     this._clients = {};
     for (let e of es) {
-      if (e.type && e.label && e.url) {
+      if (e.type && e.robotname) {
         let client;
         let proxy = undefined;
         if (proxyExt?.exports?.filterEnabled(e)) {
@@ -206,9 +245,9 @@ export class SenseCodeManager {
         }
         if (client) {
           client.onDidChangeAuthInfo(async (ai) => {
-            await this.updateToken(e.label, ai, true);
+            await this.updateToken(e.robotname, ai, true);
           });
-          await this.appendClient(e.label, { client, options: e, proxy, authInfo: authinfos[e.label] }, e.username);
+          await this.appendClient(e.robotname, { client, options: e, proxy, authInfo: authinfos[e.robotname] }, e.username);
         }
       }
     }
@@ -343,8 +382,8 @@ export class SenseCodeManager {
     }
   }
 
-  public getActiveClientLabel(): string | undefined {
-    return this.getActiveClient()?.client.label;
+  public getActiveClientRobotName(): string | undefined {
+    return this.getActiveClient()?.client.robotName;
   }
 
   public async setActiveClient(clientName: string | undefined) {
@@ -426,14 +465,14 @@ export class SenseCodeManager {
     return prompts;
   }
 
-  public get clientsLabel(): string[] {
+  public get robotNames(): string[] {
     let es = this.configuration.get<SensecodeClientConfig[]>("Engines", []);
     return builtinEngines.concat(es).map((v, _idx, _arr) => {
-      return v.label;
+      return v.robotname;
     });
   }
 
-  public buildFillPrompt(capacity: ModelCapacity, prefix: string, suffix?: string, clientName?: string): string | undefined {
+  public buildFillPrompt(capacity: ModelCapacity, language: string, prefix: string, suffix?: string, clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
@@ -457,6 +496,7 @@ export class SenseCodeManager {
           suffixLines = _suffixLines.join('\n');
         }
         return ca.options[capacity].template
+          .replace("[languageid]", language)
           .replace("[prefix]", _prefix)
           .replace("[suffix]", _suffix)
           .replace("[prefix.lines]", prefixLines)
@@ -513,7 +553,7 @@ export class SenseCodeManager {
           }
           return ca.client.login(url, verifier).then(async (token) => {
             if (ca && token) {
-              this.updateToken(ca.client.label, token);
+              this.updateToken(ca.client.robotName, token);
             }
             return undefined;
           }, (_err) => {
@@ -555,7 +595,7 @@ export class SenseCodeManager {
       return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
-          this.updateToken(ca.client.label, token);
+          this.updateToken(ca.client.robotName, token);
           return true;
         } else {
           return false;
@@ -581,14 +621,14 @@ export class SenseCodeManager {
             commands.executeCommand("vscode.open", logoutUrl);
           }
           if (ca) {
-            this.updateToken(ca.client.label);
+            this.updateToken(ca.client.robotName);
           }
         }, (e) => {
           progress.report({ increment: 100 });
           window.showErrorMessage(l10n.t(e.message), l10n.t("Clear Access Key"), l10n.t("Close")).then((v) => {
             if (v === l10n.t("Clear Access Key")) {
               if (ca) {
-                this.updateToken(ca.client.label);
+                this.updateToken(ca.client.robotName);
               }
             }
           });
@@ -604,6 +644,7 @@ export class SenseCodeManager {
     }
     if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
+        url: ca.options[capacity].url,
         ...ca.options[capacity].parameters,
         ...config
       };
@@ -622,6 +663,7 @@ export class SenseCodeManager {
     }
     if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
+        url: ca.options[capacity].url,
         ...ca.options[capacity].parameters,
         ...config
       };

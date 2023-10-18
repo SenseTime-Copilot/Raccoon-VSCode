@@ -10,7 +10,7 @@ export interface CodeExtension {
 const requiredProxyVersion = '0.50.5';
 const proxyUrl = `http://kestrel.sensetime.com/tools/sensetimeproxy-${requiredProxyVersion}.vsix`;
 
-async function getProxy(): Promise<Extension<CodeExtension> | undefined> {
+export async function getProxy(): Promise<Extension<CodeExtension> | undefined> {
   let es = extensions.all;
   for (let e of es) {
     if (e.id === "SenseTime.sensetimeproxy") {

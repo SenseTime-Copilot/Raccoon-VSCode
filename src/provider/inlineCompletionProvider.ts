@@ -105,7 +105,7 @@ export function inlineCompletionProvider(
             mt = sensecodeManager.totalTokenNum(ModelCapacity.completion) - sensecodeManager.maxInputTokenNum(ModelCapacity.completion);
           }
 
-          let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, codeSnippets.prefix, codeSnippets.suffix);
+          let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
           if (!content) {
             updateStatusBarItem(statusBarItem,
               {
@@ -129,7 +129,7 @@ export function inlineCompletionProvider(
               maxNewTokenNum: mt
             },
             {
-              headers: buildHeader('inline completion'),
+              headers: buildHeader(extension.extension, 'inline completion'),
               signal: controller.signal
             });
         } catch (err: any) {
@@ -137,7 +137,7 @@ export function inlineCompletionProvider(
             return;
           }
           outlog.error(err);
-          let error = err.response?.data?.error || err.message;
+          let error = err.response?.data?.error?.message || err.message || "";
           if (!cancel.isCancellationRequested) {
             updateStatusBarItem(
               statusBarItem,

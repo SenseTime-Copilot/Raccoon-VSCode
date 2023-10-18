@@ -104,7 +104,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.terminal", async () => {
-      new SenseCodeTerminal();
+      new SenseCodeTerminal(context);
     })
   );
 

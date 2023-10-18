@@ -18,10 +18,10 @@ export interface AccessKey {
 
 export interface ClientConfig {
   type: ClientType;
-  label: string;
-  url: string;
-  key?: string | AccessKey;
+  robotname: string;
+  authUrl?: string;
   username?: string;
+  key?: string | AccessKey;
 }
 
 export interface ClientReqeustOptions {
@@ -57,6 +57,7 @@ export interface Message {
 export type StopToken = Array<string> | undefined;
 
 export interface ChatRequestParam {
+  url: string;
   model: string;
   messages: Array<Message>;
   temperature?: number | null;
@@ -94,7 +95,7 @@ export interface ResponseData {
 
 export interface CodeClient {
 
-  get label(): string;
+  get robotName(): string;
 
   get authMethods(): AuthMethod[];
 

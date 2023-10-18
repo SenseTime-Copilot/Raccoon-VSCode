@@ -32,8 +32,8 @@ export class SenseCodeClient implements CodeClient {
   constructor(private readonly meta: SenseCodeClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
-  public get label(): string {
-    return this.clientConfig.label;
+  public get robotName(): string {
+    return this.clientConfig.robotname;
   }
 
   public get authMethods(): AuthMethod[] {
@@ -47,9 +47,8 @@ export class SenseCodeClient implements CodeClient {
       return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
     }
 
-    let baseUrl = this.getAuthBaseUrl();
     let challenge = crypto.createHash('sha256').update(codeVerifier).digest("base64").replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    let url = `${baseUrl}/oauth2/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=${baseUrl}&scope=openid%20offline%20offline_access`;
+    let url = `${this.clientConfig.authUrl}/auth?response_type=code&client_id=${this.meta.clientId}&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${this.meta.redirectUrl}&state=sensecode-vscode&scope=openid%20offline%20offline_access`;
     return Promise.resolve(url);
   }
 
@@ -71,7 +70,7 @@ export class SenseCodeClient implements CodeClient {
     } else {
       try {
         let data = JSON.parse('{"' + decodeURIComponent(query).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
-        return this.loginSenseCore(data.code, codeVerifer, data.state);
+        return this.loginSenseCore(data.code, codeVerifer);
       } catch (e) {
         return Promise.reject(e);
       }
@@ -107,20 +106,6 @@ export class SenseCodeClient implements CodeClient {
     }
   }
 
-  private getAuthBaseUrl() {
-    let baseUrl = 'https://signin.sensecore.cn';
-    if (this.clientConfig.url.includes("ams.st-sh-01.sensecoreapi.cn")) {
-      baseUrl = 'https://signin.st-sh-01.sensecore.cn';
-    } else if (this.clientConfig.url.includes("ams.sensecoreapi.cn")) {
-      baseUrl = 'https://signin.sensecore.cn';
-    } else if (this.clientConfig.url.includes("ams.sensecoreapi.tech")) {
-      baseUrl = 'https://signin.sensecore.tech';
-    } else if (this.clientConfig.url.includes("ams.sensecoreapi.dev")) {
-      baseUrl = 'https://signin.sensecore.dev';
-    }
-    return baseUrl;
-  }
-
   private async parseAuthInfo(data: any): Promise<AuthInfo> {
     let decoded: any = jwt_decode(data.id_token);
     let name = decoded.id_token?.username;
@@ -135,21 +120,20 @@ export class SenseCodeClient implements CodeClient {
       weaverdKey: data.access_token,
     };
 
-    this.logoutUrl = `${this.getAuthBaseUrl()}/oauth2/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`;
+    this.logoutUrl = `${this.clientConfig.authUrl}/sessions/logout?id_token_hint=${encodeURIComponent(data.id_token || '')}&redirect_uri=${encodeURIComponent(this.meta.redirectUrl)}`;
 
     return ret;
   }
 
-  private async loginSenseCore(code: string, codeVerifier: string, authUrl: string): Promise<AuthInfo> {
+  private async loginSenseCore(code: string, codeVerifier: string): Promise<AuthInfo> {
     var data = new FormData();
     data.append('client_id', this.meta.clientId);
     data.append('redirect_uri', this.meta.redirectUrl);
     data.append('grant_type', 'authorization_code');
     data.append('code_verifier', codeVerifier);
     data.append('code', code);
-    data.append('state', authUrl);
 
-    return axios.post(`${authUrl}/oauth2/token`,
+    return axios.post(`${this.clientConfig.authUrl}/token`,
       data.getBuffer(),
       {
         headers: data.getHeaders()
@@ -166,8 +150,7 @@ export class SenseCodeClient implements CodeClient {
   }
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    let baseUrl = this.getAuthBaseUrl();
-    let url = `${baseUrl}/oauth2/token`;
+    let url = `${this.clientConfig.authUrl}/token`;
     let date: string = new Date().toUTCString();
     let headers = {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -210,7 +193,7 @@ export class SenseCodeClient implements CodeClient {
         authHeader = `Bearer ${key}`;
       } else {
         let aksk = key as AccessKey;
-        authHeader = generateSignature(this.clientConfig.url, date, aksk.accessKeyId, aksk.secretAccessKey);
+        authHeader = generateSignature(requestParam.url, date, aksk.accessKeyId, aksk.secretAccessKey);
       }
     }
 
@@ -242,7 +225,7 @@ export class SenseCodeClient implements CodeClient {
     }
 
     if (this.debug) {
-      this.debug(`Request to: ${this.clientConfig.url}`);
+      this.debug(`Request to: ${requestParam.url}`);
       let pc = { ...config };
       let content = pc.messages;
       pc.messages = undefined;
@@ -251,7 +234,7 @@ export class SenseCodeClient implements CodeClient {
     }
 
     return axios
-      .post(this.clientConfig.url, config, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
+      .post(requestParam.url, config, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
       .then(async (res) => {
         if (this.debug && !config.stream) {
           this.debug(`${JSON.stringify(res.data)}`);

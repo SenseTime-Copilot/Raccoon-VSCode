@@ -84,7 +84,7 @@ export class SenseCodeEditor extends Disposable {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-userdata");
   }
 
-  constructor(private context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {
+  constructor(private readonly context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {
     super(() => { });
     this.cache = new HistoryCache(context, cacheFile);
     this.stopList = {};
@@ -166,7 +166,7 @@ export class SenseCodeEditor extends Disposable {
     let name = sensecodeManager.username();
     let category = "welcome";
     let username = '';
-    let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
+    let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
     if (name) {
       username = ` @${name}`;
     } else {
@@ -220,8 +220,8 @@ export class SenseCodeEditor extends Disposable {
     let candidates = sensecodeManager.candidates;
     let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
-    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${sensecodeManager.getActiveClientLabel()}">`;
-    let es = sensecodeManager.clientsLabel;
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${sensecodeManager.getActiveClientRobotName()}">`;
+    let es = sensecodeManager.robotNames;
     for (let label of es) {
       esList += `<vscode-option value="${label}">${label}</vscode-option>`;
     }
@@ -400,10 +400,13 @@ export class SenseCodeEditor extends Disposable {
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <div class="flex items-center">
+      <div class="flex flex-col">
         <vscode-checkbox id="privacy" ${this.context.globalState.get("privacy") ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
+        <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
+          <span class="material-symbols-rounded" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report issue")}</span>
+        </div>
       </div>
-      <div class="flex flex-col grow place-content-end py-4">
+      <div class="flex place-content-center py-4">
       <vscode-button id="clearAll" class="mx-2 self-center w-60" appearance="secondary">
         ${l10n.t("Clear all settings")}
         <span slot="start" class="material-symbols-rounded">settings_power</span>
@@ -483,7 +486,7 @@ export class SenseCodeEditor extends Disposable {
                 let tm = new Date();
                 let id = tm.valueOf();
                 let timestamp = tm.toLocaleString();
-                let robot = sensecodeManager.getActiveClientLabel() || "SenseCode";
+                let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
                 let helplink = `
 <div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
   <span class="material-symbols-rounded">book</span>
@@ -565,7 +568,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'logout': {
-          let ae = sensecodeManager.getActiveClientLabel() || "SenseCode";
+          let ae = sensecodeManager.getActiveClientRobotName() || "SenseCode";
           window.showWarningMessage(
             l10n.t("Logout from {0}?", ae),
             { modal: true },
@@ -839,7 +842,7 @@ ${data.info.response}
     }
 
     let avatar = sensecodeManager.avatar();
-    let robot = sensecodeManager.getActiveClientLabel();
+    let robot = sensecodeManager.getActiveClientRobotName();
 
     if (promptHtml.status === RenderStatus.editRequired) {
       this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
@@ -883,7 +886,7 @@ ${data.info.response}
 
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
-        let msgs = [...historyMsgs, { role: instruction.role, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, instruction.content) || "" }];
+        let msgs = [...historyMsgs, { role: instruction.role, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
         if (streaming) {
           let signal = this.stopList[id].signal;
           sensecodeManager.getCompletionsStreaming(
@@ -926,7 +929,7 @@ ${data.info.response}
               }
             },
             {
-              headers: buildHeader(prompt.type),
+              headers: buildHeader(this.context.extension, prompt.type),
               signal
             }
           );
@@ -938,7 +941,7 @@ ${data.info.response}
               n: 1
             },
             {
-              headers: buildHeader(prompt.type),
+              headers: buildHeader(this.context.extension, prompt.type),
               signal: this.stopList[id].signal
             })
             .then(rs => {
