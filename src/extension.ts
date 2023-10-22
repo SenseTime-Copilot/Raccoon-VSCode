@@ -12,10 +12,12 @@ import { SenseCodeNotebook } from "./provider/notebook";
 import DiffContentProvider from "./provider/diffContentProvider";
 import { TextDocumentShowOptions } from "vscode";
 import { SenseCodeSearchEditorProvider } from "./provider/searchEditorProvider";
+import { FavoriteCodeManager } from "./provider/favoriteCode";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
 export let sensecodeManager: SenseCodeManager;
+export let snippetManager: FavoriteCodeManager;
 export let telemetryReporter: vscode.TelemetryLogger;
 
 class SenseCodeUriHandler implements vscode.UriHandler {
@@ -39,6 +41,9 @@ export async function activate(context: vscode.ExtensionContext) {
         await vscode.workspace.fs.createDirectory(context.globalStorageUri);
       }
     );
+
+  snippetManager = new FavoriteCodeManager(context);
+  snippetManager.registerSavedSnippets();
 
   sensecodeManager = SenseCodeManager.getInstance(context);
   sensecodeManager.update();
@@ -99,6 +104,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.help", async () => {
       vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`${vscode.env.uriScheme}:extension/${context.extension.id}`));
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("sensecode.favorite.manage", async () => {
+      snippetManager.listCodeSnippets();
     })
   );
 

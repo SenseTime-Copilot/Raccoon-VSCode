@@ -12,7 +12,7 @@
         "url": "https://github.com/SenseCore/SenseCode-VSCode/issues"
     },
     "icon": "media/sensecode-logo.png",
-    "version": "0.50.5",
+    "version": "0.60.0",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -270,6 +270,13 @@
                 }
             }
         ],
+        "submenus": [
+            {
+                "id": "sensecode-submenu",
+                "label": "%sensecode.submenu%",
+                "icon": "$(more)"
+            }
+        ],
         "menus": {
             "file/newFile": [
                 {
@@ -290,6 +297,28 @@
                     "when": "config.git.enabled && !git.missing && scmProvider == git && gitOpenRepositoryCount != 0"
                 }
             ],
+            "sensecode-submenu": [
+                {
+                    "command": "sensecode.terminal",
+                    "group": "navigation@3",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.notebook.new",
+                    "group": "navigation@4",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.favorite.manage",
+                    "group": "cache@0",
+                    "when": "view == sensecode.view"
+                },
+                {
+                    "command": "sensecode.help",
+                    "group": "help@0",
+                    "when": "view == sensecode.view"
+                }
+            ],
             "view/title": [
                 {
                     "command": "sensecode.clear",
@@ -302,23 +331,13 @@
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.terminal",
+                    "command": "sensecode.settings",
                     "group": "navigation@3",
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.notebook.new",
+                    "submenu": "sensecode-submenu",
                     "group": "navigation@4",
-                    "when": "view == sensecode.view && scnb"
-                },
-                {
-                    "command": "sensecode.help",
-                    "group": "navigation@5",
-                    "when": "view == sensecode.view"
-                },
-                {
-                    "command": "sensecode.settings",
-                    "group": "navigation@6",
                     "when": "view == sensecode.view"
                 }
             ],
@@ -343,6 +362,13 @@
                 "category": "SenseCode",
                 "title": "%sensecode.command.help%",
                 "icon": "$(question)",
+                "enablement": "view == sensecode.view"
+            },
+            {
+                "command": "sensecode.favorite.manage",
+                "category": "SenseCode",
+                "title": "%sensecode.command.favorite%",
+                "icon": "$(repo)",
                 "enablement": "view == sensecode.view"
             },
             {
@@ -408,7 +434,7 @@
             },
             {
                 "command": "sensecode.ask",
-                "key": "Alt+Q"
+                "key": "Ctrl Ctrl"
             }
         ],
         "icons": {

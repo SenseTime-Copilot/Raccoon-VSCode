@@ -5,7 +5,6 @@ import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
 import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
-const loginBaseUrl = 'https://login.test.sensenova.cn';
 const iamBaseUrl = 'https://iam-login.test.sensenova.cn';
 
 export interface SenseNovaClientMeta {
@@ -34,7 +33,7 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public get authMethods(): AuthMethod[] {
-    return [AuthMethod.browser, AuthMethod.accesskey];
+    return [AuthMethod.accesskey];
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
@@ -44,7 +43,7 @@ export class SenseNovaClient implements CodeClient {
       return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
     }
 
-    return Promise.resolve(`${loginBaseUrl}/#/login?redirect_url=${this.meta.redirectUrl}&refresh_expires_after=${60 * 60 * 24 * 7}`);
+    return Promise.resolve(`${this.clientConfig.authUrl}?redirect_uri=vscode://sensetime.sensecode/sensechat/login&token_type=always`);
   }
 
   public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
@@ -101,6 +100,12 @@ export class SenseNovaClient implements CodeClient {
       let weaverdKey = decoded.token;
       let refreshToken = decoded.refresh;
       let idToken: any = jwt_decode(weaverdKey);
+      let a = await axios.get('https://chat-stage.sensetime.com/api/auth/check', {
+        headers: {
+          Authorization: `Bearer ${weaverdKey}`
+        }
+      });
+      console.log(a);
       let name = idToken.email?.split("@")[0] || idToken.sub;
       let expiration = idToken.exp;
       if (!weaverdKey) {
@@ -236,6 +241,11 @@ export class SenseNovaClient implements CodeClient {
       ...config
     };
 
+    if (payload.messages[0].role === Role.completion) {
+      payload.prompt = payload.messages[0].content;
+      payload.messages = undefined;
+    }
+
     if (this.debug) {
       this.debug(`Request to: ${requestParam.url}`);
       let pc = { ...payload };
@@ -267,7 +277,7 @@ export class SenseNovaClient implements CodeClient {
           finishReason: completion.finish_reason,
           message: {
             role: Role.assistant,
-            content: completion.message
+            content: completion.message || completion.text
           }
         });
       }

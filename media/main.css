@@ -753,6 +753,14 @@ span.shortcut:after {
     border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
 }
 
+.message-element-gnc.welcome kbd {
+    font-family: var(--vscode-editor-font-family);
+    font-weight: bold;
+    line-height: 1.4rem;
+    margin: 0 0.25rem;
+    color: var(--vscode-focusBorder);
+}
+
 .answer-element-gnc {
     background-color: var(--panel-view-background);
     border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);

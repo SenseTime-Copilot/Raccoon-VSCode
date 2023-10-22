@@ -25,6 +25,7 @@ const vscode = acquireVsCodeApi();
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
+  const favIcon = `<span class="material-symbols-rounded">heart_plus</span>`;
   const diffIcon = `<span class="material-symbols-rounded">difference</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
@@ -39,6 +40,14 @@ const vscode = acquireVsCodeApi();
   document.getElementById("question-input").disabled = true;
 
   setTimeout(showTips, 8000);
+
+  function scrollPositionAtBottom() {
+    var a = document.getElementById('qa-list-wrapper').children[0].offsetHeight;
+    var b = document.getElementById('qa-list-wrapper').children[0].scrollTop;
+    var c = document.getElementById('qa-list-wrapper').children[0].children[0].offsetHeight;
+
+    return a + b + 100 >= c;
+  }
 
   function showTips() {
     var qs = document.getElementById(`question-sizer`);
@@ -234,28 +243,42 @@ const vscode = acquireVsCodeApi();
 
               // Create wrap button
               const wrapButton = document.createElement("button");
-              wrapButton.dataset.id = message.id;
+              wrapButton.dataset.id = item.id;
               wrapButton.title = l10nForUI["ToggleWrap"];
               wrapButton.innerHTML = wrapIcon;
 
               wrapButton.classList.add("wrap-element-gnc", "rounded");
 
+              const fav = document.createElement("button");
+              fav.dataset.id = item.id;
+              fav.title = l10nForUI["Favorite"];
+              fav.innerHTML = favIcon;
+
+              fav.classList.add("fav-element-gnc", "rounded");
+
+              const diff = document.createElement("button");
+              diff.dataset.id = item.id;
+              diff.title = l10nForUI["Diff"];
+              diff.innerHTML = diffIcon;
+
+              diff.classList.add("diff-element-gnc", "rounded");
+
               // Create copy to clipboard button
               const copyButton = document.createElement("button");
-              copyButton.dataset.id = message.id;
+              copyButton.dataset.id = item.id;
               copyButton.title = l10nForUI["Copy"];
               copyButton.innerHTML = clipboardIcon;
 
               copyButton.classList.add("code-element-gnc", "rounded");
 
               const insert = document.createElement("button");
-              insert.dataset.id = message.id;
+              insert.dataset.id = item.id;
               insert.title = l10nForUI["Insert"];
               insert.innerHTML = insertIcon;
 
               insert.classList.add("edit-element-gnc", "rounded");
 
-              buttonWrapper.append(wrapButton, copyButton, insert);
+              buttonWrapper.append(wrapButton, fav, diff, copyButton, insert);
 
               preCode.parentElement.prepend(buttonWrapper);
             });
@@ -541,6 +564,13 @@ const vscode = acquireVsCodeApi();
           const buttonWrapper = document.createElement("div");
           buttonWrapper.classList.add("code-actions-wrapper");
 
+          const fav = document.createElement("button");
+          fav.dataset.id = message.id;
+          fav.title = l10nForUI["Favorite"];
+          fav.innerHTML = favIcon;
+
+          fav.classList.add("fav-element-gnc", "rounded");
+
           const diff = document.createElement("button");
           diff.dataset.id = message.id;
           diff.title = l10nForUI["Diff"];
@@ -571,14 +601,15 @@ const vscode = acquireVsCodeApi();
 
           insert.classList.add("edit-element-gnc", "rounded");
 
-          buttonWrapper.append(wrapButton, diff, copyButton, insert);
+          buttonWrapper.append(wrapButton, fav, diff, copyButton, insert);
 
           preCode.parentElement.prepend(buttonWrapper);
         });
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
         //chatText.classList.add("markdown-body");
-        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
-
+        if (scrollPositionAtBottom()) {
+          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        }
         if (message.byUser === true) {
           vscode.postMessage({ type: 'telemetry', info: collectInfo(message.id, "stopped-by-user") });
         } else {
@@ -624,7 +655,9 @@ const vscode = acquireVsCodeApi();
                               ${message.value}
                             </div>
                           </div>`;
-        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
+        if (scrollPositionAtBottom()) {
+          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        }
         break;
       }
       case "addResponse": {
@@ -651,7 +684,9 @@ const vscode = acquireVsCodeApi();
           preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
         });
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
-        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
+        if (scrollPositionAtBottom()) {
+          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        }
         break;
       }
       case "addError":
@@ -686,8 +721,9 @@ const vscode = acquireVsCodeApi();
                                           </span>
                                         </button>
                                     </div>`;
-        list.lastChild?.scrollIntoView({ behavior: "auto", block: "end", inline: "nearest" });
-        break;
+        if ((window.innerHeight + Math.round(window.scrollY)) >= document.body.offsetHeight) {
+          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        } break;
       default:
         break;
     }
@@ -1108,6 +1144,10 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
+    if (e.ctrlKey) {
+      return;
+    }
+
     if (e.key === "Enter") {
       e.preventDefault();
       // return;
@@ -1307,6 +1347,19 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("wrap-element-gnc")) {
       e.preventDefault();
       targetButton.parentElement?.parentElement?.lastElementChild.classList.toggle('whitespace-pre-wrap');
+      return;
+    }
+
+    if (targetButton?.classList?.contains("fav-element-gnc")) {
+      e.preventDefault();
+      let id = targetButton?.dataset.id;
+      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({
+        type: "addFavorite",
+        id,
+        languageid,
+        value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
+      });
       return;
     }
 

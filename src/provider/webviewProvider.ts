@@ -1,7 +1,6 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, ViewColumn, env, ProgressLocation, TextEditor, Disposable, TextDocument } from 'vscode';
-import { sensecodeManager, outlog, telemetryReporter } from '../extension';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
+import { sensecodeManager, outlog, telemetryReporter, snippetManager } from '../extension';
 import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
-import { getDocumentLanguage } from '../utils/getDocumentLanguage';
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { BanWords } from '../utils/swords';
 import { CompletionPreferenceType, ModelCapacity } from './sensecodeManager';
@@ -175,7 +174,7 @@ export class SenseCodeEditor extends Disposable {
       if (url) {
         login = `<vscode-link href="${url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>`;
       }
-      const loginHint = `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+      const loginHint = `<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
             <span class='material-symbols-rounded'>person</span>
             <div class='inline-block leading-loose'>
               ${l10n.t("Login to <b>{0}</b>", robot)}
@@ -187,7 +186,8 @@ export class SenseCodeEditor extends Disposable {
       detail += loginHint;
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
-      + `<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing <kbd>Ctrl</kbd> to summon me at any time.")}</div>`
+      + `<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
   <span class="material-symbols-rounded">celebration</span>
   <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
   <div class="flex grow justify-end">
@@ -488,7 +488,7 @@ export class SenseCodeEditor extends Disposable {
                 let timestamp = tm.toLocaleString();
                 let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
                 let helplink = `
-<div class="flex items-center gap-2 m-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
   <span class="material-symbols-rounded">book</span>
   <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
   <div class="flex grow justify-end">
@@ -644,120 +644,12 @@ export class SenseCodeEditor extends Disposable {
           this.context.globalState.update("privacy", data.value);
           break;
         }
-        case 'correct': {
-          if (!env.isTelemetryEnabled) {
-            window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
-              if (v === "OK") {
-                commands.executeCommand("workbench.action.openGlobalSettings", { query: "telemetry.telemetryLevel" });
-              }
-            });
+        case 'addFavorite': {
+          if (!data.id || !data.languageid || !data.value) {
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unrecognized-lang', value: l10n.t("Unrecognized language"), id: new Date().valueOf() });
             break;
           }
-          let panel = window.createWebviewPanel("sensecode.correction", `Code Correction-${data.info.generate_at}`, ViewColumn.Active, { enableScripts: true });
-          let webview = panel.webview;
-          webview.options = {
-            enableScripts: true
-          };
-          webview.onDidReceiveMessage((msg) => {
-            switch (msg.type) {
-              case 'sendFeedback': {
-                window.withProgress({ location: ProgressLocation.Notification, title: "Feedback" }, async (progress, _) => {
-                  progress.report({ message: "Sending feedback..." });
-                  let correction =
-                    `\`\`\`${msg.language}
-${msg.code}
-\`\`\`
-                `;
-                  let info = {
-                    correction,
-                    ...data.info
-                  };
-                  telemetryReporter.logUsage("correct", info);
-                  await new Promise((f) => setTimeout(f, 2000));
-                  panel.dispose();
-                  progress.report({ message: "Thanks for your feedback.", increment: 100 });
-                  await new Promise((f) => setTimeout(f, 2000));
-                  return Promise.resolve();
-                });
-                break;
-              }
-            }
-          });
-          const vendorHighlightCss = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.css'));
-          const vendorHighlightJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.js'));
-          const vendorMarkedJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
-          const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
-          const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
-          let renderRequestBody = data.info.request.prompt;
-          let lang = getDocumentLanguage(data.info.request.languageid);
-          renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
-
-          let content = `
-# Sincerely apologize for any inconvenience
-
-SenseCode is still under development. Questions, patches, improvement suggestions and reviews welcome, we always looking forward to your feedback.
-
-## Request
-
-${renderRequestBody}
-
-## SenseCode response
-
-${data.info.response}
-
-## Your solution
-`;
-
-          webview.html = `
-          <html>
-          <head>
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource};  style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';" >
-          <link href="${vendorHighlightCss}" rel="stylesheet">
-          <script src="${vendorHighlightJs}"></script>
-          <script src="${vendorMarkedJs}"></script>
-          <script type="module" src="${toolkitUri}"></script>
-          <link href="${mainCSS}" rel="stylesheet" />
-          <script>
-          marked.setOptions({
-            renderer: new marked.Renderer(),
-            highlight: function (code, _lang) {
-              return hljs.highlightAuto(code).value;
-            },
-            langPrefix: 'hljs language-',
-            pedantic: false,
-            gfm: true,
-            breaks: false,
-            sanitize: false,
-            smartypants: false,
-            xhtml: false
-          });
-          const vscode = acquireVsCodeApi();
-          function send() {
-            vscode.postMessage(
-              {
-                "type": "sendFeedback",
-                "language": "${data.info.request.languageid}",
-                "code": document.getElementById("correction").value
-              }
-            )
-          }
-          window.onload = (event) => {
-            var info = document.getElementById("info");
-            const content = new DOMParser().parseFromString(marked.parse(info.textContent), "text/html");
-            info.innerHTML = content.documentElement.innerHTML;
-          };
-          </script>
-          </head>
-          <body>
-          <div class="markdown-body" style="margin: 1rem 4rem;">
-            <div id="info">${content}</div>
-            <div style="display: flex;flex-direction: column;">
-              <vscode-text-area id="correction" rows="20" resize="vertical" placeholder="Write your brilliant ${lang ? lang + " code" : "anwser"} here..." style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);"></vscode-text-area>
-              <vscode-button button onclick="send()" style="--button-padding-horizontal: 2rem;align-self: flex-end;width: fit-content;">Feedback</vscode-button>
-            </div>
-            </div>
-          </body>
-          </html>`;
+          snippetManager.addFavoriteCodeSnippet(data.id, data.languageid, data.value);
           break;
         }
         case 'telemetry': {
@@ -1111,6 +1003,7 @@ ${data.info.response}
                   "Delete": "${l10n.t("Delete this chat entity")}",
                   "Send": "${l10n.t("Send")}",
                   "ToggleWrap": "${l10n.t("Toggle line wrap")}",
+                  "Favorite": "${l10n.t("Add to favorites")}",
                   "Diff": "${l10n.t("Diff with original code")}",
                   "Copy": "${l10n.t("Copy to clipboard")}",
                   "Insert": "${l10n.t("Insert the below code at cursor")}",

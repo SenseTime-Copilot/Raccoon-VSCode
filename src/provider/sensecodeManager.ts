@@ -32,26 +32,29 @@ type SensecodeClientConfig = ClientConfig & {
 
 const builtinEngines: SensecodeClientConfig[] = [
   {
-    type: ClientType.sensecore,
+    type: ClientType.sensenova,
     robotname: "SenseCode",
-    authUrl: "https://signin.sensecore.cn/oauth2",
     completion: {
-      url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
-      template: "<fim_prefix>[prefix]<fim_suffix>[suffix]<fim_middle>",
+      url: "https://api.sensenova.cn/v1/llm/completions",
+      template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<MID>[prefix.cursor]",
       parameters: {
-        model: "penrose-411",
-        stop: ["<|end|>"],
+        model: "nova-ptc-s-v1-codecompletion",
+        stop: [
+          "<|EOT|>"
+        ],
         temperature: 0.5
       },
       maxInputTokenNum: 4096,
       totalTokenNum: 8192
     },
     assistant: {
-      url: "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions",
+      url: "https://api.sensenova.cn/v1/llm/chat-completions",
       template: "[prefix]",
       parameters: {
-        model: "penrose-411",
-        stop: ["<|end|>"],
+        model: "nova-ptc-l-v1-code",
+        stop: [
+          "<|endofmessage|>"
+        ],
         temperature: 0.5
       },
       maxInputTokenNum: 4096,

@@ -6,8 +6,6 @@ import { CompletionPreferenceType, ModelCapacity } from "./sensecodeManager";
 import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 
-let lastRequest = null;
-
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   let lang = "";
   if (doc) {
@@ -22,6 +20,171 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
   }
 }
 
+async function getCompletionSuggestions(extension: vscode.ExtensionContext, id: number, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, controller: AbortController, statusBarItem: vscode.StatusBarItem) {
+
+  let maxLength = sensecodeManager.maxInputTokenNum(ModelCapacity.completion) / 2;
+  let codeSnippets = await captureCode(document, position, maxLength);
+
+  if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
+    updateStatusBarItem(statusBarItem);
+    return;
+  }
+
+  let data: ResponseData;
+  try {
+    updateStatusBarItem(
+      statusBarItem,
+      {
+        text: "$(loading~spin)",
+        tooltip: vscode.l10n.t("Thinking..."),
+        keep: true
+      }
+    );
+
+    let mt = 32;
+    let lenPreference = sensecodeManager.completionPreference;
+    if (lenPreference === CompletionPreferenceType.balanced) {
+      mt = 128;
+    } else if (lenPreference === CompletionPreferenceType.bestEffort) {
+      // TODO: need max new token
+      mt = sensecodeManager.totalTokenNum(ModelCapacity.completion) - sensecodeManager.maxInputTokenNum(ModelCapacity.completion);
+    }
+
+    let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
+    if (!content) {
+      updateStatusBarItem(statusBarItem,
+        {
+          text: "$(exclude)",
+          tooltip: vscode.l10n.t("Out of service")
+        });
+      return;
+    }
+    const completionPrompt: Message = {
+      role: Role.completion,
+      content
+    };
+
+    telemetryReporter.logUsage('inline completion');
+
+    data = await sensecodeManager.getCompletions(
+      ModelCapacity.completion,
+      {
+        messages: [completionPrompt],
+        n: sensecodeManager.candidates,
+        maxNewTokenNum: mt
+      },
+      {
+        headers: buildHeader(extension.extension, 'inline completion'),
+        signal: controller.signal
+      });
+  } catch (err: any) {
+    if (err.message === "canceled") {
+      return;
+    }
+    outlog.error(err);
+    let error = err.response?.data?.error?.message || err.message || "";
+    if (!cancel.isCancellationRequested) {
+      updateStatusBarItem(
+        statusBarItem,
+        {
+          text: `$(error)${err.response?.statusText || err.response?.status || ""}`,
+          tooltip: error
+        }
+      );
+    } else {
+      updateStatusBarItem(statusBarItem);
+    }
+    return;
+  }
+  if (cancel.isCancellationRequested) {
+    updateStatusBarItem(
+      statusBarItem,
+      {
+        text: "$(circle-slash)",
+        tooltip: vscode.l10n.t("User cancelled")
+      }
+    );
+    return;
+  }
+  if (data === null || data.choices === null || data.choices.length === 0) {
+    updateStatusBarItem(
+      statusBarItem,
+      {
+        text: "$(array)",
+        tooltip: vscode.l10n.t("No completion suggestion")
+      }
+    );
+    return;
+  }
+
+  let range = new vscode.Range(new vscode.Position(position.line, 0),
+    new vscode.Position(position.line, position.character));
+  let prefix = document.getText(range);
+
+  // Add the generated code to the inline suggestion list
+  let items = new Array<vscode.InlineCompletionItem>();
+  let continueFlag = new Array<boolean>();
+  let codeArray = data.choices;
+  const completions = Array<string>();
+  for (let i = 0; i < codeArray.length; i++) {
+    const completion = codeArray[i];
+    let tmpstr: string = completion.message?.content || "";
+    if (!tmpstr.trim()) {
+      outlog.debug('[Ignore: Empty Suggestion]');
+      continue;
+    }
+    if (completions.includes(tmpstr)) {
+      outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);
+      continue;
+    }
+    if (completion.finishReason === 'length') {
+      continueFlag.push(true);
+      outlog.debug('[Truncated Suggestion]: ' + tmpstr);
+    } else {
+      continueFlag.push(false);
+      outlog.debug('[Completed Suggestion]: ' + tmpstr);
+    }
+    completions.push(tmpstr);
+  }
+  for (let i = 0; i < completions.length; i++) {
+    let completion = completions[i];
+    let command = {
+      title: "suggestion-accepted",
+      command: "sensecode.onSuggestionAccepted",
+      arguments: [
+        document.uri,
+        new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
+        continueFlag[i],
+        i.toString()
+      ]
+    };
+    items.push({
+      insertText: prefix + completion,
+      range: new vscode.Range(new vscode.Position(position.line, 0),
+        new vscode.Position(position.line, position.character)),
+      command
+    });
+  }
+  if (items.length === 0) {
+    updateStatusBarItem(
+      statusBarItem,
+      {
+        text: "$(array)",
+        tooltip: vscode.l10n.t("No completion suggestion")
+      }
+    );
+  } else if (!cancel.isCancellationRequested) {
+    updateStatusBarItem(
+      statusBarItem,
+      {
+        text: "$(pass)",
+        tooltip: vscode.l10n.t("Done")
+      }
+    );
+  }
+  return cancel.isCancellationRequested ? null : items;
+}
+
 export function inlineCompletionProvider(
   extension: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem
@@ -33,6 +196,20 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
+
+      let requestId = new Date().getTime();
+
+      const controller = new AbortController();
+      cancel.onCancellationRequested(_e => {
+        controller.abort();
+        updateStatusBarItem(
+          statusBarItem,
+          {
+            text: "$(circle-slash)",
+            tooltip: vscode.l10n.t("User cancelled")
+          }
+        );
+      });
       if (!showHideStatusBtn(document, statusBarItem)) {
         return;
       }
@@ -60,185 +237,11 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let maxLength = sensecodeManager.maxInputTokenNum(ModelCapacity.completion) / 2;
-      let codeSnippets = await captureCode(document, position, maxLength);
-
-      if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
-        updateStatusBarItem(statusBarItem);
+      if (context.triggerKind !== vscode.InlineCompletionTriggerKind.Invoke || cancel.isCancellationRequested) {
         return;
       }
 
-      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke) {
-        const controller = new AbortController();
-        cancel.onCancellationRequested(_e => {
-          controller.abort();
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(circle-slash)",
-              tooltip: vscode.l10n.t("User cancelled")
-            }
-          );
-        });
-        let requestId = new Date().getTime();
-        lastRequest = requestId;
-        if (lastRequest !== requestId) {
-          return;
-        }
-        let data: ResponseData;
-        try {
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(loading~spin)",
-              tooltip: vscode.l10n.t("Thinking..."),
-              keep: true
-            }
-          );
-
-          let mt = 128;
-          let lenPreference = sensecodeManager.completionPreference;
-          if (lenPreference === CompletionPreferenceType.balanced) {
-            mt = 256;
-          } else if (lenPreference === CompletionPreferenceType.bestEffort) {
-            // TODO: need max new token
-            mt = sensecodeManager.totalTokenNum(ModelCapacity.completion) - sensecodeManager.maxInputTokenNum(ModelCapacity.completion);
-          }
-
-          let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
-          if (!content) {
-            updateStatusBarItem(statusBarItem,
-              {
-                text: "$(exclude)",
-                tooltip: vscode.l10n.t("Out of service")
-              });
-            return;
-          }
-          const completionPrompt: Message = {
-            role: Role.user,
-            content
-          };
-
-          telemetryReporter.logUsage('inline completion');
-
-          data = await sensecodeManager.getCompletions(
-            ModelCapacity.completion,
-            {
-              messages: [completionPrompt],
-              n: sensecodeManager.candidates,
-              maxNewTokenNum: mt
-            },
-            {
-              headers: buildHeader(extension.extension, 'inline completion'),
-              signal: controller.signal
-            });
-        } catch (err: any) {
-          if (err.message === "canceled") {
-            return;
-          }
-          outlog.error(err);
-          let error = err.response?.data?.error?.message || err.message || "";
-          if (!cancel.isCancellationRequested) {
-            updateStatusBarItem(
-              statusBarItem,
-              {
-                text: `$(error)${err.response?.statusText || err.response?.status || ""}`,
-                tooltip: error
-              }
-            );
-          } else {
-            updateStatusBarItem(statusBarItem);
-          }
-          return;
-        }
-        if (cancel.isCancellationRequested) {
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(circle-slash)",
-              tooltip: vscode.l10n.t("User cancelled")
-            }
-          );
-          return;
-        }
-        if (data === null || data.choices === null || data.choices.length === 0) {
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(array)",
-              tooltip: vscode.l10n.t("No completion suggestion")
-            }
-          );
-          return;
-        }
-
-        let range = new vscode.Range(new vscode.Position(position.line, 0),
-          new vscode.Position(position.line, position.character));
-        let prefix = document.getText(range);
-
-        // Add the generated code to the inline suggestion list
-        let items = new Array<vscode.InlineCompletionItem>();
-        let continueFlag = new Array<boolean>();
-        let codeArray = data.choices;
-        const completions = Array<string>();
-        for (let i = 0; i < codeArray.length; i++) {
-          const completion = codeArray[i];
-          let tmpstr: string = completion.message?.content || "";
-          if (!tmpstr.trim()) {
-            outlog.debug('[Ignore: Empty Suggestion]');
-            continue;
-          }
-          if (completions.includes(tmpstr)) {
-            outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);
-            continue;
-          }
-          if (completion.finishReason === 'length') {
-            continueFlag.push(true);
-            outlog.debug('[Accept: Truncated Suggestion]: ' + tmpstr);
-          } else {
-            continueFlag.push(false);
-            outlog.debug('[Accept: Completed Suggestion]: ' + tmpstr);
-          }
-          completions.push(tmpstr);
-        }
-        for (let i = 0; i < completions.length; i++) {
-          let completion = completions[i];
-          let command = {
-            title: "suggestion-accepted",
-            command: "sensecode.onSuggestionAccepted",
-            arguments: [
-              document.uri,
-              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
-              continueFlag[i],
-              i.toString()
-            ]
-          };
-          items.push({
-            insertText: prefix + completion,
-            range: new vscode.Range(new vscode.Position(position.line, 0),
-              new vscode.Position(position.line, position.character)),
-            command
-          });
-        }
-        if (items.length === 0) {
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(array)",
-              tooltip: vscode.l10n.t("No completion suggestion")
-            }
-          );
-        } else if (!cancel.isCancellationRequested) {
-          updateStatusBarItem(
-            statusBarItem,
-            {
-              text: "$(pass)",
-              tooltip: vscode.l10n.t("Done")
-            }
-          );
-        }
-        return cancel.isCancellationRequested ? null : items;
-      }
+      return getCompletionSuggestions(extension, requestId, document, position, cancel, controller, statusBarItem);
     },
   };
   return provider;
@@ -254,7 +257,7 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
   if (foldings && foldings.length > 0) {
     for (let r of foldings) {
       if (r.start < cursorY && r.end >= cursorY) {
-        //foldingPoints.push(r);
+        foldingPoints.push(r);
       } else if (r.end < cursorY) {
         preCutLines.push(r.end + 1);
       } else if (r.start > cursorY) {
@@ -262,6 +265,7 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
       }
     }
   }
+  preCutLines.sort((a, b) => { return a - b; });
   let pos = 0;
   let prefix = document.getText(new vscode.Selection(
     0,
