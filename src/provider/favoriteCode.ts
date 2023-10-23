@@ -1,4 +1,4 @@
-import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, ViewColumn, Uri, workspace, CustomEditorProvider, CancellationToken, CustomDocument, CustomDocumentBackup, CustomDocumentBackupContext, CustomDocumentContentChangeEvent, CustomDocumentEditEvent, CustomDocumentOpenContext, Event, WebviewPanel, CustomReadonlyEditorProvider } from "vscode";
+import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, ViewColumn, Uri, workspace, } from "vscode";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 
 const encoder = new TextEncoder();
@@ -22,7 +22,7 @@ export class FavoriteCodeManager {
       for (let s of ss) {
         this.registerFavoriteCode(s);
       }
-    })
+    });
   }
 
   async appendSnippetItem(data?: SnippetItem): Promise<void> {
@@ -115,7 +115,9 @@ export class FavoriteCodeManager {
     });
 
     let snippets = await this.getSnippetItems();
-    let exist = snippets.filter((v) => { return v.id === id; });
+    let exist = snippets.filter((v) => {
+      return v.id === id;
+    });
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
     const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
@@ -193,7 +195,9 @@ export class FavoriteCodeManager {
       switch (msg.type) {
         case 'edit': {
           this.getSnippetItems().then((snippets) => {
-            let snippet = snippets.filter(v => { return v.id === msg.id; });
+            let snippet = snippets.filter(v => {
+              return v.id === msg.id;
+            });
             if (snippet[0]) {
               this.addFavoriteCodeSnippet(snippet[0].id, snippet[0].languageid, snippet[0].code);
             }
@@ -213,7 +217,7 @@ export class FavoriteCodeManager {
     let snippets: SnippetItem[] = await this.getSnippetItems();
 
     let table = `
-    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="18ch 18ch 18ch 1fr 12ch" style="--font-family: var(--vscode-editor-font-family); border-bottom: 1px solid; border-color: var(--dropdown-border);">
+    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(16ch + 24px) calc(16ch + 24px) calc(16ch + 24px) 1fr 84px" style="--font-family: var(--vscode-editor-font-family); border-bottom: 1px solid; border-color: var(--dropdown-border);">
       <vscode-data-grid-row row-type="sticky-header">
         <vscode-data-grid-cell cell-type="columnheader" grid-column="1">ID</vscode-data-grid-cell>
         <vscode-data-grid-cell cell-type="columnheader" grid-column="2">Language</vscode-data-grid-cell>
@@ -228,7 +232,7 @@ export class FavoriteCodeManager {
         <vscode-data-grid-cell grid-column="1" style="align-self: center;">${s.id}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="align-self: center;">${getDocumentLanguage(s.languageid)}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center;">${s.shortcut}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center; overflow: scroll; white-space: pre;">${s.code}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="4" style="align-self: center; overflow-x: auto; white-space: pre;">${s.code}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="5" style="align-self: center;">
         <vscode-link>
             <span class="material-symbols-rounded edit-snippet" onclick="editSnippet('${s.id}')">edit</span>
@@ -249,6 +253,12 @@ export class FavoriteCodeManager {
     <script type="module" src="${toolkitUri}"></script>
     <link href="${iconUri}" rel="stylesheet" />
     <link href="${mainCSS}" rel="stylesheet" />
+    <style>
+    vscode-data-grid-cell:focus, vscode-data-grid-cell:focus-visible {
+      border-color: transparent;
+      background: inherit;
+    }
+    </style>
     <script>
     const vscode = acquireVsCodeApi();
     function editSnippet(id) {
