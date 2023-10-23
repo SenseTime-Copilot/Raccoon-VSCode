@@ -1,5 +1,5 @@
-import { commands, env, ExtensionContext, extensions, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Extension, Uri, ProgressLocation } from "vscode";
-import { AccessKey, AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
+import { commands, env, ExtensionContext, extensions, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Extension, Uri } from "vscode";
+import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
 import { outlog } from "../extension";
@@ -118,7 +118,9 @@ export class SenseCodeManager {
           if (gitApi.repositories.length === 1) {
             targetRepo = gitApi.repositories[0];
           } else if (gitApi.repositories.length > 1) {
-            let rps = gitApi.repositories.map((repo, _idx, _arr) => { return repo.rootUri.toString(); });
+            let rps = gitApi.repositories.map((repo, _idx, _arr) => {
+              return repo.rootUri.toString();
+            });
             let rpUri = await window.showQuickPick(rps);
             if (rpUri) {
               targetRepo = gitApi.getRepository(Uri.parse(rpUri));

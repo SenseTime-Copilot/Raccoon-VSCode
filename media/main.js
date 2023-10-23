@@ -723,7 +723,8 @@ const vscode = acquireVsCodeApi();
                                     </div>`;
         if ((window.innerHeight + Math.round(window.scrollY)) >= document.body.offsetHeight) {
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
-        } break;
+        }
+        break;
       default:
         break;
     }
@@ -1382,12 +1383,12 @@ const vscode = acquireVsCodeApi();
       let id = targetButton?.dataset.id;
       vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "diff-code") });
       var valuesNode = document.getElementById(`values-${id}`);
-      var languageid;
+      var lang;
       var origin;
       if (valuesNode) {
         var v1 = valuesNode.getElementsByClassName("languageid-value");
         if (v1[0]) {
-          languageid = v1[0].textContent;
+          lang = v1[0].textContent;
         }
         var v2 = valuesNode.getElementsByClassName("code-value");
         if (v2[0]) {
@@ -1396,7 +1397,7 @@ const vscode = acquireVsCodeApi();
       }
       vscode.postMessage({
         type: "diff",
-        languageid,
+        languageid: lang,
         origin,
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
