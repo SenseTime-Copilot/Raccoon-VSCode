@@ -159,8 +159,9 @@ export class FavoriteCodeManager {
         saveNode.disabled = false;
         } else {
         saveNode.disabled = true;
-        }            
+        }
       });
+      shortcutNode.focus();
     };
     </script>
     </head>
@@ -169,15 +170,15 @@ export class FavoriteCodeManager {
       <h2>Add code snippet to favorite list</h2>
       <div style="display: flex;flex-direction: column;">
         <div class="prompt" style="display: flex; grid-gap: 1rem;">
-          <vscode-text-field style="flex-grow: 3; font-family: var(--vscode-editor-font-family);" id="shortcut" maxlength="16" ${exist[0] ? `value="${exist[0].shortcut}"` : ""}>Shortcut</vscode-text-field>
+          <vscode-text-field tabindex="1" placeholder="Start with a letter, with a length limit of 4-16 characters" style="flex-grow: 3; font-family: var(--vscode-editor-font-family);" id="shortcut" maxlength="16" ${exist[0] ? `value="${exist[0].shortcut}"` : ""}>Shortcut</vscode-text-field>
           <vscode-text-field style="flex-grow: 1; font-family: var(--vscode-editor-font-family);" disabled value="${getDocumentLanguage(languageid)}">Programming Language</vscode-text-field>
         </div>
-        <vscode-text-area id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
+        <vscode-text-area tabindex="3" id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
         Snippet
         </vscode-text-area>
         <div style="display: flex; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">Cancel</vscode-button>
-          <vscode-button id="save" disabled onclick="save()" style="--button-padding-horizontal: 2rem;">Save</vscode-button>
+          <vscode-button tabindex="4" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">Cancel</vscode-button>
+          <vscode-button tabindex="2" id="save" disabled onclick="save()" style="--button-padding-horizontal: 2rem;">Save</vscode-button>
         </div>
       </div>
       </div>
