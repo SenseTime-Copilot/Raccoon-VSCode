@@ -434,7 +434,7 @@
             },
             {
                 "command": "sensecode.ask",
-                "key": "Ctrl Ctrl"
+                "key": "ctrl ctrl"
             }
         ],
         "icons": {
@@ -451,6 +451,7 @@
                 "id": "sensecode",
                 "extensions": [
                     ".sensecode",
+                    ".favorites",
                     ".scnb",
                     ".search",
                     ".question"
@@ -473,6 +474,13 @@
             }
         ],
         "resourceLabelFormatters": [
+            {
+                "scheme": "sensecode",
+                "authority": "sensecode.favorites",
+                "formatting": {
+                    "label": "${query.title}"
+                }
+            },
             {
                 "scheme": "sensecode",
                 "authority": "sensecode.editor",
@@ -507,6 +515,15 @@
             ]
         },
         "customEditors": [
+            {
+                "viewType": "sensecode.favorites",
+                "displayName": "SenseCode Favorites",
+                "selector": [
+                    {
+                        "filenamePattern": "*.sensecode.favorites"
+                    }
+                ]
+            },
             {
                 "viewType": "sensecode.editor",
                 "displayName": "SenseCode Assistant",

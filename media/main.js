@@ -1145,7 +1145,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.ctrlKey) {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
       return;
     }
 
@@ -1359,7 +1359,7 @@ const vscode = acquireVsCodeApi();
         type: "addFavorite",
         id,
         languageid,
-        value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
+        code: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
       return;
     }

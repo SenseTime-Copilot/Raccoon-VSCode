@@ -1,5 +1,5 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
-import { sensecodeManager, outlog, telemetryReporter, snippetManager } from '../extension';
+import { sensecodeManager, outlog, telemetryReporter } from '../extension';
 import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
 import { SenseCodeEditorProvider } from './assitantEditorProvider';
 import { BanWords } from '../utils/swords';
@@ -10,6 +10,7 @@ import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { SenseCodeSearchEditorProvider } from './searchEditorProvider';
+import { FavoriteCodeEditor } from './favoriteCode';
 
 const guide = `
 <h3>${l10n.t("Coding with SenseCode")}</h3>
@@ -645,11 +646,11 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          if (!data.id || !data.languageid || !data.value) {
+          if (!data.id || !data.languageid || !data.code) {
             this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unrecognized-lang', value: l10n.t("Unrecognized language"), id: new Date().valueOf() });
             break;
           }
-          snippetManager.addFavoriteCodeSnippet(data.id, data.languageid, data.value);
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/new.sensecode.favorites?${encodeURIComponent(JSON.stringify({...data, title:"New Favorite Snippet"}))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'telemetry': {

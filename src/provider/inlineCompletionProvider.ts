@@ -265,7 +265,9 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
       }
     }
   }
-  preCutLines.sort((a, b) => { return a - b; });
+  preCutLines.sort((a, b) => {
+    return a - b;
+  });
   let pos = 0;
   let prefix = document.getText(new vscode.Selection(
     0,

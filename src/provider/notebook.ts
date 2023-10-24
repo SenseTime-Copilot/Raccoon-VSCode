@@ -228,11 +228,13 @@ export class SenseCodeNotebook {
   static rigister(context: ExtensionContext) {
     context.subscriptions.push(workspace.registerNotebookSerializer(SenseCodeNotebook.notebookType, new SenseCodeNotebookSerializer()));
     for (let c of sensecodeManager.robotNames) {
-      let ctrl = new SenseCodeNotebookController(context, c, SenseCodeNotebook.notebookType);
-      if (!SenseCodeNotebook.defaultController) {
-        SenseCodeNotebook.defaultController = ctrl;
+      if (c) {
+        let ctrl = new SenseCodeNotebookController(context, c, SenseCodeNotebook.notebookType);
+        if (!SenseCodeNotebook.defaultController) {
+          SenseCodeNotebook.defaultController = ctrl;
+        }
+        context.subscriptions.push(ctrl);
       }
-      context.subscriptions.push(ctrl);
     }
     context.subscriptions.push(commands.registerCommand("sensecode.notebook.new",
       () => {
