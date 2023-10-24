@@ -396,7 +396,13 @@ export class SenseCodeEditor extends Disposable {
       </div>
       <div class="ml-4">
         <div class="flex flex-row my-2 px-2 gap-2 items-center">
-          <span>${l10n.t("Clear cache files")}</span>
+          <span>${l10n.t("Manage Favorites")}</span>
+          <vscode-link style="margin: -1px 0;"><span id="manageFavorites" class="material-symbols-rounded">folder_special</span></vscode-link>
+        </div>
+      </div>
+      <div class="ml-4">
+        <div class="flex flex-row my-2 px-2 gap-2 items-center">
+          <span>${l10n.t("Clear cached history")}</span>
           <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">delete</span></vscode-link>
         </div>
       </div>
@@ -613,16 +619,20 @@ export class SenseCodeEditor extends Disposable {
           sensecodeManager.candidates = data.value;
           break;
         }
+        case 'manageFavorites': {
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ id: "all", title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
+          break;
+        }
         case 'clearCacheFiles': {
           window.withProgress({
             location: { viewId: "sensecode.view" }
           }, async (progress, _cancel) => {
             return this.cache.deleteAllCacheFiles().then(() => {
               progress.report({ increment: 100 });
-              this.sendMessage({ type: 'showInfoTip', style: "message", category: 'clear-cache-done', value: l10n.t("Clear cache files done"), id: new Date().valueOf() });
+              this.sendMessage({ type: 'showInfoTip', style: "message", category: 'clear-cache-done', value: l10n.t("Clear cached history done"), id: new Date().valueOf() });
             }, () => {
               progress.report({ increment: 100 });
-              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'clear-cache-fail', value: l10n.t("Clear cache files failed"), id: new Date().valueOf() });
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'clear-cache-fail', value: l10n.t("Clear cached history failed"), id: new Date().valueOf() });
             });
           });
           break;

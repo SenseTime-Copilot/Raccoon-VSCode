@@ -41,7 +41,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, id: 
       }
     );
 
-    let mt = 32;
+    let mt = 64;
     let lenPreference = sensecodeManager.completionPreference;
     if (lenPreference === CompletionPreferenceType.balanced) {
       mt = 128;

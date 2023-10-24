@@ -1248,6 +1248,11 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
+    if (e.target.id === "manageFavorites") {
+      vscode.postMessage({ type: "manageFavorites" });
+      return;
+    }    
+
     if (targetButton?.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
       document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
