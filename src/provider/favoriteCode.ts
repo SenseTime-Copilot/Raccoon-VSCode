@@ -54,20 +54,15 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
 
   private registerFavoriteCode(snippet: SnippetItem) {
     const provider = languages.registerCompletionItemProvider(
-      snippet.languageid,
+      { language: snippet.languageid },
       {
-        provideCompletionItems(document: TextDocument, position: Position) {
-          const linePrefix = document.lineAt(position).text.slice(0, position.character);
-          if (!snippet.shortcut || !linePrefix.endsWith(snippet.shortcut)) {
-            return undefined;
+        provideCompletionItems(_document: TextDocument, _position: Position) {
+          if (!snippet.shortcut) {
+            return [];
           }
-
-          let doc = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n $(sensecode-icon) _from SenseCode favorite code snippets_`, true);
-
-          let item = new CompletionItem(snippet.shortcut, CompletionItemKind.Snippet);
+          let item = new CompletionItem(snippet.shortcut||"", CompletionItemKind.Snippet);
           item.insertText = snippet.code;
-          item.documentation = doc;
-
+          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n $(sensecode-icon) _from SenseCode favorite code snippets_`, true);
           return new CompletionList([item]);
         }
       }
