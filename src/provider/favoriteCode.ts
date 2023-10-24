@@ -1,6 +1,5 @@
-import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, } from "vscode";
+import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, } from "vscode";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
-import { outlog } from "../extension";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -12,23 +11,44 @@ interface SnippetItem {
   code: string;
 }
 
-export class FavoriteCodeEditor implements CustomReadonlyEditorProvider {
+export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposable {
   private readonly cacheFile: string = "snippets.json";
   static readonly viweType: string = "sensecode.favorites";
   static instance?: FavoriteCodeEditor;
   private watcher?: FileSystemWatcher;
+  private webview?: Webview;
   private snippetProviders: { [key: string]: Disposable } = {};
 
   private constructor(private readonly context: ExtensionContext) {
     this.init().then(() => {
       this.registerSavedSnippets();
     });
+    this.watcher = workspace.createFileSystemWatcher(new RelativePattern(this.context.globalStorageUri, 'snippets/*.json'));
+    this.watcher?.onDidChange((e) => {
+      let snippetUri = Uri.joinPath(this.context.globalStorageUri, 'snippets', this.cacheFile);
+      if (e.toString() === snippetUri.toString()) {
+        for (let s in this.snippetProviders) {
+          this.snippetProviders[s].dispose();
+        }
+        this.registerSavedSnippets();
+        if (this.webview) {
+          this.renderList(this.webview);
+        }
+      }
+    });
+  }
+
+  dispose() {
+    for (let s in this.snippetProviders) {
+      this.snippetProviders[s].dispose();
+    }
   }
 
   static register(context: ExtensionContext) {
     if (!FavoriteCodeEditor.instance) {
       FavoriteCodeEditor.instance = new FavoriteCodeEditor(context);
       context.subscriptions.push(window.registerCustomEditorProvider(FavoriteCodeEditor.viweType, FavoriteCodeEditor.instance));
+      context.subscriptions.push(FavoriteCodeEditor.instance);
     }
   }
 
@@ -48,9 +68,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider {
           item.insertText = snippet.code;
           item.documentation = doc;
 
-          return [
-            item
-          ];
+          return new CompletionList([item]);
         }
       }
     );
@@ -96,8 +114,6 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider {
             workspace.fs.readFile(snippetUri).then(content => {
               let items: { [key: string]: SnippetItem } = JSON.parse(decoder.decode(content) || "{}");
               items[data.id] = data;
-              this.snippetProviders[data.id]?.dispose();
-              this.registerFavoriteCode(data);
               workspace.fs.writeFile(snippetUri, new Uint8Array(encoder.encode(JSON.stringify(items, undefined, 2))));
             }, () => { });
           }, () => {
@@ -154,14 +170,10 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider {
   openCustomDocument(uri: Uri, _openContext: CustomDocumentOpenContext, _token: CancellationToken): CustomDocument {
     let item = JSON.parse(decodeURIComponent(uri.query));
     if (item.id === "all") {
-      this.watcher = workspace.createFileSystemWatcher(new RelativePattern(this.context.globalStorageUri, 'snippets/*.json'));
       return {
         uri,
         dispose: () => {
-          if (this.watcher) {
-            this.watcher.dispose();
-            this.watcher = undefined;
-          }
+          this.webview = undefined;
         }
       };
     }
@@ -175,6 +187,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider {
   resolveCustomEditor(document: CustomDocument, webviewPanel: WebviewPanel, _token: CancellationToken): void | Thenable<void> {
     let item = JSON.parse(decodeURIComponent(document.uri.query));
     if (item.id === "all") {
+      this.webview = webviewPanel.webview;
       return this.favoriteCodeSnippetListPage(webviewPanel);
     } else {
       this.favoriteCodeSnippetEditorPage(webviewPanel, item);
@@ -280,14 +293,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider {
     webview.options = {
       enableScripts: true
     };
-    this.watcher?.onDidChange((e) => {
-      let snippetUri = Uri.joinPath(this.context.globalStorageUri, 'snippets', this.cacheFile);
-      if (e.toString() === snippetUri.toString()) {
-        this.renderList(webview);
-      }
-    });
     webview.onDidReceiveMessage((msg) => {
-      outlog.debug(msg);
       switch (msg.type) {
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
