@@ -742,7 +742,10 @@ span.shortcut:after {
     padding: 0 3px;
 }
 
-#qa-list-wrapper vscode-panels::-webkit-scrollbar,
+#qa-list-wrapper vscode-panels::-webkit-scrollbar {
+    width: 2px;
+}
+
 .question-element-gnc .pre-code-element::-webkit-scrollbar {
     display: none;
 }
@@ -1268,6 +1271,7 @@ button.stopGenerate:hover,
     margin-top: 0;
     margin-bottom: 10px;
     white-space: pre-wrap;
+    text-align: justify;
 }
 
 .markdown-body blockquote {
