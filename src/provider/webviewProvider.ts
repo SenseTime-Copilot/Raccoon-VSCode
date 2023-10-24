@@ -630,12 +630,13 @@ export class SenseCodeEditor extends Disposable {
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
-            { modal: true, detail: l10n.t("It will clear all your settings and cache files, including:\n\n\t• Account authorization\n\t• Chace files\n\t• Custom prompts\n\t• User experience improvement program\n\n\tAnd reset all other settings to default.\n") },
+            { modal: true, detail: l10n.t("It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n") },
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
                 commands.executeCommand("keybindings.editor.resetKeybinding", "sensecode.inlineSuggest.trigger");
                 this.cache.deleteAllCacheFiles();
+                FavoriteCodeEditor.deleteSnippetFiles();
                 sensecodeManager.clear();
               }
             });

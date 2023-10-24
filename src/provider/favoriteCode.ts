@@ -60,7 +60,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
           if (!snippet.shortcut) {
             return [];
           }
-          let item = new CompletionItem(snippet.shortcut||"", CompletionItemKind.Snippet);
+          let item = new CompletionItem(snippet.shortcut, CompletionItemKind.Snippet);
           item.insertText = snippet.code;
           item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n $(sensecode-icon) _from SenseCode favorite code snippets_`, true);
           return new CompletionList([item]);
@@ -78,13 +78,16 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     });
   }
 
-  private async init(): Promise<void> {
+  private async init(clear?: boolean): Promise<void> {
     let snippetDir = Uri.joinPath(this.context.globalStorageUri, 'snippets');
     let snippetUri = Uri.joinPath(snippetDir, this.cacheFile);
-    return workspace.fs.stat(snippetUri)
+    return workspace.fs.stat(snippetDir)
       .then(() => {
         return workspace.fs.stat(snippetUri)
           .then(() => {
+            if (clear) {
+              return workspace.fs.writeFile(snippetUri, new Uint8Array(encoder.encode(JSON.stringify({}))));
+            }
           }, () => {
             return workspace.fs.writeFile(snippetUri, new Uint8Array(encoder.encode(JSON.stringify({}))));
           });
@@ -154,12 +157,8 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     }, () => { });
   }
 
-  async deleteSnippetFiles(): Promise<void> {
-    let snippetsDir = Uri.joinPath(this.context.globalStorageUri, 'snippets');
-    return workspace.fs.stat(snippetsDir)
-      .then(() => {
-        workspace.fs.delete(snippetsDir, { recursive: true });
-      });
+  static async deleteSnippetFiles(): Promise<void> {
+    return FavoriteCodeEditor.instance?.init(true);
   }
 
   openCustomDocument(uri: Uri, _openContext: CustomDocumentOpenContext, _token: CancellationToken): CustomDocument {
@@ -314,6 +313,11 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
 
     let snippets: { [key: string]: SnippetItem } = await this.getSnippetItems();
 
+    let emptyPlaceholder = `
+    <div style="text-align: center;margin: 10% 0; opacity: 0.3; user-select: none;">
+      <span class="material-symbols-rounded" style="font-size: 4rem; font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;">folder_open</span>
+      <div style="font-family: var(--vscode-editor-font-family);">No Favorite Snippet</div>
+    </div>`;
     let table = `
     <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(16ch + 24px) calc(16ch + 24px) calc(16ch + 24px) 1fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
@@ -325,6 +329,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       </vscode-data-grid-row>
     `;
     for (let id in snippets) {
+      emptyPlaceholder = '';
       let s = snippets[id];
       table += `
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
@@ -382,7 +387,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     <div class="markdown-body" style="margin: 1rem 4rem;">
       <h2>Favorite Snippet List</h2>
       <div style="display: flex;flex-direction: column;">
-        ${table}
+        ${emptyPlaceholder || table}
       </div>
       </div>
     </body>
