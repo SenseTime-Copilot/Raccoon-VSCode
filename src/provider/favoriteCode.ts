@@ -6,7 +6,7 @@ const decoder = new TextDecoder();
 
 interface SnippetItem {
   id: string;
-  languageid: string;
+  languageid?: string;
   shortcut?: string;
   code: string;
 }
@@ -196,9 +196,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
         case 'save': {
-          let id = snippet.id;
-          let languageid = snippet.languageid;
-          this.appendSnippetItem({ id, languageid, shortcut: msg.shortcut, code: msg.code });
+          this.appendSnippetItem(msg);
           panel.dispose();
           break;
         }
@@ -229,10 +227,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     const vscode = acquireVsCodeApi();
     function save() {
       var shortcut = document.getElementById("shortcut").value;
+      var language = document.getElementById("language").value;
       var code = document.getElementById("codesnippet").value;
       vscode.postMessage(
         {
           "type": "save",
+          "id": "${snippet.id}",
+          "languageid": language,
           "shortcut": shortcut,
           "code": code
         }
@@ -266,15 +267,21 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       <h2>Favorite Snippet <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
       <div style="display: flex;flex-direction: column;">
         <div class="prompt" style="display: flex; grid-gap: 1rem;">
-          <vscode-text-field tabindex="1" placeholder="Start with a letter, with a length limit of 4-16 characters" style="flex-grow: 3; font-family: var(--vscode-editor-font-family);" id="shortcut" maxlength="16" ${shortcut && `value="${shortcut}"`}}>Shortcut</vscode-text-field>
-          <vscode-text-field style="flex-grow: 1; font-family: var(--vscode-editor-font-family);" disabled value="${getDocumentLanguage(snippet.languageid)}">Programming Language</vscode-text-field>
+          <vscode-text-field id="shortcut" tabindex="1" placeholder="Start with a letter, with a length limit of 4-16 characters" style="flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>Shortcut<vscode-link slot="end" tabindex="-1" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
+              <span class="material-symbols-rounded">regular_expression</span>
+            </vscode-link>
+          </vscode-text-field>
+          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid? `value="${snippet.languageid}"`: ''}>Programming Language<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="about language identifiers">
+              <span class="material-symbols-rounded">help</span>
+            </vscode-link>
+          </vscode-text-field>
         </div>
-        <vscode-text-area tabindex="2" id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
+        <vscode-text-area tabindex="3" id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
         Snippet
         </vscode-text-area>
         <div style="display: flex; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button tabindex="4" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">Cancel</vscode-button>
-          <vscode-button tabindex="3" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save()" style="--button-padding-horizontal: 2rem;">Save</vscode-button>
+          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">Cancel</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save()" style="--button-padding-horizontal: 2rem;">Save</vscode-button>
         </div>
       </div>
       </div>
@@ -334,7 +341,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       table += `
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
         <vscode-data-grid-cell grid-column="1" style="align-self: center;">${s.id}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="2" style="align-self: center;">${getDocumentLanguage(s.languageid)}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="2" style="align-self: center;">${getDocumentLanguage(s.languageid || "")}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center;">${s.shortcut}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="align-self: center; overflow-x: auto; white-space: pre;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="5" style="align-self: center;">

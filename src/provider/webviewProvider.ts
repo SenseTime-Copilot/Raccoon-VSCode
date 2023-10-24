@@ -391,15 +391,15 @@ export class SenseCodeEditor extends Disposable {
       <div class="ml-4 my-2 flex flex-col gap-2">
         <div class="flex px-2 gap-2 items-center">
           <span>${l10n.t("Custom prompt")}</span>
-          <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">auto_fix</span></vscode-link>
+          <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">tips_and_updates</span></vscode-link>
         </div>
         <div class="flex px-2 gap-2 items-center">
           <span>${l10n.t("Manage Favorites")}</span>
-          <vscode-link style="margin: -1px 0;"><span id="manageFavorites" class="material-symbols-rounded">folder_special</span></vscode-link>
+          <vscode-link style="margin: -1px 0;"><span id="manageFavorites" class="material-symbols-rounded">bookmarks</span></vscode-link>
         </div>
         <div class="flex px-2 gap-2 items-center">
           <span>${l10n.t("Clear cached history")}</span>
-          <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">delete</span></vscode-link>
+          <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">manage_history</span></vscode-link>
         </div>
       </div>
       <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -653,10 +653,6 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          if (!data.id || !data.languageid || !data.code) {
-            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unrecognized-lang', value: l10n.t("Unrecognized language"), id: new Date().valueOf() });
-            break;
-          }
           commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/new.sensecode.favorites?${encodeURIComponent(JSON.stringify({...data, title:"New Favorite Snippet"}))}`), FavoriteCodeEditor.viweType);
           break;
         }
