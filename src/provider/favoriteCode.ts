@@ -265,13 +265,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
       <h2>Favorite Snippet <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
-      <div style="display: flex;flex-direction: column;">
+      <div style="display: flex; flex-direction: column;">
         <div class="prompt" style="display: flex; grid-gap: 1rem;">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="Start with a letter, with a length limit of 4-16 characters" style="flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>Shortcut<vscode-link slot="end" tabindex="-1" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
+          <vscode-text-field id="shortcut" tabindex="1" placeholder="Start with a letter, with a length limit of 4-16 characters" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>Shortcut<vscode-link slot="end" tabindex="-1" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid? `value="${snippet.languageid}"`: ''}>Programming Language<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="about language identifiers">
+          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="white-space: normal; flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid ? `value="${snippet.languageid}"` : ''}>Programming Language<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="about language identifiers">
               <span class="material-symbols-rounded">help</span>
             </vscode-link>
           </vscode-text-field>
@@ -296,6 +296,15 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     };
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
+        case 'add': {
+          let id = new Date().valueOf();
+          let temp: SnippetItem = {
+            id: `${id}`,
+            code: ''
+          };
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snipet [${id}]`, ...temp }))}`), FavoriteCodeEditor.viweType);
+          break;
+        }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
@@ -372,6 +381,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     </style>
     <script>
     const vscode = acquireVsCodeApi();
+    function addSnippet() {
+      vscode.postMessage(
+        {
+          "type": "add"
+        }
+      )
+    }
     function editSnippet(id) {
       vscode.postMessage(
         {
@@ -393,6 +409,9 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
       <h2>Favorite Snippet List</h2>
+      <div style="display: flex; justify-content: flex-end; margin: 0.5rem;">
+        <vscode-button onclick="addSnippet()">Create<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
+      </div>
       <div style="display: flex;flex-direction: column;">
         ${emptyPlaceholder || table}
       </div>
