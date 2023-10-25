@@ -147,10 +147,10 @@ export class PromptInfo {
 
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2 leading-loose w-full editing"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     } else {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2 leading-loose w-full"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
     }
 
     return renderHtml;

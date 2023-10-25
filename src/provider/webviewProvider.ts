@@ -292,7 +292,7 @@ export class SenseCodeEditor extends Disposable {
         `;
 
     let settingPage = `
-    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-md">
+    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-xl">
       <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
       </div>
@@ -653,7 +653,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/new.sensecode.favorites?${encodeURIComponent(JSON.stringify({...data, title:"New Favorite Snippet"}))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/new.sensecode.favorites?${encodeURIComponent(JSON.stringify({ ...data, title: `Favorite Snippet [${data.id}]` }))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'telemetry': {

@@ -177,12 +177,15 @@ const vscode = acquireVsCodeApi();
           if (item.type === 'question') {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
-
+            var lang = '';
+            var code = '';
             preCodeList.forEach((preCode, index) => {
               preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "fold", "mt-4");
               preCode.classList.forEach((cls, _idx, _arr) => {
                 if (cls.startsWith('language-')) {
-                  preCode.parentElement.dataset.lang = cls.slice(9);
+                  lang = cls.slice(9);
+                  code = preCode.textContent;
+                  preCode.parentElement.dataset.lang = lang;
                 }
               });
 
@@ -220,7 +223,11 @@ const vscode = acquireVsCodeApi();
             if (item.instruction) {
               labelInstruction = `<p class="instruction-label">${item.instruction.replace("...", "")}</p>`;
             }
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2 leading-loose w-full">${labelInstruction} ${markedResponse.documentElement.innerHTML}</div>`;
+            let values = `<div id="values-${item.id}" class="values hidden">
+              <div class="languageid-value">${lang}</div>
+              <div class="code-value">${JSON.stringify(code)}</div>
+            </div>`;
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelInstruction} ${markedResponse.documentElement.innerHTML} ${values}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
