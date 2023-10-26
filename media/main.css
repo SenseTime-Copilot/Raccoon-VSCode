@@ -42,8 +42,7 @@ button:hover svg {
     stroke: var(--vscode-button-foreground) !important;
 }
 
-button:hover,
-button:focus {
+button:hover {
     color: var(--progress-background);
 }
 

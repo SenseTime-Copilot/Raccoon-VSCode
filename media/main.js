@@ -523,7 +523,7 @@ const vscode = acquireVsCodeApi();
                                       </button>
                                       <button class="correct flex" title="" data-id=${id}>
                                         <span class="material-symbols-rounded">
-                                          sentiment_dissatisfied
+                                          rate_review
                                         </span>
                                       </button>
                                     </span>
@@ -552,7 +552,8 @@ const vscode = acquireVsCodeApi();
         if (!chatText.dataset.response || chatText.dataset.error) {
           break;
         }
-        const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(chatText.dataset.response)), "text/html");
+        chatText.dataset.response = wrapCode(chatText.dataset.response);
+        const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response), "text/html");
         // chatText.dataset.response = undefined;
         const preCodeList = markedResponse.querySelectorAll("pre > code");
 
@@ -1309,12 +1310,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (targetButton?.classList?.contains('correct')) {
-      vscode.postMessage({ type: 'correct', info: collectInfo(targetButton?.dataset.id) });
-      return;
-    }
-
-    if (targetButton?.classList?.contains('bug') || e.target.id === "report-issue") {
+    if (targetButton?.classList?.contains('bug') || targetButton?.classList?.contains('correct') || e.target.id === "report-issue") {
       vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "bug-report") });
       return;
     }

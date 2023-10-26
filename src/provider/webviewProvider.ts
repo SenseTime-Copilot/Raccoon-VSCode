@@ -658,7 +658,24 @@ export class SenseCodeEditor extends Disposable {
         }
         case 'telemetry': {
           if (data.info.action === 'bug-report') {
-            commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id });
+            let issueTitle;
+            let issueBody;
+            if (data.info.request && data.info.response) {
+              issueTitle = '[Need Improvement]';
+              let renderRequestBody = data.info.request.prompt;
+              renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
+              issueBody = `## Request
+
+${renderRequestBody}
+
+## SenseCode response
+
+${data.info.response[0]}
+
+## Your solution
+`;
+            }
+            commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id, issueTitle, issueBody });
             break;
           }
           if (!env.isTelemetryEnabled) {
