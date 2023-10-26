@@ -39,14 +39,14 @@ const vscode = acquireVsCodeApi();
 
   document.getElementById("question-input").disabled = true;
 
-  setTimeout(showTips, 8000);
+  setTimeout(showTips, 1000);
 
   function scrollPositionAtBottom() {
     var a = document.getElementById('qa-list-wrapper').children[0].offsetHeight;
     var b = document.getElementById('qa-list-wrapper').children[0].scrollTop;
     var c = document.getElementById('qa-list-wrapper').children[0].children[0].offsetHeight;
 
-    return a + b + 100 >= c;
+    return a + b + 60 >= c;
   }
 
   function showTips() {
@@ -456,7 +456,7 @@ const vscode = acquireVsCodeApi();
                         </div>
                         <div class="thinking-text">${l10nForUI["Thinking..."]}</div>
                       </span>
-                      <button class="stopGenerate flex" data-id=${id}>
+                      <button class="stopGenerate flex" data-id=${id} title="${l10nForUI["Stop responding"]} [Esc]">
                         <span class="material-symbols-rounded">
                           stop_circle
                         </span>
@@ -486,7 +486,7 @@ const vscode = acquireVsCodeApi();
                 </div>
                 <div class="typing-text">${l10nForUI["Typing..."]}</div>
               </span>
-              <button class="stopGenerate flex items-stretch" data-id=${id}>
+              <button class="stopGenerate flex items-stretch" data-id=${id} title="${l10nForUI["Stop responding"]} [Esc]">
                 <span class="material-symbols-rounded">
                   stop_circle
                 </span>
@@ -729,7 +729,7 @@ const vscode = acquireVsCodeApi();
                                           </span>
                                         </button>
                                     </div>`;
-        if ((window.innerHeight + Math.round(window.scrollY)) >= document.body.offsetHeight) {
+        if (scrollPositionAtBottom()) {
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         }
         break;

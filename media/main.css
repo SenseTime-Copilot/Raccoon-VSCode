@@ -458,7 +458,7 @@ textarea::placeholder {
     line-height: 2;
     margin-left: 0.5ch;
     color: var(--input-placeholder-foreground);
-    opacity: 0.6;
+    opacity: 0.4;
     overflow: hidden;
     white-space: nowrap;
 }
@@ -569,6 +569,7 @@ button.disabled,
     bottom: auto;
     flex-wrap: wrap;
     flex-direction: row;
+    border: none;
     border-bottom: 1px solid var(--panel-view-border);
 }
 
@@ -995,7 +996,7 @@ button.stopGenerate:hover,
     margin: 0;
     color: var(--foreground);
     word-wrap: break-word;
-    line-height: 1.5rem;
+    line-height: 24px;
     text-align: justify;
 }
 
@@ -1781,7 +1782,7 @@ button.stopGenerate:hover,
     overflow: auto;
     padding: .5rem;
     margin: 0;
-    line-height: 1.6;
+    line-height: 20px;
     color: var(--panel-tab-active-foreground);
     background-color: transparent;
     border: 0;

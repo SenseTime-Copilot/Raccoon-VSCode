@@ -664,15 +664,15 @@ export class SenseCodeEditor extends Disposable {
               issueTitle = '[Need Improvement]';
               let renderRequestBody = data.info.request.prompt;
               renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
-              issueBody = `## Request
+              issueBody = `## Your question
 
 ${renderRequestBody}
 
-## SenseCode response
+## SenseCode's answer
 
 ${data.info.response[0]}
 
-## Your solution
+## Your expection
 `;
             }
             commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id, issueTitle, issueBody });
@@ -999,10 +999,11 @@ ${data.info.response[0]}
                           data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
                           data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
                           data-tip="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
-                          data-tip1="${l10n.t("Type ? to tigger search")}"
-                          data-tip2="${l10n.t("Press ↑/↓ key to recall history")}"
-                          data-tip3="${l10n.t("Type [Shift + Enter] to start a new line")}"
-                          data-tip4="${l10n.t("Clear button can be found on the top of this view")}"
+                          data-tip1="${l10n.t("Type [Shift + Enter] to start a new line")}"
+                          data-tip2="${l10n.t("Press [Esc] to stop responding")}"
+                          data-tip3="${l10n.t("Press ↑/↓ key to recall history")}"
+                          data-tip4="${l10n.t("Type ? to tigger search")}"
+                          data-tip5="${l10n.t("Clear button can be found on the top of this view")}"
                     >
                       <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                     </label>
