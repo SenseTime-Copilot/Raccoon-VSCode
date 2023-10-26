@@ -26,6 +26,8 @@ const vscode = acquireVsCodeApi();
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const sendIcon = `<span class="material-symbols-rounded">send</span>`;
   const favIcon = `<span class="material-symbols-rounded">heart_plus</span>`;
+  const viewIcon = `<span class="material-symbols-rounded">visibility</span>`;
+  const viewOffIcon = `<span class="material-symbols-rounded">visibility_off</span>`;
   const diffIcon = `<span class="material-symbols-rounded">difference</span>`;
   const insertIcon = `<span class="material-symbols-rounded">keyboard_return</span>`;
   const wrapIcon = `<span class="material-symbols-rounded">wrap_text</span>`;
@@ -258,10 +260,15 @@ const vscode = acquireVsCodeApi();
 
               const fav = document.createElement("button");
               fav.dataset.id = item.id;
-              fav.title = l10nForUI["Favorite"];
-              fav.innerHTML = favIcon;
-
-              fav.classList.add("fav-element-gnc", "rounded");
+              if (preCode.parentElement.dataset.lang !== 'mermaid') {
+                fav.title = l10nForUI["Favorite"];
+                fav.innerHTML = favIcon;
+                fav.classList.add("fav-element-gnc", "rounded");
+              } else {
+                fav.title = l10nForUI["Show graph"];
+                fav.innerHTML = viewIcon;
+                fav.classList.add("mermaid-element-gnc", "rounded");
+              }
 
               const diff = document.createElement("button");
               diff.dataset.id = item.id;
@@ -574,10 +581,15 @@ const vscode = acquireVsCodeApi();
 
           const fav = document.createElement("button");
           fav.dataset.id = message.id;
-          fav.title = l10nForUI["Favorite"];
-          fav.innerHTML = favIcon;
-
-          fav.classList.add("fav-element-gnc", "rounded");
+          if (preCode.parentElement.dataset.lang !== 'mermaid') {
+            fav.title = l10nForUI["Favorite"];
+            fav.innerHTML = favIcon;
+            fav.classList.add("fav-element-gnc", "rounded");
+          } else {
+            fav.title = l10nForUI["Show graph"];
+            fav.innerHTML = viewIcon;
+            fav.classList.add("mermaid-element-gnc", "rounded");
+          }
 
           const diff = document.createElement("button");
           diff.dataset.id = message.id;
@@ -1153,7 +1165,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
       return;
     }
 
@@ -1259,7 +1271,7 @@ const vscode = acquireVsCodeApi();
     if (e.target.id === "manageFavorites") {
       vscode.postMessage({ type: "manageFavorites" });
       return;
-    }    
+    }
 
     if (targetButton?.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
@@ -1369,6 +1381,42 @@ const vscode = acquireVsCodeApi();
         languageid,
         code: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
+      return;
+    }
+
+    if (targetButton?.classList?.contains("mermaid-element-gnc")) {
+      e.preventDefault();
+      let id = targetButton?.dataset.id;
+      let preNode = targetButton.parentElement?.parentElement;
+      let mermaidNode = preNode?.querySelector('.mermaid-ready');
+      let codeNode = preNode?.lastChild;
+      let code = codeNode?.textContent;
+      if (mermaidNode) {
+        mermaidNode.classList.toggle('hidden');
+        if (!mermaidNode.classList.contains('hidden')) {
+          targetButton.innerHTML = viewOffIcon;
+          targetButton.title = l10nForUI["Hide graph"];
+        } else {
+          targetButton.innerHTML = viewIcon;
+          targetButton.title = l10nForUI["Show graph"];
+        }
+        return;
+      }
+      if (code) {
+        mermaid.render(`mermaid-${id}`, code)
+          .then((graph) => {
+            var graphContainer = document.createElement("div");
+            graphContainer.classList.add('mermaid-ready');
+            graphContainer.style.backgroundColor = '#FFF';
+            graphContainer.style.padding = '1rem';
+            graphContainer.innerHTML = graph.svg;
+            preNode.insertBefore(graphContainer, codeNode);
+            targetButton.innerHTML = viewOffIcon;
+            targetButton.title = l10nForUI["Hide graph"];
+          }).catch(_err => {
+            showInfoTip({ style: "error", category: "malformed-mermaid", id: new Date().valueOf(), value: "Malformed content" });
+          });
+      }
       return;
     }
 

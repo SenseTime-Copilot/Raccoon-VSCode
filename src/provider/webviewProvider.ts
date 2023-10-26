@@ -910,6 +910,7 @@ ${data.info.response[0]}
     const vendorHighlightCss = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.css'));
     const vendorHighlightJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'highlight.min.js'));
     const vendorMarkedJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'marked.min.js'));
+    const mermaidJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'mermaid.min.js'));
     const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
@@ -925,6 +926,7 @@ ${data.info.response[0]}
                 <link href="${iconUri}" rel="stylesheet" />
                 <script src="${vendorHighlightJs}"></script>
                 <script src="${vendorMarkedJs}"></script>
+                <script src="${mermaidJs}"></script>
                 <script src="${vendorTailwindJs}"></script>
                 <script type="module" src="${toolkitUri}"></script>
                 <style>
@@ -1025,6 +1027,8 @@ ${data.info.response[0]}
                   "Delete": "${l10n.t("Delete this chat entity")}",
                   "Send": "${l10n.t("Send")}",
                   "ToggleWrap": "${l10n.t("Toggle line wrap")}",
+                  "Show graph": "${l10n.t("Show graph")}",
+                  "Hide graph": "${l10n.t("Hide graph")}",
                   "Favorite": "${l10n.t("Add to favorites")}",
                   "Diff": "${l10n.t("Diff with original code")}",
                   "Copy": "${l10n.t("Copy to clipboard")}",
@@ -1036,6 +1040,7 @@ ${data.info.response[0]}
                   "Regenerate": "${l10n.t("Regenerate")}",
                   "Empty prompt": "${l10n.t("Empty prompt")}"
                 };
+                mermaid.initialize({ startOnLoad: true });
               </script>
               <script src="${scriptUri}"></script>
             </body>
