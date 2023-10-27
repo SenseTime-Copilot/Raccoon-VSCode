@@ -205,6 +205,16 @@ const vscode = acquireVsCodeApi();
               wrapButton.innerHTML = wrapIcon;
               wrapButton.classList.add("wrap-element-gnc", "rounded");
 
+              const view = document.createElement("button");
+              view.dataset.id = item.id;
+              if (preCode.parentElement.dataset.lang === 'mermaid') {
+                view.title = l10nForUI["Show graph"];
+                view.innerHTML = viewIcon;
+                view.classList.add("mermaid-element-gnc", "rounded");
+              } else {
+                view.classList.add("hide");
+              }
+
               // Create fold button
               const foldButton = document.createElement("button");
               foldButton.dataset.id = item.id;
@@ -217,7 +227,7 @@ const vscode = acquireVsCodeApi();
               unfoldButton.innerHTML = unfoldIcon;
               unfoldButton.classList.add("unfold-btn", "expend-code", "rounded");
 
-              buttonWrapper.append(wrapButton, unfoldButton, foldButton);
+              buttonWrapper.append(wrapButton, view, unfoldButton, foldButton);
 
               preCode.parentElement.prepend(buttonWrapper);
             });
