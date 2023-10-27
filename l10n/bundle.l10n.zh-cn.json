@@ -12,7 +12,7 @@
   "Can not clear Access Key from settings": "无法清除通过设置配置的秘钥",
   "No Logout URL": "无效的注销地址",
   "Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.": "欢迎您<b>{0}</b>, 我是 <b>{1}</b>, 您的代码助手. 您可以让我与您一起编写代码, 或向我询问任何技术问题.",
-  "Double-pressing <kbd>Ctrl</kbd> to summon me at any time.": "连按两次 <kbd>Ctrl</kbd> 可以随时召唤我.",
+  "Double-pressing {0} to summon me at any time.": "连按两次 {0} 可以随时召唤我.",
   "Quick Start": "快速上手",
   "Login to <b>{0}</b>": "登录 <b>{0}</b>",
   "Coding with SenseCode": "与 SenseCode 一起编程",

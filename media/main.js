@@ -389,8 +389,6 @@ const vscode = acquireVsCodeApi();
                 }
               }
               settings.append(...sn.childNodes);
-            } else {
-              console.log(message.value);
             }
           }
         }
@@ -1419,6 +1417,7 @@ const vscode = acquireVsCodeApi();
             graphContainer.classList.add('mermaid-ready');
             graphContainer.style.backgroundColor = '#FFF';
             graphContainer.style.padding = '1rem';
+            graphContainer.style.lineHeight = 'initial';
             graphContainer.innerHTML = graph.svg;
             preNode.insertBefore(graphContainer, codeNode);
             targetButton.innerHTML = viewOffIcon;
