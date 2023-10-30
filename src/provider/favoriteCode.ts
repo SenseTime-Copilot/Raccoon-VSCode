@@ -1,4 +1,4 @@
-import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, } from "vscode";
+import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
 import { getDocumentLanguage } from "../utils/getDocumentLanguage";
 
 const encoder = new TextEncoder();
@@ -264,24 +264,24 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>Favorite Snippet <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
+      <h2>${l10n.t("Favorite Snippet")} <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
       <div style="display: flex; flex-direction: column;">
         <div class="prompt" style="display: flex; grid-gap: 1rem;">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="Start with a letter, with a length limit of 4-16 characters" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>Shortcut<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
+          <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of 4-16 characters")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="white-space: normal; flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid ? `value="${snippet.languageid}"` : ''}>Programming Language<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="About language identifiers">
+          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="white-space: normal; flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid ? `value="${snippet.languageid}"` : ''}>${l10n.t("Programming Language")}<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="About language identifiers">
               <span class="material-symbols-rounded">help</span>
             </vscode-link>
           </vscode-text-field>
         </div>
         <vscode-text-area tabindex="3" id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
-        Snippet
+        ${l10n.t("Snippet")}
         </vscode-text-area>
         <div style="display: flex; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">Cancel</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save()" style="--button-padding-horizontal: 2rem;">Save</vscode-button>
+          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save()" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
         </div>
       </div>
       </div>
@@ -338,10 +338,10 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(16ch + 24px) calc(16ch + 24px) calc(16ch + 24px) 1fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
         <vscode-data-grid-cell cell-type="columnheader" grid-column="1">ID</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="2">Language</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="3">Shortcut</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="4">Snippet</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="5">Action</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Language")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Shortcut")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Snippet")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="5">${l10n.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
     for (let id in snippets) {
@@ -408,9 +408,9 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>Favorite Snippet List</h2>
+      <h2>${l10n.t("Favorite Snippet")} ${l10n.t("List")}</h2>
       <div style="display: flex; justify-content: flex-end; margin: 0.5rem;">
-        <vscode-button onclick="addSnippet()">Create<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
+        <vscode-button onclick="addSnippet()">${l10n.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
       </div>
       <div style="display: flex;flex-direction: column;">
         ${emptyPlaceholder || table}

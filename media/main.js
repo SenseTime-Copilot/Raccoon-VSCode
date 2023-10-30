@@ -683,9 +683,7 @@ const vscode = acquireVsCodeApi();
                               ${message.value}
                             </div>
                           </div>`;
-        if (scrollPositionAtBottom()) {
-          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
-        }
+        list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         break;
       }
       case "addResponse": {

@@ -187,7 +187,7 @@ export class SenseCodeEditor extends Disposable {
       detail += loginHint;
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
-      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing <kbd>Ctrl</kbd> to summon me at any time.")}</div>`
+      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');">Ctrl</kbd>`)}</div>`
       + `<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
   <span class="material-symbols-rounded">celebration</span>
   <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
