@@ -231,19 +231,18 @@ export class SenseCodeEditor extends Disposable {
     let username: string | undefined = undefined;
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
-    let withProxy = "";
-    let proxy = sensecodeManager.getClientProxy();
-    if (proxy) {
-      withProxy = `<span title="[${proxy.packageJSON.displayName}] Activated" class="material-symbols-rounded" style="font-size: 24px;opacity: 0.7;cursor: help;">shield_lock</span>`;
-    }
+    let sensetimeLogin = "";
     if (!sensecodeManager.isClientLoggedin()) {
+      if (sensecodeManager.isSensetimeEnv()) {
+        sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
+      }
       await sensecodeManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
           return;
         }
         let url = Uri.parse(authUrl);
         let title;
-        let icon = 'login';
+        let icon = 'account_circle';
         if (url.scheme === "command") {
           icon = 'key';
           title = l10n.t("Setup Access Key");
@@ -286,7 +285,7 @@ export class SenseCodeEditor extends Disposable {
         <div class="flex gap-2 items-center w-full" title="${userId || ""}">
           ${avatarEle}
           <span class="grow font-bold text-base" ${userId ? `title="${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
-          ${withProxy}
+          ${sensetimeLogin}
           ${loginout}
         </div>
         `;
@@ -832,7 +831,13 @@ ${data.info.response[0]}
                   break;
                 }
                 case ResponseEvent.error: {
-                  this.sendMessage({ type: 'addError', error: content || "", id, timestamp: rts });
+                  if (content === "Authentication expired") {
+                    sensecodeManager.getAuthUrlLogin().then((url) => {
+                      this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
+                    });
+                  } else {
+                    this.sendMessage({ type: 'addError', error: content || "", id, timestamp: rts });
+                  }
                   break;
                 }
                 case ResponseEvent.done: {
@@ -870,7 +875,13 @@ ${data.info.response[0]}
                 error = err.response.data.error.message;
               }
               let rts = new Date().toLocaleString();
-              this.sendMessage({ type: 'addError', error, id, timestamp: rts });
+              if (error === "Authentication expired") {
+                sensecodeManager.getAuthUrlLogin().then((url) => {
+                  this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
+                });
+              } else {
+                this.sendMessage({ type: 'addError', error, id, timestamp: rts });
+              }
               this.sendMessage({ type: 'stopResponse', id });
             });
         }

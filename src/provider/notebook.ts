@@ -1,4 +1,4 @@
-import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookController, NotebookControllerAffinity, NotebookData, NotebookDocument, NotebookSerializer, Uri, commands, notebooks, workspace } from "vscode";
+import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookController, NotebookControllerAffinity, NotebookData, NotebookDocument, NotebookSerializer, Uri, commands, notebooks, workspace, l10n } from "vscode";
 
 import { sensecodeManager } from "../extension";
 import { Message, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
@@ -265,7 +265,7 @@ export class SenseCodeNotebook {
                   });
                 },
                 () => {
-                  window.showErrorMessage(`Can not craete file ${uri.toString()}`, 'Close');
+                  window.showErrorMessage(`Can not craete file ${uri.toString()}`, l10n.t("Close"));
                 }
               );
             }
@@ -286,7 +286,7 @@ export class SenseCodeNotebook {
                   });
                 },
                 () => {
-                  window.showErrorMessage(`Can not craete file ${uri.toString()}`, 'Close');
+                  window.showErrorMessage(`Can not craete file ${uri.toString()}`, l10n.t("Close"));
                 }
               );
             }

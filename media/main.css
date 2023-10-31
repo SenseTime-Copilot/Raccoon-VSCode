@@ -190,6 +190,11 @@ textarea::placeholder {
     background-color: var(--vscode-inputValidation-errorBackground);
 }
 
+.infoMsg {
+    color: var(--input-foreground);
+    background-color: var(--input-background);
+}
+
 @-webkit-keyframes rotate {
     0% {
         -webkit-transform: rotate(0deg);
@@ -776,8 +781,8 @@ span.shortcut:after {
     background-color: var(--button-primary-background);
     color: var(--button-primary-foreground);
     box-shadow: inset 0 -2px 0 var(--button-primary-hover-background);
-    border-bottom: 1px solid var(--button-primary-hover-background);
-    margin-top: 1px;
+    border-bottom: 0px solid var(--button-primary-hover-background);
+    margin-top: 2px;
 }
 
 .answer-element-gnc {

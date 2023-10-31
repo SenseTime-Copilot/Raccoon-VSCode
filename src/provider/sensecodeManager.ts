@@ -1,4 +1,4 @@
-import { commands, env, ExtensionContext, extensions, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Extension, Uri } from "vscode";
+import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
 import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
 import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
 import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
@@ -7,7 +7,7 @@ import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { OpenAIClient } from "../sensecodeClient/src/openai-client";
-import { checkSensetimeEnv, CodeExtension, getProxy } from "../utils/getProxy";
+import { checkSensetimeEnv } from "../utils/getProxy";
 import { TGIClient } from "../sensecodeClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
@@ -74,7 +74,6 @@ export enum CompletionPreferenceType {
 interface ClientAndAuthInfo {
   client: CodeClient;
   options: { [key in ModelCapacity]: ClientOption };
-  proxy?: Extension<CodeExtension>;
   authInfo?: AuthInfo;
 }
 
@@ -91,7 +90,7 @@ export class SenseCodeManager {
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
-  private proxy: Extension<CodeExtension> | undefined;
+  private sensetimeEnv?: boolean;
   private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
   public onDidChangeStatus = this.changeStatusEmitter.event;
 
@@ -128,6 +127,7 @@ export class SenseCodeManager {
           }
         }
         if (!targetRepo) {
+          window.showErrorMessage("No repository found", l10n.t("Close"));
           return;
         }
         if (SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()] && !SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
@@ -144,7 +144,7 @@ export class SenseCodeManager {
               messages: [{ role: Role.user, content: `Write a commit message summarizing following changes to the codebase, limited to 50 characters, and without quotation marks:\n\`\`\`diff\n${changes}\n\`\`\`` }],
               n: 1
             },
-            (e) => {
+            (e: any) => {
               if (e.type === ResponseEvent.error) {
                 SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
                 delete SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()];
@@ -163,7 +163,11 @@ export class SenseCodeManager {
               headers: buildHeader(context.extension, "commit-message"),
               signal: SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].signal
             }
-          );
+          ).catch(e => {
+            window.showErrorMessage(e.message, l10n.t("Close"));
+          });
+        } else {
+          window.showErrorMessage("There's no any change in stage to commit", l10n.t("Close"));
         }
       }));
     }
@@ -175,7 +179,9 @@ export class SenseCodeManager {
 
     outlog.debug(`------------------- ${flag} -------------------`);
 
-    checkSensetimeEnv(context, true);
+    checkSensetimeEnv().then((v) => {
+      this.sensetimeEnv = v;
+    });
 
     this.configuration = workspace.getConfiguration("SenseCode", undefined);
     let ret = context.globalState.get<boolean>(flag);
@@ -199,21 +205,9 @@ export class SenseCodeManager {
         }
       })
     );
-
-    context.subscriptions.push(extensions.onDidChange(() => {
-      getProxy().then(p => {
-        if ((p && !this.proxy) || (!p && this.proxy) || (p && this.proxy && p.packageJSON.version !== this.proxy.packageJSON.version)) {
-          this.proxy = p;
-          this.initialClients();
-        }
-      });
-    }));
   }
 
   public async initialClients(): Promise<void> {
-    let proxyExt = await getProxy();
-    this.proxy = proxyExt;
-
     let tks = await this.context.secrets.get("SenseCode.tokens");
     let authinfos: any = {};
     if (tks) {
@@ -227,13 +221,11 @@ export class SenseCodeManager {
     for (let e of es) {
       if (e.type && e.robotname) {
         let client;
-        let proxy = undefined;
-        if (proxyExt?.exports?.filterEnabled(e)) {
-          client = proxyExt?.exports.factory(e, outlog.debug);
-          proxy = proxyExt;
-        } else if (e.type === ClientType.sensenova) {
+        if (e.type === ClientType.sensenova) {
           const meta: SenseNovaClientMeta = {
-            clientId: "",
+            //clientId: "f757d86437a67267b9a5",
+            //secret: "6777e90c9e4edda49a6144c456ff5b4a765752ef",
+            clientId: "sensecode-vscode",
             redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
           };
           client = new SenseNovaClient(meta, e, outlog.debug);
@@ -252,7 +244,7 @@ export class SenseCodeManager {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.robotname, ai, true);
           });
-          await this.appendClient(e.robotname, { client, options: e, proxy, authInfo: authinfos[e.robotname] }, e.username);
+          await this.appendClient(e.robotname, { client, options: e, authInfo: authinfos[e.robotname] }, e.username);
         }
       }
     }
@@ -276,7 +268,7 @@ export class SenseCodeManager {
         return this.updateToken(name, ai, true);
       });
     } else {
-      outlog.debug(`Append client ${name}${c.proxy ? "(with proxy)" : ""} [Unauthorized]`);
+      outlog.debug(`Append client ${name} [Unauthorized]`);
       return Promise.resolve();
     }
   }
@@ -407,12 +399,8 @@ export class SenseCodeManager {
     return (ca && ca.authInfo);
   }
 
-  public getClientProxy(clientName?: string): Extension<CodeExtension> | undefined {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
-    return (ca && ca.proxy);
+  public isSensetimeEnv(): boolean | undefined {
+    return this.sensetimeEnv;
   }
 
   public get prompt(): SenseCodePrompt[] {

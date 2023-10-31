@@ -715,6 +715,37 @@ const vscode = acquireVsCodeApi();
         }
         break;
       }
+      case 'reLogin': {
+        if (!list.innerHTML) {
+          return;
+        }
+        const chatText = document.getElementById(`response-${message.id}`);
+        if (chatText?.classList.contains("empty")) {
+          if (message.timestamp) {
+            let r = document.getElementById(`${message.id}`);
+            let rts = r?.getElementsByClassName("response-ts");
+            if (rts && rts[0]) {
+              rts[0].textContent = message.timestamp;
+            }
+          }
+        }
+        updateChatBoxStatus("relogin", message.id);
+        if (!chatText) {
+          break;
+        }
+        chatText.dataset.error = message.message;
+        chatText.innerHTML = chatText.innerHTML + `<div class="infoMsg rounded flex items-center">
+                                        <span class="material-symbols-rounded text-3xl p-2">no_accounts</span>
+                                        <div class="flex grow py-4">
+                                            <div>${message.message}</div>
+                                            <div class="flex grow justify-end px-2">
+                                              <vscode-link href="${message.url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
+                                            </div>
+                                        </div>
+                                    </div>`;
+        list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        break;
+      }
       case "addError":
         if (!list.innerHTML) {
           return;
@@ -830,11 +861,15 @@ const vscode = acquireVsCodeApi();
   }
 
   function updateChatBoxStatus(status, id) {
-    if (status === "stop") {
+    if (status === "stop" || status === "relogin") {
       document.getElementById(`question-${id}`)?.classList.remove("responsing");
       document.getElementById(id)?.classList.remove("responsing");
       document.getElementById(`progress-${id}`)?.classList?.add("hidden");
-      document.getElementById(`feedback-${id}`)?.classList?.remove("hidden");
+      if (status === "stop") {
+        document.getElementById(`feedback-${id}`)?.classList?.remove("hidden");
+      } else {
+        document.getElementById(`feedback-${id}`)?.remove();
+      }
       document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
