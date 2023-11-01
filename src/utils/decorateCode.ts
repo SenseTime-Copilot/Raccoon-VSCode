@@ -9,9 +9,10 @@ export function decorateCodeWithSenseCodeLabel(editor: TextEditor, start: number
       overviewRulerLane: OverviewRulerLane.Full,
       after: {
         contentText: "⁣⁣⁣⁣　SenseCode⁣⁣⁣⁣　",
-        backgroundColor: new ThemeColor("activityBarBadge.background"),
-        color: new ThemeColor("activityBarBadge.foreground"),
-        borderColor: new ThemeColor("activityBar.activeBorder")
+        backgroundColor: new ThemeColor("button.background"),
+        color: new ThemeColor("button.foreground"),
+        border: "1px outset",
+        borderColor: new ThemeColor("button.border")
       }
     });
     let remover = workspace.onDidChangeTextDocument((e) => {

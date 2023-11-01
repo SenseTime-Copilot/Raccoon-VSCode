@@ -62,10 +62,17 @@ export class SenseNovaClient implements CodeClient {
       return auth;
     } else {
       let tokenString = decodeURIComponent(query);
-      if (tokenString.includes('&refresh=')) {
-        return this.parseAuthInfo(tokenString);
-      } else {
-        return this.parseAuthInfoLDAP(tokenString);
+      try {
+        let decoded = JSON.parse('{"' + tokenString.replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
+        if (decoded["id_token"]) {
+          return this.parseAuthInfoLDAP(decoded["id_token"]);
+        } else if (decoded["token"] && decoded["refresh"]) {
+          return this.parseAuthInfo(decoded["token"], decoded["refresh"]);
+        } else {
+          throw new Error();
+        }
+      } catch (e) {
+        return Promise.reject(new Error("Malformed access token"));
       }
     }
   }
@@ -121,24 +128,17 @@ export class SenseNovaClient implements CodeClient {
     });
   }
 
-  private async parseAuthInfo(data: any): Promise<AuthInfo> {
-    try {
-      let decoded = JSON.parse('{"' + data.replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
-      let weaverdKey = decoded.token;
-      let refreshToken = decoded.refresh;
-      let idToken: any = jwt_decode(weaverdKey);
-      let expiration = idToken.exp;
-      return this.getAccountInfo(weaverdKey).then((account) => {
-        return {
-          account,
-          refreshToken,
-          expiration,
-          weaverdKey,
-        };
-      });
-    } catch (e) {
-      return Promise.reject(new Error("Malformed access token"));
-    }
+  private async parseAuthInfo(weaverdKey: string, refreshToken: string): Promise<AuthInfo> {
+    let idToken: any = jwt_decode(weaverdKey);
+    let expiration = idToken.exp;
+    return this.getAccountInfo(weaverdKey).then((account) => {
+      return {
+        account,
+        refreshToken,
+        expiration,
+        weaverdKey,
+      };
+    });
   }
 
   private async avatar(name: string | undefined, token: string): Promise<string | undefined> {
@@ -163,9 +163,9 @@ export class SenseNovaClient implements CodeClient {
       );
   }
 
-  private async parseAuthInfoLDAP(data: any): Promise<AuthInfo> {
-    let decoded: any = jwt_decode(data);
-    let name = decoded.username;
+  private async parseAuthInfoLDAP(weaverdKey: string): Promise<AuthInfo> {
+    let idToken: any = jwt_decode(weaverdKey);
+    let name = idToken.username;
     let ret: AuthInfo = {
       account: {
         username: this.clientConfig.username || name || "User",
