@@ -28,7 +28,7 @@
     "sensecode.command.clear": "清空对话",
     "sensecode.command.setAccessKey": "设置 Access Key",
     "sensecode.command.help": "帮助",
-    "sensecode.command.favorite": "管理收藏夹",
+    "sensecode.command.favorite": "管理代码收藏",
     "sensecode.command.terminal": "新建 SenseCode 终端",
     "sensecode.command.notebook.new": "新建 SenseCode NoteBook",
     "sensecode.command.commit-msg": "由 SenseCode 撰写 commit message",
