@@ -744,14 +744,6 @@ ${data.info.response[0]}
     }
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
     let maxTokens = sensecodeManager.maxInputTokenNum(ModelCapacity.assistant);
-    if (el > maxTokens) {
-      let devConfig = sensecodeManager.devConfig;
-      if (devConfig && devConfig.inputTokenCountLimit === false) {
-      } else {
-        this.sendMessage({ type: 'showInfoTip', style: "error", category: 'too-many-tokens', value: l10n.t("Too many tokens"), id });
-        return;
-      }
-    }
 
     let avatar = sensecodeManager.avatar();
     let robot = sensecodeManager.getActiveClientRobotName();
@@ -775,15 +767,20 @@ ${data.info.response[0]}
         if (history) {
           let hs = Array.from(history).reverse();
           for (let h of hs) {
-            let qaLen = (h.question.length + h.answer.length) * 2 + 12;
-            if ((el + qaLen) > maxTokens) {
+            let aLen = (h.answer.length) * 2 + 12;
+            if ((el + aLen) > maxTokens) {
               break;
             }
-            el += qaLen;
+            el += aLen;
             historyMsgs.push({
               role: Role.assistant,
               content: h.answer
             });
+            let qLen = (h.answer.length) * 2 + 12;
+            if ((el + qLen) > maxTokens) {
+              break;
+            }
+            el += qLen;
             historyMsgs.push({
               role: Role.user,
               content: h.question

@@ -42,9 +42,9 @@ const builtinEngines: SensecodeClientConfig[] = [
         stop: [
           "<|EOT|>"
         ],
-        temperature: 0.5
+        temperature: 1.0
       },
-      maxInputTokenNum: 4096,
+      maxInputTokenNum: 6144,
       totalTokenNum: 8192
     },
     assistant: {
@@ -55,9 +55,9 @@ const builtinEngines: SensecodeClientConfig[] = [
         stop: [
           "<|endofmessage|>"
         ],
-        temperature: 0.5
+        temperature: 1.0
       },
-      maxInputTokenNum: 4096,
+      maxInputTokenNum: 6144,
       totalTokenNum: 8192
     }
   }
