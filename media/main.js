@@ -1206,7 +1206,12 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.key === 'Control') {
+      document.getElementById('qa-list').classList.add('ctrl-down');
+      return;
+    }
+
+    if (e.metaKey || e.altKey || e.shiftKey || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
       return;
     }
 
@@ -1215,6 +1220,12 @@ const vscode = acquireVsCodeApi();
       // return;
     }
     document.getElementById("question-input").focus();
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'Control') {
+      document.getElementById('qa-list').classList.remove('ctrl-down');
+    }
   });
 
   document.addEventListener("click", (e) => {

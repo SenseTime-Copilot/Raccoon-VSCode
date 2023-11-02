@@ -15,7 +15,7 @@ function generateSignature(_urlString: string, date: Date) {
   let data = {
     iss: "2SVR6XdhiZ8hvUTwI2AHVjdT1FH",
     exp: Math.floor(t / 1000) + 1800,
-    nbf: Math.floor(t / 1000) - 5
+    nbf: Math.floor(t / 1000) - 300
   };
   return "Bearer " + sign(data, '4rPbIhmiuRK4pZiT8ddbLn0Mr7SVeZ4r');
 }

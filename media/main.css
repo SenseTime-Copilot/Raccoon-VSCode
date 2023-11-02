@@ -776,6 +776,7 @@ span.shortcut:after {
     border-radius: 4px;
 }
 
+#qa-list.ctrl-down .message-element-gnc.welcome kbd,
 .message-element-gnc.welcome kbd:hover {
     opacity: 0.9;
     background-color: var(--button-primary-background);
