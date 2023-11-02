@@ -1211,7 +1211,7 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
-    if (e.metaKey || e.altKey || e.shiftKey || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
       return;
     }
 
