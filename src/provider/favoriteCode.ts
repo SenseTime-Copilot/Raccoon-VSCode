@@ -253,9 +253,9 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       var saveNode = document.getElementById("save");
       shortcutNode.addEventListener("input", (_e)=>{
         if (/^[a-zA-Z]\\w{3,16}$/.test(shortcutNode.value)){
-        saveNode.disabled = false;
+          saveNode.disabled = false;
         } else {
-        saveNode.disabled = true;
+          saveNode.disabled = true;
         }
       });
       shortcutNode.focus();
@@ -271,7 +271,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="white-space: normal; flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid ? `value="${snippet.languageid}"` : ''}>${l10n.t("Programming Language")}<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="About language identifiers">
+          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="white-space: normal; flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid ? `value="${snippet.languageid}"` : ''}>${l10n.t("Programming Language")}<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="${l10n.t("About")} language identifiers">
               <span class="material-symbols-rounded">help</span>
             </vscode-link>
           </vscode-text-field>

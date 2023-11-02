@@ -71,6 +71,11 @@ textarea::placeholder {
 .prompt {
     white-space: pre-wrap;
     overflow-x: auto;
+    word-break: break-all;
+}
+
+.response p {
+    word-break: break-all;
 }
 
 .prompt p {
@@ -449,12 +454,14 @@ textarea::placeholder {
 
 #code-hint span.material-symbols-rounded {
     position: relative;
-    padding: 1px 1px 1px 2px;
+    padding: 1px;
     color: var(--vscode-statusBar-foreground);
     background: var(--vscode-statusBar-background);
-    border-radius: 50% 0px 0px 0px;
+    border-radius: 50%;
     border: 1px solid var(--vscode-statusBar-border);
     border-right: none;
+    font-size: 13px;
+    transform: translate(-3px, -7px);
 }
 
 #question-sizer:before {
@@ -534,6 +541,7 @@ textarea::placeholder {
     font-family: var(--vscode-editor-font-family);
 }
 
+#chat-button-wrapper.responsing .op-hint,
 #chat-button-wrapper.responsing button#send-button {
     display: none !important;
 }

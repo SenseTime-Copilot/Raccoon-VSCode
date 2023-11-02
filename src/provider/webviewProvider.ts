@@ -1004,7 +1004,7 @@ ${data.info.response[0]}
                       <span class="material-symbols-rounded">first_page</span> Esc ${l10n.t("Clear")}
                       </div>
                       <div id="code-hint" title="${l10n.t("Code attached")}">
-                        <span class="material-symbols-rounded">data_object</span>
+                        <span class="material-symbols-rounded">code</span>
                       </div>
                     </div>
                     <label id="question-sizer" data-value
