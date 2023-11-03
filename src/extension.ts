@@ -107,7 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("sensecode.favorite.manage", async () => {
-      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ id: "all", title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
+      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
     })
   );
 

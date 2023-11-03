@@ -162,8 +162,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
   }
 
   openCustomDocument(uri: Uri, _openContext: CustomDocumentOpenContext, _token: CancellationToken): CustomDocument {
-    let item = JSON.parse(decodeURIComponent(uri.query));
-    if (item.id === "all") {
+    if (uri.path === "/all.sensecode.favorites") {
       return {
         uri,
         dispose: () => {
@@ -179,12 +178,12 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
   }
 
   resolveCustomEditor(document: CustomDocument, webviewPanel: WebviewPanel, _token: CancellationToken): void | Thenable<void> {
-    let item = JSON.parse(decodeURIComponent(document.uri.query));
-    if (item.id === "all") {
+    if (document.uri.path === "/all.sensecode.favorites") {
       this.webview = webviewPanel.webview;
       return this.favoriteCodeSnippetListPage(webviewPanel);
     } else {
-      this.favoriteCodeSnippetEditorPage(webviewPanel, item);
+      let snippet = JSON.parse(document.uri.fragment);
+      this.favoriteCodeSnippetEditorPage(webviewPanel, snippet);
     }
   }
 
@@ -302,13 +301,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
             id: `${id}`,
             code: ''
           };
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snipet [${id}]`, ...temp }))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${id}]`}))}#${encodeURIComponent(JSON.stringify(temp))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
-              commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snipet [${msg.id}]`, ...snippets[msg.id] }))}`), FavoriteCodeEditor.viweType);
+              commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${msg.id}]`}))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), FavoriteCodeEditor.viweType);
             }
           });
           break;

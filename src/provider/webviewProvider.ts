@@ -615,7 +615,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'manageFavorites': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ id: "all", title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'clearCacheFiles': {
@@ -652,7 +652,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/new.sensecode.favorites?${encodeURIComponent(JSON.stringify({ ...data, title: `Favorite Snippet [${data.id}]` }))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${data.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${data.id}]`}))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'telemetry': {
@@ -660,10 +660,12 @@ export class SenseCodeEditor extends Disposable {
             let issueTitle;
             let issueBody;
             if (data.info.request && data.info.response) {
-              issueTitle = '[Need Improvement]';
+              issueTitle = '[Feedback]';
               let renderRequestBody = data.info.request.prompt;
-              renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
-              issueBody = `## Your question
+              if (renderRequestBody) {
+                renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
+                issueTitle = '[Need Improvement]';
+                issueBody = `## Your question
 
 ${renderRequestBody}
 
@@ -673,6 +675,7 @@ ${data.info.response[0]}
 
 ## Your expection
 `;
+              }
             }
             commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id, issueTitle, issueBody });
             break;
