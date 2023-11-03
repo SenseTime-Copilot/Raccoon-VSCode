@@ -205,6 +205,24 @@ export class SenseCodeManager {
         }
       })
     );
+    context.secrets.onDidChange((e) => {
+      if (e.key === "SenseCode.tokens") {
+        context.secrets.get("SenseCode.tokens").then((tks) => {
+          if (tks) {
+            try {
+              let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
+              for (let c in this._clients) {
+                let ca = this._clients[c];
+                if (ca) {
+                  ca.authInfo = authinfos[c];
+                }
+              }
+              this.changeStatusEmitter.fire({ scope: ["authorization"] });
+            } catch (_e) { }
+          }
+        });
+      }
+    });
   }
 
   public async initialClients(): Promise<void> {
