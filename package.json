@@ -104,7 +104,7 @@
                                 },
                                 "completion": {
                                     "type": "object",
-                                    "description": "%sensecode.config.engines.engine.option%",
+                                    "description": "%sensecode.config.engines.engine.completion%",
                                     "properties": {
                                         "url": {
                                             "type": "string",
@@ -117,7 +117,7 @@
                                         },
                                         "parameters": {
                                             "type": "object",
-                                            "description": "%sensecode.config.engines.engine.option.parameters%",
+                                            "markdownDescription": "%sensecode.config.engines.engine.option.parameters%",
                                             "properties": {
                                                 "model": {
                                                     "type": "string"
@@ -152,7 +152,7 @@
                                 },
                                 "assistant": {
                                     "type": "object",
-                                    "description": "%sensecode.config.engines.engine.option%",
+                                    "description": "%sensecode.config.engines.engine.assistant%",
                                     "properties": {
                                         "url": {
                                             "type": "string",
@@ -165,7 +165,7 @@
                                         },
                                         "parameters": {
                                             "type": "object",
-                                            "description": "%sensecode.config.engines.engine.option.parameters%",
+                                            "markdownDescription": "%sensecode.config.engines.engine.option.parameters%",
                                             "properties": {
                                                 "model": {
                                                     "type": "string"
@@ -208,7 +208,7 @@
                     },
                     "SenseCode.Prompt": {
                         "type": "object",
-                        "description": "%sensecode.config.prompt%",
+                        "markdownDescription": "%sensecode.config.prompt%",
                         "additionalProperties": {
                             "oneOf": [
                                 {
@@ -217,7 +217,7 @@
                                     "properties": {
                                         "prompt": {
                                             "type": "string",
-                                            "description": "%sensecode.config.prompt.advanced.item%"
+                                            "markdownDescription": "%sensecode.config.prompt.advanced.item%"
                                         },
                                         "shortcut": {
                                             "type": "string",
@@ -233,7 +233,7 @@
                                                     "properties": {
                                                         "type": {
                                                             "type": "string",
-                                                            "description": "%sensecode.config.prompt.advanced.args.type%",
+                                                            "markdownDescription": "%sensecode.config.prompt.advanced.args.type%",
                                                             "enum": [
                                                                 "text",
                                                                 "range",
