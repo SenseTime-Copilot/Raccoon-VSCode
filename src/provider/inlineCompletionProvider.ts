@@ -1,17 +1,12 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { sensecodeManager, outlog, telemetryReporter } from "../extension";
-import { getDocumentLanguage } from "../utils/getDocumentLanguage";
+import { sensecodeManager, outlog } from "../extension";
 import { CompletionPreferenceType, ModelCapacity } from "./sensecodeManager";
 import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
-  let lang = "";
   if (doc) {
-    lang = getDocumentLanguage(doc.languageId);
-  }
-  if (lang) {
     statusBarItem.show();
     return true;
   } else {
@@ -20,7 +15,7 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
   }
 }
 
-async function getCompletionSuggestions(extension: vscode.ExtensionContext, id: number, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, controller: AbortController, statusBarItem: vscode.StatusBarItem) {
+async function getCompletionSuggestions(extension: vscode.ExtensionContext, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, controller: AbortController, statusBarItem: vscode.StatusBarItem) {
 
   let maxLength = sensecodeManager.maxInputTokenNum(ModelCapacity.completion) / 2;
   let codeSnippets = await captureCode(document, position, maxLength);
@@ -63,8 +58,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, id: 
       role: Role.completion,
       content
     };
-
-    telemetryReporter.logUsage('inline completion');
 
     data = await sensecodeManager.getCompletions(
       ModelCapacity.completion,
@@ -196,9 +189,6 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
-
-      let requestId = new Date().getTime();
-
       const controller = new AbortController();
       cancel.onCancellationRequested(_e => {
         controller.abort();
@@ -241,7 +231,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      return getCompletionSuggestions(extension, requestId, document, position, cancel, controller, statusBarItem);
+      return getCompletionSuggestions(extension, document, position, cancel, controller, statusBarItem);
     },
   };
   return provider;

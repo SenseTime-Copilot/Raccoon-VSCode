@@ -1,5 +1,5 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
-import { getDocumentLanguage } from "../utils/getDocumentLanguage";
+import { supportedLanguages } from "../utils/getSupportedLanguages";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -18,6 +18,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
   private watcher?: FileSystemWatcher;
   private webview?: Webview;
   private snippetProviders: { [key: string]: Disposable } = {};
+  private static languageDropDown: string = '';
 
   private constructor(private readonly context: ExtensionContext) {
     this.init().then(() => {
@@ -46,6 +47,12 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
 
   static register(context: ExtensionContext) {
     if (!FavoriteCodeEditor.instance) {
+      let dd: string = `<div class="dropdown-container"><label for="lang-dropdown">${l10n.t("Programming Language")}</label><vscode-dropdown id="lang-dropdown">`;
+      for (let lang in supportedLanguages) {
+        dd += `<vscode-option>${supportedLanguages[lang]} (${lang})</vscode-option>`;
+      }
+      dd += '</vscode-dropdown></div>';
+      FavoriteCodeEditor.languageDropDown = dd;
       FavoriteCodeEditor.instance = new FavoriteCodeEditor(context);
       context.subscriptions.push(window.registerCustomEditorProvider(FavoriteCodeEditor.viweType, FavoriteCodeEditor.instance));
       context.subscriptions.push(FavoriteCodeEditor.instance);
@@ -226,13 +233,16 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     const vscode = acquireVsCodeApi();
     function save() {
       var shortcut = document.getElementById("shortcut").value;
-      var language = document.getElementById("language").value;
+      var language = document.getElementById("lang-dropdown").value;
       var code = document.getElementById("codesnippet").value;
+      const regex = /^.*\\((.*)\\)$/gm;
+      let languageid = regex.exec(language);
+      console.log(language)
       vscode.postMessage(
         {
           "type": "save",
           "id": "${snippet.id}",
-          "languageid": language,
+          "languageid": languageid[1],
           "shortcut": shortcut,
           "code": code
         }
@@ -248,6 +258,10 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     window.onload = (event) => {
       var codesnippet = document.getElementById("codesnippet");
       codesnippet.value = ${JSON.stringify(snippet.code)};
+      ${supportedLanguages[snippet.languageid || ""] &&
+        `var langdd = document.getElementById("lang-dropdown");
+        langdd.value = "${supportedLanguages[snippet.languageid!]} (${snippet.languageid})"
+        `}      
       var shortcutNode = document.getElementById("shortcut");
       var saveNode = document.getElementById("save");
       shortcutNode.addEventListener("input", (_e)=>{
@@ -260,20 +274,40 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       shortcutNode.focus();
     };
     </script>
+    <style>
+    .dropdown-container {
+      box-sizing: border-box;
+      display: flex;
+      flex-flow: column nowrap;
+      flex-grow: 1;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    
+    .dropdown-container label {
+      display: block;
+      color: var(--vscode-foreground);
+      cursor: pointer;
+      font-size: var(--vscode-font-size);
+      line-height: normal;
+      margin-bottom: 5px;
+    }
+
+    #lang-dropdown {
+      width: 100%;
+    }
+    </style>
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
       <h2>${l10n.t("Favorite Snippet")} <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
       <div style="display: flex; flex-direction: column;">
-        <div class="prompt" style="display: flex; grid-gap: 1rem;">
+        <div style="display: flex; grid-gap: 1rem;">
           <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of 4-16 characters")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="language" tabindex="2" list="languageid-list" placeholder="Language identifier" style="white-space: normal; flex-grow: 1; font-family: var(--vscode-editor-font-family);" ${snippet.languageid ? `value="${snippet.languageid}"` : ''}>${l10n.t("Programming Language")}<vscode-link slot="end" tabindex="-1" href="https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers" title="${l10n.t("About")} language identifiers">
-              <span class="material-symbols-rounded">help</span>
-            </vscode-link>
-          </vscode-text-field>
+          ${FavoriteCodeEditor.languageDropDown}
         </div>
         <vscode-text-area tabindex="3" id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
         ${l10n.t("Snippet")}
@@ -301,13 +335,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
             id: `${id}`,
             code: ''
           };
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${id}]`}))}#${encodeURIComponent(JSON.stringify(temp))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snippet [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
-              commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${msg.id}]`}))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), FavoriteCodeEditor.viweType);
+              commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${msg.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snippet [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), FavoriteCodeEditor.viweType);
             }
           });
           break;
@@ -334,13 +368,12 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       <div style="font-family: var(--vscode-editor-font-family);">No Favorite Snippet</div>
     </div>`;
     let table = `
-    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(16ch + 24px) calc(16ch + 24px) calc(16ch + 24px) 1fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
+    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) calc(40ch + 24px) 1fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="1">ID</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("Shortcut")}</vscode-data-grid-cell>
         <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Language")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Shortcut")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Snippet")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="5">${l10n.t("Action")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Snippet")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
     for (let id in snippets) {
@@ -348,11 +381,10 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       let s = snippets[id];
       table += `
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
-        <vscode-data-grid-cell grid-column="1" style="align-self: center;">${s.id}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="2" style="align-self: center;">${getDocumentLanguage(s.languageid || "")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="3" style="align-self: center;">${s.shortcut}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center; overflow-x: auto; white-space: pre;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="5" style="align-self: center;">
+        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="#${s.id}">${s.shortcut}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="2" style="align-self: center;">${supportedLanguages[s.languageid!]} <small style="opacity: 0.6;">(${s.languageid})</small></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="align-self: center; overflow-x: auto; white-space: pre;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="4" style="align-self: center;">
         <vscode-link>
             <span class="material-symbols-rounded edit-snippet" onclick="editSnippet('${s.id}')">edit</span>
           </vscode-link>
