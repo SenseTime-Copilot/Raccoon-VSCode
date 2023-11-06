@@ -141,7 +141,7 @@ export class SenseCodeManager {
           return SenseCodeManager.instance?.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
-              messages: [{ role: Role.user, content: `Write a commit message summarizing following changes to the codebase, limited to 50 characters, and without quotation marks:\n\`\`\`diff\n${changes}\n\`\`\`` }],
+              messages: [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
               n: 1
             },
             (e: any) => {
