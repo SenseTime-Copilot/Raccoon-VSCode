@@ -750,9 +750,7 @@ span.shortcut:after {
 }
 
 .instruction-label {
-    font-weight: 600;
-    text-decoration: underline 1px wavy var(--badge-background);
-    padding: 0 3px;
+    color: var(--progress-background);
 }
 
 #qa-list-wrapper vscode-panels::-webkit-scrollbar {

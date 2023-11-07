@@ -274,6 +274,7 @@ export class SenseNovaClient implements CodeClient {
         config.model = requestParam.model;
         config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
         config.temperature = requestParam.temperature;
+        config.n = requestParam.n ?? 1;
 
         config.stream = requestParam.stream;
         config.max_new_tokens = requestParam.maxNewTokenNum;

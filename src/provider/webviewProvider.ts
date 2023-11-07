@@ -792,10 +792,6 @@ ${data.info.response[0]}
         }
         this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
 
-        if (prompt.type !== PromptType.customPrompt && prompt.type !== PromptType.freeChat) {
-          instruction.content = `${l10n.t(prompt.label)}. ${l10n.t("Please provide an explanation at the end")}.\n${instruction.content}`;
-        }
-
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
         let msgs = [...historyMsgs, { role: instruction.role, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];

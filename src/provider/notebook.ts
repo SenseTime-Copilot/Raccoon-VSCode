@@ -134,7 +134,6 @@ class SenseCodeNotebookController {
       execution.executionOrder = cell.index + 1;
 
       let content = cell.document.getText();
-      let result = "";
 
       execution.start(new Date().valueOf());
       execution.clearOutput();
@@ -154,7 +153,7 @@ class SenseCodeNotebookController {
         }
       }
       await new Promise((resolve, _reject) => {
-        sensecodeManager.getCompletionsStreaming(
+        sensecodeManager.getCompletions(
           ModelCapacity.assistant,
           {
             messages: [
@@ -162,56 +161,24 @@ class SenseCodeNotebookController {
               { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', content) || "" }
             ]
           },
-          (event) => {
-            let value: string | undefined = undefined;
-            let data = event.data;
-            if (data && data.choices && data.choices[0] && data.choices[0].message) {
-              value = data.choices[0].message.content;
-            }
-            if (this.cancel && this.cancel.signal.aborted) {
-              return;
-            }
-            switch (event.type) {
-              case ResponseEvent.cancel: {
-                if (result) {
-                  let output = NotebookCellOutputItem.text(result, "text/markdown");
-                  execution.appendOutput({ items: [output] });
-                }
-                execution.end(false, new Date().valueOf());
-                resolve(undefined);
-                break;
-              }
-              case ResponseEvent.finish:
-              case ResponseEvent.data: {
-                if (value) {
-                  result += value;
-                }
-                break;
-              }
-              case ResponseEvent.error: {
-                let err = new Error(value);
-                err.stack = undefined;
-                execution.appendOutput({ items: [NotebookCellOutputItem.error(err)] });
-                execution.end(false, new Date().valueOf());
-                this.cancel.abort();
-                resolve(undefined);
-                break;
-              }
-              case ResponseEvent.done: {
-                let output = NotebookCellOutputItem.text(result, "text/markdown");
-                execution.appendOutput({ items: [output] });
-                execution.end(true, new Date().valueOf());
-                resolve(undefined);
-                break;
-              }
-            }
-          },
           {
-            headers: buildHeader(this.context.extension, "notebook"),
             signal: this.cancel.signal
-          },
-          this.id
-        );
+          })
+          .then((resp) => {
+            if (resp.choices[0].message?.content) {
+              let output = NotebookCellOutputItem.text(resp.choices[0].message?.content, "text/markdown");
+              execution.appendOutput({ items: [output] });
+            }
+            execution.end(true, new Date().valueOf());
+            resolve(undefined);
+          })
+          .catch((e) => {
+            e.stack = undefined;
+            execution.appendOutput({ items: [NotebookCellOutputItem.error(e)] });
+            execution.end(false, new Date().valueOf());
+            this.cancel.abort();
+            resolve(undefined);
+          });
       });
     }
   }

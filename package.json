@@ -345,7 +345,7 @@
                 {
                     "command": "sensecode.clear",
                     "group": "navigation@1",
-                    "when": "resourceScheme == sensecode"
+                    "when": "resourceFilename == 'assistant.sensecode'"
                 }
             ]
         },
@@ -383,7 +383,7 @@
                 "category": "SenseCode",
                 "title": "%sensecode.command.clear%",
                 "icon": "$(clear-all)",
-                "enablement": "view == sensecode.view || resourceScheme == sensecode"
+                "enablement": "view == sensecode.view || resourceFilename == 'assistant.sensecode'"
             },
             {
                 "command": "sensecode.ask",
@@ -394,7 +394,8 @@
                 "command": "sensecode.commit-msg",
                 "category": "SenseCode",
                 "title": "%sensecode.command.commit-msg%",
-                "icon": "$(wand)"
+                "icon": "$(wand)",
+                "enablement": "view == workbench.scm"
             },
             {
                 "command": "sensecode.settings.reset",
@@ -406,7 +407,7 @@
                 "category": "SenseCode",
                 "title": "%sensecode.command.openEditor%",
                 "icon": "$(empty-window)",
-                "enablement": "view == sensecode.view || resourceScheme == sensecode"
+                "enablement": "view == sensecode.view || resourceFilename == 'assistant.sensecode'"
             },
             {
                 "command": "sensecode.inlineSuggest.trigger",

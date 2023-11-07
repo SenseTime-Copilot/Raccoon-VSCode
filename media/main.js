@@ -233,7 +233,7 @@ const vscode = acquireVsCodeApi();
             });
             let labelInstruction = '';
             if (item.instruction) {
-              labelInstruction = `<p class="instruction-label">${item.instruction.replace("...", "")}</p>`;
+              labelInstruction = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${item.instruction.replace("...", "")}</p>`;
             }
             let values = `<div id="values-${item.id}" class="values hidden">
               <div class="languageid-value">${lang}</div>

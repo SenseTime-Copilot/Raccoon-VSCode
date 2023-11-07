@@ -36,13 +36,12 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       }
     );
 
-    let mt = 64;
+    let mt = undefined;
     let lenPreference = sensecodeManager.completionPreference;
     if (lenPreference === CompletionPreferenceType.balanced) {
       mt = 128;
-    } else if (lenPreference === CompletionPreferenceType.bestEffort) {
-      // TODO: need max new token
-      mt = sensecodeManager.totalTokenNum(ModelCapacity.completion) - maxLength;
+    } else if (lenPreference === CompletionPreferenceType.speedPriority) {
+      mt = 64;
     }
 
     let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);

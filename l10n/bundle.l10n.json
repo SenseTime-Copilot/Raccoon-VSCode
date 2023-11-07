@@ -91,6 +91,7 @@
   "Connecting...": "Connecting...",
   "Typing...": "Typing...",
   "Regenerate": "Regenerate",
+  "Stop responding": "Stop responding",
   "Done": "Done",
   "Ask SenseCode a question": "Ask SenseCode a question",
   "or type '/' for prompts": "or type '/' for prompts",
@@ -117,13 +118,13 @@
   "Active engine not set": "Active engine not set",
   "Help": "Help",
   "Generation": "Generation",
-  "Refactoring": "Refactoring",
+  "Generate code according comment message": "Generate code according comment message",
   "Add Test": "Add Test",
-  "Complexity Analysis": "Complexity Analysis",
-  "Add Comments": "Add Comments",
+  "Generate unit test code to the following code": "Generate unit test code to the following code",
   "Code Correction": "Code Correction",
+  "Fix any problem in the following code": "Fix any problem in the following code",
   "Code Conversion": "Code Conversion",
-  "Stop responding": "Stop responding",
-  "Please provide an explanation at the end": "Please provide an explanation at the end",
-  "Convert the given code to equivalent {0} code": "Convert the given code to equivalent {0} code"
+  "Convert the given code to equivalent {0} code": "Convert the given code to equivalent {0} code",
+  "Refactoring": "Refactoring",
+  "Refactor the following code to make its structure clearer, easier to read, and maintain": "Refactor the following code to make its structure clearer, easier to read, and maintain"
 }

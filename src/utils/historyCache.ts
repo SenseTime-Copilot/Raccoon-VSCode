@@ -65,7 +65,7 @@ export class HistoryCache {
           if ((idx) >= arr.length) {
             answerReady = false;
             return false;
-          } else if (v.type === CacheItemType.question && arr[idx + 1].type === CacheItemType.answer) {
+          } else if (v.type === CacheItemType.question && (idx + 1) < arr.length && arr[idx + 1].type === CacheItemType.answer) {
             answerReady = true;
             return true;
           } else if (answerReady && v.type === CacheItemType.answer) {

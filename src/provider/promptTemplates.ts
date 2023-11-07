@@ -145,8 +145,7 @@ export class PromptInfo {
     prompthtml = prompthtml.replace("{code}", codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
     } else {
-      prompthtml = prompthtml.replace(`${l10n.t("Please provide an explanation at the end")}.`, "");
-      prompthtml = `<p class="instruction-label">${renderHtml.prompt.label.replace("...", "")}</p>` + prompthtml;
+      prompthtml = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${renderHtml.prompt.label.replace("...", "")}</p>` + prompthtml;
     }
 
     if (renderHtml.status === RenderStatus.editRequired) {
@@ -196,7 +195,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
     shortcut: "generate",
     message: {
       role: Role.user,
-      content: `{code}`
+      content: `${l10n.t("Generate code according comment message")}.\n{code}`
     },
     brush: true,
     icon: "gradient"
@@ -207,7 +206,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
     shortcut: "test",
     message: {
       role: Role.user,
-      content: `{code}`
+      content: `${l10n.t("Generate unit test code to the following code")}.\n{code}`
     },
     icon: "science"
   },
@@ -250,7 +249,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
     shortcut: "fix",
     message: {
       role: Role.user,
-      content: `{code}`
+      content: `${l10n.t("Fix any problem in the following code")}.\n{code}`
     },
     brush: true,
     icon: "add_task"
@@ -261,7 +260,7 @@ export const builtinPrompts: SenseCodePrompt[] = [
     shortcut: "refactor",
     message: {
       role: Role.user,
-      content: `{code}`
+      content: `${l10n.t("Refactor the following code to make its structure clearer, easier to read, and maintain")}.\n{code}`
     },
     brush: true,
     icon: "construction"
