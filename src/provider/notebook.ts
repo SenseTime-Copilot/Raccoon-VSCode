@@ -1,7 +1,7 @@
 import { window, ExtensionContext, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookController, NotebookControllerAffinity, NotebookData, NotebookDocument, NotebookSerializer, Uri, commands, notebooks, workspace, l10n } from "vscode";
 
 import { sensecodeManager } from "../extension";
-import { Message, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
+import { Message, Role } from "../sensecodeClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { CacheItem, CacheItemType } from '../utils/historyCache';
 import { ModelCapacity } from "./sensecodeManager";
@@ -162,7 +162,8 @@ class SenseCodeNotebookController {
             ]
           },
           {
-            signal: this.cancel.signal
+            signal: this.cancel.signal,
+            headers: buildHeader(this.context.extension, 'notebook-cell')
           })
           .then((resp) => {
             if (resp.choices[0].message?.content) {
