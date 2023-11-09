@@ -115,11 +115,13 @@ SenseCode 是基于商汤 [SenseNova](https://www.sensenova.cn/) 日日新大模
 
 当您想要主动清理保存会话历史信息的缓存文件时，可以在设置页面中点击 `清理历史缓存` 按钮。
 
-## 使用 Notebook 创建可保存、可复现的对话文件
+## 使用 Notebook 创建可保存、可复现的对话文件 (Experimental)
 
 您可以在 SenseCode 侧边栏助手视图时，点击标题栏上的 `更多...` 选择 `新建 SenseCode Notebook` 新建一个 Notebook 文件。
 
-在 SenseCode Notebook 文件中，可以添加 Markdown 单元或 SenseCode 可执行单元。
+在 SenseCode Notebook 文件中，可以添加 Markdown 单元格、 `SenseCode` 或 `TypeScript` 代码单元格。
+
+详细信息可以通过 `File` > `New File...` > `SenseCode Notebook` 来创建示例文件开始了解。
 
 ## 由 SenseCode 来帮您撰写 Commit Message
 
