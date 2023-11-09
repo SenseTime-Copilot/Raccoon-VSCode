@@ -113,6 +113,8 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     new vscode.Position(position.line, position.character));
   let prefix = document.getText(range);
 
+  let afterCursor = document.lineAt(position.line).text.slice(position.character);
+
   // Add the generated code to the inline suggestion list
   let items = new Array<vscode.InlineCompletionItem>();
   let continueFlag = new Array<boolean>();
@@ -124,6 +126,17 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     if (!tmpstr.trim()) {
       outlog.debug('[Ignore: Empty Suggestion]');
       continue;
+    }
+    if (afterCursor) {
+      if (!tmpstr.trim().endsWith(afterCursor)) {
+        outlog.debug('[Ignore: After Cursor Mismatch]');
+        continue;
+      }
+      tmpstr = tmpstr.trimEnd().slice(0, tmpstr.length - afterCursor.length - 1);
+      if (!tmpstr.trim()) {
+        outlog.debug('[Ignore: Empty Suggestion]');
+        continue;
+      }
     }
     if (completions.includes(tmpstr)) {
       outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);

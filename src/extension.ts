@@ -8,11 +8,11 @@ import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
 import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
 import { SenseCodeTerminal } from "./provider/codeTerminal";
 import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
-import { SenseCodeNotebook } from "./provider/notebook";
 import DiffContentProvider from "./provider/diffContentProvider";
 import { TextDocumentShowOptions } from "vscode";
 import { SenseCodeSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
+import { CodeNotebook } from "./provider/codeNotebook";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -237,6 +237,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   DiffContentProvider.register(context);
 
-  SenseCodeNotebook.rigister(context);
+  CodeNotebook.rigister(context);
 }
 export function deactivate() { }

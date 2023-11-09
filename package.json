@@ -304,11 +304,6 @@
                     "when": "view == sensecode.view"
                 },
                 {
-                    "command": "sensecode.notebook.new",
-                    "group": "navigation@4",
-                    "when": "view == sensecode.view"
-                },
-                {
                     "command": "sensecode.favorite.manage",
                     "group": "cache@0",
                     "when": "view == sensecode.view"
@@ -449,9 +444,8 @@
         },
         "languages": [
             {
-                "id": "sensecode",
+                "id": "sensecode-files",
                 "extensions": [
-                    ".sensecode",
                     ".favorites",
                     ".scnb",
                     ".search",
@@ -461,6 +455,29 @@
                     "light": "media/sensecode-logo.png",
                     "dark": "media/sensecode-logo.png"
                 }
+            },
+            {
+                "id": "sensecode",
+                "aliases": [
+                    "SenseCode"
+                ],
+                "extensions": [
+                    ".sensecode"
+                ],
+                "icon": {
+                    "light": "media/sensecode-logo.png",
+                    "dark": "media/sensecode-logo.png"
+                }
+            }
+        ],
+        "grammars": [
+            {
+                "language": "sensecode",
+                "scopeName": "source.sensecode",
+                "path": "./languages/sensecode-syntax.json",
+                "injectTo": [
+                    "source.ts"
+                ]
             }
         ],
         "notebooks": [
