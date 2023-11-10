@@ -154,7 +154,7 @@ class CodeNotebookController {
   static readonly proxyhandler: ProxyHandler<Agent> = {
     get(t, p, _r) {
       if (typeof (p) === 'string') {
-        return t.fn[p].bind(t);
+        return t.fn[p]?.bind(t);
       }
     }
   };
@@ -222,7 +222,7 @@ class CodeNotebookController {
     return `(context: NotebookContext): Promise<Message> => {\n` +
       `  let output = context.output;\n` +
       `  let outputs = context.outputs;\n` +
-      `  return context.${agent}.${fn}({\n` +
+      `  return context.${agent}['${fn}']({\n` +
       `    ${parameters.join(',\n    ')}\n` +
       `  });\n` +
       `}`;
