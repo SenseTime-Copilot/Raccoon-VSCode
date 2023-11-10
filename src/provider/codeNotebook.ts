@@ -88,8 +88,13 @@ class VscodeAgent implements Agent {
 
 class LlmAgent {
   fn: { [key: string]: (...args: any) => Promise<Message> };
+  private abortController: AbortController;
 
-  constructor(private readonly exe: vscode.NotebookCellExecution, private readonly id: string, private readonly signal: AbortSignal) {
+  constructor(private readonly exe: vscode.NotebookCellExecution, private readonly id: string) {
+    this.abortController = new AbortController();
+    exe.token.onCancellationRequested((_e) => {
+      this.abortController.abort();
+    });
     this.fn = {
       'user': this.user,
       'completion': this.completion,
@@ -97,9 +102,9 @@ class LlmAgent {
     };
   }
 
-  private async completion(args: { messages: Message[] }): Promise<Message> {
+  private async completion(args: { prompt: string }): Promise<Message> {
     return sensecodeManager
-      .getCompletions(ModelCapacity.completion, { messages: args.messages }, { signal: this.signal }, this.id)
+      .getCompletions(ModelCapacity.completion, { messages: [{ role: Role.completion, content: args.prompt }] }, { signal: this.abortController.signal }, this.id)
       .then((resp) => {
         if (resp.choices[0]?.message) {
           return resp.choices[0]?.message;
@@ -115,7 +120,7 @@ class LlmAgent {
 
   private async assistant(args: { messages: Message[] }): Promise<Message> {
     return sensecodeManager
-      .getCompletions(ModelCapacity.assistant, { messages: args.messages }, { signal: this.signal }, this.id)
+      .getCompletions(ModelCapacity.assistant, { messages: args.messages }, { signal: this.abortController.signal }, this.id)
       .then((resp) => {
         if (resp.choices[0]?.message) {
           return resp.choices[0]?.message;
@@ -127,8 +132,8 @@ class LlmAgent {
 }
 
 interface NotebookContext {
-  llm: LlmAgent;
-  ide: VscodeAgent;
+  llm: any;
+  ide: any;
   output: {
     [key: number]: Message;
   };
@@ -146,21 +151,26 @@ class CodeNotebookController {
     context.subscriptions.push(this.controller);
   }
 
+  static readonly proxyhandler: ProxyHandler<Agent> = {
+    get(t, p, _r) {
+      if (typeof (p) === 'string') {
+        return t.fn[p].bind(t);
+      }
+    }
+  };
+
   execute(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController) {
     for (const cell of cells) {
       let execution = controller.createNotebookCellExecution(cell);
       execution.executionOrder = cell.index;
       execution.start(new Date().getTime());
+      execution.clearOutput();
       if (cell.metadata.readonly) {
         execution.end(undefined);
         continue;
       }
-      let abortController: AbortController = new AbortController();
-      let llm = new LlmAgent(execution, this.robot, abortController.signal);
-      let ide = new VscodeAgent(execution);
-      execution.token.onCancellationRequested((_e) => {
-        abortController.abort();
-      });
+      let llm = new Proxy(new LlmAgent(execution, this.robot), CodeNotebookController.proxyhandler);
+      let ide = new Proxy(new VscodeAgent(execution), CodeNotebookController.proxyhandler);
       let output: { [key: number]: Message } = {};
       let outputs: Message[] = [];
       for (let i = 0; i < cell.index; i++) {
@@ -182,11 +192,7 @@ class CodeNotebookController {
         execution.replaceOutput([result]);
         execution.end(true, Math.floor(new Date().getTime()));
       }).catch((err) => {
-        execution.replaceOutput([
-          new vscode.NotebookCellOutput([
-            vscode.NotebookCellOutputItem.stderr(err)
-          ])
-        ]);
+        execution.replaceOutput([err]);
         execution.end(false, Math.floor(new Date().getTime()));
       });
     }
@@ -216,7 +222,9 @@ class CodeNotebookController {
     return `(context: NotebookContext): Promise<Message> => {\n` +
       `  let output = context.output;\n` +
       `  let outputs = context.outputs;\n` +
-      `  return context.${agent}.fn['${fn}']({\n${parameters.join(',\n')}\n});\n` +
+      `  return context.${agent}.${fn}({\n` +
+      `    ${parameters.join(',\n    ')}\n` +
+      `  });\n` +
       `}`;
   }
 
@@ -248,7 +256,7 @@ class CodeNotebookController {
         runnalbe.__cell_code__(ctx).then((output: Message) => {
           if (output) {
             let result = new vscode.NotebookCellOutput([
-              vscode.NotebookCellOutputItem.text(`${roleIcon[output.role]} \`${new Date().toLocaleString()}\`\n\n${output.content}`, "text/markdown"),
+              vscode.NotebookCellOutputItem.text(`${roleIcon[output.role] || output.role} \`${new Date().toLocaleString()}\`\n\n${output.content}`, "text/markdown"),
               vscode.NotebookCellOutputItem.text(JSON.stringify(output, null, 2), "text/x-json")
             ]);
             if (gencode) {
@@ -263,11 +271,19 @@ class CodeNotebookController {
             resolve(result);
           }
         }, (reason: string) => {
-          reject(new Error(reason));
+          let errResult = new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr(reason + (gencode ? `\n\`\`\`typescript\n${gencode}\n\`\`\`` : ''))]);
+          if (gencode) {
+            errResult.items.push(vscode.NotebookCellOutputItem.text(gencode, "text/x-typescript"));
+          }
+          reject(errResult);
         });
       });
     } else {
-      return Promise.reject(new Error("Illegal code"));
+      let errResult = new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr("Illegal code" + (gencode ? `\n\`\`\`typescript\n${gencode}\n\`\`\`` : ''))]);
+      if (gencode) {
+        errResult.items.push(vscode.NotebookCellOutputItem.text(gencode, "text/x-typescript"));
+      }
+      return Promise.reject(errResult);
     }
   }
 
@@ -280,7 +296,7 @@ const notebookInitialContent =
 
 SenseCode Notebook 为您提供了交互式的代码执行体验，帮助您快速验证想法，或沉淀有用的流程。
 
-在 SenseCode Notebook 中，您可以创建 Markdown 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`SenseCode 指令\`或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
+在 SenseCode Notebook 中，您可以创建 Markdown 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`SenseCode 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
 
 ### 支持的模块和接口
 
@@ -295,13 +311,13 @@ interface Message {
 
 以下是当前支持的指令和接口列表：
 
-| SenseCode Directive | TypeScript Interface                                | Description                                                                       |
-|---------------------|-----------------------------------------------------|-----------------------------------------------------------------------------------|
-| \`@llm.user\`       | \`llm.fn['user']({content: string})\`               | 生成用户提示消息，参数为 用户消息内容                                                    |
-| \`@llm.assistant\`  | \`llm.fn['assistant']({messages: Message[]})\`      | 调用远端语言模型问答接口，参数为需要发送的对话消息列表，最后一条消息的 \`role\` 必须为 \`user\` |
-| \`@llm.completion\` | \`llm.fn['completion']({messages: Message[]})\`     | 调用远端语言模型补全接口，参数为需要发送的对话消息列表，最后一条消息的 \`role\` 必须为 \`user\` |
-| \`@ide.files\`      | \`ide.fn['files']({recursive: number})\`            | 列举当前工作目录文件，参数为最大遍历深度                                                 |
-| \`@ide.show\`       | \`ide.fn['show']({path: string; beside: boolean})\` | 打开指定的文件，参数为需要打开文件的路径，及是否在侧边打开文件                                |
+| SenseCode Directive | TypeScript Interface                        | Description                                                                                 |
+|---------------------|---------------------------------------------|---------------------------------------------------------------------------------------------|
+| \`@llm.user\`         | \`llm.user({content: string})\`               | 生成用户提示消息, 参数为用户消息内容                                                        |
+| \`@llm.assistant\`    | \`llm.assistant({messages: Message[]})\`      | 调用远端语言模型问答接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
+| \`@llm.completion\`   | \`llm.completion({messages: Message[]})\`     | 调用远端语言模型补全接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
+| \`@ide.files\`        | \`ide.files({recursive: number})\`            | 列举当前工作目录文件, 参数为最大遍历深度                                                    |
+| \`@ide.show\`         | \`ide.show({path: string; beside: boolean})\` | 打开指定的文件, 参数为需要打开文件的路径, 及是否在侧边打开文件                              |
 
 SenseCode Notebook 为每个单元格提供了 \`NotebookContext\` 上下文信息，以便调用以上接口，其中同时也提供了当前单元格之前的已运行单元格的输出信息，其详细定义如下:
 
@@ -321,17 +337,25 @@ interface NotebookContext {
 使用 \`SenseCode 指令\` 可以方便的调用 SenseCode 提供的远端语言模型、本地代理等能力，要使用 \`SenseCode 指令\`，首先创建一个代码单元格，并保证其语言类型是 \`SenseCode\`，在单元格内，可以使用如下形式来调用能力：
 
 \`\`\`sensecode
-// 调用 llm 的 user 能力生成一条用户提示
-@llm.user // 指令格式 \`@<module>.<function>\`
-content: \`将'你好'翻译成英文\` // 参数
+// 调用 llm 的 assistant 能力回答用户问题
+@llm.assistant // 指令格式 \`@<module>.<function>\`
+messages: [{role: 'user', content: \`将'你好'翻译成英文\`}] // 参数
+\`\`\`
+
+保证网络和登录状态正常，执行以上单元格，即可获取远端语言模型的回复。
+
+也可以使用上下文信息中的 \`output\` 及 \`outputs\` 来用于其后的问答:
+
+\`\`\`sensecode
+@llm.user
+content: "那法语呢?"
 \`\`\`
 
 执行以上单元格，将输出一个用户指令，我们可以在后续单元格中使用其输出：
 
 \`\`\`sensecode
-// 调用 llm 的 assistant 能力回答用户问题
 @llm.assistant
-messages: outputs // 可以使用上下文信息中的 \`output\` 及 \`outputs\`
+messages: outputs // 通过 \`outputs\` 来使用上文全部信息
 \`\`\`
 
 保证网络和登录状态正常，执行以上单元格，即可获取远端语言模型的回复。
@@ -350,19 +374,19 @@ messages: outputs // 可以使用上下文信息中的 \`output\` 及 \`outputs\
 \`\`\`ts
 // 海拔查询器
 (context: NotebookContext): Promise<Message> => {
-    return context.llm.fn['user']({content: '海拔是多少'})
+    return context.llm.user({content: '海拔是多少'})
 }
 \`\`\`
 
 \`\`\`ts
 (context: NotebookContext): Promise<Message> => {
-    return context.llm.fn['assistant']({messages: [{role: 'user', content: "珠穆朗玛峰" + context.output[20].content}]})
+    return context.llm.assistant({messages: [{role: 'user', content: "珠穆朗玛峰" + context.output[23].content}]})
 }
 \`\`\`
 
 \`\`\`ts
 (context: NotebookContext): Promise<Message> => {
-    return context.llm.fn['assistant']({messages: [{role: 'user', content: "乞力马扎罗峰" + context.output[20].content}]})
+    return context.llm.assistant({messages: [{role: 'user', content: "乞力马扎罗峰" + context.output[23].content}]})
 }
 \`\`\`
 
@@ -372,12 +396,12 @@ messages: outputs // 可以使用上下文信息中的 \`output\` 及 \`outputs\
 // 海拔差计算器
 (context: NotebookContext): Promise<Message> => {
   return new Promise<Message>((resolve, reject) => {
-      let h1 = /([0-9,]+)米/.exec(context.output[21].content);
-      let h2 = /([0-9,]+)米/.exec(context.output[22].content);
+      let h1 = /([0-9,]+)米/.exec(context.output[24].content);
+      let h2 = /([0-9,]+)米/.exec(context.output[25].content);
       if (h1 && h2) {
           let h1num = parseInt(h1[0].replace(',', ''));
           let h2num = parseInt(h2[0].replace(',', ''));
-          resolve({ role: 'user', content: \`\${h1num} - \${h2num} = \${h1num - h2num}\` });
+          resolve({ role: '💻', content: \`\${h1num} - \${h2num} = \${h1num - h2num}\` });
       }
   });
 }
@@ -394,7 +418,7 @@ recursive: 2
 
 \`\`\`sensecode
 @ide.show
-path: \`\${output[27].content.split('\\n')[0]}\`
+path: \`\${output[30].content.split('\\n')[0]}\`
 beside: true
 \`\`\`
 

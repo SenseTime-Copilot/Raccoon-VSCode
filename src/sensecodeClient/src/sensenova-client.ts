@@ -289,7 +289,7 @@ export class SenseNovaClient implements CodeClient {
           ...config
         };
 
-        if (payload.messages[0].role === Role.completion) {
+        if (payload.messages && payload.messages[0] && payload.messages[0].role === Role.completion) {
           payload.prompt = payload.messages[0].content;
           payload.messages = undefined;
         }
