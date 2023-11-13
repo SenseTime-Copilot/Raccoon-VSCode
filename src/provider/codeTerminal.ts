@@ -5,12 +5,11 @@ import {
   l10n,
   ExtensionContext,
 } from 'vscode';
-import { sensecodeManager, telemetryReporter } from '../extension';
-import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
-import { BanWords } from '../utils/swords';
+import { raccoonManager, telemetryReporter } from '../extension';
+import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
-import { ModelCapacity } from './sensecodeManager';
+import { ModelCapacity } from './raccoonManager';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -69,7 +68,7 @@ function isBksp(char: string): boolean {
   return false;
 }
 
-export class SenseCodeTerminal {
+export class RaccoonTerminal {
   private cacheInput: string = '';
   private cacheOutput: string = '';
   private cancel?: AbortController;
@@ -78,29 +77,28 @@ export class SenseCodeTerminal {
   private inputHistory: string[] = [];
   private id: number = 0;
   private curHistoryId = -1;
-  private banWords: BanWords = BanWords.getInstance();
 
   constructor(private readonly context: ExtensionContext) {
     let writeEmitter = new EventEmitter<string>();
     let changeNameEmitter = new EventEmitter<string>();
-    sensecodeManager.onDidChangeStatus((e) => {
+    raccoonManager.onDidChangeStatus((e) => {
       if (e.scope.includes("active") || e.scope.includes("authorization") || e.scope.includes("engines")) {
         writeEmitter.fire('\r\n');
         welcome();
       }
     });
     let terminal = window.createTerminal({
-      name: `SenseCode`,
+      name: `Raccoon`,
       isTransient: true,
-      iconPath: new ThemeIcon('sensecode-icon'),
+      iconPath: new ThemeIcon('raccoon-icon'),
       pty: {
         onDidWrite: writeEmitter.event,
         onDidChangeName: changeNameEmitter.event,
         open: () => { welcome(); },
         close: () => { },
         handleInput: (input: string) => {
-          let username = sensecodeManager.username() || "You";
-          let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
+          let username = raccoonManager.username() || "You";
+          let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
           let question = '';
           if (isCtrlC(input)) {
             if (this.responsing) {
@@ -204,12 +202,6 @@ export class SenseCodeTerminal {
             return;
           }
 
-          if (this.banWords.checkBanWords([question])) {
-            writeEmitter.fire(`\x1b[1;31merror: ${l10n.t("Incomprehensible Question")}\x1b[0m\r\n`);
-            writeEmitter.fire('\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
-            return;
-          }
-
           this.cancel = new AbortController();
           this.responsing = true;
           let totalLens: number[] = [];
@@ -222,7 +214,7 @@ export class SenseCodeTerminal {
           }
 
           for (let j = 0; j < totalLens.length; j++) {
-            if ((totalLens[j] + question.length) <= sensecodeManager.maxInputTokenNum(ModelCapacity.assistant) / 2) {
+            if ((totalLens[j] + question.length) <= raccoonManager.maxInputTokenNum(ModelCapacity.assistant) / 2) {
               break;
             } else {
               this.history.shift();
@@ -236,10 +228,10 @@ export class SenseCodeTerminal {
           this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
 
           telemetryReporter.logUsage('free chat terminal');
-          sensecodeManager.getCompletionsStreaming(
+          raccoonManager.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
-              messages: [...hlist, { role: Role.user, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
+              messages: [...hlist, { role: Role.user, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
               n: 1
             },
             (event) => {
@@ -305,9 +297,9 @@ export class SenseCodeTerminal {
     terminal.show();
 
     function welcome() {
-      let un = sensecodeManager.username();
-      let ai = sensecodeManager.getActiveClientRobotName() || "SenseCode";
-      ai = sensecodeManager.getActiveClientRobotName() || "SenseCode";
+      let un = raccoonManager.username();
+      let ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
+      ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
       let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);
       writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
       writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");

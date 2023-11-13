@@ -262,9 +262,9 @@ export class SenseNovaClient implements CodeClient {
         let headers = options ? {
           ...options?.headers
         } : {};
-        headers["x-sensecode-client"] = 'SenseNova';
-        headers["x-sensecode-id-provider"] = auth.account.userIdProvider || "";
-        headers["x-sensecode-user-id"] = auth.account.userId || "";
+        headers["x-raccoon-client"] = 'SenseNova';
+        headers["x-raccoon-id-provider"] = auth.account.userIdProvider || "";
+        headers["x-raccoon-user-id"] = auth.account.userId || "";
         headers["Date"] = date.toUTCString();
         headers["Content-Type"] = "application/json";
         headers["Authorization"] = generateSignature(requestParam.url, date);

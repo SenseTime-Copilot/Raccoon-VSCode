@@ -8,8 +8,8 @@ const poweredByStackoverflow = `
 </div>
 `;
 
-export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvider {
-  public static readonly viewType = "sensecode.search";
+export class RaccoonSearchEditorProvider implements CustomReadonlyEditorProvider {
+  public static readonly viewType = "raccoon.search";
 
   constructor(private context: ExtensionContext) {
   }
@@ -32,7 +32,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
       (e) => {
         switch (e.type) {
           case 'open': {
-            commands.executeCommand('vscode.openWith', Uri.parse(e.uri), SenseCodeSearchEditorProvider.viewType);
+            commands.executeCommand('vscode.openWith', Uri.parse(e.uri), RaccoonSearchEditorProvider.viewType);
             break;
           }
           case 'more': {
@@ -44,7 +44,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
                   let items = ``;
                   for (let item of resp.data.items) {
                     let section = `<section>`;
-                    section += `<vscode-link href='#' onclick='openDocument("sensecode://sensecode.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
+                    section += `<vscode-link href='#' onclick='openDocument("raccoon://raccoon.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
                     section += `<div class="${item.item_type}">`;
                     let lines = item.excerpt.split('\n');
                     for (let line of lines) {
@@ -268,7 +268,7 @@ export class SenseCodeSearchEditorProvider implements CustomReadonlyEditorProvid
               let page = `<h1>${q.query}</h1>`;
               for (let item of resp.data.items) {
                 let section = `<section>`;
-                section += `<vscode-link href='#' onclick='openDocument("sensecode://sensecode.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
+                section += `<vscode-link href='#' onclick='openDocument("raccoon://raccoon.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
                 section += `<div class="${item.item_type}">`;
                 let lines = item.excerpt.split('\n');
                 for (let line of lines) {

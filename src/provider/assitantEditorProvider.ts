@@ -1,10 +1,10 @@
 import { CustomReadonlyEditorProvider, ExtensionContext, CancellationToken, Uri, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands } from 'vscode';
-import { SenseCodeEditor } from './webviewProvider';
+import { RaccoonEditor } from './webviewProvider';
 
-export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
-  public static readonly viewType = "sensecode.editor";
-  private static editors: { [key: string]: SenseCodeEditor } = {};
-  private editor?: SenseCodeEditor;
+export class RaccoonEditorProvider implements CustomReadonlyEditorProvider {
+  public static readonly viewType = "raccoon.editor";
+  private static editors: { [key: string]: RaccoonEditor } = {};
+  private editor?: RaccoonEditor;
   private id?: string;
   constructor(private context: ExtensionContext) {
   }
@@ -12,7 +12,7 @@ export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
   public static getEditor(uri: Uri) {
     let id = uri.query;
     if (id) {
-      return SenseCodeEditorProvider.editors[id];
+      return RaccoonEditorProvider.editors[id];
     }
   }
 
@@ -21,7 +21,7 @@ export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
       uri,
       dispose: () => {
         if (this.id) {
-          delete SenseCodeEditorProvider.editors[this.id];
+          delete RaccoonEditorProvider.editors[this.id];
         }
         if (this.editor) {
           this.editor.dispose();
@@ -36,9 +36,9 @@ export class SenseCodeEditorProvider implements CustomReadonlyEditorProvider {
     let id = document.uri.query;
     if (id) {
       this.id = id;
-      this.editor = new SenseCodeEditor(this.context, webviewPanel.webview, `sensecode-${id}.json`);
+      this.editor = new RaccoonEditor(this.context, webviewPanel.webview, `raccoon-${id}.json`);
       commands.executeCommand('workbench.action.pinEditor', document.uri);
-      SenseCodeEditorProvider.editors[id] = this.editor;
+      RaccoonEditorProvider.editors[id] = this.editor;
     }
   }
 }

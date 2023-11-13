@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { sensecodeManager, outlog } from "../extension";
-import { CompletionPreferenceType, ModelCapacity } from "./sensecodeManager";
-import { Message, ResponseData, Role } from "../sensecodeClient/src/CodeClient";
+import { raccoonManager, outlog } from "../extension";
+import { CompletionPreferenceType, ModelCapacity } from "./raccoonManager";
+import { Message, ResponseData, Role } from "../raccoonClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
@@ -17,7 +17,7 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
 
 async function getCompletionSuggestions(extension: vscode.ExtensionContext, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, controller: AbortController, statusBarItem: vscode.StatusBarItem) {
 
-  let maxLength = sensecodeManager.maxInputTokenNum(ModelCapacity.completion) / 2;
+  let maxLength = raccoonManager.maxInputTokenNum(ModelCapacity.completion) / 2;
   let codeSnippets = await captureCode(document, position, maxLength);
 
   if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
@@ -37,14 +37,14 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     );
 
     let mt = undefined;
-    let lenPreference = sensecodeManager.completionPreference;
+    let lenPreference = raccoonManager.completionPreference;
     if (lenPreference === CompletionPreferenceType.balanced) {
       mt = 128;
     } else if (lenPreference === CompletionPreferenceType.speedPriority) {
       mt = 64;
     }
 
-    let content = sensecodeManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
+    let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
     if (!content) {
       updateStatusBarItem(statusBarItem,
         {
@@ -58,11 +58,11 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       content
     };
 
-    data = await sensecodeManager.getCompletions(
+    data = await raccoonManager.getCompletions(
       ModelCapacity.completion,
       {
         messages: [completionPrompt],
-        n: sensecodeManager.candidates,
+        n: raccoonManager.candidates,
         maxNewTokenNum: mt
       },
       {
@@ -155,7 +155,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     let completion = completions[i];
     let command = {
       title: "suggestion-accepted",
-      command: "sensecode.onSuggestionAccepted",
+      command: "raccoon.onSuggestionAccepted",
       arguments: [
         document.uri,
         new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
@@ -216,7 +216,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      let loggedin = sensecodeManager.isClientLoggedin();
+      let loggedin = raccoonManager.isClientLoggedin();
       if (!loggedin) {
         updateStatusBarItem(
           statusBarItem,
@@ -227,12 +227,12 @@ export function inlineCompletionProvider(
         );
         return;
       }
-      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !sensecodeManager.autoComplete) {
+      if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !raccoonManager.autoComplete) {
         return;
       }
 
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        await new Promise((f) => setTimeout(f, (sensecodeManager.delay - 1) * 1000));
+        await new Promise((f) => setTimeout(f, (raccoonManager.delay - 1) * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }

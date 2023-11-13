@@ -19,7 +19,7 @@ const vscode = acquireVsCodeApi();
     xhtml: false
   });
 
-  const aiIcon = `<div class="sensecode-avatar w-8 h-8"></div>`;
+  const aiIcon = `<div class="raccoon-avatar w-8 h-8"></div>`;
   const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
@@ -396,7 +396,7 @@ const vscode = acquireVsCodeApi();
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:workbench.action.openGlobalSettings?%7B%22query%22%3A%22SenseCode.Prompt%22%7D"><span class="material-symbols-rounded">add</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
+        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:workbench.action.openGlobalSettings?%7B%22query%22%3A%22Raccoon.Prompt%22%7D"><span class="material-symbols-rounded">add</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
           shortcuts += `  <button class="flex gap-2 items-center"

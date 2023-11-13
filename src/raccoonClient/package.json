@@ -1,7 +1,7 @@
 {
-    "name": "sensecode-client",
+    "name": "raccoon-client",
     "version": "1.0.0",
-    "description": "Sensecode client library",
+    "description": "Raccoon client library",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "files": [

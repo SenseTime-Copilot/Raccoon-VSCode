@@ -1,14 +1,13 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
-import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../sensecodeClient/src/CodeClient";
-import { SenseCodeClientMeta, SenseCodeClient } from "../sensecodeClient/src/sensecode-client";
-import { SenseNovaClient, SenseNovaClientMeta } from "../sensecodeClient/src/sensenova-client";
+import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../raccoonClient/src/CodeClient";
+import { SenseNovaClientMeta, SenseNovaClient } from "../raccoonClient/src/sensenova-client";
 import { outlog } from "../extension";
-import { builtinPrompts, SenseCodePrompt } from "./promptTemplates";
+import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
-import { OpenAIClient } from "../sensecodeClient/src/openai-client";
+import { OpenAIClient } from "../raccoonClient/src/openai-client";
 import { checkSensetimeEnv } from "../utils/getProxy";
-import { TGIClient } from "../sensecodeClient/src/tgi-client";
+import { TGIClient } from "../raccoonClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
@@ -26,14 +25,14 @@ export interface ClientOption {
   totalTokenNum: number;
 }
 
-type SensecodeClientConfig = ClientConfig & {
+type RaccoonClientConfig = ClientConfig & {
   [key in ModelCapacity]: ClientOption;
 };
 
-const builtinEngines: SensecodeClientConfig[] = [
+const builtinEngines: RaccoonClientConfig[] = [
   {
     type: ClientType.sensenova,
-    robotname: "SenseCode",
+    robotname: "Raccoon",
     completion: {
       url: "https://api.sensenova.cn/v1/llm/completions",
       template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<MID>[prefix.cursor]",
@@ -63,7 +62,7 @@ const builtinEngines: SensecodeClientConfig[] = [
   }
 ];
 
-type SenseCodeRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum">;
+type RaccoonRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum">;
 
 export enum CompletionPreferenceType {
   speedPriority = "Speed Priority",
@@ -84,8 +83,8 @@ export interface StatusChangeEvent {
   quiet?: boolean;
 }
 
-export class SenseCodeManager {
-  protected static instance: SenseCodeManager | undefined = undefined;
+export class RaccoonManager {
+  protected static instance: RaccoonManager | undefined = undefined;
 
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
@@ -100,10 +99,10 @@ export class SenseCodeManager {
     return randomBytes(20).toString('hex');
   }
 
-  public static getInstance(context: ExtensionContext): SenseCodeManager {
-    if (!SenseCodeManager.instance) {
-      SenseCodeManager.instance = new SenseCodeManager(context);
-      context.subscriptions.push(commands.registerCommand("sensecode.commit-msg", async (...args: any[]) => {
+  public static getInstance(context: ExtensionContext): RaccoonManager {
+    if (!RaccoonManager.instance) {
+      RaccoonManager.instance = new RaccoonManager(context);
+      context.subscriptions.push(commands.registerCommand("raccoon.commit-msg", async (...args: any[]) => {
         let gitApi = GitUtils.getInstance().api;
         if (!gitApi) {
           return;
@@ -130,15 +129,15 @@ export class SenseCodeManager {
           window.showErrorMessage("No repository found", l10n.t("Close"));
           return;
         }
-        if (SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()] && !SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
-          SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].abort();
+        if (RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] && !RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
+          RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].abort();
           return;
         }
         changes = await targetRepo.diff(true) || await targetRepo.diff();
         if (changes) {
           targetRepo.inputBox.value = '';
-          SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()] = new AbortController();
-          return SenseCodeManager.instance?.getCompletionsStreaming(
+          RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] = new AbortController();
+          return RaccoonManager.instance?.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
               messages: [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
@@ -146,22 +145,22 @@ export class SenseCodeManager {
             },
             (e: any) => {
               if (e.type === ResponseEvent.error) {
-                SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
-                delete SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()];
+                RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
+                delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
               } else if (e.type === ResponseEvent.data) {
                 let cmtmsg = e.data?.choices[0]?.message?.content;
                 if (cmtmsg && targetRepo) {
                   targetRepo.inputBox.value += cmtmsg;
                 }
               } else if (e.type === ResponseEvent.done || e.type === ResponseEvent.finish) {
-                delete SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()];
+                delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
               } else {
-                SenseCodeManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
+                RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
               }
             },
             {
               headers: buildHeader(context.extension, "commit-message"),
-              signal: SenseCodeManager.abortCtrller[targetRepo.rootUri.toString()].signal
+              signal: RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].signal
             }
           ).catch(e => {
             window.showErrorMessage(e.message, l10n.t("Close"));
@@ -171,7 +170,7 @@ export class SenseCodeManager {
         }
       }));
     }
-    return SenseCodeManager.instance;
+    return RaccoonManager.instance;
   }
 
   private constructor(private readonly context: ExtensionContext) {
@@ -183,7 +182,7 @@ export class SenseCodeManager {
       this.sensetimeEnv = v;
     });
 
-    this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    this.configuration = workspace.getConfiguration("Raccoon", undefined);
     let ret = context.globalState.get<boolean>(flag);
     if (!ret) {
       //outlog.debug('Clear settings');
@@ -192,12 +191,12 @@ export class SenseCodeManager {
     }
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration("SenseCode")) {
+        if (e.affectsConfiguration("Raccoon")) {
           this.update();
-          if (e.affectsConfiguration("SenseCode.Prompt")) {
+          if (e.affectsConfiguration("Raccoon.Prompt")) {
             this.changeStatusEmitter.fire({ scope: ["prompt"] });
           }
-          if (e.affectsConfiguration("SenseCode.Engines")) {
+          if (e.affectsConfiguration("Raccoon.Engines")) {
             this.initialClients().then(() => {
               this.changeStatusEmitter.fire({ scope: ["engines"] });
             });
@@ -206,8 +205,8 @@ export class SenseCodeManager {
       })
     );
     context.secrets.onDidChange((e) => {
-      if (e.key === "SenseCode.tokens") {
-        context.secrets.get("SenseCode.tokens").then((tks) => {
+      if (e.key === "Raccoon.tokens") {
+        context.secrets.get("Raccoon.tokens").then((tks) => {
           if (tks) {
             try {
               let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
@@ -226,14 +225,14 @@ export class SenseCodeManager {
   }
 
   public async initialClients(): Promise<void> {
-    let tks = await this.context.secrets.get("SenseCode.tokens");
+    let tks = await this.context.secrets.get("Raccoon.tokens");
     let authinfos: any = {};
     if (tks) {
       try {
         authinfos = JSON.parse(tks);
       } catch (e) { }
     }
-    let es = this.configuration.get<SensecodeClientConfig[]>("Engines", []);
+    let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
     es = builtinEngines.concat(es);
     this._clients = {};
     for (let e of es) {
@@ -243,16 +242,10 @@ export class SenseCodeManager {
           const meta: SenseNovaClientMeta = {
             //clientId: "f757d86437a67267b9a5",
             //secret: "6777e90c9e4edda49a6144c456ff5b4a765752ef",
-            clientId: "sensecode-vscode",
+            clientId: "raccoon-vscode",
             redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
           };
           client = new SenseNovaClient(meta, e, outlog.debug);
-        } else if (e.type === ClientType.sensecore) {
-          const meta: SenseCodeClientMeta = {
-            clientId: "52090a1b-1f3b-48be-8808-cb0e7a685dbd",
-            redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
-          };
-          client = new SenseCodeClient(meta, e, outlog.debug);
         } else if (e.type === ClientType.openai) {
           client = new OpenAIClient(e, outlog.debug);
         } else if (e.type === ClientType.tgi) {
@@ -292,7 +285,7 @@ export class SenseCodeManager {
   }
 
   private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
-    let tks = await this.context.secrets.get("SenseCode.tokens");
+    let tks = await this.context.secrets.get("Raccoon.tokens");
     let authinfos: { [key: string]: AuthInfo } = {};
     if (tks) {
       try {
@@ -315,7 +308,7 @@ export class SenseCodeManager {
     } else {
       outlog.debug(`Remove client ${clientName}`);
     }
-    return this.context.secrets.store("SenseCode.tokens", JSON.stringify(authinfos)).then(() => {
+    return this.context.secrets.store("Raccoon.tokens", JSON.stringify(authinfos)).then(() => {
       this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
     });
   }
@@ -362,12 +355,12 @@ export class SenseCodeManager {
     await this.context.globalState.update("Delay", undefined);
     await this.configuration.update("Prompt", undefined, true);
 
-    await this.context.secrets.delete("SenseCode.tokens");
+    await this.context.secrets.delete("Raccoon.tokens");
     this.changeStatusEmitter.fire({ scope: ["authorization", "active", "engines", "prompt", "config"] });
   }
 
   public update(): void {
-    this.configuration = workspace.getConfiguration("SenseCode", undefined);
+    this.configuration = workspace.getConfiguration("Raccoon", undefined);
   }
 
   public get devConfig(): any {
@@ -421,9 +414,9 @@ export class SenseCodeManager {
     return this.sensetimeEnv;
   }
 
-  public get prompt(): SenseCodePrompt[] {
+  public get prompt(): RaccoonPrompt[] {
     let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
-    let prompts: SenseCodePrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
+    let prompts: RaccoonPrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
         let promptStr = customPrompts[label] as string;
@@ -455,7 +448,7 @@ export class SenseCodeManager {
           args
         });
       } else {
-        let p: SenseCodePrompt = {
+        let p: RaccoonPrompt = {
           label: label,
           type: PromptType.customPrompt,
           shortcut: customPrompts[label].shortcut,
@@ -477,7 +470,7 @@ export class SenseCodeManager {
   }
 
   public get robotNames(): string[] {
-    let es = this.configuration.get<SensecodeClientConfig[]>("Engines", []);
+    let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
     return builtinEngines.concat(es).map((v, _idx, _arr) => {
       return v.robotname;
     });
@@ -577,9 +570,9 @@ export class SenseCodeManager {
         }
       }
       if (authMethods.includes(AuthMethod.accesskey)) {
-        return Promise.resolve("command:sensecode.setAccessKey");
+        return Promise.resolve("command:raccoon.setAccessKey");
       } else if (authMethods.includes(AuthMethod.apikey)) {
-        return Promise.resolve("command:sensecode.setApiKey");
+        return Promise.resolve("command:raccoon.setApiKey");
       } else {
         return Promise.reject();
       }
@@ -595,7 +588,7 @@ export class SenseCodeManager {
     }
 
     return window.withProgress({
-      location: { viewId: "sensecode.view" }
+      location: { viewId: "raccoon.view" }
     }, async (progress, _cancel) => {
       if (!ca) {
         return false;
@@ -619,7 +612,7 @@ export class SenseCodeManager {
 
   public async logout(clientName?: string) {
     return window.withProgress({
-      location: { viewId: "sensecode.view" }
+      location: { viewId: "raccoon.view" }
     }, async (progress, _cancel) => {
       let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
       if (clientName) {
@@ -648,7 +641,7 @@ export class SenseCodeManager {
     });
   }
 
-  public async getCompletions(capacity: ModelCapacity, config: SenseCodeRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
+  public async getCompletions(capacity: ModelCapacity, config: RaccoonRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
@@ -667,7 +660,7 @@ export class SenseCodeManager {
     }
   }
 
-  public async getCompletionsStreaming(capacity: ModelCapacity, config: SenseCodeRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
+  public async getCompletionsStreaming(capacity: ModelCapacity, config: RaccoonRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);

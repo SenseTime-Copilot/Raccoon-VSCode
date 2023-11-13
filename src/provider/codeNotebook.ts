@@ -2,9 +2,9 @@ import * as vscode from "vscode";
 import { transpile } from "typescript";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
 
-import { sensecodeManager } from "../extension";
-import { Message, Role } from "../sensecodeClient/src/CodeClient";
-import { ModelCapacity } from "./sensecodeManager";
+import { raccoonManager } from "../extension";
+import { Message, Role } from "../raccoonClient/src/CodeClient";
+import { ModelCapacity } from "./raccoonManager";
 
 const decoder = new TextDecoder();
 
@@ -103,7 +103,7 @@ class LlmAgent {
   }
 
   private async completion(args: { prompt: string }): Promise<Message> {
-    return sensecodeManager
+    return raccoonManager
       .getCompletions(ModelCapacity.completion, { messages: [{ role: Role.completion, content: args.prompt }] }, { signal: this.abortController.signal }, this.id)
       .then((resp) => {
         if (resp.choices[0]?.message) {
@@ -119,7 +119,7 @@ class LlmAgent {
   }
 
   private async assistant(args: { messages: Message[] }): Promise<Message> {
-    return sensecodeManager
+    return raccoonManager
       .getCompletions(ModelCapacity.assistant, { messages: args.messages }, { signal: this.abortController.signal }, this.id)
       .then((resp) => {
         if (resp.choices[0]?.message) {
@@ -146,7 +146,7 @@ class CodeNotebookController {
   constructor(context: vscode.ExtensionContext, private readonly robot: string, viewType: string) {
     this.controller = vscode.notebooks.createNotebookController(robot, viewType, robot);
     this.controller.supportsExecutionOrder = true;
-    this.controller.supportedLanguages = ["typescript", "sensecode"];
+    this.controller.supportedLanguages = ["typescript", "raccoon"];
     this.controller.executeHandler = this.execute.bind(this);
     context.subscriptions.push(this.controller);
   }
@@ -198,7 +198,7 @@ class CodeNotebookController {
     }
   }
 
-  private parseSenseCode(doc: vscode.TextDocument) {
+  private parseRaccoon(doc: vscode.TextDocument) {
     let lines = doc.lineCount;
     let parameters: string[] = [];
     let agent = '';
@@ -234,8 +234,8 @@ class CodeNotebookController {
     if (body && body.length > 0) {
       return new Promise<vscode.NotebookCellOutput>((resolve, reject) => {
         let code = '';
-        if (execution.cell.document.languageId === 'sensecode') {
-          gencode = this.parseSenseCode(execution.cell.document);
+        if (execution.cell.document.languageId === 'raccoon') {
+          gencode = this.parseRaccoon(execution.cell.document);
           if (!gencode) {
             return reject(new Error("Illegal code"));
           }
@@ -292,11 +292,11 @@ class CodeNotebookController {
 }
 
 const notebookInitialContent =
-  `## 开始使用 SenseCode Notebook
+  `## 开始使用 Raccoon Notebook
 
-SenseCode Notebook 为您提供了交互式的代码执行体验，帮助您快速验证想法，或沉淀有用的流程。
+Raccoon Notebook 为您提供了交互式的代码执行体验，帮助您快速验证想法，或沉淀有用的流程。
 
-在 SenseCode Notebook 中，您可以创建 Markdown 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`SenseCode 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
+在 Raccoon Notebook 中，您可以创建 Markdown 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`Raccoon 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
 
 ### 支持的模块和接口
 
@@ -311,7 +311,7 @@ interface Message {
 
 以下是当前支持的指令和接口列表：
 
-| SenseCode Directive | TypeScript Interface                        | Description                                                                                 |
+| Raccoon Directive | TypeScript Interface                        | Description                                                                                 |
 |---------------------|---------------------------------------------|---------------------------------------------------------------------------------------------|
 | \`@llm.user\`         | \`llm.user({content: string})\`               | 生成用户提示消息, 参数为用户消息内容                                                        |
 | \`@llm.assistant\`    | \`llm.assistant({messages: Message[]})\`      | 调用远端语言模型问答接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
@@ -319,7 +319,7 @@ interface Message {
 | \`@ide.files\`        | \`ide.files({recursive: number})\`            | 列举当前工作目录文件, 参数为最大遍历深度                                                    |
 | \`@ide.show\`         | \`ide.show({path: string; beside: boolean})\` | 打开指定的文件, 参数为需要打开文件的路径, 及是否在侧边打开文件                              |
 
-SenseCode Notebook 为每个单元格提供了 \`NotebookContext\` 上下文信息，以便调用以上接口，其中同时也提供了当前单元格之前的已运行单元格的输出信息，其详细定义如下:
+Raccoon Notebook 为每个单元格提供了 \`NotebookContext\` 上下文信息，以便调用以上接口，其中同时也提供了当前单元格之前的已运行单元格的输出信息，其详细定义如下:
 
 \`\`\`ts readonly
 interface NotebookContext {
@@ -332,11 +332,11 @@ interface NotebookContext {
 }
 \`\`\`
 
-### \`SenseCode 指令\`
+### \`Raccoon 指令\`
 
-使用 \`SenseCode 指令\` 可以方便的调用 SenseCode 提供的远端语言模型、本地代理等能力，要使用 \`SenseCode 指令\`，首先创建一个代码单元格，并保证其语言类型是 \`SenseCode\`，在单元格内，可以使用如下形式来调用能力：
+使用 \`Raccoon 指令\` 可以方便的调用 Raccoon 提供的远端语言模型、本地代理等能力，要使用 \`Raccoon 指令\`，首先创建一个代码单元格，并保证其语言类型是 \`Raccoon\`，在单元格内，可以使用如下形式来调用能力：
 
-\`\`\`sensecode
+\`\`\`raccoon
 // 调用 llm 的 assistant 能力回答用户问题
 @llm.assistant // 指令格式 \`@<module>.<function>\`
 messages: [{role: 'user', content: \`将'你好'翻译成英文\`}] // 参数
@@ -346,14 +346,14 @@ messages: [{role: 'user', content: \`将'你好'翻译成英文\`}] // 参数
 
 也可以使用上下文信息中的 \`output\` 及 \`outputs\` 来用于其后的问答:
 
-\`\`\`sensecode
+\`\`\`raccoon
 @llm.user
 content: "那法语呢?"
 \`\`\`
 
 执行以上单元格，将输出一个用户指令，我们可以在后续单元格中使用其输出：
 
-\`\`\`sensecode
+\`\`\`raccoon
 @llm.assistant
 messages: outputs // 通过 \`outputs\` 来使用上文全部信息
 \`\`\`
@@ -364,7 +364,7 @@ messages: outputs // 通过 \`outputs\` 来使用上文全部信息
 
 * \`JSON (text/x-json)\`: 将输出的 \`Message\` 信息以 \`JSON\` 格式渲染
 * \`Markdown (text/markdown)\`: 将输出的 \`Message\` 信息以 \`Markdown\` 格式渲染
-* \`Typescript (text/x-typescript)\`: 对于 \`SenseCode 指令\` 单元格，本质是将指令转译为下文将会介绍的 \`TypeScript\` 代码执行，该模式可查看体转译后的代码结果
+* \`Typescript (text/x-typescript)\`: 对于 \`Raccoon 指令\` 单元格，本质是将指令转译为下文将会介绍的 \`TypeScript\` 代码执行，该模式可查看体转译后的代码结果
 
 
 ### \`TypeScript\` 代码
@@ -409,14 +409,14 @@ messages: outputs // 通过 \`outputs\` 来使用上文全部信息
 
 ### 与本地 IDE 互动
 
-通过与本地 IDE 的功能集成，我们可以使用 SenseCode Notebook 与 IDE 互动：
+通过与本地 IDE 的功能集成，我们可以使用 Raccoon Notebook 与 IDE 互动：
 
-\`\`\`sensecode
+\`\`\`raccoon
 @ide.files
 recursive: 2
 \`\`\`
 
-\`\`\`sensecode
+\`\`\`raccoon
 @ide.show
 path: \`\${output[30].content.split('\\n')[0]}\`
 beside: true
@@ -425,16 +425,16 @@ beside: true
 `;
 
 export class CodeNotebook {
-  public static readonly notebookType = 'sensecode';
+  public static readonly notebookType = 'raccoon';
   static rigister(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.registerNotebookSerializer(CodeNotebook.notebookType, new CodeNotebookSerializer(), { transientOutputs: true }));
-    for (let c of sensecodeManager.robotNames) {
+    for (let c of raccoonManager.robotNames) {
       if (c) {
         let ctrl = new CodeNotebookController(context, c, CodeNotebook.notebookType);
         context.subscriptions.push(ctrl);
       }
     }
-    context.subscriptions.push(vscode.commands.registerCommand("sensecode.notebook.new",
+    context.subscriptions.push(vscode.commands.registerCommand("raccoon.notebook.new",
       () => {
         if (!context.extension.isActive) {
           return;
@@ -472,7 +472,7 @@ export class CodeNotebook {
           newfile(rootUri, defaultName);
         } else {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          vscode.window.showSaveDialog({ filters: { 'SenseCode Notebook': ['scnb'] } }).then((uri) => {
+          vscode.window.showSaveDialog({ filters: { 'Raccoon Notebook': ['scnb'] } }).then((uri) => {
             if (uri) {
               let enc = new TextEncoder();
               vscode.workspace.fs.writeFile(uri, enc.encode("")).then(

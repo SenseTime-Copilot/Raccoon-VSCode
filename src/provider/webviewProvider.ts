@@ -1,22 +1,21 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
-import { sensecodeManager, outlog, telemetryReporter } from '../extension';
-import { PromptInfo, PromptType, RenderStatus, SenseCodePrompt } from "./promptTemplates";
-import { SenseCodeEditorProvider } from './assitantEditorProvider';
-import { BanWords } from '../utils/swords';
-import { CompletionPreferenceType, ModelCapacity } from './sensecodeManager';
-import { Message, ResponseEvent, Role } from '../sensecodeClient/src/CodeClient';
-import { decorateCodeWithSenseCodeLabel } from '../utils/decorateCode';
+import { raccoonManager, outlog, telemetryReporter } from '../extension';
+import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
+import { RaccoonEditorProvider } from './assitantEditorProvider';
+import { CompletionPreferenceType, ModelCapacity } from './raccoonManager';
+import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
+import { decorateCodeWithRaccoonLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
-import { SenseCodeSearchEditorProvider } from './searchEditorProvider';
+import { RaccoonSearchEditorProvider } from './searchEditorProvider';
 import { FavoriteCodeEditor } from './favoriteCode';
 
 const guide = `
-<h3>${l10n.t("Coding with SenseCode")}</h3>
+<h3>${l10n.t("Coding with Raccoon")}</h3>
 <ol>
 <li>
-  ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts SenseCode thinking")}:
+  ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts Raccoon thinking")}:
   <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
     <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
     <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
@@ -43,7 +42,7 @@ ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
   </code>
 </li>
 </ol>
-<h3>${l10n.t("Ask SenseCode")}</h3>
+<h3>${l10n.t("Ask Raccoon")}</h3>
 <ol>
 <li>
 ${l10n.t("Select code in editor")}:
@@ -59,7 +58,7 @@ ${l10n.t("Select code in editor")}:
   </code>
 </li>
 <li>
-${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask SenseCode")}:
+${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon")}:
     <a onclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
       <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
     </a>
@@ -74,10 +73,9 @@ ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (defau
 </ol>
 `;
 
-export class SenseCodeEditor extends Disposable {
+export class RaccoonEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
-  private banWords: BanWords = BanWords.getInstance();
   private cache: HistoryCache;
 
   private isSupportedScheme(d: TextDocument) {
@@ -89,11 +87,11 @@ export class SenseCodeEditor extends Disposable {
     this.cache = new HistoryCache(context, cacheFile);
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
-    sensecodeManager.onDidChangeStatus(async (e) => {
+    raccoonManager.onDidChangeStatus(async (e) => {
       if (e.scope.includes("authorization") && !e.quiet) {
         this.showWelcome();
       } else if (e.scope.includes("prompt")) {
-        this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
+        this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
       } else if (e.scope.includes("engines")) {
         this.updateSettingPage("full");
       } else if (e.scope.includes("active")) {
@@ -156,22 +154,22 @@ export class SenseCodeEditor extends Disposable {
   }
 
   private async showWelcome(quiet?: boolean) {
-    sensecodeManager.update();
+    raccoonManager.update();
     if (!quiet) {
       this.sendMessage({ type: 'updateSettingPage', action: "close" });
     }
     let ts = new Date();
     let timestamp = ts.toLocaleString();
     let detail = '';
-    let name = sensecodeManager.username();
+    let name = raccoonManager.username();
     let category = "welcome";
     let username = '';
-    let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
+    let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
     if (name) {
       username = ` @${name}`;
     } else {
-      let url = await sensecodeManager.getAuthUrlLogin();
-      let login = `<vscode-link href="${Uri.parse(`command:sensecode.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>`;
+      let url = await raccoonManager.getAuthUrlLogin();
+      let login = `<vscode-link href="${Uri.parse(`command:raccoon.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>`;
       if (url) {
         login = `<vscode-link href="${url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>`;
       }
@@ -214,15 +212,15 @@ export class SenseCodeEditor extends Disposable {
   }
 
   async updateSettingPage(action?: string): Promise<void> {
-    let autoComplete = sensecodeManager.autoComplete;
-    let completionPreference = sensecodeManager.completionPreference;
-    let streamResponse = sensecodeManager.streamResponse;
-    let delay = sensecodeManager.delay;
-    let candidates = sensecodeManager.candidates;
-    let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Prompt" }))}`);
-    let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "SenseCode.Engines" }))}`);
-    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${sensecodeManager.getActiveClientRobotName()}">`;
-    let es = sensecodeManager.robotNames;
+    let autoComplete = raccoonManager.autoComplete;
+    let completionPreference = raccoonManager.completionPreference;
+    let streamResponse = raccoonManager.streamResponse;
+    let delay = raccoonManager.delay;
+    let candidates = raccoonManager.candidates;
+    let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "Raccoon.Prompt" }))}`);
+    let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "Raccoon.Engines" }))}`);
+    let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
+    let es = raccoonManager.robotNames;
     for (let label of es) {
       esList += `<vscode-option value="${label}">${label}</vscode-option>`;
     }
@@ -232,11 +230,11 @@ export class SenseCodeEditor extends Disposable {
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
     let loginout = ``;
     let sensetimeLogin = "";
-    if (!sensecodeManager.isClientLoggedin()) {
-      if (sensecodeManager.isSensetimeEnv()) {
+    if (!raccoonManager.isClientLoggedin()) {
+      if (raccoonManager.isSensetimeEnv()) {
         sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
       }
-      await sensecodeManager.getAuthUrlLogin().then(authUrl => {
+      await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
           return;
         }
@@ -256,13 +254,13 @@ export class SenseCodeEditor extends Disposable {
                       </vscode-link>`;
       }, () => { });
     } else {
-      userId = sensecodeManager.userId();
-      username = sensecodeManager.username();
-      let avatar = sensecodeManager.avatar();
+      userId = raccoonManager.userId();
+      username = raccoonManager.username();
+      let avatar = raccoonManager.avatar();
       if (avatar) {
         avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
       }
-      await sensecodeManager.getAuthUrlLogin().then(authUrl => {
+      await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
           loginout = `<vscode-link title="${l10n.t("Authorized by key from settings")}">
                       <span class="material-symbols-rounded" style="color: var(--foreground);opacity: 0.7;cursor: auto;">password</span>
@@ -331,7 +329,7 @@ export class SenseCodeEditor extends Disposable {
           </vscode-radio>
           <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
             ${l10n.t("Manual")}
-            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("sensecode.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
+            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
               <span class="material-symbols-rounded">keyboard</span>
             </vscode-link>
           </vscode-radio>
@@ -437,7 +435,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'listPrompt': {
-          this.sendMessage({ type: 'promptList', value: sensecodeManager.prompt });
+          this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
           break;
         }
         case 'openDoc': {
@@ -456,9 +454,9 @@ export class SenseCodeEditor extends Disposable {
         case 'searchQuery': {
           this.sendMessage({ type: 'addSearch', value: '?' + data.query });
           for (let url of data.searchUrl) {
-            if (url.startsWith("sensecode://sensecode.search/stackoverflow")) {
+            if (url.startsWith("raccoon://raccoon.search/stackoverflow")) {
               let q = url.replace('${query}', `${encodeURIComponent(JSON.stringify({ "query": data.query }))}`);
-              commands.executeCommand('vscode.openWith', Uri.parse(q), SenseCodeSearchEditorProvider.viewType);
+              commands.executeCommand('vscode.openWith', Uri.parse(q), RaccoonSearchEditorProvider.viewType);
             } else {
               let q = url.replace('${query}', encodeURIComponent(data.query));
               commands.executeCommand("vscode.open", q);
@@ -481,18 +479,18 @@ export class SenseCodeEditor extends Disposable {
           if (window.activeTextEditor && this.isSupportedScheme(window.activeTextEditor.document)) {
             editor = window.activeTextEditor;
           }
-          let prompt: SenseCodePrompt = data.prompt;
+          let prompt: RaccoonPrompt = data.prompt;
           if (prompt.message.role === Role.function) {
             switch (prompt.type) {
               case PromptType.help: {
                 let tm = new Date();
                 let id = tm.valueOf();
                 let timestamp = tm.toLocaleString();
-                let robot = sensecodeManager.getActiveClientRobotName() || "SenseCode";
+                let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
                 let helplink = `
 <div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
   <span class="material-symbols-rounded">book</span>
-  <div class="inline-block leading-loose">${l10n.t("Read SenseCode document for more information")}</div>
+  <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
   <div class="flex grow justify-end">
     <vscode-link href="${env.uriScheme}:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
   </div>
@@ -554,7 +552,7 @@ export class SenseCodeEditor extends Disposable {
                   editor.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
                     await new Promise((f) => setTimeout(f, 200));
                     let end = editor.selection.anchor.line;
-                    decorateCodeWithSenseCodeLabel(editor, start, end);
+                    decorateCodeWithRaccoonLabel(editor, start, end);
                   }, () => { });
                 }
               }
@@ -566,43 +564,43 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'activeEngine': {
-          sensecodeManager.setActiveClient(data.value);
+          raccoonManager.setActiveClient(data.value);
           break;
         }
         case 'logout': {
-          let ae = sensecodeManager.getActiveClientRobotName() || "SenseCode";
+          let ae = raccoonManager.getActiveClientRobotName() || "Raccoon";
           window.showWarningMessage(
             l10n.t("Logout from {0}?", ae),
             { modal: true },
             l10n.t("OK"))
             .then((v) => {
               if (v === l10n.t("OK")) {
-                sensecodeManager.logout();
+                raccoonManager.logout();
               }
             });
           break;
         }
         case 'triggerMode': {
-          if (sensecodeManager.autoComplete !== (data.value === "Auto")) {
-            sensecodeManager.autoComplete = (data.value === "Auto");
+          if (raccoonManager.autoComplete !== (data.value === "Auto")) {
+            raccoonManager.autoComplete = (data.value === "Auto");
             this.updateSettingPage();
           }
           break;
         }
         case 'completionPreference': {
-          sensecodeManager.completionPreference = data.value;
+          raccoonManager.completionPreference = data.value;
           break;
         }
         case 'responseMode': {
-          if (sensecodeManager.streamResponse !== (data.value === "Streaming")) {
-            sensecodeManager.streamResponse = (data.value === "Streaming");
+          if (raccoonManager.streamResponse !== (data.value === "Streaming")) {
+            raccoonManager.streamResponse = (data.value === "Streaming");
             this.updateSettingPage();
           }
           break;
         }
         case 'delay': {
-          if (data.value !== sensecodeManager.delay) {
-            sensecodeManager.delay = data.value;
+          if (data.value !== raccoonManager.delay) {
+            raccoonManager.delay = data.value;
             this.updateSettingPage();
           }
           break;
@@ -611,16 +609,16 @@ export class SenseCodeEditor extends Disposable {
           if (data.value <= 0) {
             data.value = 1;
           }
-          sensecodeManager.candidates = data.value;
+          raccoonManager.candidates = data.value;
           break;
         }
         case 'manageFavorites': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'clearCacheFiles': {
           window.withProgress({
-            location: { viewId: "sensecode.view" }
+            location: { viewId: "raccoon.view" }
           }, async (progress, _cancel) => {
             return this.cache.deleteAllCacheFiles().then(() => {
               progress.report({ increment: 100 });
@@ -639,10 +637,10 @@ export class SenseCodeEditor extends Disposable {
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
-                commands.executeCommand("keybindings.editor.resetKeybinding", "sensecode.inlineSuggest.trigger");
+                commands.executeCommand("keybindings.editor.resetKeybinding", "raccoon.inlineSuggest.trigger");
                 this.cache.deleteAllCacheFiles();
                 FavoriteCodeEditor.deleteSnippetFiles();
-                sensecodeManager.clear();
+                raccoonManager.clear();
               }
             });
           break;
@@ -652,7 +650,7 @@ export class SenseCodeEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`sensecode://sensecode.favorites/${data.id}.sensecode.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${data.id}]`}))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${data.id}]`}))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'telemetry': {
@@ -669,7 +667,7 @@ export class SenseCodeEditor extends Disposable {
 
 ${renderRequestBody}
 
-## SenseCode's answer
+## Raccoon's answer
 
 ${data.info.response[0]}
 
@@ -726,19 +724,15 @@ ${data.info.response[0]}
     let id = ts.valueOf();
     let reqTimestamp = ts.toLocaleString();
 
-    let loggedin = sensecodeManager.isClientLoggedin();
-    let username = sensecodeManager.username();
+    let loggedin = raccoonManager.isClientLoggedin();
+    let username = raccoonManager.username();
     if (!loggedin || !username) {
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
     }
 
-    let streaming = sensecodeManager.streamResponse;
+    let streaming = raccoonManager.streamResponse;
     let instruction = prompt.prompt;
-    if (this.banWords.checkBanWords([instruction.content, prompt.codeInfo?.code ?? ""])) {
-      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'illegal-instruction', value: l10n.t("Incomprehensible Question"), id });
-      return;
-    }
 
     let promptHtml = prompt.generatePromptHtml(id, values);
     if (promptHtml.status === RenderStatus.codeMissing) {
@@ -746,10 +740,10 @@ ${data.info.response[0]}
       return;
     }
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
-    let maxTokens = sensecodeManager.maxInputTokenNum(ModelCapacity.assistant);
+    let maxTokens = raccoonManager.maxInputTokenNum(ModelCapacity.assistant);
 
-    let avatar = sensecodeManager.avatar();
-    let robot = sensecodeManager.getActiveClientRobotName();
+    let avatar = raccoonManager.avatar();
+    let robot = raccoonManager.getActiveClientRobotName();
 
     if (promptHtml.status === RenderStatus.editRequired) {
       this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
@@ -794,10 +788,10 @@ ${data.info.response[0]}
 
         historyMsgs = historyMsgs.reverse();
         telemetryReporter.logUsage(prompt.type);
-        let msgs = [...historyMsgs, { role: instruction.role, content: sensecodeManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
+        let msgs = [...historyMsgs, { role: instruction.role, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
         if (streaming) {
           let signal = this.stopList[id].signal;
-          sensecodeManager.getCompletionsStreaming(
+          raccoonManager.getCompletionsStreaming(
             ModelCapacity.assistant,
             {
               messages: msgs,
@@ -828,7 +822,7 @@ ${data.info.response[0]}
                 }
                 case ResponseEvent.error: {
                   if (content === "Authentication expired") {
-                    sensecodeManager.getAuthUrlLogin().then((url) => {
+                    raccoonManager.getAuthUrlLogin().then((url) => {
                       this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
                     });
                   } else {
@@ -848,7 +842,7 @@ ${data.info.response[0]}
             }
           );
         } else {
-          await sensecodeManager.getCompletions(
+          await raccoonManager.getCompletions(
             ModelCapacity.assistant,
             {
               messages: msgs,
@@ -872,7 +866,7 @@ ${data.info.response[0]}
               }
               let rts = new Date().toLocaleString();
               if (error === "Authentication expired") {
-                sensecodeManager.getAuthUrlLogin().then((url) => {
+                raccoonManager.getAuthUrlLogin().then((url) => {
                   this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
                 });
               } else {
@@ -921,7 +915,7 @@ ${data.info.response[0]}
     const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "vendor", "toolkit.js"));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
-    const avatarUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'sensecode-logo.png'));
+    const avatarUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'raccoon-logo.png'));
 
     return `<!DOCTYPE html>
             <html lang="en">
@@ -937,7 +931,7 @@ ${data.info.response[0]}
                 <script src="${vendorTailwindJs}"></script>
                 <script type="module" src="${toolkitUri}"></script>
                 <style>
-                .sensecode-avatar {
+                .raccoon-avatar {
                   background-image: url("${avatarUri}");
                   -webkit-mask: url("${avatarUri}");
                   -webkit-mask-size: contain;
@@ -958,7 +952,7 @@ ${data.info.response[0]}
                 </div>
                 <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center px-1 gap-1">
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
-                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='sensecode://sensecode.search/stackoverflow.search?\${query}'>
+                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='raccoon://raccoon.search/stackoverflow.search?\${query}'>
                       StackOverflow
                     </vscode-checkbox>
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
@@ -1004,10 +998,10 @@ ${data.info.response[0]}
                       </div>
                     </div>
                     <label id="question-sizer" data-value
-                          data-placeholder="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
-                          data-placeholder-short="${l10n.t("Ask SenseCode a question")}"
+                          data-placeholder="${l10n.t("Ask Raccoon a question") + ", " + l10n.t("or type '/' for prompts")}"
+                          data-placeholder-short="${l10n.t("Ask Raccoon a question")}"
                           data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
-                          data-tip="${l10n.t("Ask SenseCode a question") + ", " + l10n.t("or type '/' for prompts")}"
+                          data-tip="${l10n.t("Ask Raccoon a question") + ", " + l10n.t("or type '/' for prompts")}"
                           data-tip1="${l10n.t("Type [Shift + Enter] to start a new line")}"
                           data-tip2="${l10n.t("Press [Esc] to stop responding")}"
                           data-tip3="${l10n.t("Press ↑/↓ key to recall history")}"
@@ -1055,24 +1049,24 @@ ${data.info.response[0]}
   }
 }
 
-export class SenseCodeViewProvider implements WebviewViewProvider {
-  private static editor?: SenseCodeEditor;
+export class RaccoonViewProvider implements WebviewViewProvider {
+  private static editor?: RaccoonEditor;
   private static webviewView?: WebviewView;
   constructor(private context: ExtensionContext) {
     context.subscriptions.push(
-      commands.registerCommand("sensecode.settings", async () => {
-        sensecodeManager.update();
-        commands.executeCommand('sensecode.view.focus').then(() => {
-          return SenseCodeViewProvider.editor?.updateSettingPage("toogle");
+      commands.registerCommand("raccoon.settings", async () => {
+        raccoonManager.update();
+        commands.executeCommand('raccoon.view.focus').then(() => {
+          return RaccoonViewProvider.editor?.updateSettingPage("toogle");
         });
       })
     );
     context.subscriptions.push(
-      commands.registerCommand("sensecode.clear", async (uri) => {
+      commands.registerCommand("raccoon.clear", async (uri) => {
         if (!uri) {
-          SenseCodeViewProvider.editor?.clear();
+          RaccoonViewProvider.editor?.clear();
         } else {
-          let editor = SenseCodeEditorProvider.getEditor(uri);
+          let editor = RaccoonEditorProvider.getEditor(uri);
           editor?.clear();
         }
       })
@@ -1080,7 +1074,7 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
   }
 
   public static showError(msg: string) {
-    SenseCodeViewProvider.editor?.sendMessage({ type: 'showInfoTip', style: 'error', category: 'custom', value: msg, id: new Date().valueOf() });
+    RaccoonViewProvider.editor?.sendMessage({ type: 'showInfoTip', style: 'error', category: 'custom', value: msg, id: new Date().valueOf() });
   }
 
   public resolveWebviewView(
@@ -1088,36 +1082,36 @@ export class SenseCodeViewProvider implements WebviewViewProvider {
     _context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    SenseCodeViewProvider.editor = new SenseCodeEditor(this.context, webviewView.webview, `sensecode-sidebar.json`);
-    SenseCodeViewProvider.webviewView = webviewView;
+    RaccoonViewProvider.editor = new RaccoonEditor(this.context, webviewView.webview, `raccoon-sidebar.json`);
+    RaccoonViewProvider.webviewView = webviewView;
     webviewView.onDidChangeVisibility(() => {
       if (!webviewView.visible) {
-        SenseCodeViewProvider.editor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+        RaccoonViewProvider.editor?.sendMessage({ type: 'updateSettingPage', action: "close" });
       }
     });
     webviewView.onDidDispose(() => {
-      SenseCodeViewProvider.editor?.sendMessage({ type: 'updateSettingPage', action: "close" });
-      SenseCodeViewProvider.editor?.dispose();
-      SenseCodeViewProvider.webviewView = undefined;
+      RaccoonViewProvider.editor?.sendMessage({ type: 'updateSettingPage', action: "close" });
+      RaccoonViewProvider.editor?.dispose();
+      RaccoonViewProvider.webviewView = undefined;
     });
   }
 
   public static isVisible() {
-    return SenseCodeViewProvider.webviewView?.visible;
+    return RaccoonViewProvider.webviewView?.visible;
   }
 
   public static async ask(prompt?: PromptInfo) {
-    commands.executeCommand('sensecode.view.focus');
-    while (!SenseCodeViewProvider.editor) {
+    commands.executeCommand('raccoon.view.focus');
+    while (!RaccoonViewProvider.editor) {
       await new Promise((f) => setTimeout(f, 1000));
     }
-    if (SenseCodeViewProvider.editor) {
+    if (RaccoonViewProvider.editor) {
       if (prompt) {
         await new Promise((f) => setTimeout(f, 1000));
-        return SenseCodeViewProvider.editor.sendApiRequest(prompt);
+        return RaccoonViewProvider.editor.sendApiRequest(prompt);
       } else {
         await new Promise((f) => setTimeout(f, 300));
-        SenseCodeViewProvider.editor?.sendMessage({ type: 'focus' });
+        RaccoonViewProvider.editor?.sendMessage({ type: 'focus' });
       }
     }
   }

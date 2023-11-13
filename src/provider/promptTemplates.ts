@@ -1,5 +1,5 @@
 import { l10n } from "vscode";
-import { Message, Role } from "../sensecodeClient/src/CodeClient";
+import { Message, Role } from "../raccoonClient/src/CodeClient";
 
 export enum PromptType {
   help = "help",
@@ -12,7 +12,7 @@ export enum PromptType {
   customPrompt = "custom"
 }
 
-export interface SenseCodePrompt {
+export interface RaccoonPrompt {
   label: string;
   type: PromptType;
   message: Message;
@@ -30,19 +30,19 @@ export enum RenderStatus {
   codeMissing = "codeMissing"
 }
 
-export interface SenseCodePromptHtml {
+export interface RaccoonPromptHtml {
   status: RenderStatus;
   html: string;
-  prompt: SenseCodePrompt;
+  prompt: RaccoonPrompt;
 }
 
 export class PromptInfo {
-  private _prompt: SenseCodePrompt;
-  constructor(prompt: SenseCodePrompt) {
+  private _prompt: RaccoonPrompt;
+  constructor(prompt: RaccoonPrompt) {
     this._prompt = prompt;
   }
 
-  public generatePromptHtml(id: number, argValues?: any): SenseCodePromptHtml {
+  public generatePromptHtml(id: number, argValues?: any): RaccoonPromptHtml {
     if (this._prompt.message.content.includes("{code}") && !this._prompt.code) {
       return {
         status: RenderStatus.codeMissing,
@@ -54,7 +54,7 @@ export class PromptInfo {
       this._prompt.code = undefined;
       this._prompt.languageid = undefined;
     }
-    let renderHtml: SenseCodePromptHtml = {
+    let renderHtml: RaccoonPromptHtml = {
       status: RenderStatus.resolved,
       html: "",
       prompt: this._prompt
@@ -188,7 +188,7 @@ export class PromptInfo {
   }
 }
 
-export const builtinPrompts: SenseCodePrompt[] = [
+export const builtinPrompts: RaccoonPrompt[] = [
   {
     label: l10n.t("Generation"),
     type: PromptType.codeGeneration,

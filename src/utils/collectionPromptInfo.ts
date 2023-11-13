@@ -69,7 +69,7 @@ async function collectionPromptInfo(doc: TextDocument, position: Position) {
 
 export function registerInfoCollector(context: ExtensionContext) {
   context.subscriptions.push(
-    commands.registerCommand("sensecode.collectInfo", () => {
+    commands.registerCommand("raccoon.collectInfo", () => {
       let editor = window.activeTextEditor;
       if (editor) {
         collectionPromptInfo(editor.document, editor.selection.anchor).then(async v => {

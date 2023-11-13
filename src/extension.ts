@@ -1,36 +1,35 @@
 import * as vscode from "vscode";
-import { SenseCodeManager } from "./provider/sensecodeManager";
+import { RaccoonManager } from "./provider/raccoonManager";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
-import { SenseCodeViewProvider } from "./provider/webviewProvider";
-import { SenseCodeAction } from "./provider/codeActionProvider";
-import { SenseCodeEditorProvider } from "./provider/assitantEditorProvider";
-import { decorateCodeWithSenseCodeLabel } from "./utils/decorateCode";
-import { SenseCodeTerminal } from "./provider/codeTerminal";
-import { SenseCodeTelemetry } from "./utils/statsigTelemetry";
+import { RaccoonViewProvider } from "./provider/webviewProvider";
+import { RaccoonAction } from "./provider/codeActionProvider";
+import { RaccoonEditorProvider } from "./provider/assitantEditorProvider";
+import { decorateCodeWithRaccoonLabel } from "./utils/decorateCode";
+import { RaccoonTerminal } from "./provider/codeTerminal";
 import DiffContentProvider from "./provider/diffContentProvider";
 import { TextDocumentShowOptions } from "vscode";
-import { SenseCodeSearchEditorProvider } from "./provider/searchEditorProvider";
+import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
-export let sensecodeManager: SenseCodeManager;
+export let raccoonManager: RaccoonManager;
 export let telemetryReporter: vscode.TelemetryLogger;
 
-class SenseCodeUriHandler implements vscode.UriHandler {
+class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    sensecodeManager.getTokenFromLoginResult(uri.toString()).then((ok) => {
+    raccoonManager.getTokenFromLoginResult(uri.toString()).then((ok) => {
       if (!ok) {
-        SenseCodeViewProvider.showError(vscode.l10n.t("Login failed"));
+        RaccoonViewProvider.showError(vscode.l10n.t("Login failed"));
       }
     });
   }
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  outlog = vscode.window.createOutputChannel("SenseCode", { log: true });
+  outlog = vscode.window.createOutputChannel("Raccoon", { log: true });
   context.subscriptions.push(outlog);
 
   await vscode.workspace.fs.stat(context.globalStorageUri)
@@ -43,105 +42,80 @@ export async function activate(context: vscode.ExtensionContext) {
 
   FavoriteCodeEditor.register(context);
 
-  sensecodeManager = SenseCodeManager.getInstance(context);
-  sensecodeManager.update();
+  raccoonManager = RaccoonManager.getInstance(context);
+  raccoonManager.update();
 
-  await sensecodeManager.initialClients();
-
-  let senseCodeTelemetry: SenseCodeTelemetry = new SenseCodeTelemetry(vscode.env.appName, vscode.env.machineId);
-
-  const sender: vscode.TelemetrySender = {
-    flush() {
-    },
-    sendErrorData(_error, _data) {
-    },
-    sendEventData(eventName, data) {
-      let devConfig = sensecodeManager.devConfig;
-      // TODO: change to default on
-      // if (devConfig && devConfig.telemetry === false) {
-      if (!devConfig || devConfig.telemetry !== true) {
-        return;
-      }
-      let event = eventName;
-      if (eventName) {
-        if (eventName.startsWith(context.extension.id + "/")) {
-          event = eventName.slice(context.extension.id.length + 1);
-        }
-        senseCodeTelemetry?.sendTelemetry(event, data);
-      }
-    },
-  };
-  telemetryReporter = vscode.env.createTelemetryLogger(sender);
+  await raccoonManager.initialClients();
 
   let validateInput = function (v: string) {
     return v ? undefined : "The value must not be empty";
   };
 
-  context.subscriptions.push(vscode.commands.registerCommand("sensecode.setAccessKey", () => {
+  context.subscriptions.push(vscode.commands.registerCommand("raccoon.setAccessKey", () => {
     vscode.window.showInputBox({ placeHolder: "Access Key Id", password: true, validateInput, ignoreFocusOut: true }).then(async (accessKeyId) => {
       if (accessKeyId) {
         vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then(async (secretAccessKey) => {
           if (secretAccessKey) {
-            sensecodeManager.getTokenFromLoginResult(`authorization://accesskey?${accessKeyId}&${secretAccessKey}`);
+            raccoonManager.getTokenFromLoginResult(`authorization://accesskey?${accessKeyId}&${secretAccessKey}`);
           }
         });
       }
     });
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand("sensecode.setApiKey", () => {
+  context.subscriptions.push(vscode.commands.registerCommand("raccoon.setApiKey", () => {
     vscode.window.showInputBox({ placeHolder: "API Key", password: true, validateInput, ignoreFocusOut: true }).then(async (key) => {
       if (key) {
-        sensecodeManager.getTokenFromLoginResult(`authorization://apikey?${key}`);
+        raccoonManager.getTokenFromLoginResult(`authorization://apikey?${key}`);
       }
     });
   }));
 
-  context.subscriptions.push(vscode.window.registerUriHandler(new SenseCodeUriHandler()));
+  context.subscriptions.push(vscode.window.registerUriHandler(new RaccoonUriHandler()));
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.help", async () => {
+    vscode.commands.registerCommand("raccoon.help", async () => {
       vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`${vscode.env.uriScheme}:extension/${context.extension.id}`));
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.favorite.manage", async () => {
-      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`sensecode://sensecode.favorites/all.sensecode.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
+    vscode.commands.registerCommand("raccoon.favorite.manage", async () => {
+      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`raccoon://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.terminal", async () => {
-      new SenseCodeTerminal(context);
+    vscode.commands.registerCommand("raccoon.terminal", async () => {
+      new RaccoonTerminal(context);
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.openEditor", async () => {
+    vscode.commands.registerCommand("raccoon.openEditor", async () => {
       let id = new Date().valueOf();
       let showOption: TextDocumentShowOptions | undefined = undefined;
       if (vscode.window.tabGroups.all.length === 1) {
         showOption = { viewColumn: vscode.ViewColumn.Beside };
       }
       vscode.commands.executeCommand('vscode.openWith',
-        vscode.Uri.parse(`sensecode://sensecode.editor/assistant.sensecode?${id}`),
-        SenseCodeEditorProvider.viewType, showOption);
+        vscode.Uri.parse(`raccoon://raccoon.editor/assistant.raccoon?${id}`),
+        RaccoonEditorProvider.viewType, showOption);
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.settings.reset", async () => {
-      sensecodeManager.clear();
+    vscode.commands.registerCommand("raccoon.settings.reset", async () => {
+      raccoonManager.clear();
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.inlineSuggest.trigger", async () => {
+    vscode.commands.registerCommand("raccoon.inlineSuggest.trigger", async () => {
       let editor = vscode.window.activeTextEditor;
       if (!editor) {
       } else if (!editor.selection.isEmpty) {
-        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("sensecode").value });
+        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("raccoon").value });
       } else {
         vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
       }
@@ -150,15 +124,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    vscode.commands.registerCommand("sensecode.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, selection) => {
+    vscode.commands.registerCommand("raccoon.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, selection) => {
       let editor = vscode.window.activeTextEditor;
       if (editor) {
         let start = range.start.line;
         let end = range.end.line;
-        decorateCodeWithSenseCodeLabel(editor, start, end);
+        decorateCodeWithRaccoonLabel(editor, start, end);
       }
       telemetryReporter.logUsage("suggestion accepted", { selection });
-      if (continueFlag && sensecodeManager.autoComplete) {
+      if (continueFlag && raccoonManager.autoComplete) {
         setTimeout(() => {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }, 1000);
@@ -172,10 +146,10 @@ export async function activate(context: vscode.ExtensionContext) {
     -1
   );
 
-  statusBarItem.command = "sensecode.settings";
+  statusBarItem.command = "raccoon.settings";
   updateStatusBarItem(statusBarItem);
 
-  sensecodeManager.onDidChangeStatus((_e) => {
+  raccoonManager.onDidChangeStatus((_e) => {
     updateStatusBarItem(statusBarItem);
   });
 
@@ -203,8 +177,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      "sensecode.view",
-      new SenseCodeViewProvider(context),
+      "raccoon.view",
+      new RaccoonViewProvider(context),
       {
         webviewOptions: {
           retainContextWhenHidden: true,
@@ -214,24 +188,24 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sensecode.ask", () => {
-      SenseCodeViewProvider.ask();
+    vscode.commands.registerCommand("raccoon.ask", () => {
+      RaccoonViewProvider.ask();
     })
   );
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       [{ scheme: "file" }, { scheme: "untitled" }, { scheme: "git" }],
-      new SenseCodeAction())
+      new RaccoonAction())
   );
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
-  context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeEditorProvider.viewType, new SenseCodeEditorProvider(context), {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(RaccoonEditorProvider.viewType, new RaccoonEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 
-  context.subscriptions.push(vscode.window.registerCustomEditorProvider(SenseCodeSearchEditorProvider.viewType, new SenseCodeSearchEditorProvider(context), {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(RaccoonSearchEditorProvider.viewType, new RaccoonSearchEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 

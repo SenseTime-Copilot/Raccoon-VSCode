@@ -1,28 +1,28 @@
 
 import * as vscode from 'vscode';
-import { sensecodeManager } from '../extension';
-import { SenseCodeEditor, SenseCodeViewProvider } from './webviewProvider';
-import { PromptInfo, PromptType, SenseCodePrompt } from "./promptTemplates";
-import { SenseCodeEditorProvider } from './assitantEditorProvider';
+import { raccoonManager } from '../extension';
+import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
+import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
+import { RaccoonEditorProvider } from './assitantEditorProvider';
 
-export class SenseCodeAction implements vscode.CodeActionProvider {
+export class RaccoonAction implements vscode.CodeActionProvider {
   public provideCodeActions(_document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
     if (range.isEmpty) {
       return;
     }
-    let ps = sensecodeManager.prompt;
+    let ps = raccoonManager.prompt;
     let actions: vscode.CodeAction[] = [
       new vscode.CodeAction(
-        `SenseCode: ${vscode.l10n.t("Ask SenseCode")}...`,
-        vscode.CodeActionKind.QuickFix.append('sensecode').append("preset")
+        `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`,
+        vscode.CodeActionKind.QuickFix.append('raccoon').append("preset")
       )
     ];
     for (let p of ps) {
       if (p.type === PromptType.help) {
         continue;
       }
-      let kind = vscode.CodeActionKind.QuickFix.append('sensecode');
-      let name = `SenseCode: `;
+      let kind = vscode.CodeActionKind.QuickFix.append('raccoon');
+      let name = `Raccoon: `;
       if (p.type === PromptType.customPrompt) {
         if (p.message.content.includes("{code}")) {
           kind = kind.append("custom");
@@ -40,7 +40,7 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
     for (let diagnostic of diagnostics) {
       if ((diagnostic.severity === vscode.DiagnosticSeverity.Error || diagnostic.severity === vscode.DiagnosticSeverity.Warning) && range.intersection(diagnostic.range)) {
-        let a = new vscode.CodeAction(`SenseCode: Help to ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append('sensecode.diagnostic'));
+        let a = new vscode.CodeAction(`Raccoon: Help to ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append('raccoon.diagnostic'));
         a.diagnostics = [diagnostic];
         actions.push(a);
       }
@@ -53,13 +53,13 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
     if (!codeAction.kind) {
       return codeAction;
     }
-    if (vscode.CodeActionKind.QuickFix.append('sensecode').append('preset').contains(codeAction.kind)) {
-      if (codeAction.title === `SenseCode: ${vscode.l10n.t("Ask SenseCode")}...`) {
-        let editor: SenseCodeEditor | undefined = this.getEditor();
+    if (vscode.CodeActionKind.QuickFix.append('raccoon').append('preset').contains(codeAction.kind)) {
+      if (codeAction.title === `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`) {
+        let editor: RaccoonEditor | undefined = this.getEditor();
         if (editor) {
           editor.sendMessage({ type: 'focus' });
         } else {
-          SenseCodeViewProvider.ask();
+          RaccoonViewProvider.ask();
         }
       }
       return codeAction;
@@ -67,11 +67,11 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
 
     let selection = vscode.window.activeTextEditor?.selection;
     let document = vscode.window.activeTextEditor?.document;
-    let ps = sensecodeManager.prompt;
+    let ps = raccoonManager.prompt;
     let label = codeAction.title.slice(11);
-    let prompt: SenseCodePrompt | undefined = undefined;
+    let prompt: RaccoonPrompt | undefined = undefined;
     let prefix = '';
-    if (vscode.CodeActionKind.QuickFix.append('sensecode').append('custom').contains(codeAction.kind)) {
+    if (vscode.CodeActionKind.QuickFix.append('raccoon').append('custom').contains(codeAction.kind)) {
       prefix = ' ✨ ';
     }
 
@@ -86,24 +86,24 @@ export class SenseCodeAction implements vscode.CodeActionProvider {
       if (document.languageId !== "plaintext") {
         prompt.languageid = document.languageId;
       }
-      let editor: SenseCodeEditor | undefined = this.getEditor();
+      let editor: RaccoonEditor | undefined = this.getEditor();
       if (editor) {
         editor.sendApiRequest(new PromptInfo(prompt));
       } else {
-        SenseCodeViewProvider.ask(new PromptInfo(prompt));
+        RaccoonViewProvider.ask(new PromptInfo(prompt));
       }
     }
     return codeAction;
   }
 
-  private getEditor(): SenseCodeEditor | undefined {
-    let editor: SenseCodeEditor | undefined = undefined;
+  private getEditor(): RaccoonEditor | undefined {
+    let editor: RaccoonEditor | undefined = undefined;
     let allTabGroups = vscode.window.tabGroups.all;
     for (let tg of allTabGroups) {
       for (let tab of tg.tabs) {
-        if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === SenseCodeEditorProvider.viewType) {
+        if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === RaccoonEditorProvider.viewType) {
           if (editor === undefined || tab.group.isActive) {
-            editor = SenseCodeEditorProvider.getEditor(tab.input.uri);
+            editor = RaccoonEditorProvider.getEditor(tab.input.uri);
           }
         }
       }

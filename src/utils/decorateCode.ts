@@ -1,6 +1,6 @@
 import { window, workspace, Range, TextEditor, OverviewRulerLane, ThemeColor } from 'vscode';
 
-export function decorateCodeWithSenseCodeLabel(editor: TextEditor, start: number, end: number) {
+export function decorateCodeWithRaccoonLabel(editor: TextEditor, start: number, end: number) {
   if (start !== undefined && end !== undefined) {
     let insertDecorationType = window.createTextEditorDecorationType({
       backgroundColor: new ThemeColor("diffEditor.insertedLineBackground"),
@@ -8,7 +8,7 @@ export function decorateCodeWithSenseCodeLabel(editor: TextEditor, start: number
       overviewRulerColor: new ThemeColor("minimapGutter.addedBackground"),
       overviewRulerLane: OverviewRulerLane.Full,
       after: {
-        contentText: "⁣⁣⁣⁣　SenseCode⁣⁣⁣⁣　",
+        contentText: "⁣⁣⁣⁣　Raccoon⁣⁣⁣⁣　",
         backgroundColor: new ThemeColor("button.background"),
         color: new ThemeColor("button.foreground"),
         border: "1px outset",

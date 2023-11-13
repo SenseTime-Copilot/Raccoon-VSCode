@@ -1,6 +1,6 @@
 {
-	"name": "SenseCode",
-	"scopeName": "source.sensecode",
+	"name": "Raccoon",
+	"scopeName": "source.raccoon",
 	"patterns": [
 		{
 			"include": "#meta"

@@ -1,17 +1,17 @@
 {
     "publisher": "SenseTime",
-    "name": "sensecode",
-    "displayName": "SenseCode",
-    "description": "%sensecode.description%",
-    "homepage": "https://sensecode.ai",
+    "name": "raccoon",
+    "displayName": "Raccoon",
+    "description": "%raccoon.description%",
+    "homepage": "https://code.sensetime.com",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SenseCore/SenseCode-VSCode.git"
+        "url": "https://github.com/SenseTime-Copilot/Raccoon.git"
     },
     "bugs": {
-        "url": "https://github.com/SenseCore/SenseCode-VSCode/issues"
+        "url": "https://github.com/SenseTime-Copilot/Raccoon/issues"
     },
-    "icon": "media/sensecode-logo.png",
+    "icon": "media/raccoon-logo.png",
     "version": "0.60.0",
     "preview": true,
     "engines": {
@@ -47,16 +47,16 @@
         "configuration": [
             {
                 "properties": {
-                    "SenseCode.Engines": {
+                    "Raccoon.Engines": {
                         "type": "array",
-                        "description": "%sensecode.config.engines.description%",
+                        "description": "%raccoon.config.engines.description%",
                         "items": {
                             "type": "object",
-                            "description": "%sensecode.config.engines.engine.description%",
+                            "description": "%raccoon.config.engines.engine.description%",
                             "properties": {
                                 "type": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.type%",
+                                    "description": "%raccoon.config.engines.engine.type%",
                                     "enum": [
                                         "sensecore",
                                         "sensenova",
@@ -66,23 +66,23 @@
                                 },
                                 "robotname": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.label%",
+                                    "description": "%raccoon.config.engines.engine.label%",
                                     "minLength": 1,
                                     "maxLength": 32
                                 },
                                 "username": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.username%",
+                                    "description": "%raccoon.config.engines.engine.username%",
                                     "minLength": 1,
                                     "maxLength": 32
                                 },
                                 "authUrl": {
                                     "type": "string",
-                                    "description": "%sensecode.config.engines.engine.authurl%",
+                                    "description": "%raccoon.config.engines.engine.authurl%",
                                     "format": "uri"
                                 },
                                 "key": {
-                                    "description": "%sensecode.config.engines.engine.key%",
+                                    "description": "%raccoon.config.engines.engine.key%",
                                     "oneOf": [
                                         {
                                             "type": "string"
@@ -92,11 +92,11 @@
                                             "properties": {
                                                 "accessKeyId": {
                                                     "type": "string",
-                                                    "description": "%sensecode.config.engines.engine.key.ak%"
+                                                    "description": "%raccoon.config.engines.engine.key.ak%"
                                                 },
                                                 "secretAccessKey": {
                                                     "type": "string",
-                                                    "description": "%sensecode.config.engines.engine.key.sk%"
+                                                    "description": "%raccoon.config.engines.engine.key.sk%"
                                                 }
                                             }
                                         }
@@ -104,20 +104,20 @@
                                 },
                                 "completion": {
                                     "type": "object",
-                                    "description": "%sensecode.config.engines.engine.completion%",
+                                    "description": "%raccoon.config.engines.engine.completion%",
                                     "properties": {
                                         "url": {
                                             "type": "string",
-                                            "description": "%sensecode.config.engines.engine.url%",
+                                            "description": "%raccoon.config.engines.engine.url%",
                                             "format": "uri"
                                         },
                                         "template": {
                                             "type": "string",
-                                            "description": "%sensecode.config.engines.engine.option.template%"
+                                            "description": "%raccoon.config.engines.engine.option.template%"
                                         },
                                         "parameters": {
                                             "type": "object",
-                                            "markdownDescription": "%sensecode.config.engines.engine.option.parameters%",
+                                            "markdownDescription": "%raccoon.config.engines.engine.option.parameters%",
                                             "properties": {
                                                 "model": {
                                                     "type": "string"
@@ -136,12 +136,12 @@
                                         "totalTokenNum": {
                                             "type": "number",
                                             "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
+                                            "description": "%raccoon.config.engines.engine.option.total_token_num%"
                                         },
                                         "maxInputTokenNum": {
                                             "type": "number",
                                             "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
+                                            "description": "%raccoon.config.engines.engine.option.max_input_token_num%"
                                         }
                                     },
                                     "required": [
@@ -152,20 +152,20 @@
                                 },
                                 "assistant": {
                                     "type": "object",
-                                    "description": "%sensecode.config.engines.engine.assistant%",
+                                    "description": "%raccoon.config.engines.engine.assistant%",
                                     "properties": {
                                         "url": {
                                             "type": "string",
-                                            "description": "%sensecode.config.engines.engine.url%",
+                                            "description": "%raccoon.config.engines.engine.url%",
                                             "format": "uri"
                                         },
                                         "template": {
                                             "type": "string",
-                                            "description": "%sensecode.config.engines.engine.option.template%"
+                                            "description": "%raccoon.config.engines.engine.option.template%"
                                         },
                                         "parameters": {
                                             "type": "object",
-                                            "markdownDescription": "%sensecode.config.engines.engine.option.parameters%",
+                                            "markdownDescription": "%raccoon.config.engines.engine.option.parameters%",
                                             "properties": {
                                                 "model": {
                                                     "type": "string"
@@ -184,12 +184,12 @@
                                         "totalTokenNum": {
                                             "type": "number",
                                             "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.total_token_num%"
+                                            "description": "%raccoon.config.engines.engine.option.total_token_num%"
                                         },
                                         "maxInputTokenNum": {
                                             "type": "number",
                                             "minimum": 1,
-                                            "description": "%sensecode.config.engines.engine.option.max_input_token_num%"
+                                            "description": "%raccoon.config.engines.engine.option.max_input_token_num%"
                                         }
                                     },
                                     "required": [
@@ -206,34 +206,34 @@
                             "additionalProperties": false
                         }
                     },
-                    "SenseCode.Prompt": {
+                    "Raccoon.Prompt": {
                         "type": "object",
-                        "markdownDescription": "%sensecode.config.prompt%",
+                        "markdownDescription": "%raccoon.config.prompt%",
                         "additionalProperties": {
                             "oneOf": [
                                 {
                                     "type": "object",
-                                    "description": "%sensecode.config.prompt.advanced%",
+                                    "description": "%raccoon.config.prompt.advanced%",
                                     "properties": {
                                         "prompt": {
                                             "type": "string",
-                                            "markdownDescription": "%sensecode.config.prompt.advanced.item%"
+                                            "markdownDescription": "%raccoon.config.prompt.advanced.item%"
                                         },
                                         "shortcut": {
                                             "type": "string",
-                                            "description": "%sensecode.config.prompt.advanced.shortcut%",
+                                            "description": "%raccoon.config.prompt.advanced.shortcut%",
                                             "pattern": "^[_a-zA-Z][_a-zA-Z0-9]{0,15}$"
                                         },
                                         "args": {
                                             "type": "object",
-                                            "description": "%sensecode.config.prompt.advanced.args%",
+                                            "description": "%raccoon.config.prompt.advanced.args%",
                                             "patternProperties": {
                                                 "^.+$": {
                                                     "type": "object",
                                                     "properties": {
                                                         "type": {
                                                             "type": "string",
-                                                            "markdownDescription": "%sensecode.config.prompt.advanced.args.type%",
+                                                            "markdownDescription": "%raccoon.config.prompt.advanced.args.type%",
                                                             "enum": [
                                                                 "text",
                                                                 "range",
@@ -259,12 +259,12 @@
                                 },
                                 {
                                     "type": "string",
-                                    "description": "%sensecode.config.prompt.item%"
+                                    "description": "%raccoon.config.prompt.item%"
                                 }
                             ]
                         }
                     },
-                    "SenseCode.Dev": {
+                    "Raccoon.Dev": {
                         "type": "object"
                     }
                 }
@@ -272,179 +272,179 @@
         ],
         "submenus": [
             {
-                "id": "sensecode-submenu",
-                "label": "%sensecode.submenu%",
+                "id": "raccoon-submenu",
+                "label": "%raccoon.submenu%",
                 "icon": "$(more)"
             }
         ],
         "menus": {
             "file/newFile": [
                 {
-                    "command": "sensecode.notebook.new"
+                    "command": "raccoon.notebook.new"
                 }
             ],
             "editor/context": [
                 {
-                    "command": "sensecode.ask",
+                    "command": "raccoon.ask",
                     "group": "z_commands",
                     "when": "editorTextFocus"
                 }
             ],
             "scm/title": [
                 {
-                    "command": "sensecode.commit-msg",
+                    "command": "raccoon.commit-msg",
                     "group": "navigation@1000",
                     "when": "config.git.enabled && !git.missing && scmProvider == git && gitOpenRepositoryCount != 0"
                 }
             ],
-            "sensecode-submenu": [
+            "raccoon-submenu": [
                 {
-                    "command": "sensecode.terminal",
+                    "command": "raccoon.terminal",
                     "group": "navigation@3",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 },
                 {
-                    "command": "sensecode.favorite.manage",
+                    "command": "raccoon.favorite.manage",
                     "group": "cache@0",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 },
                 {
-                    "command": "sensecode.help",
+                    "command": "raccoon.help",
                     "group": "help@0",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 }
             ],
             "view/title": [
                 {
-                    "command": "sensecode.clear",
+                    "command": "raccoon.clear",
                     "group": "navigation@1",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 },
                 {
-                    "command": "sensecode.openEditor",
+                    "command": "raccoon.openEditor",
                     "group": "navigation@2",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 },
                 {
-                    "command": "sensecode.settings",
+                    "command": "raccoon.settings",
                     "group": "navigation@3",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 },
                 {
-                    "submenu": "sensecode-submenu",
+                    "submenu": "raccoon-submenu",
                     "group": "navigation@4",
-                    "when": "view == sensecode.view"
+                    "when": "view == raccoon.view"
                 }
             ],
             "editor/title": [
                 {
-                    "command": "sensecode.clear",
+                    "command": "raccoon.clear",
                     "group": "navigation@1",
-                    "when": "resourceFilename == 'assistant.sensecode'"
+                    "when": "resourceFilename == 'assistant.raccoon'"
                 }
             ]
         },
         "commands": [
             {
-                "command": "sensecode.settings",
-                "category": "SenseCode",
-                "title": "%sensecode.command.settings%",
+                "command": "raccoon.settings",
+                "category": "Raccoon",
+                "title": "%raccoon.command.settings%",
                 "icon": "$(gear)",
-                "enablement": "view == sensecode.view"
+                "enablement": "view == raccoon.view"
             },
             {
-                "command": "sensecode.help",
-                "category": "SenseCode",
-                "title": "%sensecode.command.help%",
+                "command": "raccoon.help",
+                "category": "Raccoon",
+                "title": "%raccoon.command.help%",
                 "icon": "$(question)",
-                "enablement": "view == sensecode.view"
+                "enablement": "view == raccoon.view"
             },
             {
-                "command": "sensecode.favorite.manage",
-                "category": "SenseCode",
-                "title": "%sensecode.command.favorite%",
+                "command": "raccoon.favorite.manage",
+                "category": "Raccoon",
+                "title": "%raccoon.command.favorite%",
                 "icon": "$(repo)",
-                "enablement": "view == sensecode.view"
+                "enablement": "view == raccoon.view"
             },
             {
-                "command": "sensecode.terminal",
-                "category": "SenseCode",
-                "title": "%sensecode.command.terminal%",
+                "command": "raccoon.terminal",
+                "category": "Raccoon",
+                "title": "%raccoon.command.terminal%",
                 "icon": "$(terminal)",
-                "enablement": "view == sensecode.view"
+                "enablement": "view == raccoon.view"
             },
             {
-                "command": "sensecode.clear",
-                "category": "SenseCode",
-                "title": "%sensecode.command.clear%",
+                "command": "raccoon.clear",
+                "category": "Raccoon",
+                "title": "%raccoon.command.clear%",
                 "icon": "$(clear-all)",
-                "enablement": "view == sensecode.view || resourceFilename == 'assistant.sensecode'"
+                "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
             },
             {
-                "command": "sensecode.ask",
-                "category": "SenseCode",
-                "title": "%sensecode.command.ask%"
+                "command": "raccoon.ask",
+                "category": "Raccoon",
+                "title": "%raccoon.command.ask%"
             },
             {
-                "command": "sensecode.commit-msg",
-                "category": "SenseCode",
-                "title": "%sensecode.command.commit-msg%",
+                "command": "raccoon.commit-msg",
+                "category": "Raccoon",
+                "title": "%raccoon.command.commit-msg%",
                 "icon": "$(wand)",
                 "enablement": "view == workbench.scm"
             },
             {
-                "command": "sensecode.settings.reset",
-                "category": "SenseCode",
-                "title": "%sensecode.command.settingsReset%"
+                "command": "raccoon.settings.reset",
+                "category": "Raccoon",
+                "title": "%raccoon.command.settingsReset%"
             },
             {
-                "command": "sensecode.openEditor",
-                "category": "SenseCode",
-                "title": "%sensecode.command.openEditor%",
+                "command": "raccoon.openEditor",
+                "category": "Raccoon",
+                "title": "%raccoon.command.openEditor%",
                 "icon": "$(empty-window)",
-                "enablement": "view == sensecode.view || resourceFilename == 'assistant.sensecode'"
+                "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
             },
             {
-                "command": "sensecode.inlineSuggest.trigger",
-                "category": "SenseCode",
-                "title": "%sensecode.command.completionTrigger%",
+                "command": "raccoon.inlineSuggest.trigger",
+                "category": "Raccoon",
+                "title": "%raccoon.command.completionTrigger%",
                 "enablement": "editorTextFocus && !editorReadonly"
             },
             {
-                "command": "sensecode.onSuggestionAccepted",
-                "category": "SenseCode",
-                "title": "%sensecode.command.onSuggestionAccepted%",
+                "command": "raccoon.onSuggestionAccepted",
+                "category": "Raccoon",
+                "title": "%raccoon.command.onSuggestionAccepted%",
                 "enablement": "editorTextFocus && !editorReadonly"
             },
             {
-                "command": "sensecode.notebook.new",
-                "category": "SenseCode",
-                "title": "%sensecode.command.notebook.new%",
+                "command": "raccoon.notebook.new",
+                "category": "Raccoon",
+                "title": "%raccoon.command.notebook.new%",
                 "icon": "$(notebook)"
             }
         ],
         "keybindings": [
             {
-                "command": "sensecode.inlineSuggest.trigger",
+                "command": "raccoon.inlineSuggest.trigger",
                 "key": "Alt+/"
             },
             {
-                "command": "sensecode.ask",
+                "command": "raccoon.ask",
                 "key": "ctrl ctrl"
             }
         ],
         "icons": {
-            "sensecode-icon": {
-                "description": "SenseCode icon",
+            "raccoon-icon": {
+                "description": "Raccoon icon",
                 "default": {
-                    "fontPath": "media/sensecode.woff",
+                    "fontPath": "media/raccoon.woff",
                     "fontCharacter": "\\E001"
                 }
             }
         },
         "languages": [
             {
-                "id": "sensecode-files",
+                "id": "raccoon-files",
                 "extensions": [
                     ".favorites",
                     ".scnb",
@@ -452,29 +452,29 @@
                     ".question"
                 ],
                 "icon": {
-                    "light": "media/sensecode-logo.png",
-                    "dark": "media/sensecode-logo.png"
+                    "light": "media/raccoon-logo.png",
+                    "dark": "media/raccoon-logo.png"
                 }
             },
             {
-                "id": "sensecode",
+                "id": "raccoon",
                 "aliases": [
-                    "SenseCode"
+                    "Raccoon"
                 ],
                 "extensions": [
-                    ".sensecode"
+                    ".raccoon"
                 ],
                 "icon": {
-                    "light": "media/sensecode-logo.png",
-                    "dark": "media/sensecode-logo.png"
+                    "light": "media/raccoon-logo.png",
+                    "dark": "media/raccoon-logo.png"
                 }
             }
         ],
         "grammars": [
             {
-                "language": "sensecode",
-                "scopeName": "source.sensecode",
-                "path": "./languages/sensecode-syntax.json",
+                "language": "raccoon",
+                "scopeName": "source.raccoon",
+                "path": "./languages/raccoon-syntax.json",
                 "injectTo": [
                     "source.ts"
                 ]
@@ -482,8 +482,8 @@
         ],
         "notebooks": [
             {
-                "type": "sensecode",
-                "displayName": "SenseCode Notebook",
+                "type": "raccoon",
+                "displayName": "Raccoon Notebook",
                 "selector": [
                     {
                         "filenamePattern": "*.scnb"
@@ -493,22 +493,22 @@
         ],
         "resourceLabelFormatters": [
             {
-                "scheme": "sensecode",
-                "authority": "sensecode.favorites",
+                "scheme": "raccoon",
+                "authority": "raccoon.favorites",
                 "formatting": {
                     "label": "${query.title}"
                 }
             },
             {
-                "scheme": "sensecode",
-                "authority": "sensecode.editor",
+                "scheme": "raccoon",
+                "authority": "raccoon.editor",
                 "formatting": {
-                    "label": "%sensecode.view.title%"
+                    "label": "%raccoon.view.title%"
                 }
             },
             {
-                "scheme": "sensecode",
-                "authority": "sensecode.search",
+                "scheme": "raccoon",
+                "authority": "raccoon.search",
                 "formatting": {
                     "label": "${query.query}"
                 }
@@ -517,46 +517,46 @@
         "viewsContainers": {
             "activitybar": [
                 {
-                    "id": "sensecode-view-container",
-                    "title": "SenseCode",
-                    "icon": "media/sensecode.svg"
+                    "id": "raccoon-view-container",
+                    "title": "Raccoon",
+                    "icon": "media/raccoon.svg"
                 }
             ]
         },
         "views": {
-            "sensecode-view-container": [
+            "raccoon-view-container": [
                 {
                     "type": "webview",
-                    "id": "sensecode.view",
-                    "name": "%sensecode.view.title%"
+                    "id": "raccoon.view",
+                    "name": "%raccoon.view.title%"
                 }
             ]
         },
         "customEditors": [
             {
-                "viewType": "sensecode.favorites",
-                "displayName": "SenseCode Favorites",
+                "viewType": "raccoon.favorites",
+                "displayName": "Raccoon Favorites",
                 "selector": [
                     {
-                        "filenamePattern": "*.sensecode.favorites"
+                        "filenamePattern": "*.raccoon.favorites"
                     }
                 ]
             },
             {
-                "viewType": "sensecode.editor",
-                "displayName": "SenseCode Assistant",
+                "viewType": "raccoon.editor",
+                "displayName": "Raccoon Assistant",
                 "selector": [
                     {
-                        "filenamePattern": "*.sensecode"
+                        "filenamePattern": "*.raccoon"
                     }
                 ]
             },
             {
-                "viewType": "sensecode.search",
-                "displayName": "SenseCode Search Result",
+                "viewType": "raccoon.search",
+                "displayName": "Raccoon Search Result",
                 "selector": [
                     {
-                        "filenamePattern": "*.sensecode.search"
+                        "filenamePattern": "*.raccoon.search"
                     }
                 ]
             }
