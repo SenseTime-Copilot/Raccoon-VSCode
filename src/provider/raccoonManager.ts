@@ -145,6 +145,7 @@ export class RaccoonManager {
             },
             (e: any) => {
               if (e.type === ResponseEvent.error) {
+                window.showErrorMessage(e.data?.choices[0]?.message?.content, l10n.t("Close"));
                 RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()].abort();
                 delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
               } else if (e.type === ResponseEvent.data) {

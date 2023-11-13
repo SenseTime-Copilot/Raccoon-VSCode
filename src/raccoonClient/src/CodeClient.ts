@@ -1,5 +1,4 @@
 export enum ClientType {
-  sensecore = "sensecore",
   sensenova = "sensenova",
   openai = "openai",
   tgi = "tgi"

@@ -170,7 +170,7 @@ export class RaccoonEditor extends Disposable {
     } else {
       let url = await raccoonManager.getAuthUrlLogin();
       let login = `<vscode-link href="${Uri.parse(`command:raccoon.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>`;
-      if (url) {
+      if (!raccoonManager.isSensetimeEnv() && url) {
         login = `<vscode-link href="${url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>`;
       }
       const loginHint = `<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
