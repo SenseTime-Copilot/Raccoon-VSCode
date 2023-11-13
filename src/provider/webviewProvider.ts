@@ -232,7 +232,11 @@ export class RaccoonEditor extends Disposable {
     let sensetimeLogin = "";
     if (!raccoonManager.isClientLoggedin()) {
       if (raccoonManager.isSensetimeEnv()) {
-        sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt102?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
+        if (env.uriScheme === 'vscode') {
+          sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt117?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
+        } else {
+          sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt118?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
+        }
       }
       await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {

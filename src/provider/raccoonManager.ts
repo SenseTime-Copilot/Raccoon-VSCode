@@ -622,7 +622,15 @@ export class RaccoonManager {
         await ca.client.logout(ca.authInfo).then((logoutUrl) => {
           progress.report({ increment: 100 });
           if (logoutUrl) {
-            commands.executeCommand("vscode.open", logoutUrl);
+            if (logoutUrl && logoutUrl === 'SenseTime LDAP') {
+              if (env.uriScheme === 'vscode') {
+                commands.executeCommand("vscode.open", 'https://sso.sensetime.com/enduser/sp/logout/sensetimeplugin_jwt117?enterpriseId=sensetime&force=true');
+              } else {
+                commands.executeCommand("vscode.open", 'https://sso.sensetime.com/enduser/sp/logout/sensetimeplugin_jwt118?enterpriseId=sensetime&force=true');
+              }
+            } else if (logoutUrl) {
+              commands.executeCommand("vscode.open", logoutUrl);
+            }
           }
           if (ca) {
             this.updateToken(ca.client.robotName);

@@ -81,7 +81,7 @@ export class SenseNovaClient implements CodeClient {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
     } else if (auth.account.userIdProvider === 'SenseTime LDAP') {
-      return Promise.resolve('https://sso.sensetime.com/enduser/sp/logout/sensetimeplugin_jwt102?enterpriseId=sensetime&force=true');
+      return Promise.resolve('SenseTime LDAP');
     } else {
       let date = new Date();
       let headers: any = {};

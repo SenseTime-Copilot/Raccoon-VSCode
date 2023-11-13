@@ -1,5 +1,5 @@
 {
-    "raccoon.description": "Raccoon 是一款基于 AI 的代码助手",
+    "raccoon.description": "Raccoon 是一款基于 senseNova 的代码助手",
     "raccoon.config.engines.description": "AI 后端引擎配置列表",
     "raccoon.config.engines.engine.description": "AI 后端引擎配置",
     "raccoon.config.engines.engine.type": "引擎类型",

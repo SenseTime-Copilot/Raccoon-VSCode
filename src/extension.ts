@@ -47,6 +47,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await raccoonManager.initialClients();
 
+  const sender: vscode.TelemetrySender = {
+    flush() {
+    },
+    sendErrorData(_error, _data) {
+    },
+    sendEventData(eventName, _data) {
+      let event = eventName;
+      if (eventName) {
+        if (eventName.startsWith(context.extension.id + "/")) {
+          // eslint-disable-next-line no-unused-vars
+          event = eventName.slice(context.extension.id.length + 1);
+        }
+        //raccoonTelemetry?.sendTelemetry(event, data);
+      }
+    },
+  };
+  telemetryReporter = vscode.env.createTelemetryLogger(sender);
+
   let validateInput = function (v: string) {
     return v ? undefined : "The value must not be empty";
   };
