@@ -207,7 +207,7 @@ export class OpenAIClient implements CodeClient {
               }
             } catch (e: any) {
               if (!tail && e.stack?.startsWith("SyntaxError")) {
-                tail = content;
+                tail = msg;
                 continue;
               }
               throw (e);
