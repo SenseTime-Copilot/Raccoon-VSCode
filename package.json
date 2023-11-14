@@ -12,7 +12,7 @@
         "url": "https://github.com/SenseTime-Copilot/Raccoon/issues"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.60.0",
+    "version": "0.60.1",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
