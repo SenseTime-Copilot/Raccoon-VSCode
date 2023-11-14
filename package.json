@@ -40,9 +40,6 @@
         "ui",
         "workspace"
     ],
-    "extensionDependencies": [
-        "vscode.git"
-    ],
     "contributes": {
         "configuration": [
             {

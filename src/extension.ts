@@ -182,7 +182,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
-      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, { scheme: "untitled" }, { scheme: "git" }],
+      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, { scheme: "untitled" }, { scheme: "git" }, { scheme: "vscode-remote" }],
       inlineProvider
     )
   );
