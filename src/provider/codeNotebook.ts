@@ -471,21 +471,8 @@ export class CodeNotebook {
         if (rootUri) {
           newfile(rootUri, defaultName);
         } else {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          vscode.window.showSaveDialog({ filters: { 'Raccoon Notebook': ['scnb'] } }).then((uri) => {
-            if (uri) {
-              let enc = new TextEncoder();
-              vscode.workspace.fs.writeFile(uri, enc.encode("")).then(
-                () => {
-                  vscode.workspace.openNotebookDocument(uri).then((d) => {
-                    vscode.window.showNotebookDocument(d);
-                  });
-                },
-                () => {
-                  vscode.window.showErrorMessage(`Can not craete file ${uri.toString()}`, vscode.l10n.t("Close"));
-                }
-              );
-            }
+          vscode.workspace.openNotebookDocument(CodeNotebook.notebookType, parseMarkdown(notebookInitialContent)).then((doc) => {
+            vscode.window.showNotebookDocument(doc);
           });
         }
       }

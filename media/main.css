@@ -78,6 +78,10 @@ textarea::placeholder {
     word-break: break-all;
 }
 
+.response:not(.with-code) .diff-element-gnc {
+    display: none;
+}
+
 .prompt p {
     display: inline;
 }

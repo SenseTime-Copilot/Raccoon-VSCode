@@ -214,10 +214,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     });
 
     let exist = await this.getSnippetItems(snippet.id);
-    let shortcut;
-    if (exist[snippet.id]) {
-      shortcut = exist[snippet.id].shortcut;
-    }
+    let shortcut = exist[snippet.id]?.shortcut || snippet.shortcut;
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
     const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
