@@ -1,16 +1,15 @@
 import * as vscode from "vscode";
-import { transpile } from "typescript";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
 
 import { raccoonManager } from "../extension";
-import { Message, Role } from "../raccoonClient/src/CodeClient";
-import { ModelCapacity } from "./raccoonManager";
+import { Message } from "../raccoonClient/src/CodeClient";
+import { RaccoonRunner } from "./raccoonToolset";
 
 const decoder = new TextDecoder();
 
 const roleIcon: { [key: string]: string } = {
   'user': '😶',
-  'assistant': '🤖'
+  'assistant': '🦝'
 };
 
 class CodeNotebookSerializer implements vscode.NotebookSerializer {
@@ -25,121 +24,6 @@ class CodeNotebookSerializer implements vscode.NotebookSerializer {
   }
 }
 
-interface Agent {
-  fn: { [key: string]: (...args: any) => Promise<Message> };
-}
-
-class VscodeAgent implements Agent {
-  fn: { [key: string]: (...args: any) => Promise<Message> };
-
-  constructor(private readonly exe: vscode.NotebookCellExecution) {
-    this.fn = {
-      'files': this.files,
-      'show': this.show
-    };
-  }
-
-  private async files(args: { recursive: number }): Promise<Message> {
-    let n = 0;
-    let maxdepth = args.recursive ?? 1;
-    let wfs = vscode.workspace.workspaceFolders;
-    if (wfs && wfs[0]) {
-      let files: vscode.Uri[] = [];
-      async function readFiles(uri: vscode.Uri) {
-        n++;
-        if (n > maxdepth) {
-          return;
-        }
-        await vscode.workspace.fs.readDirectory(uri).then(async (fs) => {
-          for (let v of fs) {
-            if (v[1] === vscode.FileType.Directory) {
-              await readFiles(vscode.Uri.joinPath(uri, v[0]));
-            } else {
-              files.push(vscode.Uri.joinPath(uri, v[0]));
-            }
-          }
-        });
-      }
-      await readFiles(wfs[0].uri);
-      let allfiles = files.map((v, _i, _a) => {
-        return v.toString();
-      });
-      return { role: Role.user, content: allfiles.join('\n') };
-    }
-    return Promise.resolve({ role: Role.user, content: '' });
-  }
-
-  private show(args: { path: string; beside?: boolean }): Promise<Message> {
-    return new Promise<Message>((resolve, reject) => {
-      vscode.workspace.openTextDocument(vscode.Uri.parse(args.path))
-        .then((doc) => {
-          vscode.window.showTextDocument(doc, args.beside ? vscode.ViewColumn.Beside : undefined)
-            .then((_) => {
-              resolve({ role: Role.assistant, content: "ok" });
-            }, () => {
-              reject("showTextDocument failed");
-            });
-        }, () => {
-          reject("openTextDocument failed");
-        });
-    });
-  }
-}
-
-class LlmAgent {
-  fn: { [key: string]: (...args: any) => Promise<Message> };
-  private abortController: AbortController;
-
-  constructor(private readonly exe: vscode.NotebookCellExecution, private readonly id: string) {
-    this.abortController = new AbortController();
-    exe.token.onCancellationRequested((_e) => {
-      this.abortController.abort();
-    });
-    this.fn = {
-      'user': this.user,
-      'completion': this.completion,
-      'assistant': this.assistant,
-    };
-  }
-
-  private async completion(args: { prompt: string }): Promise<Message> {
-    return raccoonManager
-      .getCompletions(ModelCapacity.completion, { messages: [{ role: Role.completion, content: args.prompt }] }, { signal: this.abortController.signal }, this.id)
-      .then((resp) => {
-        if (resp.choices[0]?.message) {
-          return resp.choices[0]?.message;
-        } else {
-          throw Error();
-        }
-      });
-  }
-
-  private user(args: { content: string }): Promise<Message> {
-    return Promise.resolve({ role: Role.user, content: args.content });
-  }
-
-  private async assistant(args: { messages: Message[] }): Promise<Message> {
-    return raccoonManager
-      .getCompletions(ModelCapacity.assistant, { messages: args.messages }, { signal: this.abortController.signal }, this.id)
-      .then((resp) => {
-        if (resp.choices[0]?.message) {
-          return resp.choices[0]?.message;
-        } else {
-          throw Error();
-        }
-      });
-  }
-}
-
-interface NotebookContext {
-  llm: any;
-  ide: any;
-  output: {
-    [key: number]: Message;
-  };
-  outputs: Message[];
-}
-
 class CodeNotebookController {
   private controller: vscode.NotebookController;
 
@@ -151,14 +35,6 @@ class CodeNotebookController {
     context.subscriptions.push(this.controller);
   }
 
-  static readonly proxyhandler: ProxyHandler<Agent> = {
-    get(t, p, _r) {
-      if (typeof (p) === 'string') {
-        return t.fn[p]?.bind(t);
-      }
-    }
-  };
-
   execute(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController) {
     for (const cell of cells) {
       let execution = controller.createNotebookCellExecution(cell);
@@ -169,12 +45,15 @@ class CodeNotebookController {
         execution.end(undefined);
         continue;
       }
-      let llm = new Proxy(new LlmAgent(execution, this.robot), CodeNotebookController.proxyhandler);
-      let ide = new Proxy(new VscodeAgent(execution), CodeNotebookController.proxyhandler);
       let output: { [key: number]: Message } = {};
-      let outputs: Message[] = [];
       for (let i = 0; i < cell.index; i++) {
         let ci = notebook.cellAt(i);
+        if (ci.kind === vscode.NotebookCellKind.Markup) {
+          let content = ci.document.getText();
+          if (/^\s*\-{3,}\s*$/.test(content) || /^\s*\*{3,}\s*$/.test(content)) {
+            output = {};
+          }
+        }
         if (ci.kind === vscode.NotebookCellKind.Markup || !ci.outputs[0]) {
           continue;
         }
@@ -182,112 +61,51 @@ class CodeNotebookController {
           if (m.mime === 'text/x-json') {
             let content = JSON.parse(decoder.decode(m.data));
             output[i] = content;
-            outputs.push(content);
             break;
           }
         }
       }
-      let ctx: NotebookContext = { llm, ide, output, outputs };
-      this.compileAndRun(execution, ctx).then((result: vscode.NotebookCellOutput) => {
-        execution.replaceOutput([result]);
+      let abortController = new AbortController();
+      execution.token.onCancellationRequested((_e) => {
+        abortController.abort();
+      });
+      RaccoonRunner.run(output, cell.document.languageId, cell.document.getText(), abortController).then((result: Message) => {
+        if (result) {
+          let outputItems = new vscode.NotebookCellOutput([
+            vscode.NotebookCellOutputItem.text(`${roleIcon[result.role] || result.role} \`${new Date().toLocaleString()}\`\n\n${result.content}`, "text/markdown"),
+            vscode.NotebookCellOutputItem.text(JSON.stringify(result, null, 2), "text/x-json")
+          ]);
+          execution.replaceOutput([outputItems]);
+        }
         execution.end(true, Math.floor(new Date().getTime()));
-      }).catch((err) => {
-        execution.replaceOutput([err]);
+      }).catch((err: string) => {
+        let errResult = new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr(err)]);
+        execution.replaceOutput([errResult]);
         execution.end(false, Math.floor(new Date().getTime()));
       });
     }
   }
 
-  private parseRaccoon(doc: vscode.TextDocument) {
-    let lines = doc.lineCount;
-    let parameters: string[] = [];
-    let agent = '';
-    let fn = '';
-    for (let i = 0; i < lines; i++) {
-      let line = doc.lineAt(i);
-      if (line.isEmptyOrWhitespace) {
-        break;
-      }
-      if (line.text.trim().startsWith("//")) {
-        continue;
-      }
-      let p = /^@([A-Za-z]\w*)\.(\S*).*$/.exec(line.text);
-      if (p) {
-        agent = p[1];
-        fn = p[2];
-      } else {
-        parameters.push(line.text);
-      }
-    }
-    return `(context: NotebookContext): Promise<Message> => {\n` +
-      `  let output = context.output;\n` +
-      `  let outputs = context.outputs;\n` +
-      `  return context.${agent}['${fn}']({\n` +
-      `    ${parameters.join(',\n    ')}\n` +
-      `  });\n` +
-      `}`;
-  }
-
-  private compileAndRun(execution: vscode.NotebookCellExecution, ctx: NotebookContext): Promise<vscode.NotebookCellOutput> {
-    let body: string = execution.cell.document.getText();
-    let gencode: string | undefined;
-    if (body && body.length > 0) {
-      return new Promise<vscode.NotebookCellOutput>((resolve, reject) => {
-        let code = '';
-        if (execution.cell.document.languageId === 'raccoon') {
-          gencode = this.parseRaccoon(execution.cell.document);
-          if (!gencode) {
-            return reject(new Error("Illegal code"));
-          }
-        } else if (execution.cell.document.languageId === 'typescript') {
-          gencode = body;
-        }
-        code = transpile(`
-          ({
-              __cell_code__: (context: NotebookContext): Promise<Message> =>
-              {
-                return new Promise<Message>((resolve, reject) => {
-                  resolve((${gencode})(context));
-                });
-              }
-          })`);
-
-        let runnalbe: any = eval(code);
-        runnalbe.__cell_code__(ctx).then((output: Message) => {
-          if (output) {
-            let result = new vscode.NotebookCellOutput([
-              vscode.NotebookCellOutputItem.text(`${roleIcon[output.role] || output.role} \`${new Date().toLocaleString()}\`\n\n${output.content}`, "text/markdown"),
-              vscode.NotebookCellOutputItem.text(JSON.stringify(output, null, 2), "text/x-json")
-            ]);
-            if (gencode) {
-              let comment = output.content
-                .split('\n')
-                .map((line, _idx, _arr) => { return `// ${line}`; })
-                .join('\n');
-              result.items.push(
-                vscode.NotebookCellOutputItem.text(gencode + '\n' + comment, "text/x-typescript"),
-              );
-            }
-            resolve(result);
-          }
-        }, (reason: string) => {
-          let errResult = new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr(reason + (gencode ? `\n\`\`\`typescript\n${gencode}\n\`\`\`` : ''))]);
-          if (gencode) {
-            errResult.items.push(vscode.NotebookCellOutputItem.text(gencode, "text/x-typescript"));
-          }
-          reject(errResult);
-        });
-      });
-    } else {
-      let errResult = new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr("Illegal code" + (gencode ? `\n\`\`\`typescript\n${gencode}\n\`\`\`` : ''))]);
-      if (gencode) {
-        errResult.items.push(vscode.NotebookCellOutputItem.text(gencode, "text/x-typescript"));
-      }
-      return Promise.reject(errResult);
-    }
-  }
-
   dispose(): void {
+  }
+}
+
+class CodeNotebookCellStatusBarItemProvider implements vscode.NotebookCellStatusBarItemProvider {
+  onDidChangeCellStatusBarItems?: vscode.Event<void> | undefined;
+  provideCellStatusBarItems(cell: vscode.NotebookCell, _token: vscode.CancellationToken): vscode.ProviderResult<vscode.NotebookCellStatusBarItem | vscode.NotebookCellStatusBarItem[]> {
+    if (cell.document.languageId === 'raccoon') {
+      let reg = new vscode.NotebookCellStatusBarItem('🦝', vscode.NotebookCellStatusBarAlignment.Right);
+      reg.command = {
+        title: '',
+        command: "vscode.open",
+        arguments: [
+          vscode.Uri.parse(`raccoon://code/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
+        ]
+      };
+      reg.tooltip = vscode.l10n.t("Show Transpiled Typescript Code");
+      reg.priority = -1;
+      return [reg];
+    }
   }
 }
 
@@ -296,7 +114,7 @@ const notebookInitialContent =
 
 Raccoon Notebook 为您提供了交互式的代码执行体验，帮助您快速验证想法，或沉淀有用的流程。
 
-在 Raccoon Notebook 中，您可以创建 Markdown 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`Raccoon 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
+在 Raccoon Notebook 中，您可以创建 \`Markdown\` 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`Raccoon 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
 
 ### 支持的模块和接口
 
@@ -313,16 +131,16 @@ interface Message {
 
 | Raccoon Directive | TypeScript Interface                        | Description                                                                                 |
 |---------------------|---------------------------------------------|---------------------------------------------------------------------------------------------|
-| \`@llm.user\`         | \`llm.user({content: string})\`               | 生成用户提示消息, 参数为用户消息内容                                                        |
 | \`@llm.assistant\`    | \`llm.assistant({messages: Message[]})\`      | 调用远端语言模型问答接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
-| \`@llm.completion\`   | \`llm.completion({messages: Message[]})\`     | 调用远端语言模型补全接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
+| \`@llm.completion\`   | \`llm.completion({prompt: string})\`          | 调用远端语言模型补全接口, 参数为需要发送的提示内容                                          |
+| \`@ide.input\`        | \`ide.input({prompt: string})\`               | 请求用户输入, 参数为提示信息内容                                                            |
 | \`@ide.files\`        | \`ide.files({recursive: number})\`            | 列举当前工作目录文件, 参数为最大遍历深度                                                    |
 | \`@ide.show\`         | \`ide.show({path: string; beside: boolean})\` | 打开指定的文件, 参数为需要打开文件的路径, 及是否在侧边打开文件                              |
 
-Raccoon Notebook 为每个单元格提供了 \`NotebookContext\` 上下文信息，以便调用以上接口，其中同时也提供了当前单元格之前的已运行单元格的输出信息，其详细定义如下:
+Raccoon Notebook 为每个单元格提供了 \`RaccoonContext\` 上下文信息，以便调用以上接口，其中同时也提供了当前单元格之前的已运行单元格的输出信息，其详细定义如下:
 
 \`\`\`ts readonly
-interface NotebookContext {
+interface RaccoonContext {
     llm: any;
     ide: any;
     output: { // output 映射，可以通过执行后的输出索引号获取对应的消息
@@ -339,26 +157,17 @@ interface NotebookContext {
 \`\`\`raccoon
 // 调用 llm 的 assistant 能力回答用户问题
 @llm.assistant // 指令格式 \`@<module>.<function>\`
-messages: [{role: 'user', content: \`将'你好'翻译成英文\`}] // 参数
+messages: [{role: "user", content: "将'你好'翻译成英文"}] // 通过 \`output[]\` 来使用指定的上文信息
 \`\`\`
 
 保证网络和登录状态正常，执行以上单元格，即可获取远端语言模型的回复。
 
-也可以使用上下文信息中的 \`output\` 及 \`outputs\` 来用于其后的问答:
-
-\`\`\`raccoon
-@llm.user
-content: "那法语呢?"
-\`\`\`
-
-执行以上单元格，将输出一个用户指令，我们可以在后续单元格中使用其输出：
+我们可以在后续单元格中使用 \`output\` 及 \`outputs\` 来引用上文输出:
 
 \`\`\`raccoon
 @llm.assistant
-messages: outputs // 通过 \`outputs\` 来使用上文全部信息
+messages: [...outputs, {{role: "user", content: "那法语呢?"}] // 通过 \`outputs\` 来使用上文全部信息
 \`\`\`
-
-保证网络和登录状态正常，执行以上单元格，即可获取远端语言模型的回复。
 
 输出结果单元格的显示形式可以按喜好切换:
 
@@ -369,24 +178,17 @@ messages: outputs // 通过 \`outputs\` 来使用上文全部信息
 
 ### \`TypeScript\` 代码
 
-为了实现具体功能，您可以在代码单元格内使用符合以下合约形式的 \`TypeScript\` 代码：
+为了实现具体功能，您可以在创建 \`Typescript\` 类型的代码单元格，并实现符合以下合约形式的代码：
 
 \`\`\`ts
-// 海拔查询器
-(context: NotebookContext): Promise<Message> => {
-    return context.llm.user({content: '海拔是多少'})
+(context: RaccoonContext): Promise<Message> => {
+    return context.llm.assistant({messages: [{role: 'user', content: "珠穆朗玛峰海拔是多少?"}]})
 }
 \`\`\`
 
 \`\`\`ts
-(context: NotebookContext): Promise<Message> => {
-    return context.llm.assistant({messages: [{role: 'user', content: "珠穆朗玛峰" + context.output[23].content}]})
-}
-\`\`\`
-
-\`\`\`ts
-(context: NotebookContext): Promise<Message> => {
-    return context.llm.assistant({messages: [{role: 'user', content: "乞力马扎罗峰" + context.output[23].content}]})
+(context: RaccoonContext): Promise<Message> => {
+    return context.llm.assistant({messages: [{role: 'user', content: "乞力马扎罗峰海拔是多少?"}]})
 }
 \`\`\`
 
@@ -394,10 +196,10 @@ messages: outputs // 通过 \`outputs\` 来使用上文全部信息
 
 \`\`\`ts
 // 海拔差计算器
-(context: NotebookContext): Promise<Message> => {
+(context: RaccoonContext): Promise<Message> => {
   return new Promise<Message>((resolve, reject) => {
-      let h1 = /([0-9,]+)米/.exec(context.output[24].content);
-      let h2 = /([0-9,]+)米/.exec(context.output[25].content);
+      let h1 = /([0-9,]+)米/.exec(context.output[20].content);
+      let h2 = /([0-9,]+)米/.exec(context.output[21].content);
       if (h1 && h2) {
           let h1num = parseInt(h1[0].replace(',', ''));
           let h2num = parseInt(h2[0].replace(',', ''));
@@ -417,9 +219,14 @@ recursive: 2
 \`\`\`
 
 \`\`\`raccoon
+@ide.input
+prompt: "open beside? (yes/no)"
+\`\`\`
+
+\`\`\`raccoon
 @ide.show
-path: \`\${output[30].content.split('\\n')[0]}\`
-beside: true
+path: \`\${output[26].content.split('\\n')[0]}\`
+beside: output[27].content === 'yes'
 \`\`\`
 
 `;
@@ -434,6 +241,37 @@ export class CodeNotebook {
         context.subscriptions.push(ctrl);
       }
     }
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('raccoon', {
+      provideTextDocumentContent(uri: vscode.Uri, _token: vscode.CancellationToken) {
+        let code = uri.fragment;
+        let ts = RaccoonRunner.parseRaccoon('raccoon', code);
+        if (ts) {
+          return `interface Message {
+     role: string;
+     content: string;
+ }
+
+ interface RaccoonContext {
+     llm: any;
+     ide: any;
+     output: {
+         [key: number]: Message;
+     };
+     outputs: Message[];
+ }\n\n` + ts;
+        }
+      }
+    }));
+    context.subscriptions.push(vscode.notebooks.registerNotebookCellStatusBarItemProvider(CodeNotebook.notebookType, new CodeNotebookCellStatusBarItemProvider()));
+    context.subscriptions.push(vscode.commands.registerCommand("raccoon.notebook.register", (ne: any) => {
+      if (ne.notebookEditor) {
+        vscode.workspace.fs.readFile(ne.notebookEditor.notebookUri).then((data) => {
+          let content = decoder.decode(data);
+          RaccoonRunner.runChain(parseMarkdown(content), {});
+        });
+      }
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand("raccoon.notebook.new",
       () => {
         if (!context.extension.isActive) {
@@ -447,7 +285,7 @@ export class CodeNotebook {
 
         let count = 0;
         function newfile(root: vscode.Uri, name: string) {
-          let uri = vscode.Uri.joinPath(root, `${name}.scnb`);
+          let uri = vscode.Uri.joinPath(root, `${name}.rcnb`);
           vscode.workspace.fs.stat(uri).then(
             (_stat) => {
               count++;
@@ -458,7 +296,7 @@ export class CodeNotebook {
               vscode.workspace.fs.writeFile(uri, enc.encode(notebookInitialContent)).then(
                 () => {
                   vscode.workspace.openNotebookDocument(uri).then((d) => {
-                    vscode.window.showNotebookDocument(d);
+                    vscode.window.showNotebookDocument(d, { preview: false });
                   });
                 },
                 () => {
@@ -471,8 +309,8 @@ export class CodeNotebook {
         if (rootUri) {
           newfile(rootUri, defaultName);
         } else {
-          vscode.workspace.openNotebookDocument(CodeNotebook.notebookType, parseMarkdown(notebookInitialContent)).then((doc) => {
-            vscode.window.showNotebookDocument(doc);
+          vscode.workspace.openNotebookDocument(CodeNotebook.notebookType, parseMarkdown(notebookInitialContent)).then((doc: vscode.NotebookDocument) => {
+            vscode.window.showNotebookDocument(doc, { preview: false });
           });
         }
       }

@@ -126,5 +126,6 @@
   "Code Conversion": "代码翻译",
   "Convert the given code to equivalent {0} code": "将以下代码改写为等价的 {0} 代码",
   "Refactoring": "代码重构",
-  "Refactor the following code to make its structure clearer, easier to read, and maintain": "重构以下代码, 使其结构更加清晰, 更易于阅读和维护"
+  "Refactor the following code to make its structure clearer, easier to read, and maintain": "重构以下代码, 使其结构更加清晰, 更易于阅读和维护",
+  "Show Transpiled Typescript Code": "显示转译后的 Typescript 代码"
 }

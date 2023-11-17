@@ -1,4 +1,4 @@
-import axios, { ResponseType } from "axios";
+import axios, { AxiosError, ResponseType } from "axios";
 import { IncomingMessage } from "http";
 import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
 import { handleStreamError, ResponseDataBuilder } from "./handleStreamError";
@@ -225,7 +225,7 @@ export class OpenAIClient implements CodeClient {
           })
         );
       }
-    }, (error: Error) => {
+    }, (error: AxiosError) => {
       handleStreamError(error, callback);
     }
     );

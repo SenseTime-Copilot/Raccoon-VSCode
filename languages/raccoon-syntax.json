@@ -6,6 +6,9 @@
 			"include": "#meta"
 		},
 		{
+			"include": "#object-member"
+		},
+		{
 			"include": "#directives"
 		},
 		{

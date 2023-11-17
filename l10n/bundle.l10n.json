@@ -126,5 +126,6 @@
   "Code Conversion": "Code Conversion",
   "Convert the given code to equivalent {0} code": "Convert the given code to equivalent {0} code",
   "Refactoring": "Refactoring",
-  "Refactor the following code to make its structure clearer, easier to read, and maintain": "Refactor the following code to make its structure clearer, easier to read, and maintain"
+  "Refactor the following code to make its structure clearer, easier to read, and maintain": "Refactor the following code to make its structure clearer, easier to read, and maintain",
+  "Show Transpiled Typescript Code": "Show Transpiled Typescript Code"
 }

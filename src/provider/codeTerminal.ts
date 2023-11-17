@@ -105,6 +105,7 @@ export class RaccoonTerminal {
               this.cancel?.abort();
               this.responsing = false;
               writeEmitter.fire('\r\n');
+              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
             } else {
               if (this.cacheInput) {
                 this.cacheInput = '';

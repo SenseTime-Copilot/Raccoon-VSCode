@@ -79,7 +79,7 @@ export class RaccoonEditor extends Disposable {
   private cache: HistoryCache;
 
   private isSupportedScheme(d: TextDocument) {
-    return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-userdata");
+    return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-notebook-cell" || d.uri.scheme === "vscode-userdata");
   }
 
   constructor(private readonly context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {

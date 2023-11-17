@@ -1,4 +1,4 @@
-import axios, { ResponseType } from "axios";
+import axios, { AxiosError, ResponseType } from "axios";
 import jwt_decode from "jwt-decode";
 import sign = require('jwt-encode');
 import { IncomingMessage } from "http";
@@ -421,7 +421,7 @@ export class SenseNovaClient implements CodeClient {
           data: new ResponseDataBuilder().append({ role: Role.assistant, content: "Unexpected response format" }).data
         }));
       }
-    }, (error: Error) => {
+    }, (error: AxiosError) => {
       handleStreamError(error, callback);
     });
   }

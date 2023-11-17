@@ -1,4 +1,4 @@
-import axios from "axios";
+import  { AxiosError } from "axios";
 import { ResponseData, Role, ResponseEvent, Message, FinishReason } from "./CodeClient";
 import { IncomingMessage } from "http";
 
@@ -28,10 +28,8 @@ export class ResponseDataBuilder {
   }
 }
 
-export function handleStreamError(error: Error, callback: (event: MessageEvent<ResponseData>) => void): void {
-  if (axios.isCancel(error)) {
-    callback(new MessageEvent(ResponseEvent.cancel));
-  } else if (axios.isAxiosError(error) && error.response && (error.response.data instanceof IncomingMessage)) {
+export function handleStreamError(error: AxiosError, callback: (event: MessageEvent<ResponseData>) => void): void {
+  if (error.response && (error.response.data instanceof IncomingMessage)) {
     error.response.data.on('data', async (v: any) => {
       let errInfo = error.response?.statusText || error.message;
       let msgstr: string = v.toString();
