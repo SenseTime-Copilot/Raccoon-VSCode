@@ -699,7 +699,7 @@ export class RaccoonManager {
   }
 
   public get completionPreference(): CompletionPreferenceType {
-    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.speedPriority);
+    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.bestEffort);
   }
 
   public set completionPreference(v: CompletionPreferenceType) {
@@ -751,7 +751,7 @@ export class RaccoonManager {
   }
 
   public get delay(): number {
-    return this.context.globalState.get("Delay", 3);
+    return this.context.globalState.get("Delay", 1);
   }
 
   public set delay(v: number) {

@@ -169,30 +169,26 @@ export class RaccoonEditor extends Disposable {
       username = ` @${name}`;
     } else {
       let url = await raccoonManager.getAuthUrlLogin();
-      let login = `<vscode-link href="${Uri.parse(`command:raccoon.settings`)}"><span class="material-symbols-rounded">settings</span></vscode-link>`;
+      let login = `<span class="material-symbols-rounded grow text-right">settings</span>`;
       if (!raccoonManager.isSensetimeEnv() && url) {
-        login = `<vscode-link href="${url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>`;
+        login = `<span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>`;
+      } else {
+        url = `command:raccoon.settings`;
       }
-      const loginHint = `<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+      const loginHint = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${url}">
             <span class='material-symbols-rounded'>person</span>
-            <div class='inline-block leading-loose'>
-              ${l10n.t("Login to <b>{0}</b>", robot)}
-            </div>
-            <div class="flex grow justify-end">
-              ${login}
-            </div>
-          </div>`;
+            <div class='inline-block leading-loose'>${l10n.t("Login to <b>{0}</b>", robot)}</div>
+            ${login}
+          </a>`;
       detail += loginHint;
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
       + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');">Ctrl</kbd>`)}</div>`
-      + `<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+      + `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" onclick='vscode.postMessage({type: "sendQuestion", prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'>
   <span class="material-symbols-rounded">celebration</span>
   <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
-  <div class="flex grow justify-end">
-    <vscode-link href='#' onclick='vscode.postMessage({type: "sendQuestion", prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
-  </div>
-</div>`;
+  <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
+</a>`;
     this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg + detail, timestamp });
   }
 
@@ -323,17 +319,17 @@ export class RaccoonEditor extends Disposable {
           <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
             ${l10n.t("Auto")}
             <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
-              <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" style="margin: -4px 0;" title="${l10n.t("Short delay")}">
+              <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" title="${l10n.t("Short delay")}" style="position: absolute; margin: -2px 4px;">
                 <span id="triggerDelayShort" class="material-symbols-rounded">timer</span>
               </vscode-link>
-              <vscode-link id="triggerDelayLongBtn" class="${delay !== 1 ? "" : "hidden"}" style="margin: -4px 0;" title="${l10n.t("Delay 3 senconds")}">
+              <vscode-link id="triggerDelayLongBtn" class="${delay !== 1 ? "" : "hidden"}" title="${l10n.t("Delay 3 senconds")}" style="position: absolute; margin: -2px 4px;">
                 <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
               </vscode-link>
             </span>
           </vscode-radio>
           <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
             ${l10n.t("Manual")}
-            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" style="margin: -4px 0;" title="${l10n.t("Set keyboard shortcut")}">
+            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}" style="position: absolute; margin: -2px 4px;">
               <span class="material-symbols-rounded">keyboard</span>
             </vscode-link>
           </vscode-radio>
@@ -344,14 +340,14 @@ export class RaccoonEditor extends Disposable {
       <div>
         <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
           <label slot="label">${l10n.t("Completion Preference")}</label>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
-            ${l10n.t("Speed Priority")}
+          <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
+            ${l10n.t("Best Effort")}
           </vscode-radio>
           <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
             ${l10n.t("Balanced")}
           </vscode-radio>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
-            ${l10n.t("Best Effort")}
+          <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
+            ${l10n.t("Speed Priority")}
           </vscode-radio>
         </vscode-radio-group>
       </div>
@@ -491,14 +487,11 @@ export class RaccoonEditor extends Disposable {
                 let id = tm.valueOf();
                 let timestamp = tm.toLocaleString();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
-                let helplink = `
-<div class="flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
-  <span class="material-symbols-rounded">book</span>
-  <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
-  <div class="flex grow justify-end">
-    <vscode-link href="${env.uriScheme}:extension/${this.context.extension.id}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
-  </div>
-</div>`;
+                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${env.uriScheme}:extension/${this.context.extension.id}">
+                <span class="material-symbols-rounded">book</span>
+                <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
+                <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
+              </a>`;
                 this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + helplink, timestamp });
                 this.sendMessage({ type: 'stopResponse', id });
                 break;
@@ -654,7 +647,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({title: `Favorite Snippet [${data.id}]`}))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snippet [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'telemetry': {
@@ -981,21 +974,21 @@ ${data.info.response[0]}
                   <div id="ask-list" class="flex flex-col hidden">
                   </div>
                   <div id="question" class="w-full flex justify-center items-center">
-                    <span class="material-symbols-rounded opacity-40 history-icon">
+                    <span class="material-symbols-rounded opacity-60 history-icon">
                       history
                     </span>
                     <div class="op-hint">
-                      <div class="search-hint">
-                        <span class="material-symbols-rounded">keyboard_return</span> Enter ${l10n.t("Search")}
+                      <div class="search-hint items-center">
+                        <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Search")}
                       </div>
-                      <div class="history-hint trigger">
-                        <span class="material-symbols-rounded">keyboard_return</span> Enter ${l10n.t("Send")}
+                      <div class="history-hint  items-center">
+                      <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Send")}
                       </div>
-                      <div class="history-hint">
-                        <span class="material-symbols-rounded">keyboard_tab</span> Tab ${l10n.t("Revise")}
+                      <div class="history-hint items-center">
+                      <kbd><span class="material-symbols-rounded">keyboard_tab</span>Tab</kbd>${l10n.t("Revise")}
                       </div>
-                      <div class="history-hint">
-                      <span class="material-symbols-rounded">first_page</span> Esc ${l10n.t("Clear")}
+                      <div class="history-hint items-center">
+                        <kbd><span class="material-symbols-rounded">first_page</span>Esc</kbd>${l10n.t("Clear")}
                       </div>
                       <div id="code-hint" title="${l10n.t("Code attached")}">
                         <span class="material-symbols-rounded">code</span>

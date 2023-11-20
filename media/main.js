@@ -110,14 +110,14 @@ const vscode = acquireVsCodeApi();
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
                                 <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${username}</b>
-                                  <div class="opacity-30 leading-3">
+                                  <div class="opacity-60 leading-3">
                                     ${timestamp}
                                   </div>
                                 </span>
                               </span>
                               <div class="-mt-6 ml-1">
-                                <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-30 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
-                                <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-30 hover:opacity-100">${cancelIcon}</button>
+                                <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-60 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
+                                <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-60 hover:opacity-100">${cancelIcon}</button>
                               </div>
                             </h2>`;
     return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${status}">
@@ -312,7 +312,7 @@ const vscode = acquireVsCodeApi();
                                 ${aiIcon}
                                 <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${item.name}</b>
-                                  <div class="response-ts opacity-30 leading-3">
+                                  <div class="response-ts opacity-60 leading-3">
                                     ${item.timestamp}
                                   </div>
                                 </span>
@@ -455,7 +455,7 @@ const vscode = acquireVsCodeApi();
             chat.dataset['name'] = message.robot;
             chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-                      <span class="flex gap-1 opacity-30 items-center">
+                      <span class="flex gap-1 opacity-60 items-center">
                         <div class="spinner thinking">
                           <div class='sk-cube-grid'>
                             <div class='sk-cube sk-cube-1'></div>
@@ -481,7 +481,7 @@ const vscode = acquireVsCodeApi();
             if (message.streaming === true) {
               progress = `
             <div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
-              <span class="flex gap-1 opacity-30 items-center">
+              <span class="flex gap-1 opacity-60 items-center">
                 <div class="spinner connecting">
                   <span class="material-symbols-rounded">autorenew</span>
                 </div>
@@ -514,7 +514,7 @@ const vscode = acquireVsCodeApi();
                                       ${aiIcon}
                                       <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                         <b class="text-sm">${message.robot}</b>
-                                        <div class="response-ts opacity-30 leading-3">
+                                        <div class="response-ts opacity-60 leading-3">
                                           <span class="material-symbols-rounded">
                                             more_horiz
                                           </span>
@@ -673,7 +673,7 @@ const vscode = acquireVsCodeApi();
                                 ${aiIcon}
                                 <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${message.robot}</b>
-                                  <div class="opacity-30 leading-3">
+                                  <div class="opacity-60 leading-3">
                                     ${message.timestamp}
                                   </div>
                                 </span>
