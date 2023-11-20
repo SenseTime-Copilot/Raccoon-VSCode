@@ -122,33 +122,34 @@ Raccoon Notebook 为您提供了交互式的代码执行体验，帮助您快速
 
 \`\`\`ts readonly
 interface Message {
-    role: string;
-    content: string;
+  role: string;
+  content: string;
 }
 \`\`\`
 
-以下是当前支持的指令和接口列表：
-
-| Raccoon Directive | TypeScript Interface                        | Description                                                                                 |
-|---------------------|---------------------------------------------|---------------------------------------------------------------------------------------------|
-| \`@llm.assistant\`    | \`llm.assistant({messages: Message[]})\`      | 调用远端语言模型问答接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
-| \`@llm.completion\`   | \`llm.completion({prompt: string})\`          | 调用远端语言模型补全接口, 参数为需要发送的提示内容                                          |
-| \`@ide.input\`        | \`ide.input({prompt: string})\`               | 请求用户输入, 参数为提示信息内容                                                            |
-| \`@ide.files\`        | \`ide.files({recursive: number})\`            | 列举当前工作目录文件, 参数为最大遍历深度                                                    |
-| \`@ide.show\`         | \`ide.show({path: string; beside: boolean})\` | 打开指定的文件, 参数为需要打开文件的路径, 及是否在侧边打开文件                              |
-
-Raccoon Notebook 为每个单元格提供了 \`RaccoonContext\` 上下文信息，以便调用以上接口，其中同时也提供了当前单元格之前的已运行单元格的输出信息，其详细定义如下:
+Raccoon Notebook 为每个单元格提供了 \`RaccoonContext\` 上下文信息，其中提供了工具函数入口及已运行单元格的输出信息，其详细定义如下:
 
 \`\`\`ts readonly
 interface RaccoonContext {
-    llm: any;
-    ide: any;
-    output: { // output 映射，可以通过执行后的输出索引号获取对应的消息
-        [key: number]: Message;
-    };
-    outputs: Message[]; // 前序所有输出消息的列表
+  llm: any; // LLM 工具函数入口
+  ide: any; // IDE 工具函数入口
+  output: { // output 映射，可以通过执行后的输出索引号获取对应的消息
+    [key: number]: Message; // 以 Cell Index 为 key 的输出消息映射
+  };
+  outputs: Message[]; // 前序所有输出消息的列表
 }
 \`\`\`
+
+以下是当前支持的工具函数列表：
+
+| Raccoon Directive   | TypeScript Interface                           | Description                                                                                 |
+|---------------------|------------------------------------------------|---------------------------------------------------------------------------------------------|
+| \`@llm.assistant\`    | \`llm.assistant({messages: Message[]})\`         | 调用远端语言模型问答接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
+| \`@llm.completion\`   | \`llm.completion({prompt: string})\`             | 调用远端语言模型补全接口, 参数为需要发送的提示内容                                          |
+| \`@ide.input\`        | \`ide.input({prompt: string})\`                  | 请求用户输入, 参数为提示信息内容                                                            |
+| \`@ide.select\`       | \`ide.select({items: string[]; title: string})\` | 请求用户输入, 参数为提示信息内容                                                            |
+| \`@ide.files\`        | \`ide.files({recursive: number})\`               | 列举当前工作目录文件, 参数为最大遍历深度                                                    |
+| \`@ide.show\`         | \`ide.show({path: string; beside: boolean})\`    | 打开指定的文件, 参数为需要打开文件的路径, 及是否在侧边打开文件                              |
 
 ### \`Raccoon 指令\`
 
@@ -169,12 +170,12 @@ messages: [{role: "user", content: "将'你好'翻译成英文"}] // 通过 \`ou
 messages: [...outputs, {{role: "user", content: "那法语呢?"}] // 通过 \`outputs\` 来使用上文全部信息
 \`\`\`
 
-输出结果单元格的显示形式可以按喜好切换:
+\`Raccoon 指令\` 本质是将指令转译为下文将会介绍的 \`TypeScript\` 代码执行，可以点击单元格底部 \`🦝\` 可查看转译结果。
+
+输出结果显示形式可以通过输出单元格前的配置菜单，按喜好切换:
 
 * \`JSON (text/x-json)\`: 将输出的 \`Message\` 信息以 \`JSON\` 格式渲染
 * \`Markdown (text/markdown)\`: 将输出的 \`Message\` 信息以 \`Markdown\` 格式渲染
-* \`Typescript (text/x-typescript)\`: 对于 \`Raccoon 指令\` 单元格，本质是将指令转译为下文将会介绍的 \`TypeScript\` 代码执行，该模式可查看体转译后的代码结果
-
 
 ### \`TypeScript\` 代码
 
@@ -182,13 +183,13 @@ messages: [...outputs, {{role: "user", content: "那法语呢?"}] // 通过 \`ou
 
 \`\`\`ts
 (context: RaccoonContext): Promise<Message> => {
-    return context.llm.assistant({messages: [{role: 'user', content: "珠穆朗玛峰海拔是多少?"}]})
+  return context.llm.assistant({messages: [{role: 'user', content: "珠穆朗玛峰海拔是多少?"}]})
 }
 \`\`\`
 
 \`\`\`ts
 (context: RaccoonContext): Promise<Message> => {
-    return context.llm.assistant({messages: [{role: 'user', content: "乞力马扎罗峰海拔是多少?"}]})
+  return context.llm.assistant({messages: [{role: 'user', content: "乞力马扎罗峰海拔是多少?"}]})
 }
 \`\`\`
 
@@ -198,13 +199,13 @@ messages: [...outputs, {{role: "user", content: "那法语呢?"}] // 通过 \`ou
 // 海拔差计算器
 (context: RaccoonContext): Promise<Message> => {
   return new Promise<Message>((resolve, reject) => {
-      let h1 = /([0-9,]+)米/.exec(context.output[20].content);
-      let h2 = /([0-9,]+)米/.exec(context.output[21].content);
-      if (h1 && h2) {
-          let h1num = parseInt(h1[0].replace(',', ''));
-          let h2num = parseInt(h2[0].replace(',', ''));
-          resolve({ role: '💻', content: \`\${h1num} - \${h2num} = \${h1num - h2num}\` });
-      }
+    let h1 = /([0-9,]+)米/.exec(context.output[21].content);
+    let h2 = /([0-9,]+)米/.exec(context.output[22].content);
+    if (h1 && h2) {
+      let h1num = parseInt(h1[0].replace(',', ''));
+      let h2num = parseInt(h2[0].replace(',', ''));
+      resolve({ role: '💻', content: \`\${h1num} - \${h2num} = \${h1num - h2num}\` });
+    }
   });
 }
 \`\`\`
@@ -219,14 +220,21 @@ recursive: 2
 \`\`\`
 
 \`\`\`raccoon
-@ide.input
-prompt: "open beside? (yes/no)"
+@ide.select
+items: output[27].content.split('\\n')
+title: "open file..."
+\`\`\`
+
+\`\`\`raccoon
+@ide.select
+items: ['yes', 'no']
+title: "open beside?"
 \`\`\`
 
 \`\`\`raccoon
 @ide.show
-path: \`\${output[26].content.split('\\n')[0]}\`
-beside: output[27].content === 'yes'
+path: output[28].content
+beside: output[29].content === 'yes'
 \`\`\`
 
 `;
@@ -247,18 +255,18 @@ export class CodeNotebook {
         let ts = RaccoonRunner.parseRaccoon('raccoon', code);
         if (ts) {
           return `interface Message {
-     role: string;
-     content: string;
- }
+  role: string;
+  content: string;
+}
 
- interface RaccoonContext {
-     llm: any;
-     ide: any;
-     output: {
-         [key: number]: Message;
-     };
-     outputs: Message[];
- }\n\n` + ts;
+interface RaccoonContext {
+  llm: any;
+  ide: any;
+  output: {
+    [key: number]: Message;
+  };
+  outputs: Message[];
+}\n\n` + ts;
         }
       }
     }));
