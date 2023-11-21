@@ -412,7 +412,7 @@ textarea::placeholder {
     gap: 0.5rem;
     font-size: 9px;
     line-height: 1;
-    width: calc(100% - 1.8rem);
+    width: calc(100%);
 }
 
 .search-hint,

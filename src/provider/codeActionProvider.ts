@@ -68,7 +68,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     let selection = vscode.window.activeTextEditor?.selection;
     let document = vscode.window.activeTextEditor?.document;
     let ps = raccoonManager.prompt;
-    let label = codeAction.title.slice(11);
+    let label = codeAction.title.slice('raccoon'.length + 2);
     let prompt: RaccoonPrompt | undefined = undefined;
     let prefix = '';
     if (vscode.CodeActionKind.QuickFix.append('raccoon').append('custom').contains(codeAction.kind)) {

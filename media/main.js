@@ -186,7 +186,7 @@ const vscode = acquireVsCodeApi();
               preCode.classList.forEach((cls, _idx, _arr) => {
                 if (cls.startsWith('language-')) {
                   lang = cls.slice(9);
-                  code =  JSON.stringify(preCode.textContent);
+                  code = JSON.stringify(preCode.textContent);
                   preCode.parentElement.dataset.lang = lang;
                 }
               });
@@ -522,7 +522,7 @@ const vscode = acquireVsCodeApi();
                                       </span>
                                     </span>
                                   </h2>
-                                  <div id="response-${id}" class="response ${promptInfo.prompt?.code ? 'with-code': ''} empty flex flex-col gap-1 markdown-body"></div>
+                                  <div id="response-${id}" class="response ${promptInfo.prompt?.code ? 'with-code' : ''} empty flex flex-col gap-1 markdown-body"></div>
                                   ${progress}
                                   <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
                                     <span class="flex items-center gap-2">
