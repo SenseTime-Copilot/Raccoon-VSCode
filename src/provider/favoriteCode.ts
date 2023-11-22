@@ -234,7 +234,6 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       var code = document.getElementById("codesnippet").value;
       const regex = /^.*\\((.*)\\)$/gm;
       let languageid = regex.exec(language);
-      console.log(language)
       vscode.postMessage(
         {
           "type": "save",

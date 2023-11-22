@@ -123,7 +123,7 @@ const vscode = acquireVsCodeApi();
     return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${status}">
              ${questionTitle}
              ${innerHTML}
-             <div class="send-btns flex justify-end mt-4" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Enter]">${sendIcon}</vscode-button></div>
+             <div class="send-btns flex justify-end mt-4" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Ctrl+Enter]">${sendIcon}</vscode-button></div>
            </div>`;
   }
 
@@ -1237,7 +1237,6 @@ const vscode = acquireVsCodeApi();
         account,
         password
       });
-      console.log(`${account} ${password}`);
       return;
     }
 

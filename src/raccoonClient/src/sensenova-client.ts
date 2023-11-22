@@ -6,24 +6,14 @@ import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, Respons
 import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
 function encrypt(dataStr: string): string {
-  const iv = new TextEncoder().encode("senseraccoon2023");
+  const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-128-cfb', new TextEncoder().encode("senseraccoon2023"), iv);
   let ciphertext = cipher.update(dataStr, 'utf-8');
 
   return Buffer.concat([iv, ciphertext]).toString('base64');
 }
 
-function decrypt(cipherstr: string) {
-  let data = Buffer.from(cipherstr, 'base64');
-  const iv = data.slice(0, 16);
-  const decipher = crypto.createDecipheriv('aes-128-cfb', new TextEncoder().encode("senseraccoon2023"), iv);
-  let decrypted = decipher.update(data.slice(16));
-
-  return decrypted.toString();
-}
-
 export class SenseNovaClient implements CodeClient {
-  private readonly iamBaseUrl = 'http://10.53.27.220:8080';
   private onChangeAuthInfo?: (token?: AuthInfo) => void;
 
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
@@ -54,11 +44,7 @@ export class SenseNovaClient implements CodeClient {
         if (decoded["account"] && decoded["password"]) {
           let phone = encrypt(decoded["account"]);
           let password = encrypt(decoded["password"]);
-          console.log((phone));
-          console.log(decrypt(phone));
-          console.log((password));
-          console.log(decrypt(password));
-          return axios.post(this.iamBaseUrl + "/api/plugin/auth/v1/login_with_password", {
+          return axios.post(this.clientConfig.authUrl + "/login_with_password", {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             nation_code: "86", phone, password
           }).then(resp => {
@@ -99,7 +85,7 @@ export class SenseNovaClient implements CodeClient {
       headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      return axios.post(`${this.iamBaseUrl}/api/plugin/auth/v1/logout`, {}, { headers }).then(() => {
+      return axios.post(`${this.clientConfig.authUrl}/logout`, {}, { headers }).then(() => {
         return undefined;
       });
     }
@@ -110,7 +96,7 @@ export class SenseNovaClient implements CodeClient {
   }
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    let url = `${this.iamBaseUrl}/api/plugin/auth/v1/refresh`;
+    let url = `${this.clientConfig.authUrl}/refresh`;
     return axios.post(url,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention

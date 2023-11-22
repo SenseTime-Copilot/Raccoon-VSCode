@@ -128,7 +128,7 @@ export class RaccoonRunner {
 }
 `;
     RaccoonRunner.run(output, 'typescript', chain, abortController).then((msg) => {
-      console.log(msg.content);
+      // console.log(msg.content);
     });
   }
 }

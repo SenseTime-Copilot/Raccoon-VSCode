@@ -10,6 +10,7 @@ import { TGIClient } from "../raccoonClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
+import { raccoonAssistantUrl, raccoonAuthBaseUrl, raccoonCompletionUrl } from "./contants";
 
 export enum ModelCapacity {
   assistant = "assistant",
@@ -32,8 +33,9 @@ const builtinEngines: RaccoonClientConfig[] = [
   {
     type: ClientType.sensenova,
     robotname: "Raccoon",
+    authUrl: raccoonAuthBaseUrl,
     completion: {
-      url: "http://10.53.27.220:8080/api/plugin/nova/v1/proxy/v1/llm/completions",
+      url: raccoonCompletionUrl,
       template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<MID>[prefix.cursor]",
       parameters: {
         model: "nova-ptc-s-v1-codecompletion",
@@ -46,7 +48,7 @@ const builtinEngines: RaccoonClientConfig[] = [
       totalTokenNum: 8192
     },
     assistant: {
-      url: "http://10.53.27.220:8080/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
+      url: raccoonAssistantUrl,
       template: "[prefix]",
       parameters: {
         model: "nova-ptc-l-v1-code",

@@ -12,6 +12,8 @@ import { TextDocumentShowOptions } from "vscode";
 import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
+import { RaccoonTelemetry } from "./utils/raccoonTelemetry";
+import { raccoonDocsUrl } from "./provider/contants";
 
 let statusBarItem: vscode.StatusBarItem;
 export let outlog: vscode.LogOutputChannel;
@@ -47,19 +49,21 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await raccoonManager.initialClients();
 
+  let raccoonTelemetry: RaccoonTelemetry = new RaccoonTelemetry(vscode.env.appName, vscode.env.machineId);
+
   const sender: vscode.TelemetrySender = {
     flush() {
     },
     sendErrorData(_error, _data) {
     },
-    sendEventData(eventName, _data) {
+    sendEventData(eventName, data) {
       let event = eventName;
       if (eventName) {
         if (eventName.startsWith(context.extension.id + "/")) {
           // eslint-disable-next-line no-unused-vars
           event = eventName.slice(context.extension.id.length + 1);
         }
-        //raccoonTelemetry?.sendTelemetry(event, data);
+        raccoonTelemetry?.sendTelemetry(event, data);
       }
     },
   };
@@ -93,7 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("raccoon.help", async () => {
-      vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`${vscode.env.uriScheme}:extension/${context.extension.id}`));
+      vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(raccoonDocsUrl));
     })
   );
 

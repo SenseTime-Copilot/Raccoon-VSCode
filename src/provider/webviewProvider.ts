@@ -10,7 +10,7 @@ import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { RaccoonSearchEditorProvider } from './searchEditorProvider';
 import { FavoriteCodeEditor } from './favoriteCode';
-import { resetPasswordUrl, signupUrl } from './contants';
+import { raccoonDocsUrl, raccoonResetPasswordUrl, raccoonSignupUrl } from './contants';
 
 const guide = `
 <h3>${l10n.t("Coding with Raccoon")}</h3>
@@ -154,6 +154,15 @@ export class RaccoonEditor extends Disposable {
     this.showPage();
   }
 
+  private buildLoginHint() {
+    let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+    return `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:raccoon.settings">
+            <span class='material-symbols-rounded'>person</span>
+            <div class='inline-block leading-loose'>${l10n.t("Login to <b>{0}</b>", robot)}</div>
+            <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
+          </a>`;
+  }
+
   private async showWelcome(quiet?: boolean) {
     raccoonManager.update();
     if (!quiet) {
@@ -169,12 +178,7 @@ export class RaccoonEditor extends Disposable {
     if (name) {
       username = ` @${name}`;
     } else {
-      const loginHint = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:raccoon.settings">
-            <span class='material-symbols-rounded'>person</span>
-            <div class='inline-block leading-loose'>${l10n.t("Login to <b>{0}</b>", robot)}</div>
-            <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
-          </a>`;
-      detail += loginHint;
+      detail += this.buildLoginHint();
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
       + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');">Ctrl</kbd>`)}</div>`
@@ -238,25 +242,32 @@ export class RaccoonEditor extends Disposable {
                         <vscode-button>${title}</vscode-button>
                       </vscode-link>`;
         if (url.scheme === "command" && url.path === "raccoon.password") {
-          loginForm = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-                      <vscode-text-field type="tel" id="login-account" class="mx-4">${l10n.t("Account")}
+          loginForm = `
+                    <style>
+                    #login-account:invalid + #login-password + vscode-link,
+                    #login-password:invalid + vscode-link {
+                        pointer-events: none;
+                        opacity: 0.7;
+                    }
+                    </style>
+                    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+                      <vscode-text-field type="tel" pattern="[0-9]{11}" maxlength=11 id="login-account" class="mx-4 my-1" required="required">${l10n.t("Account")}
+                        <span slot="start" style="line-height: 1.4; margin-right: 11px; opacity: 0.8;">+86</span>
                       </vscode-text-field>
-                      <vscode-text-field type="password" id="login-password" class="mx-4">${l10n.t("Password")}
-                        <vscode-link title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${resetPasswordUrl}">
+                      <vscode-text-field type="password" pattern=".{8,64}" maxlength=64 id="login-password" class="mx-4 my-1" required="required">${l10n.t("Password")}
+                        <vscode-link title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonResetPasswordUrl}">
                           ${l10n.t("Forgot Password")}?
                         </vscode-link>
                       </vscode-text-field>
-                      <div class="flex flex-col m-4">
-                      <vscode-link title="${l10n.t("Login")}" class="self-center">
+                      <vscode-link title="${l10n.t("Login")}" class="flex mt-4 self-center">
                         <button id="login" style="background-color: var(--button-primary-background); color: var(--button-primary-foreground); padding: 0.4rem 2rem; width: calc(100vw - 4rem); max-width: 32rem;">${l10n.t("Login")}</button>
                       </vscode-link>
-                      <span class="flex mt-4 self-center">
+                      <span class="flex mx-4 self-center">
                         ${l10n.t("Do not have an account?")}
-                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl}">
+                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}">
                           ${l10n.t("Sign Up")}
                         </vscode-link>
-                      </span>
-                      </div>`;
+                      </span>`;
         }
       }, () => { });
     } else {
@@ -506,12 +517,13 @@ export class RaccoonEditor extends Disposable {
                 let id = tm.valueOf();
                 let timestamp = tm.toLocaleString();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
-                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${env.uriScheme}:extension/${this.context.extension.id}">
+                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${raccoonDocsUrl}">
                 <span class="material-symbols-rounded">book</span>
                 <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
               </a>`;
-                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + helplink, timestamp });
+                let loginHint = raccoonManager.isClientLoggedin() ? "" : this.buildLoginHint();
+                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + helplink + loginHint, timestamp });
                 this.sendMessage({ type: 'stopResponse', id });
                 break;
               }
