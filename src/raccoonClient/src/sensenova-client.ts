@@ -63,7 +63,7 @@ export class SenseNovaClient implements CodeClient {
             nation_code: "86", phone, password
           }).then(resp => {
             if (resp.status === 200 && resp.data.code === 0) {
-              let jwtDecoded = jwt_decode(resp.data.data.access_token);
+              let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
               return {
                 account: {
                   userId: decoded["account"],
@@ -83,7 +83,7 @@ export class SenseNovaClient implements CodeClient {
           throw new Error("Malformed login info");
         }
       } catch (e) {
-        return e;
+        throw e;
       }
     } else {
       return Promise.reject(new Error("Malformed login info"));
@@ -118,7 +118,7 @@ export class SenseNovaClient implements CodeClient {
       })
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0) {
-          let jwtDecoded = jwt_decode(resp.data.data.access_token);
+          let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
           return {
             account: {
               userId: auth.account.userId,

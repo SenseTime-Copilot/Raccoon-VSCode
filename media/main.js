@@ -337,21 +337,17 @@ const vscode = acquireVsCodeApi();
         if (message.value) {
           var sameFile = (message.file === hint.dataset['file']);
           hint.dataset['file'] = message.file;
+          var btn = hint.getElementsByClassName("material-symbols-rounded")[0];
+          btn.onclick = (_event) => {
+            vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
+          };
           if (!sameFile) {
             document.getElementById("question").classList.remove("code-ready");
             void document.getElementById("question").offsetHeight;
             setTimeout(() => {
-              var btn = hint.getElementsByClassName("material-symbols-rounded")[0];
-              btn.onclick = (_event) => {
-                vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
-              };
               document.getElementById("question").classList.add("code-ready");
             }, 300);
           } else {
-            var btn = hint.getElementsByClassName("material-symbols-rounded")[0];
-            btn.onclick = (_event) => {
-              vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
-            };
             document.getElementById("question").classList.add("code-ready");
           }
         } else {
