@@ -10,6 +10,7 @@ import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { RaccoonSearchEditorProvider } from './searchEditorProvider';
 import { FavoriteCodeEditor } from './favoriteCode';
+import { resetPasswordUrl, signupUrl } from './contants';
 
 const guide = `
 <h3>${l10n.t("Coding with Raccoon")}</h3>
@@ -168,28 +169,22 @@ export class RaccoonEditor extends Disposable {
     if (name) {
       username = ` @${name}`;
     } else {
-      let url = await raccoonManager.getAuthUrlLogin();
-      let login = `<span class="material-symbols-rounded grow text-right">settings</span>`;
-      if (!raccoonManager.isSensetimeEnv() && url) {
-        login = `<span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>`;
-      } else {
-        url = `command:raccoon.settings`;
-      }
-      const loginHint = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${url}">
+      const loginHint = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:raccoon.settings">
             <span class='material-symbols-rounded'>person</span>
             <div class='inline-block leading-loose'>${l10n.t("Login to <b>{0}</b>", robot)}</div>
-            ${login}
+            <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
           </a>`;
       detail += loginHint;
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
       + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');">Ctrl</kbd>`)}</div>`
+      + detail
       + `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" onclick='vscode.postMessage({type: "sendQuestion", prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'>
   <span class="material-symbols-rounded">celebration</span>
   <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
   <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
 </a>`;
-    this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg + detail, timestamp });
+    this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
   }
 
   private async restoreFromCache() {
@@ -224,34 +219,45 @@ export class RaccoonEditor extends Disposable {
     let userId: string | undefined = undefined;
     let username: string | undefined = undefined;
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
-    let loginout = ``;
-    let sensetimeLogin = "";
+    let loginForm = ``;
+    let logout = ``;
+    let accountInfo = ``;
     if (!raccoonManager.isClientLoggedin()) {
-      if (raccoonManager.isSensetimeEnv()) {
-        if (env.uriScheme === 'vscode') {
-          sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt117?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
-        } else {
-          sensetimeLogin = `<vscode-link title="${l10n.t("Login")} [SenseTime LDAP]" href="https://sso.sensetime.com/enduser/sp/sso/sensetimeplugin_jwt118?enterpriseId=sensetime"><span id="ldap-login" class="material-symbols-rounded" style="font-size: 24px;">offline_bolt</span></vscode-link>`;
-        }
-      }
       await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
           return;
         }
         let url = Uri.parse(authUrl);
         let title;
-        let icon = 'account_circle';
-        if (url.scheme === "command") {
-          icon = 'key';
+        if (url.scheme === "command" && url.path !== "raccoon.password") {
           title = l10n.t("Setup Access Key");
-        } else if (url.authority) {
-          title = `${l10n.t("Login")} [${url.authority ?? authUrl}]`;
         } else {
-          title = `${l10n.t("Login")} [${authUrl}]`;
+          title = `${l10n.t("Login")}`;
         }
-        loginout = `<vscode-link title="${title}" href="${url.toString(true)}">
-                        <span class="material-symbols-rounded" style="font-size: 24px;">${icon}</span>
+        loginForm = `<vscode-link title="${title}" href="${url.toString(true)}">
+                        <vscode-button>${title}</vscode-button>
                       </vscode-link>`;
+        if (url.scheme === "command" && url.path === "raccoon.password") {
+          loginForm = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+                      <vscode-text-field type="tel" id="login-account" class="mx-4">${l10n.t("Account")}
+                      </vscode-text-field>
+                      <vscode-text-field type="password" id="login-password" class="mx-4">${l10n.t("Password")}
+                        <vscode-link title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${resetPasswordUrl}">
+                          ${l10n.t("Forgot Password")}?
+                        </vscode-link>
+                      </vscode-text-field>
+                      <div class="flex flex-col m-4">
+                      <vscode-link title="${l10n.t("Login")}" class="self-center">
+                        <button id="login" style="background-color: var(--button-primary-background); color: var(--button-primary-foreground); padding: 0.4rem 2rem; width: calc(100vw - 4rem); max-width: 32rem;">${l10n.t("Login")}</button>
+                      </vscode-link>
+                      <span class="flex mt-4 self-center">
+                        ${l10n.t("Do not have an account?")}
+                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl}">
+                          ${l10n.t("Sign Up")}
+                        </vscode-link>
+                      </span>
+                      </div>`;
+        }
       }, () => { });
     } else {
       userId = raccoonManager.userId();
@@ -262,7 +268,7 @@ export class RaccoonEditor extends Disposable {
       }
       await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
-          loginout = `<vscode-link title="${l10n.t("Authorized by key from settings")}">
+          logout = `<vscode-link title="${l10n.t("Authorized by key from settings")}">
                       <span class="material-symbols-rounded" style="color: var(--foreground);opacity: 0.7;cursor: auto;">password</span>
                     </vscode-link>`;
           return;
@@ -270,24 +276,127 @@ export class RaccoonEditor extends Disposable {
         let url = Uri.parse(authUrl);
         let title = l10n.t("Logout");
         let icon = 'logout';
-        if (url.scheme === "command") {
+        if (url.scheme === "command" && url.path !== "raccoon.password") {
           icon = 'key_off';
           title = l10n.t("Clear Access Key");
         }
-        loginout = `<vscode-link title="${title}">
+        logout = `<vscode-link title="${title}">
                       <span id="logout" class="material-symbols-rounded" style="font-size: 24px;">${icon}</span>
                     </vscode-link>`;
       }, () => { });
     }
-    let accountInfo = `
-        <div class="flex gap-2 items-center w-full" title="${userId || ""}">
-          ${avatarEle}
-          <span class="grow font-bold text-base" ${userId ? `title="${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
-          ${sensetimeLogin}
-          ${loginout}
-        </div>
-        `;
 
+    accountInfo = `
+    <div class="flex gap-2 items-center w-full" title="${userId || ""}">
+      ${avatarEle}
+      <span class="grow font-bold text-base" ${userId ? `title="${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
+      ${logout}
+    </div>
+    `;
+    let settingOptions = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <b>${l10n.t("Inline completion")}</b>
+    <div class="ml-4">
+      <div>
+      <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
+        <label slot="label">${l10n.t("Trigger Mode")}</label>
+        <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
+          ${l10n.t("Auto")}
+          <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
+            <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" title="${l10n.t("Short delay")}" style="position: absolute; margin: -2px 4px;">
+              <span id="triggerDelayShort" class="material-symbols-rounded">timer</span>
+            </vscode-link>
+            <vscode-link id="triggerDelayLongBtn" class="${delay !== 1 ? "" : "hidden"}" title="${l10n.t("Delay 3 senconds")}" style="position: absolute; margin: -2px 4px;">
+              <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
+            </vscode-link>
+          </span>
+        </vscode-radio>
+        <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
+          ${l10n.t("Manual")}
+          <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}" style="position: absolute; margin: -2px 4px;">
+            <span class="material-symbols-rounded">keyboard</span>
+          </vscode-link>
+        </vscode-radio>
+      </vscode-radio-group>
+      </div>
+    </div>
+    <div class="ml-4">
+    <div>
+      <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
+        <label slot="label">${l10n.t("Completion Preference")}</label>
+        <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
+          ${l10n.t("Best Effort")}
+        </vscode-radio>
+        <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
+          ${l10n.t("Balanced")}
+        </vscode-radio>
+        <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
+          ${l10n.t("Speed Priority")}
+        </vscode-radio>
+      </vscode-radio-group>
+    </div>
+    </div>
+    <div class="ml-4">
+    <div>
+      <vscode-radio-group id="candidateNumberRadio" class="flex flex-wrap px-2">
+        <label slot="label">${l10n.t("Max Candidate Number")}</label>
+        <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-32" value="1" title="${l10n.t("Show {0} candidate snippet(s) at most", 1)}">
+        ${l10n.t("1 candidate")}
+        </vscode-radio>
+        <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-32" value="2" title="${l10n.t("Show {0} candidate snippet(s) at most", 2)}">
+        ${l10n.t("{0} candidates", 2)}
+        </vscode-radio>
+        <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-32" value="3" title="${l10n.t("Show {0} candidate snippet(s) at most", 3)}">
+        ${l10n.t("{0} candidates", 3)}
+        </vscode-radio>
+      </vscode-radio-group>
+    </div>
+    </div>
+    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <b>${l10n.t("Code assistant")}</b>
+    <div class="ml-4">
+      <div>
+      <vscode-radio-group id="responseModeRadio" class="flex flex-wrap px-2">
+        <label slot="label">${l10n.t("Show response")}</label>
+        <vscode-radio ${streamResponse ? "checked" : ""} class="w-32" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
+          ${l10n.t("Streaming")}
+        </vscode-radio>
+        <vscode-radio ${streamResponse ? "" : "checked"} class="w-32" value="Monolithic" title="${l10n.t("Wait entire result returned, and display at once")}">
+          ${l10n.t("Monolithic")}
+        </vscode-radio>
+      </vscode-radio-group>
+      </div>
+    </div>
+    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <b>${l10n.t("Advanced")}</b>
+    <div class="ml-4 my-2 flex flex-col gap-2">
+      <div class="flex px-2 gap-2 items-center">
+        <span>${l10n.t("Custom prompt")}</span>
+        <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">tips_and_updates</span></vscode-link>
+      </div>
+      <div class="flex px-2 gap-2 items-center">
+        <span>${l10n.t("Manage Favorites")}</span>
+        <vscode-link style="margin: -1px 0;"><span id="manageFavorites" class="material-symbols-rounded">bookmarks</span></vscode-link>
+      </div>
+      <div class="flex px-2 gap-2 items-center">
+        <span>${l10n.t("Clear cached history")}</span>
+        <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">manage_history</span></vscode-link>
+      </div>
+    </div>
+    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <div class="flex flex-col">
+      <vscode-checkbox id="privacy" ${this.context.globalState.get("privacy") ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
+      <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
+        <span class="material-symbols-rounded" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report issue")}</span>
+      </div>
+    </div>
+    <div class="flex grow place-content-center py-8">
+    <vscode-button id="clearAll" class="mx-2 self-end w-60" appearance="secondary">
+      ${l10n.t("Clear all settings")}
+      <span slot="start" class="material-symbols-rounded">settings_power</span>
+    </vscode-button>
+    </div>
+  </div>
+  `;
     let settingPage = `
     <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-xl">
       <div class="immutable fixed top-3 right-4">
@@ -310,110 +419,8 @@ export class RaccoonEditor extends Disposable {
           </vscode-link>
         </div>
       </div>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <b>${l10n.t("Inline completion")}</b>
-      <div class="ml-4">
-        <div>
-        <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Trigger Mode")}</label>
-          <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
-            ${l10n.t("Auto")}
-            <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
-              <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" title="${l10n.t("Short delay")}" style="position: absolute; margin: -2px 4px;">
-                <span id="triggerDelayShort" class="material-symbols-rounded">timer</span>
-              </vscode-link>
-              <vscode-link id="triggerDelayLongBtn" class="${delay !== 1 ? "" : "hidden"}" title="${l10n.t("Delay 3 senconds")}" style="position: absolute; margin: -2px 4px;">
-                <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
-              </vscode-link>
-            </span>
-          </vscode-radio>
-          <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
-            ${l10n.t("Manual")}
-            <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}" style="position: absolute; margin: -2px 4px;">
-              <span class="material-symbols-rounded">keyboard</span>
-            </vscode-link>
-          </vscode-radio>
-        </vscode-radio-group>
-        </div>
-      </div>
-      <div class="ml-4">
-      <div>
-        <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Completion Preference")}</label>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
-            ${l10n.t("Best Effort")}
-          </vscode-radio>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
-            ${l10n.t("Balanced")}
-          </vscode-radio>
-          <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
-            ${l10n.t("Speed Priority")}
-          </vscode-radio>
-        </vscode-radio-group>
-      </div>
-      </div>
-      <div class="ml-4">
-      <div>
-        <vscode-radio-group id="candidateNumberRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Max Candidate Number")}</label>
-          <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-32" value="1" title="${l10n.t("Show {0} candidate snippet(s) at most", 1)}">
-          ${l10n.t("1 candidate")}
-          </vscode-radio>
-          <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-32" value="2" title="${l10n.t("Show {0} candidate snippet(s) at most", 2)}">
-          ${l10n.t("{0} candidates", 2)}
-          </vscode-radio>
-          <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-32" value="3" title="${l10n.t("Show {0} candidate snippet(s) at most", 3)}">
-          ${l10n.t("{0} candidates", 3)}
-          </vscode-radio>
-        </vscode-radio-group>
-      </div>
-      </div>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <b>${l10n.t("Code assistant")}</b>
-      <div class="ml-4">
-        <div>
-        <vscode-radio-group id="responseModeRadio" class="flex flex-wrap px-2">
-          <label slot="label">${l10n.t("Show response")}</label>
-          <vscode-radio ${streamResponse ? "checked" : ""} class="w-32" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
-            ${l10n.t("Streaming")}
-          </vscode-radio>
-          <vscode-radio ${streamResponse ? "" : "checked"} class="w-32" value="Monolithic" title="${l10n.t("Wait entire result returned, and display at once")}">
-            ${l10n.t("Monolithic")}
-          </vscode-radio>
-        </vscode-radio-group>
-        </div>
-      </div>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <b>${l10n.t("Advanced")}</b>
-      <div class="ml-4 my-2 flex flex-col gap-2">
-        <div class="flex px-2 gap-2 items-center">
-          <span>${l10n.t("Custom prompt")}</span>
-          <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">tips_and_updates</span></vscode-link>
-        </div>
-        <div class="flex px-2 gap-2 items-center">
-          <span>${l10n.t("Manage Favorites")}</span>
-          <vscode-link style="margin: -1px 0;"><span id="manageFavorites" class="material-symbols-rounded">bookmarks</span></vscode-link>
-        </div>
-        <div class="flex px-2 gap-2 items-center">
-          <span>${l10n.t("Clear cached history")}</span>
-          <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">manage_history</span></vscode-link>
-        </div>
-      </div>
-      <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-      <div class="flex flex-col">
-        <vscode-checkbox id="privacy" ${this.context.globalState.get("privacy") ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
-        <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
-          <span class="material-symbols-rounded" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report issue")}</span>
-        </div>
-      </div>
-      <div class="flex place-content-center py-4">
-      <vscode-button id="clearAll" class="mx-2 self-center w-60" appearance="secondary">
-        ${l10n.t("Clear all settings")}
-        <span slot="start" class="material-symbols-rounded">settings_power</span>
-      </vscode-button>
-      </div>
-    </div>
-    `;
+      ${loginForm || settingOptions}`;
+
     this.sendMessage({ type: 'updateSettingPage', value: settingPage, action });
   }
 
@@ -449,6 +456,18 @@ export class RaccoonEditor extends Disposable {
             }
           }
           window.showTextDocument(Uri.parse(data.file), { preview: false, selection: data.range });
+          break;
+        }
+        case 'login': {
+          if (!data.account || !data.password) {
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: l10n.t("Login failed"), id: new Date().valueOf() });
+            break;
+          }
+          raccoonManager.getTokenFromLoginResult(`authorization://password?${encodeURIComponent(JSON.stringify(data))}`).then((ok) => {
+            if (!ok) {
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login Failed"), id: new Date().valueOf() });
+            }
+          });
           break;
         }
         case 'searchQuery': {

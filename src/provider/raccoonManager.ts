@@ -1,12 +1,11 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
 import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../raccoonClient/src/CodeClient";
-import { SenseNovaClientMeta, SenseNovaClient } from "../raccoonClient/src/sensenova-client";
+import { SenseNovaClient } from "../raccoonClient/src/sensenova-client";
 import { outlog } from "../extension";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { OpenAIClient } from "../raccoonClient/src/openai-client";
-import { checkSensetimeEnv } from "../utils/getProxy";
 import { TGIClient } from "../raccoonClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
@@ -34,20 +33,20 @@ const builtinEngines: RaccoonClientConfig[] = [
     type: ClientType.sensenova,
     robotname: "Raccoon",
     completion: {
-      url: "https://api.sensenova.cn/v1/llm/completions",
+      url: "http://10.53.27.220:8080/api/plugin/nova/v1/proxy/v1/llm/completions",
       template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<MID>[prefix.cursor]",
       parameters: {
         model: "nova-ptc-s-v1-codecompletion",
         stop: [
           "<|EOT|>"
         ],
-        temperature: 1.0
+        temperature: 0.4
       },
       maxInputTokenNum: 6144,
       totalTokenNum: 8192
     },
     assistant: {
-      url: "https://api.sensenova.cn/v1/llm/chat-completions",
+      url: "http://10.53.27.220:8080/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
       template: "[prefix]",
       parameters: {
         model: "nova-ptc-l-v1-code",
@@ -89,7 +88,6 @@ export class RaccoonManager {
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
-  private sensetimeEnv?: boolean;
   private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
   public onDidChangeStatus = this.changeStatusEmitter.event;
 
@@ -179,10 +177,6 @@ export class RaccoonManager {
 
     outlog.debug(`------------------- ${flag} -------------------`);
 
-    checkSensetimeEnv().then((v) => {
-      this.sensetimeEnv = v;
-    });
-
     this.configuration = workspace.getConfiguration("Raccoon", undefined);
     let ret = context.globalState.get<boolean>(flag);
     if (!ret) {
@@ -240,13 +234,7 @@ export class RaccoonManager {
       if (e.type && e.robotname) {
         let client;
         if (e.type === ClientType.sensenova) {
-          const meta: SenseNovaClientMeta = {
-            //clientId: "f757d86437a67267b9a5",
-            //secret: "6777e90c9e4edda49a6144c456ff5b4a765752ef",
-            clientId: "raccoon-vscode",
-            redirectUrl: `${env.uriScheme}://${this.context.extension.id.toLowerCase()}/login`
-          };
-          client = new SenseNovaClient(meta, e, outlog.debug);
+          client = new SenseNovaClient(e, outlog.debug);
         } else if (e.type === ClientType.openai) {
           client = new OpenAIClient(e, outlog.debug);
         } else if (e.type === ClientType.tgi) {
@@ -411,10 +399,6 @@ export class RaccoonManager {
     return (ca && ca.authInfo);
   }
 
-  public isSensetimeEnv(): boolean | undefined {
-    return this.sensetimeEnv;
-  }
-
   public get prompt(): RaccoonPrompt[] {
     let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
     let prompts: RaccoonPrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
@@ -574,6 +558,8 @@ export class RaccoonManager {
         return Promise.resolve("command:raccoon.setAccessKey");
       } else if (authMethods.includes(AuthMethod.apikey)) {
         return Promise.resolve("command:raccoon.setApiKey");
+      } else if (authMethods.includes(AuthMethod.password)) {
+        return Promise.resolve("command:raccoon.password");
       } else {
         return Promise.reject();
       }
@@ -623,15 +609,7 @@ export class RaccoonManager {
         await ca.client.logout(ca.authInfo).then((logoutUrl) => {
           progress.report({ increment: 100 });
           if (logoutUrl) {
-            if (logoutUrl && logoutUrl === 'SenseTime LDAP') {
-              if (env.uriScheme === 'vscode') {
-                commands.executeCommand("vscode.open", 'https://sso.sensetime.com/enduser/sp/logout/sensetimeplugin_jwt117?enterpriseId=sensetime&force=true');
-              } else {
-                commands.executeCommand("vscode.open", 'https://sso.sensetime.com/enduser/sp/logout/sensetimeplugin_jwt118?enterpriseId=sensetime&force=true');
-              }
-            } else if (logoutUrl) {
-              commands.executeCommand("vscode.open", logoutUrl);
-            }
+            commands.executeCommand("vscode.open", logoutUrl);
           }
           if (ca) {
             this.updateToken(ca.client.robotName);

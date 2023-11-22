@@ -1,30 +1,32 @@
 import axios, { AxiosError, ResponseType } from "axios";
+import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import sign = require('jwt-encode');
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey, AccountInfo } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
 import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
-export interface SenseNovaClientMeta {
-  clientId: string;
-  redirectUrl: string;
+function encrypt(dataStr: string): string {
+  const iv = new TextEncoder().encode("senseraccoon2023");
+  const cipher = crypto.createCipheriv('aes-128-cfb', new TextEncoder().encode("senseraccoon2023"), iv);
+  let ciphertext = cipher.update(dataStr, 'utf-8');
+
+  return Buffer.concat([iv, ciphertext]).toString('base64');
 }
 
-function generateSignature(_urlString: string, date: Date) {
-  let t = date.valueOf();
-  let data = {
-    iss: "2SVR6XdhiZ8hvUTwI2AHVjdT1FH",
-    exp: Math.floor(t / 1000) + 1800,
-    nbf: Math.floor(t / 1000) - 300
-  };
-  return "Bearer " + sign(data, '4rPbIhmiuRK4pZiT8ddbLn0Mr7SVeZ4r');
+function decrypt(cipherstr: string) {
+  let data = Buffer.from(cipherstr, 'base64');
+  const iv = data.slice(0, 16);
+  const decipher = crypto.createDecipheriv('aes-128-cfb', new TextEncoder().encode("senseraccoon2023"), iv);
+  let decrypted = decipher.update(data.slice(16));
+
+  return decrypted.toString();
 }
 
 export class SenseNovaClient implements CodeClient {
-  private readonly iamBaseUrl = 'https://chat.sensetime.com';
+  private readonly iamBaseUrl = 'http://10.53.27.220:8080';
   private onChangeAuthInfo?: (token?: AuthInfo) => void;
 
-  constructor(private readonly meta: SenseNovaClientMeta, private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
+  constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
   }
 
   public get robotName(): string {
@@ -32,17 +34,11 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public get authMethods(): AuthMethod[] {
-    return [AuthMethod.browser, AuthMethod.accesskey];
+    return [AuthMethod.password];
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    let key = this.clientConfig.key;
-    if (key && typeof key === "object") {
-      let aksk = key as AccessKey;
-      return Promise.resolve(`authorization://accesskey?${aksk.accessKeyId}&${aksk.secretAccessKey}`);
-    }
-
-    return Promise.resolve(`${this.iamBaseUrl}/wb/login?redirect_uri=${this.meta.redirectUrl}`);
+    return Promise.resolve(undefined);
   }
 
   public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
@@ -52,43 +48,58 @@ export class SenseNovaClient implements CodeClient {
       return Promise.reject();
     }
     if (url.protocol === "authorization:") {
-      let auth: AuthInfo = {
-        account: {
-          username: this.clientConfig.username || "User",
-          userId: undefined
-        },
-        weaverdKey: query
-      };
-      return auth;
-    } else {
-      let tokenString = decodeURIComponent(query);
+      let logininfo = decodeURIComponent(query);
       try {
-        let decoded = JSON.parse('{"' + tokenString.replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}');
-        if (decoded["id_token"]) {
-          return this.parseAuthInfoLDAP(decoded["id_token"]);
-        } else if (decoded["token"] && decoded["refresh"]) {
-          return this.parseAuthInfo(decoded["token"], decoded["refresh"]);
+        let decoded = JSON.parse(logininfo);
+        if (decoded["account"] && decoded["password"]) {
+          let phone = encrypt(decoded["account"]);
+          let password = encrypt(decoded["password"]);
+          console.log((phone));
+          console.log(decrypt(phone));
+          console.log((password));
+          console.log(decrypt(password));
+          return axios.post(this.iamBaseUrl + "/api/plugin/auth/v1/login_with_password", {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            nation_code: "86", phone, password
+          }).then(resp => {
+            if (resp.status === 200 && resp.data.code === 0) {
+              let jwtDecoded = jwt_decode(resp.data.data.access_token);
+              return {
+                account: {
+                  userId: decoded["account"],
+                  username: jwtDecoded["name"],
+                  userIdProvider: "Raccoon"
+                },
+                expiration: jwtDecoded["exp"],
+                weaverdKey: resp.data.data.access_token,
+                refreshToken: resp.data.data.refresh_token,
+              };
+            }
+            throw new Error(resp.data.message || resp.data);
+          }).catch(err => {
+            throw err;
+          });
         } else {
-          throw new Error();
+          throw new Error("Malformed login info");
         }
       } catch (e) {
-        return Promise.reject(new Error("Malformed access token"));
+        return e;
       }
+    } else {
+      return Promise.reject(new Error("Malformed login info"));
     }
   }
 
   public async logout(auth: AuthInfo): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
-    } else if (auth.account.userIdProvider === 'SenseTime LDAP') {
-      return Promise.resolve('SenseTime LDAP');
     } else {
       let date = new Date();
       let headers: any = {};
       headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      return axios.post(`${this.iamBaseUrl}/api/auth/v1.0.2/logout`, {}, { headers }).then(() => {
+      return axios.post(`${this.iamBaseUrl}/api/plugin/auth/v1/logout`, {}, { headers }).then(() => {
         return undefined;
       });
     }
@@ -98,133 +109,26 @@ export class SenseNovaClient implements CodeClient {
     this.onChangeAuthInfo = handler;
   }
 
-  private async getAccountInfo(token: string): Promise<AccountInfo> {
-    return axios.get(`${this.iamBaseUrl}/api/auth/v1.0.4/check`, {
-      headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        Authorization: `Bearer ${token}`
-      }
-    }).then((resp) => {
-      if (resp.status === 200 && resp.data.mobile) {
-        let userinfo = resp.data;
-        let name: string = '';
-        if (userinfo.neck_name) {
-          name = userinfo.neck_name;
-        } else if (userinfo.user_name) {
-          name = userinfo.user_name;
-        } else if (userinfo.mobile) {
-          name = userinfo.mobile.substring(0, 3) + '****' + userinfo.mobile.substring(7);
-        }
-        if (name) {
-          return {
-            username: this.clientConfig.username || name || "User",
-            userIdProvider: "SenseChat",
-            userId: userinfo.user_id,
-            avatar: userinfo.head
-          };
-        }
-      }
-      throw new Error(JSON.stringify(resp.data));
-    });
-  }
-
-  private async parseAuthInfo(weaverdKey: string, refreshToken: string): Promise<AuthInfo> {
-    let idToken: any = jwt_decode(weaverdKey);
-    let expiration = idToken.exp;
-    return this.getAccountInfo(weaverdKey).then((account) => {
-      return {
-        account,
-        refreshToken,
-        expiration,
-        weaverdKey,
-      };
-    });
-  }
-
-  private async avatar(name: string | undefined, token: string): Promise<string | undefined> {
-    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/users?username=${name}`,
-      {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        headers: { "PRIVATE-TOKEN": token }
-      })
-      .then(
-        (res1) => {
-          if (res1?.status === 200) {
-            if (res1.data[0]) {
-              return res1.data[0].avatar_url;
-            }
-          } else {
-            return undefined;
-          }
-        },
-        (_reason) => {
-          return undefined;
-        }
-      );
-  }
-
-  private async parseAuthInfoLDAP(weaverdKey: string): Promise<AuthInfo> {
-    let idToken: any = jwt_decode(weaverdKey);
-    let name = idToken.username;
-    let ret: AuthInfo = {
-      account: {
-        username: this.clientConfig.username || name || "User",
-        userIdProvider: "SenseTime LDAP",
-        userId: name,
-        avatar: await this.avatar(name, "67pnbtbheuJyBZmsx9rz")
-      },
-      weaverdKey: "67pnbtbheuJyBZmsx9rz"
-    };
-    return ret;
-  }
-
-  private getAccountInfoLDAP(token: string): Promise<AccountInfo> {
-    return axios.get(`https://gitlab.bj.sensetime.com/api/v4/user`,
-      {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        headers: { "PRIVATE-TOKEN": token }
-      })
-      .then(
-        (res) => {
-          if (res.status === 200) {
-            return {
-              username: 'ok'
-            };
-          } else {
-            return Promise.reject();
-          }
-        },
-        (_reason) => {
-          return Promise.reject();
-        }
-      ).catch((_e) => {
-        return Promise.reject();
-      });
-  }
-
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    let url = `${this.iamBaseUrl}/api/auth/v1.0.4/refresh`;
+    let url = `${this.iamBaseUrl}/api/plugin/auth/v1/refresh`;
     return axios.post(url,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        access: auth.weaverdKey,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        refresh: auth.refreshToken
+        refresh_token: auth.refreshToken
       })
       .then(async (resp) => {
-        if (resp && resp.status === 200) {
-          let weaverdKey = resp.data.access;
-          let refreshToken = resp.data.refresh || auth.refreshToken;
-          let idToken: any = jwt_decode(weaverdKey);
-          let expiration = idToken.exp;
-          return this.getAccountInfo(weaverdKey).then((account) => {
-            return {
-              account,
-              refreshToken,
-              expiration,
-              weaverdKey
-            };
-          });
+        if (resp && resp.status === 200 && resp.data.code === 0) {
+          let jwtDecoded = jwt_decode(resp.data.data.access_token);
+          return {
+            account: {
+              userId: auth.account.userId,
+              username: jwtDecoded["name"],
+              userIdProvider: "Raccoon"
+            },
+            expiration: jwtDecoded["exp"],
+            weaverdKey: resp.data.data.access_token,
+            refreshToken: resp.data.data.refresh_token,
+          };
         }
         return Promise.reject(new Error("Refresh authorization token failed"));
       }, (_err) => {
@@ -249,70 +153,57 @@ export class SenseNovaClient implements CodeClient {
       }
     }
 
-    let check = undefined;
-    if (auth.account.userIdProvider === 'SenseTime LDAP') {
-      check = this.getAccountInfoLDAP(auth.weaverdKey);
-    } else {
-      check = this.getAccountInfo(auth.weaverdKey);
+    let date = new Date();
+    let headers = options ? {
+      ...options?.headers
+    } : {};
+    headers["x-raccoon-user-id"] = auth.account.userId || "";
+    headers["Date"] = date.toUTCString();
+    headers["Content-Type"] = "application/json";
+    headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+
+    let responseType: ResponseType | undefined = undefined;
+    let config: any = {};
+    config.model = requestParam.model;
+    config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
+    config.temperature = requestParam.temperature;
+    config.n = requestParam.n ?? 1;
+
+    config.stream = requestParam.stream;
+    config.max_new_tokens = requestParam.maxNewTokenNum;
+    if (config.stream) {
+      responseType = "stream";
     }
 
-    return check.then(
-      async (_account: AccountInfo) => {
-        let date = new Date();
-        let headers = options ? {
-          ...options?.headers
-        } : {};
-        headers["x-raccoon-client"] = 'SenseNova';
-        headers["x-raccoon-id-provider"] = auth.account.userIdProvider || "";
-        headers["x-raccoon-user-id"] = auth.account.userId || "";
-        headers["Date"] = date.toUTCString();
-        headers["Content-Type"] = "application/json";
-        headers["Authorization"] = generateSignature(requestParam.url, date);
+    let payload = {
+      messages: requestParam.messages.filter((m) => {
+        return !!m.content;
+      }),
+      ...config
+    };
 
-        let responseType: ResponseType | undefined = undefined;
-        let config: any = {};
-        config.model = requestParam.model;
-        config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
-        config.temperature = requestParam.temperature;
-        config.n = requestParam.n ?? 1;
+    if (payload.messages && payload.messages[0] && payload.messages[0].role === Role.completion) {
+      payload.prompt = payload.messages[0].content;
+      payload.messages = undefined;
+    }
 
-        config.stream = requestParam.stream;
-        config.max_new_tokens = requestParam.maxNewTokenNum;
-        if (config.stream) {
-          responseType = "stream";
+    if (this.debug) {
+      this.debug(`Request to: ${requestParam.url}`);
+      let pc = { ...payload };
+      let content = pc.messages;
+      pc.messages = undefined;
+      this.debug(`Parameters: ${JSON.stringify(pc)}`);
+      this.debug(`Prompt:\n${JSON.stringify(content)}`);
+    }
+
+    return axios
+      .post(requestParam.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
+      .then(async (res) => {
+        if (this.debug && !config.stream) {
+          this.debug(`${JSON.stringify(res.data)}`);
         }
-
-        let payload = {
-          messages: requestParam.messages.filter((m) => {
-            return !!m.content;
-          }),
-          ...config
-        };
-
-        if (payload.messages && payload.messages[0] && payload.messages[0].role === Role.completion) {
-          payload.prompt = payload.messages[0].content;
-          payload.messages = undefined;
-        }
-
-        if (this.debug) {
-          this.debug(`Request to: ${requestParam.url}`);
-          let pc = { ...payload };
-          let content = pc.messages;
-          pc.messages = undefined;
-          this.debug(`Parameters: ${JSON.stringify(pc)}`);
-          this.debug(`Prompt:\n${JSON.stringify(content)}`);
-        }
-
-        return axios
-          .post(requestParam.url, payload, { headers, proxy: false, timeout: 120000, responseType, signal: options?.signal })
-          .then(async (res) => {
-            if (this.debug && !config.stream) {
-              this.debug(`${JSON.stringify(res.data)}`);
-            }
-            return res.data;
-          });
-      }
-    );
+        return res.data;
+      });
   }
 
   public async getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData> {

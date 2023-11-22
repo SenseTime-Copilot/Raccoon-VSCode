@@ -335,11 +335,9 @@ const vscode = acquireVsCodeApi();
       case 'codeReady': {
         var hint = document.getElementById("code-hint");
         if (message.value) {
-          var hasTag = document.getElementById("question").classList.contains("code-ready");
           var sameFile = (message.file === hint.dataset['file']);
-          var needAnimate = (hasTag && !sameFile);
           hint.dataset['file'] = message.file;
-          if (needAnimate) {
+          if (!sameFile) {
             document.getElementById("question").classList.remove("code-ready");
             void document.getElementById("question").offsetHeight;
             setTimeout(() => {
@@ -996,6 +994,10 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("keydown", (e) => {
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
+    var settings = document.getElementById("settings");
+    if (settings) {
+      return;
+    }
     if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
       var btns = Array.from(list.querySelectorAll("button")).filter((b, _i, _a) => {
         return !b.classList.contains('hidden');
@@ -1230,6 +1232,18 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
+
+    if (targetButton?.id === "login") {
+      let account = document.getElementById("login-account").value;
+      let password = document.getElementById("login-password").value;
+      vscode.postMessage({
+        type: "login",
+        account,
+        password
+      });
+      console.log(`${account} ${password}`);
+      return;
+    }
 
     if (targetButton?.id === "search-button") {
       sendSearchQuery(document.getElementById("question-input").value.slice(1).trim());

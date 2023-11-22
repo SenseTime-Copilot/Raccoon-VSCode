@@ -8,6 +8,7 @@ export enum AuthMethod {
   browser = "browser",
   apikey = "apikey",
   accesskey = "accesskey",
+  password = "password"
 }
 
 export interface AccessKey {
@@ -15,12 +16,17 @@ export interface AccessKey {
   secretAccessKey: string;
 }
 
+export interface Password {
+  account: string;
+  password: string;
+}
+
 export interface ClientConfig {
   type: ClientType;
   robotname: string;
   authUrl?: string;
   username?: string;
-  key?: string | AccessKey;
+  key?: string | AccessKey | Password;
 }
 
 export interface ClientReqeustOptions {
