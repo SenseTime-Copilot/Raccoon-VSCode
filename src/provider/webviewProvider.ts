@@ -523,7 +523,7 @@ export class RaccoonEditor extends Disposable {
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
               </a>`;
                 let loginHint = raccoonManager.isClientLoggedin() ? "" : this.buildLoginHint();
-                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + helplink + loginHint, timestamp });
+                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + loginHint + helplink, timestamp });
                 this.sendMessage({ type: 'stopResponse', id });
                 break;
               }

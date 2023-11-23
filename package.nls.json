@@ -1,5 +1,4 @@
 {
-    "raccoon.description": "Raccoon is Another Code COpilot On senseNova.",
     "raccoon.config.engines.description": "AI beckend engine list",
     "raccoon.config.engines.engine.description": "AI backend engine configuration",
     "raccoon.config.engines.engine.type": "Engine type",
