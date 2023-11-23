@@ -1,5 +1,5 @@
-import { Uri, extensions } from "vscode";
-import { API, GitExtension, Repository } from "./git";
+import { extensions } from "vscode";
+import { API, GitExtension } from "./git";
 
 export class GitUtils {
   private static instance: GitUtils;
@@ -14,7 +14,6 @@ export class GitUtils {
 
   public get api(): API | undefined {
     return this._api;
-
   }
 
   private constructor() {

@@ -44,8 +44,8 @@ const builtinEngines: RaccoonClientConfig[] = [
         ],
         temperature: 0.4
       },
-      maxInputTokenNum: 6144,
-      totalTokenNum: 8192
+      maxInputTokenNum: 12288,
+      totalTokenNum: 16348
     },
     assistant: {
       url: raccoonAssistantUrl,
@@ -55,7 +55,7 @@ const builtinEngines: RaccoonClientConfig[] = [
         stop: [
           "<|endofmessage|>"
         ],
-        temperature: 1.0
+        temperature: 0.8
       },
       maxInputTokenNum: 6144,
       totalTokenNum: 8192
@@ -473,16 +473,18 @@ export class RaccoonManager {
         let _prefix = prefix.replace(/\r\n/g, '\n');
         let _suffix = suffix?.replace(/\r\n/g, '\n') || "";
         let prefixLines = '';
-        let prefixLCursor = '';
-        let _prefixLines = _prefix.split('\n');
+        let prefixCursor = '';
+        let _prefixLines = _prefix.split('\n') || [];
         if (_prefixLines.length > 0) {
-          prefixLCursor = _prefixLines[_prefixLines.length - 1];
+          prefixCursor = _prefixLines[_prefixLines.length - 1];
           delete _prefixLines[_prefixLines.length - 1];
           prefixLines = _prefixLines.join('\n');
         }
         let suffixLines = '';
+        let suffixCursor = '';
         let _suffixLines = _suffix.split('\n') || [];
         if (_suffixLines.length > 0) {
+          suffixCursor = _suffixLines[0];
           delete _suffixLines[0];
           suffixLines = _suffixLines.join('\n');
         }
@@ -492,7 +494,8 @@ export class RaccoonManager {
           .replace("[suffix]", _suffix)
           .replace("[prefix.lines]", prefixLines)
           .replace("[suffix.lines]", suffixLines)
-          .replace("[prefix.cursor]", prefixLCursor);
+          .replace("[prefix.cursor]", prefixCursor)
+          .replace("[suffix.cursor]", suffixCursor);
       }
     }
   }

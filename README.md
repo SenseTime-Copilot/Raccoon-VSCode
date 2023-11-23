@@ -4,13 +4,17 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 
 ## 登录账号
 
-您可以点击状态栏中的 `🦝` 图标，或在 Raccoon 代码助手 侧边栏视图可见时，点击面板标题栏上的 `齿轮图标` 进入设置页面进行登录。
+您可以在 Raccoon 代码助手 侧边栏视图中，点击欢迎信息内的引导链接, 或点击面板标题栏上的 `齿轮图标` 进入设置页面进行登录。
+
+![login](media/Raccoon-Login.gif)
 
 > 界面的显示语言会跟随您的 IDE 配置，自动切换 中文/英文，可以在 VS Code 的命令面板中搜索 `Configure Display Language` 来切换。
 
 ## 编辑器内代码补全
 
 您可以在编辑器内通过自动或手动方式触发代码补全，一经触发，编辑器状态栏右下的 `🦝` 图标将指示现在的请求状态。
+
+![suggestion](media/Raccoon-Suggestion.gif)
 
 在设置页面中，可以配置编辑器内代码补全的
 
@@ -20,7 +24,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 * 补全偏好：
   * 速度优先：优先保证响应速度，返回简短的补全建议
   * 平衡：兼顾响应速度和补全建议长度
-  * 最大长度：最大可能的返回尽可能长的补全建议
+  * 最大长度：由模型在最大允许范围内自行确定返回内容
 * 候选建议数量：
   * 设置返回候选条目的数量
 
@@ -36,6 +40,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 * 编辑器内代码助手：在 Raccoon 侧边栏视图中，点击标题栏上的 `新窗口图标` 创建，可以创建多个独立实例，便于多线开发
 * 终端面板内代码助手：在 Raccoon 侧边栏视图中，点击标题栏上的 `更多...` 选择 `新建 Raccoon 终端` 创建，同样的可以创建多个独立实例
 
+![Assistant](media/Raccoon-Assistant.png)
+
 ### 侧边栏及编辑器内的代码助手
 
 #### 快速召唤代码助手
@@ -44,13 +50,17 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 * 在编辑器内单击右键选择 `向 Raccoon 提问...`，**侧边栏代码助手**
 * 在编辑器内选择部分代码，通过补全热键（默认为 `Alt + /`）触发 Code Action 菜单，其中将显示可处理代码的 Raccoon 命令，您可以直接选择执行<sup>*</sup>
 
-> \* 当有任意编辑器内代码助手页**可见**时，Code Action 提问请求将优先在该**编辑器内代码助手**页回答。
+> 当有任意编辑器内代码助手页**可见**时，Code Action 提问请求将优先在该**编辑器内代码助手**页回答。
 
 #### 提问或使用预设提示
 
 你可以在提问框中输入问题，或通过键入 `/` 选择预设提示（部分操作可能需要用户补全提示，完成补全后可以点击 `发送图标` 提交内容）开始对话。
 
+![chat](media/Raccoon-Chat.gif)
+
 如在编辑器内有活动的代码文件内容被选中，则会随问题一起发送，此时发送按钮旁会显示已附加代码的指示图标。
+
+![promptchat](media/Raccoon-PromptWithCode.gif)
 
 对话结果默认为 `流式输出` 模式，即回答将在产生过程中逐步显示，以便于您提早审阅结果，在这种模式下，您可以随时点击 `停止回答` 按钮来终止此次回答。
 
@@ -68,6 +78,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 
 提示词中可以包含用户填空，可以使用 `{input}` 来标识需要填写对应位置的信息后再通过主动点击 `发送图标` 提问。为了更好地提示用户，您可以为当前填空编写占位符，在内容为空时显示提示。如 `{input:language}` 将会显示可编辑文本框，并以 `language` 作为提示信息占位显示。
 
+![chatwith](media/Raccoon-ChatWithCode.gif)
+
 以下是一个示例：
 
 ```json
@@ -82,6 +94,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 #### 代码收藏与管理
 
 对于经常使用的代码片段，可以加入代码收藏，为其指定一个触发快捷词后，即可在使用对应编程语言编写代码的过程中，通过快捷词快速获取片段并插入。
+
+![favorites](media/Raccoon-Favorites.gif)
 
 您可以手动创建代码收藏条目，或者可以将 Raccoon 问答过程中产生的代码编辑后加入代码收藏。
 
@@ -98,6 +112,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 ### 终端面板内的代码助手
 
 直接在终端提示符后输入问题即可，在终端中的问答同样支持附加代码提问，以及基于上下文的多轮对话，多个终端的上下文相互独立。
+
+![terminal](media/Raccoon-Terminal.gif)
 
 相比于侧边栏或编辑器内代码助手，终端代码助手交互能力有限，无法删除前序对话来精细地修改上下文，也无法渲染输出结果及代码段，但如果需要在当前终端中新启会话，可以按 `Esc` 键，后续对话将不再参考之前的内容。
 
@@ -122,6 +138,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 在 Raccoon Notebook 文件中，可以添加 Markdown 单元格、 `Raccoon` 或 `TypeScript` 代码单元格。
 
 详细信息可以通过 `File` > `New File...` > `Raccoon Notebook` 来创建示例文件开始了解。
+
+![notebook](media/Raccoon-Notebook.gif)
 
 ## 由 Raccoon 来帮您撰写 Commit Message
 

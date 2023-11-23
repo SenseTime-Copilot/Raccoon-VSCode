@@ -48,7 +48,7 @@ const vscode = acquireVsCodeApi();
     var b = document.getElementById('qa-list-wrapper').children[0].scrollTop;
     var c = document.getElementById('qa-list-wrapper').children[0].children[0].offsetHeight;
 
-    return a + b + 60 >= c;
+    return a + b + 120 >= c;
   }
 
   function showTips() {

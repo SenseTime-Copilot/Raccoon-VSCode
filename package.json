@@ -63,6 +63,7 @@
                                 "robotname": {
                                     "type": "string",
                                     "description": "%raccoon.config.engines.engine.label%",
+                                    "pattern": "^(?!(Raccoon)$).*$",
                                     "minLength": 1,
                                     "maxLength": 32
                                 },

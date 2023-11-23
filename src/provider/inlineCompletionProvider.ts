@@ -17,7 +17,7 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
 
 async function getCompletionSuggestions(extension: vscode.ExtensionContext, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, controller: AbortController, statusBarItem: vscode.StatusBarItem) {
 
-  let maxLength = raccoonManager.maxInputTokenNum(ModelCapacity.completion) / 2;
+  let maxLength = raccoonManager.maxInputTokenNum(ModelCapacity.completion) * 2;
   let codeSnippets = await captureCode(document, position, maxLength);
 
   if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
@@ -36,7 +36,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       }
     );
 
-    let mt = undefined;
+    let mt = (raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion));
     let lenPreference = raccoonManager.completionPreference;
     if (lenPreference === CompletionPreferenceType.balanced) {
       mt = 128;
