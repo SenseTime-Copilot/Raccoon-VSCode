@@ -45,7 +45,7 @@ const builtinEngines: RaccoonClientConfig[] = [
         temperature: 0.4
       },
       maxInputTokenNum: 12288,
-      totalTokenNum: 16348
+      totalTokenNum: 16384
     },
     assistant: {
       url: raccoonAssistantUrl,

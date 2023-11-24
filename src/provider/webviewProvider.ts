@@ -244,10 +244,22 @@ export class RaccoonEditor extends Disposable {
         if (url.scheme === "command" && url.path === "raccoon.password") {
           loginForm = `
                     <style>
-                    #login-account:invalid + #login-password + vscode-link,
-                    #login-password:invalid + vscode-link {
+                    #login-account:invalid + #login-password + #login,
+                    #login-password:invalid + #login {
                         pointer-events: none;
                         opacity: 0.7;
+                    }
+                    #login {
+                      background-color: var(--button-primary-background);
+                      color: var(--button-primary-foreground);
+                      padding: 0.4rem 2rem;
+                      margin: 1rem;
+                      width: calc(100vw - 4rem);
+                      max-width: 32rem;
+                    }
+                    #login:focus-visible {
+                      outline: 1px solid var(--focus-border);
+                      background-color: var(--button-primary-hover-background);
                     }
                     </style>
                     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -255,13 +267,15 @@ export class RaccoonEditor extends Disposable {
                         <span slot="start" style="line-height: 1.4; margin-right: 11px; opacity: 0.8;">+86</span>
                       </vscode-text-field>
                       <vscode-text-field type="password" pattern=".{8,64}" maxlength=64 id="login-password" class="mx-4 my-1" required="required">${l10n.t("Password")}
-                        <vscode-link title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonResetPasswordUrl}">
+                        <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonResetPasswordUrl}">
                           ${l10n.t("Forgot Password")}?
                         </vscode-link>
+                        <div slot="end" onclick="((e) => {e.children[0].classList.toggle('hidden');e.children[1].classList.toggle('hidden');var pwd = document.getElementById('login-password');if (pwd.type === 'password') {pwd.type = 'text';} else {pwd.type = 'password';}})(this)">
+                          <span class="material-symbols-rounded opacity-50 cursor-pointer">visibility_off</span>
+                          <span class="material-symbols-rounded opacity-50 cursor-pointer hidden">visibility</span>
+                        </div>
                       </vscode-text-field>
-                      <vscode-link title="${l10n.t("Login")}" class="flex mt-4 self-center">
-                        <button id="login" style="background-color: var(--button-primary-background); color: var(--button-primary-foreground); padding: 0.4rem 2rem; width: calc(100vw - 4rem); max-width: 32rem;">${l10n.t("Login")}</button>
-                      </vscode-link>
+                      <button id="login" tabindex="0">${l10n.t("Login")}</button>
                       <span class="flex mx-4 self-center">
                         ${l10n.t("Do not have an account?")}
                         <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}">

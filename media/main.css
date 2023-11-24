@@ -407,6 +407,7 @@ textarea::placeholder {
 .op-hint {
     position: absolute;
     height: 12px;
+    padding-left: 0.25rem;
     bottom: 0px;
     display: flex;
     gap: 0.5rem;
@@ -416,10 +417,14 @@ textarea::placeholder {
 }
 
 .search-hint,
-.history-hint,
-#code-hint {
+.history-hint {
     display: none;
     opacity: 0.6;
+    font-weight: bold;
+}
+
+#code-hint {
+    display: none;
     font-weight: bold;
 }
 

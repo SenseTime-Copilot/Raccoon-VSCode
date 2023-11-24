@@ -11,6 +11,10 @@
     "bugs": {
         "url": "https://github.com/SenseTime-Copilot/Raccoon/issues"
     },
+    "galleryBanner": {
+        "color": "#283040",
+        "theme": "dark"
+    },
     "icon": "media/raccoon-logo.png",
     "version": "0.60.2",
     "preview": true,

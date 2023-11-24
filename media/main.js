@@ -1162,7 +1162,8 @@ const vscode = acquireVsCodeApi();
     }
 
     const promptBox = e.target.closest('.prompt');
-    if (promptBox && e.ctrlKey && e.key === "Enter") {
+    const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
+    if ((targetButton?.classList?.contains("send-element-gnc") && e.key === "Enter") || (promptBox && e.ctrlKey && e.key === "Enter")) {
       e.preventDefault();
       document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
       document.getElementById("question-input").disabled = false;
