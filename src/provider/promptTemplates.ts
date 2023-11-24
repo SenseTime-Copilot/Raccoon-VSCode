@@ -43,14 +43,14 @@ export class PromptInfo {
   }
 
   public generatePromptHtml(id: number, argValues?: any): RaccoonPromptHtml {
-    if (this._prompt.message.content.includes("{code}") && !this._prompt.code) {
+    if (this._prompt.message.content.includes("{{code}}") && !this._prompt.code) {
       return {
         status: RenderStatus.codeMissing,
         html: "",
         prompt: this._prompt
       };
     }
-    if (!this._prompt.message.content.includes("{code}")) {
+    if (!this._prompt.message.content.includes("{{code}}")) {
       this._prompt.code = undefined;
       this._prompt.languageid = undefined;
     }
@@ -65,7 +65,7 @@ export class PromptInfo {
       for (let argName in argValues) {
         let arg = argValues[argName];
         if (argValues && argValues[argName] !== undefined) {
-          prompt.message.content = prompt.message.content.replace(`{${argName}}`, arg);
+          prompt.message.content = prompt.message.content.replace(`{{${argName}}}`, arg);
         }
       }
     }
@@ -85,7 +85,7 @@ export class PromptInfo {
               renderElem += `<option value="${v}">${v}</option>`;
             }
             renderElem += "</select></div>";
-            prompthtml = prompthtml.replace(`{${argName}}`, renderElem);
+            prompthtml = prompthtml.replace(`{{${argName}}}`, renderElem);
             argData += `data-${argName}="${arg.options[0]}" `;
             break;
           }
@@ -120,7 +120,7 @@ export class PromptInfo {
               properties += `${argkey}="${arg[argkey]}" `;
             }
             let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><input class="ignoreText" id="${argName}-${id}" ${properties} onChange="document.getElementById('values-${id}').dataset.${argName} = this.value;"/></div>`;
-            prompthtml = prompthtml.replace(`{${argName}}`, renderElem);
+            prompthtml = prompthtml.replace(`{{${argName}}}`, renderElem);
             break;
           }
         }
@@ -142,7 +142,7 @@ export class PromptInfo {
       let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;");
       codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col ${codelines > 10 ? "fold" : ""}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
-    prompthtml = prompthtml.replace("{code}", codeHtml);
+    prompthtml = prompthtml.replace("{{code}}", codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
     } else {
       prompthtml = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${renderHtml.prompt.label.replace("...", "")}</p>` + prompthtml;
@@ -195,7 +195,7 @@ export const builtinPrompts: RaccoonPrompt[] = [
     shortcut: "generate",
     message: {
       role: Role.user,
-      content: `${l10n.t("Generate code according comment message")}.\n{code}`
+      content: `${l10n.t("Generate code according comment message")}.\n{{code}}`
     },
     brush: true,
     icon: "gradient"
@@ -206,7 +206,7 @@ export const builtinPrompts: RaccoonPrompt[] = [
     shortcut: "test",
     message: {
       role: Role.user,
-      content: `${l10n.t("Generate unit test code to the following code")}.\n{code}`
+      content: `${l10n.t("Generate unit test code to the following code")}.\n{{code}}`
     },
     icon: "science"
   },
@@ -216,7 +216,7 @@ export const builtinPrompts: RaccoonPrompt[] = [
     shortcut: "translate",
     message: {
       role: Role.user,
-      content: `${l10n.t("Convert the given code to equivalent {0} code", "{language}")}.\n{code}`
+      content: `${l10n.t("Convert the given code to equivalent {0} code", "{{language}}")}.\n{{code}}`
     },
     args: {
       language: {
@@ -249,7 +249,7 @@ export const builtinPrompts: RaccoonPrompt[] = [
     shortcut: "fix",
     message: {
       role: Role.user,
-      content: `${l10n.t("Fix any problem in the following code")}.\n{code}`
+      content: `${l10n.t("Fix any problem in the following code")}.\n{{code}}`
     },
     brush: true,
     icon: "add_task"
@@ -260,7 +260,7 @@ export const builtinPrompts: RaccoonPrompt[] = [
     shortcut: "refactor",
     message: {
       role: Role.user,
-      content: `${l10n.t("Refactor the following code to make its structure clearer, easier to read, and maintain")}.\n{code}`
+      content: `${l10n.t("Refactor the following code to make its structure clearer, easier to read, and maintain")}.\n{{code}}`
     },
     brush: true,
     icon: "construction"
