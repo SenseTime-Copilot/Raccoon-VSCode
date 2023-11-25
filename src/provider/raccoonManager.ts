@@ -213,7 +213,6 @@ export class RaccoonManager {
                   ca.authInfo = authinfos[c];
                 }
               }
-              this.changeStatusEmitter.fire({ scope: ["authorization"] });
             } catch (_e) { }
           }
         });

@@ -110,7 +110,7 @@ const vscode = acquireVsCodeApi();
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
                                 <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${username}</b>
-                                  <div class="opacity-60 leading-3">
+                                  <div class="opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${timestamp}
                                   </div>
                                 </span>
@@ -312,7 +312,7 @@ const vscode = acquireVsCodeApi();
                                 ${aiIcon}
                                 <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${item.name}</b>
-                                  <div class="response-ts opacity-60 leading-3">
+                                  <div class="response-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${item.timestamp}
                                   </div>
                                 </span>
@@ -508,7 +508,7 @@ const vscode = acquireVsCodeApi();
                                       ${aiIcon}
                                       <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                         <b class="text-sm">${message.robot}</b>
-                                        <div class="response-ts opacity-60 leading-3">
+                                        <div class="response-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                           <span class="material-symbols-rounded">
                                             more_horiz
                                           </span>
@@ -667,7 +667,7 @@ const vscode = acquireVsCodeApi();
                                 ${aiIcon}
                                 <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${message.robot}</b>
-                                  <div class="opacity-60 leading-3">
+                                  <div class="opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${message.timestamp}
                                   </div>
                                 </span>
