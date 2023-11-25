@@ -816,7 +816,7 @@ const vscode = acquireVsCodeApi();
   function updateHistory(prompt) {
     if (prompt.type === 'free chat') {
       let item = prompt.message.content;
-      item = item.replace("{code}", "");
+      item = item.replace("{{code}}", "");
       history = [item.trim(), ...history];
     }
   }
@@ -835,7 +835,7 @@ const vscode = acquireVsCodeApi();
       const code = values[0]?.getElementsByClassName("code-value")[0]?.textContent || "";
       p = prompt[0].dataset.prompt;
       if (p) {
-        p = p.replace("{code}", `\n\`\`\`${languageid}\n${code}\n\`\`\``);
+        p = p.replace("{{code}}", `\n\`\`\`${languageid}\n${code}\n\`\`\``);
       }
       const answer = q.nextElementSibling;
       if (answer && answer.classList?.contains("answer-element-gnc")) {

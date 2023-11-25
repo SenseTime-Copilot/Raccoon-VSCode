@@ -15,7 +15,7 @@
     "raccoon.config.engines.engine.option.max_input_token_num": "The maximum input tokens to this backend engine",
     "raccoon.config.engines.engine.option.template": "Prompt template",
     "raccoon.config.engines.engine.option.parameters": "API parameters for model invoke, do not set parameters that affect context or set by extension settings (e.g. `n`, `stream`)",
-    "raccoon.config.prompt": "Custom prompt list, support `{input[:placeholder]}` to ask for user input, and `{code}` to require code selection",
+    "raccoon.config.prompt": "Custom prompt list, support `{{input[:placeholder]}}` to ask for user input, and `{{code}}` to require code selection",
     "raccoon.config.prompt.item": "Prompt template",
     "raccoon.config.prompt.advanced": "Advanced prompt template",
     "raccoon.config.prompt.advanced.item": "Advanced prompt template with any custom `{*}` argument",

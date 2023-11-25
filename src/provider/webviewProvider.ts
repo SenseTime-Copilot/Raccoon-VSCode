@@ -537,8 +537,8 @@ export class RaccoonEditor extends Disposable {
             }
           }
           if (prompt.type === PromptType.freeChat) {
-            if (prompt.code && !prompt.message.content.includes("{code}")) {
-              prompt.message.content += "\n{code}\n";
+            if (prompt.code && !prompt.message.content.includes("{{code}}")) {
+              prompt.message.content += "\n{{code}}\n";
             }
           }
           let promptInfo = new PromptInfo(prompt);
@@ -689,7 +689,7 @@ export class RaccoonEditor extends Disposable {
               issueTitle = '[Feedback]';
               let renderRequestBody = data.info.request.prompt;
               if (renderRequestBody) {
-                renderRequestBody = renderRequestBody.replace("{code}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
+                renderRequestBody = renderRequestBody.replace("{{code}}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
                 issueTitle = '[Need Improvement]';
                 issueBody = `## Your question
 
@@ -781,12 +781,12 @@ ${data.info.response[0]}
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
           let codeBlock = `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``;
-          instruction.content = instruction.content.replace("{code}",
+          instruction.content = instruction.content.replace("{{code}}",
             () => {
               return codeBlock;
             });
         } else {
-          instruction.content = instruction.content.replace("{code}", "");
+          instruction.content = instruction.content.replace("{{code}}", "");
         }
         let historyMsgs: Message[] = [];
         if (history) {

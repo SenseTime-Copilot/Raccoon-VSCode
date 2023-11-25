@@ -24,7 +24,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       let kind = vscode.CodeActionKind.QuickFix.append('raccoon');
       let name = `Raccoon: `;
       if (p.type === PromptType.customPrompt) {
-        if (p.message.content.includes("{code}")) {
+        if (p.message.content.includes("{{code}}")) {
           kind = kind.append("custom");
           name += " ✨ ";
         } else {
