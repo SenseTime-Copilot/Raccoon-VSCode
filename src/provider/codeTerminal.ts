@@ -82,7 +82,7 @@ export class RaccoonTerminal {
     let writeEmitter = new EventEmitter<string>();
     let changeNameEmitter = new EventEmitter<string>();
     raccoonManager.onDidChangeStatus((e) => {
-      if (e.scope.includes("active") || e.scope.includes("authorization") || e.scope.includes("engines")) {
+      if (!e.quiet && e.scope.includes("active") || e.scope.includes("authorization") || e.scope.includes("engines")) {
         writeEmitter.fire('\r\n');
         welcome();
       }
