@@ -407,7 +407,7 @@ export class RaccoonManager {
       if (typeof customPrompts[label] === 'string') {
         let promptStr = customPrompts[label] as string;
         let promptProcessed = customPrompts[label] as string;
-        let regex = /{input(:[^}]*)?\}/g;
+        let regex = /\{\{input(:.+)?\}\}/g;
         let m;
         let args: any = {};
         while ((m = regex.exec(promptStr)) !== null) {
@@ -418,7 +418,7 @@ export class RaccoonManager {
           if (m.length > 1 && m[1]) {
             placeholder = m[1].slice(1);
           }
-          promptProcessed = promptProcessed.replace(m[0], `\{v${m.index}\}`);
+          promptProcessed = promptProcessed.replace(m[0], `{{v${m.index}}}`);
           args[`v${m.index}`] = {
             type: "text",
             placeholder

@@ -117,7 +117,9 @@ export class PromptInfo {
             argData += `data-${argName}="${initialValue}" `;
             let properties = '';
             for (let argkey in arg) {
-              properties += `${argkey}="${arg[argkey]}" `;
+              if (arg[argkey]) {
+                properties += `${argkey}="${arg[argkey]}" `;
+              }
             }
             let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><input class="ignoreText" id="${argName}-${id}" ${properties} onChange="document.getElementById('values-${id}').dataset.${argName} = this.value;"/></div>`;
             prompthtml = prompthtml.replace(`{{${argName}}}`, renderElem);
@@ -140,7 +142,7 @@ export class PromptInfo {
       let btn2 = '<button class="fold-btn expend-code rounded hidden"><span class="material-symbols-rounded">compress</span></button>';
       let btns = `${btnView}${btn1}${btn2}`;
       let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;");
-      codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col ${codelines > 10 ? "fold" : ""}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
+      codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col ${codelines > 10 ? "fold" : ""}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
     prompthtml = prompthtml.replace("{{code}}", codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {

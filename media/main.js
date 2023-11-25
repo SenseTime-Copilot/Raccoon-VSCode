@@ -994,6 +994,10 @@ const vscode = acquireVsCodeApi();
     if (settings) {
       return;
     }
+    const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
+    if (targetButton) {
+      return;
+    }
     if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
       var btns = Array.from(list.querySelectorAll("button")).filter((b, _i, _a) => {
         return !b.classList.contains('hidden');
