@@ -247,7 +247,7 @@ export class RaccoonEditor extends Disposable {
                     #login-account:invalid + #login-password + #login,
                     #login-password:invalid + #login {
                         pointer-events: none;
-                        opacity: 0.7;
+                        opacity: var(--disabled-opacity);
                     }
                     #login {
                       background-color: var(--button-primary-background);
@@ -263,10 +263,10 @@ export class RaccoonEditor extends Disposable {
                     }
                     </style>
                     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-                      <vscode-text-field type="tel" pattern="[0-9]{11}" maxlength=11 id="login-account" class="mx-4 my-1" required="required">${l10n.t("Account")}
+                      <vscode-text-field type="tel" autofocus pattern="[0-9]{11}" maxlength=11 id="login-account" class="mx-4 my-1" required="required">${l10n.t("Account")}
                         <span slot="start" style="line-height: 1.4; margin-right: 11px; opacity: 0.8;">+86</span>
                       </vscode-text-field>
-                      <vscode-text-field type="password" pattern=".{8,64}" maxlength=64 id="login-password" class="mx-4 my-1" required="required">${l10n.t("Password")}
+                      <vscode-text-field type="password" pattern=".{8,64}" maxlength=64 id="login-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-account');var pwd = document.getElementById('login-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login').click();};})(this)" class="mx-4 my-1" required="required">${l10n.t("Password")}
                         <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonResetPasswordUrl}">
                           ${l10n.t("Forgot Password")}?
                         </vscode-link>
