@@ -731,10 +731,7 @@ const vscode = acquireVsCodeApi();
         chatText.innerHTML = chatText.innerHTML + `<div class="infoMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">no_accounts</span>
                                         <div class="flex grow py-4">
-                                            <div>${message.message}</div>
-                                            <div class="flex grow justify-end px-2">
-                                              <vscode-link href="${message.url}"><span class="material-symbols-rounded">keyboard_double_arrow_right</span></vscode-link>
-                                            </div>
+                                          <div>${message.message}</div>
                                         </div>
                                     </div>`;
         list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
