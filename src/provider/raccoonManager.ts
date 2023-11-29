@@ -36,7 +36,7 @@ const builtinEngines: RaccoonClientConfig[] = [
     authUrl: raccoonAuthBaseUrl,
     completion: {
       url: raccoonCompletionUrl,
-      template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<MID>[prefix.cursor]",
+      template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
       parameters: {
         model: "nova-ptc-s-v1-codecompletion",
         stop: [
@@ -267,6 +267,8 @@ export class RaccoonManager {
           ai.account.username = username;
         }
         return this.updateToken(name, ai, true);
+      }, (_err) => {
+        return undefined;
       });
     } else {
       outlog.debug(`Append client ${name} [Unauthorized]`);
@@ -558,12 +560,12 @@ export class RaccoonManager {
           }
         }
       }
-      if (authMethods.includes(AuthMethod.accesskey)) {
+      if (authMethods.includes(AuthMethod.password)) {
+        return Promise.resolve("command:raccoon.password");
+      } else if (authMethods.includes(AuthMethod.accesskey)) {
         return Promise.resolve("command:raccoon.setAccessKey");
       } else if (authMethods.includes(AuthMethod.apikey)) {
         return Promise.resolve("command:raccoon.setApiKey");
-      } else if (authMethods.includes(AuthMethod.password)) {
-        return Promise.resolve("command:raccoon.password");
       } else {
         return Promise.reject();
       }
