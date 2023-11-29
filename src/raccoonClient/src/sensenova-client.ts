@@ -2,8 +2,25 @@ import axios, { AxiosError, ResponseType } from "axios";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
 import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
+
+import sign = require('jwt-encode');
+
+export interface SenseNovaClientMeta {
+  clientId: string;
+  redirectUrl: string;
+}
+
+function generateSignature(ak: string, sk: string, date: Date) {
+  let t = date.valueOf();
+  let data = {
+    iss: ak,
+    exp: Math.floor(t / 1000) + 1800,
+    nbf: Math.floor(t / 1000) - 300
+  };
+  return "Bearer " + sign(data, sk);
+}
 
 function encrypt(dataStr: string): string {
   const iv = crypto.randomBytes(16);
@@ -24,10 +41,13 @@ export class SenseNovaClient implements CodeClient {
   }
 
   public get authMethods(): AuthMethod[] {
-    return [AuthMethod.password];
+    return [AuthMethod.password, AuthMethod.accesskey];
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
+    if (this.clientConfig.key) {
+      return Promise.resolve(`authorization://accesskey?${encodeURIComponent(JSON.stringify(this.clientConfig.key))}`);
+    }
     return Promise.resolve(undefined);
   }
 
@@ -41,30 +61,43 @@ export class SenseNovaClient implements CodeClient {
       let logininfo = decodeURIComponent(query);
       try {
         let decoded = JSON.parse(logininfo);
-        if (decoded["account"] && decoded["password"]) {
-          let phone = encrypt(decoded["account"]);
-          let password = encrypt(decoded["password"]);
-          return axios.post(this.clientConfig.authUrl + "/login_with_password", {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            nation_code: "86", phone, password
-          }).then(resp => {
-            if (resp.status === 200 && resp.data.code === 0) {
-              let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
-              return {
-                account: {
-                  userId: decoded["account"],
-                  username: jwtDecoded["name"],
-                  userIdProvider: "Raccoon"
-                },
-                expiration: jwtDecoded["exp"],
-                weaverdKey: resp.data.data.access_token,
-                refreshToken: resp.data.data.refresh_token,
-              };
-            }
-            throw new Error(resp.data.message || resp.data);
-          }).catch(err => {
-            throw err;
-          });
+        if (url.host === 'accesskey') {
+          return {
+            account: {
+              userId: decoded.accessKeyId,
+              username: "User",
+              userIdProvider: "Raccoon"
+            },
+            weaverdKey: decoded.secretAccessKey,
+          };
+        } else if (url.host === 'password') {
+          if (decoded["account"] && decoded["password"]) {
+            let phone = encrypt(decoded["account"]);
+            let password = encrypt(decoded["password"]);
+            return axios.post(this.clientConfig.authUrl + "/login_with_password", {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              nation_code: "86", phone, password
+            }).then(resp => {
+              if (resp.status === 200 && resp.data.code === 0) {
+                let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
+                return {
+                  account: {
+                    userId: decoded["account"],
+                    username: jwtDecoded["name"],
+                    userIdProvider: "Raccoon"
+                  },
+                  expiration: jwtDecoded["exp"],
+                  weaverdKey: resp.data.data.access_token,
+                  refreshToken: resp.data.data.refresh_token,
+                };
+              }
+              throw new Error(resp.data.message || resp.data);
+            }).catch(err => {
+              throw err;
+            });
+          } else {
+            throw new Error("Unsupported auth method");
+          }
         } else {
           throw new Error("Malformed login info");
         }
@@ -146,13 +179,20 @@ export class SenseNovaClient implements CodeClient {
     headers["x-raccoon-user-id"] = auth.account.userId || "";
     headers["Date"] = date.toUTCString();
     headers["Content-Type"] = "application/json";
-    headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+    if (!this.clientConfig.key) {
+      headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+    } else {
+      let aksk = this.clientConfig.key as AccessKey;
+      headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, date)
+    }
 
     let responseType: ResponseType | undefined = undefined;
     let config: any = {};
     config.model = requestParam.model;
     config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
     config.temperature = requestParam.temperature;
+    config.top_p = requestParam.topP;
+    config.repetition_penalty = requestParam.repetitionPenalty
     config.n = requestParam.n ?? 1;
 
     config.stream = requestParam.stream;

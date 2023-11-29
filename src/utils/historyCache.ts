@@ -79,7 +79,9 @@ export class HistoryCache {
       } catch {
         return [];
       }
-    }, () => { });
+    }, () => {
+      return [];
+    });
   }
 
   async removeCacheItem(id?: number): Promise<void> {
