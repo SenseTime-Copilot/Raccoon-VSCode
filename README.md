@@ -148,17 +148,17 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 
 ## Raccoon Notebok 🚧
 
-Raccoon Notebook 可以帮助您创建可交互、可复用的对话流程文件。您可以在 Raccoon 侧边栏视图中，点击标题栏上的 `更多...` 选择 `新建 Raccoon Notebook` 新建一个 Notebook 文件。
+Raccoon Notebook 可以帮助您创建可交互、可复用的对话流程文件。您可以通过 `File` > `New File...` > `Raccoon Notebook` 来创建示例文件开始了解，或者新建一个任意的扩展名为 `.rcnb` 的文件来从零开始创建自己的 Notebook。
 
 在 Raccoon Notebook 文件中，可以添加 Markdown 单元格、 `Raccoon` 或 `TypeScript` 代码单元格。
-
-详细信息可以通过 `File` > `New File...` > `Raccoon Notebook` 来创建示例文件开始了解。
 
 ![notebook](media/Raccoon-Notebook.gif)
 
 ## 撰写提交信息
 
 如当前工作空间存在一个或多个 Git 仓库，在 `源代码管理` 侧边栏面板中，会看到 `魔棒图标` 按钮，Raccoon 会理解您已暂存的更改，并在消息框中撰写合适的 Commit Message 建议。
+
+![commit](media/Raccoon-CommitMessage.gif)
 
 ## 免责声明
 
