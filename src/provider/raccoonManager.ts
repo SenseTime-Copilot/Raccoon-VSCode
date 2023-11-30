@@ -40,7 +40,7 @@ const builtinEngines: RaccoonClientConfig[] = [
       parameters: {
         model: "nova-ptc-s-v1-codecompletion",
         stop: [
-          "<|EOT|>"
+          "<EOT>"
         ],
         temperature: 0.4
       },
