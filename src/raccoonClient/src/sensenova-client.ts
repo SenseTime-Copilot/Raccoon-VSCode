@@ -183,7 +183,7 @@ export class SenseNovaClient implements CodeClient {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
     } else {
       let aksk = this.clientConfig.key as AccessKey;
-      headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, date)
+      headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, date);
     }
 
     let responseType: ResponseType | undefined = undefined;
@@ -192,7 +192,7 @@ export class SenseNovaClient implements CodeClient {
     config.stop = requestParam.stop ? requestParam.stop[0] : undefined;
     config.temperature = requestParam.temperature;
     config.top_p = requestParam.topP;
-    config.repetition_penalty = requestParam.repetitionPenalty
+    config.repetition_penalty = requestParam.repetitionPenalty;
     config.n = requestParam.n ?? 1;
 
     config.stream = requestParam.stream;
