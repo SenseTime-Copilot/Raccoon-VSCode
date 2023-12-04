@@ -409,7 +409,7 @@ export class RaccoonManager {
       if (typeof customPrompts[label] === 'string') {
         let promptStr = customPrompts[label] as string;
         let promptProcessed = customPrompts[label] as string;
-        let regex = /\{\{input(:.+)?\}\}/g;
+        let regex = /\{\{input(:.+?)?\}\}/g;
         let m;
         let args: any = {};
         while ((m = regex.exec(promptStr)) !== null) {

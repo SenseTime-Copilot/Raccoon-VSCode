@@ -705,14 +705,10 @@ export class RaccoonEditor extends Disposable {
               if (renderRequestBody) {
                 renderRequestBody = renderRequestBody.replace("{{code}}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
                 issueTitle = '[Need Improvement]';
-                issueBody = `## Your question
-
+                issueBody = `## Your question\n\n
 ${renderRequestBody}
-
-## Raccoon's answer
-
-${data.info.response[0]}
-
+${data.info.response[0]? `\n\n## Raccoon's answer\n\n${data.info.response[0]}\n\n`:""}
+${data.info.error? `\n\n## Raccoon's error\n\n${data.info.error}\n\n`:""}
 ## Your expection
 `;
               }
