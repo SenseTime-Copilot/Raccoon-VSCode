@@ -51,6 +51,7 @@
   "Empty prompt": "提示信息为空",
   "No diff content": "没有可比较的内容",
   "Incomprehensible Question": "不理解您的问题",
+  "Too many tokens": "提问信息过长",
   "Settings": "设置",
   "Service": "服务设置",
   "Code engine": "后端引擎",

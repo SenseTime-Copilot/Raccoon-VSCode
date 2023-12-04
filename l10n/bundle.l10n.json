@@ -51,6 +51,7 @@
   "Empty prompt": "Empty prompt",
   "No diff content": "No diff content",
   "Incomprehensible Question": "Incomprehensible Question",
+  "Too many tokens": "Too many tokens",
   "Settings": "Settings",
   "Service": "Service",
   "Code engine": "Code engine",

@@ -707,8 +707,8 @@ export class RaccoonEditor extends Disposable {
                 issueTitle = '[Need Improvement]';
                 issueBody = `## Your question\n\n
 ${renderRequestBody}
-${data.info.response[0]? `\n\n## Raccoon's answer\n\n${data.info.response[0]}\n\n`:""}
-${data.info.error? `\n\n## Raccoon's error\n\n${data.info.error}\n\n`:""}
+${data.info.response[0] ? `\n\n## Raccoon's answer\n\n${data.info.response[0]}\n\n` : ""}
+${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
 ## Your expection
 `;
               }
@@ -863,6 +863,8 @@ ${data.info.error? `\n\n## Raccoon's error\n\n${data.info.error}\n\n`:""}
                     raccoonManager.getAuthUrlLogin().then((url) => {
                       this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
                     });
+                  } else if (content?.includes('maximum context length limit')) {
+                    this.sendMessage({ type: 'addError', error: l10n.t("Too many tokens"), id, timestamp: rts });
                   } else {
                     this.sendMessage({ type: 'addError', error: content || "", id, timestamp: rts });
                   }
