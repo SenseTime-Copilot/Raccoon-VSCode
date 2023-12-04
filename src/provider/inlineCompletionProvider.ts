@@ -132,11 +132,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
         outlog.debug('[Ignore: After Cursor Mismatch]');
         continue;
       }
-      tmpstr = tmpstr.trimEnd().slice(0, tmpstr.length - afterCursor.length - 1);
-      if (!tmpstr.trim()) {
-        outlog.debug('[Ignore: Empty Suggestion]');
-        continue;
-      }
     }
     if (completions.includes(tmpstr)) {
       outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);
@@ -166,7 +161,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     items.push({
       insertText: prefix + completion,
       range: new vscode.Range(new vscode.Position(position.line, 0),
-        new vscode.Position(position.line, position.character)),
+        new vscode.Position(position.line, position.character + afterCursor.length)),
       command
     });
   }
