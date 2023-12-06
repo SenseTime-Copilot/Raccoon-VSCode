@@ -2,7 +2,7 @@ import axios, { AxiosError, ResponseType } from "axios";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey, AccountInfo } from "./CodeClient";
 import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
 import sign = require('jwt-encode');
@@ -122,6 +122,29 @@ export class SenseNovaClient implements CodeClient {
         return undefined;
       });
     }
+  }
+
+  public async syncUserInfo(auth: AuthInfo): Promise<AccountInfo> {
+    let url = `${this.clientConfig.authUrl}/user_info`;
+    return axios.get(url,
+      {
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          Authorization: `Bearer ${auth.weaverdKey}`
+        }
+      })
+      .then(async (resp) => {
+        if (resp && resp.status === 200 && resp.data.code === 0) {
+          return {
+            userId: auth.account.userId,
+            username: resp.data.data.name,
+            userIdProvider: "Raccoon"
+          };
+        }
+        return Promise.resolve(auth.account);
+      }, (_err) => {
+        return Promise.resolve(auth.account);
+      });
   }
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {

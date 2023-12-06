@@ -1,6 +1,6 @@
 import axios, { AxiosError, ResponseType } from "axios";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, Choice, ResponseData, Role, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccountInfo } from "./CodeClient";
 import { handleStreamError, ResponseDataBuilder } from "./handleStreamError";
 
 export class OpenAIClient implements CodeClient {
@@ -44,6 +44,10 @@ export class OpenAIClient implements CodeClient {
     } else {
       return Promise.resolve(undefined);
     }
+  }
+
+  public async syncUserInfo(auth: AuthInfo): Promise<AccountInfo> {
+    return Promise.resolve(auth.account);
   }
 
   public onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {

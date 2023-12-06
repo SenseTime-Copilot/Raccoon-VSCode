@@ -245,6 +245,9 @@ export class RaccoonManager {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.robotname, ai, true);
           });
+          if (authinfos[e.robotname]) {
+            authinfos[e.robotname].account = await client.syncUserInfo(authinfos[e.robotname]);
+          }
           await this.appendClient(e.robotname, { client, options: e, authInfo: authinfos[e.robotname] }, e.username);
         }
       }
@@ -620,15 +623,11 @@ export class RaccoonManager {
           if (ca) {
             this.updateToken(ca.client.robotName);
           }
-        }, (e) => {
+        }, () => {
           progress.report({ increment: 100 });
-          window.showErrorMessage(l10n.t(e.message), l10n.t("Clear Access Key"), l10n.t("Close")).then((v) => {
-            if (v === l10n.t("Clear Access Key")) {
-              if (ca) {
-                this.updateToken(ca.client.robotName);
-              }
-            }
-          });
+          if (ca) {
+            this.updateToken(ca.client.robotName);
+          }
         });
       }
     });
@@ -645,7 +644,12 @@ export class RaccoonManager {
         ...config,
         ...ca.options[capacity].parameters
       };
-      return ca.client.getCompletions(ca.authInfo, params, options);
+      return ca.client.getCompletions(ca.authInfo, params, options).catch(e => {
+        if (e.response.status === 401) {
+          this.updateToken(ca!.client.robotName);
+        }
+        return Promise.reject(e);
+      });
     } else if (ca) {
       return Promise.reject(Error(l10n.t("Unauthorized")));
     } else {
@@ -664,7 +668,14 @@ export class RaccoonManager {
         ...config,
         ...ca.options[capacity].parameters
       };
-      ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);
+      let resetToken = this.updateToken.bind(this);
+      let cb = function (event: MessageEvent<ResponseData>) {
+        if (event.type === ResponseEvent.error && event.data.choices[0].message?.content === "Unauthorized") {
+          resetToken(ca!.client.robotName);
+        }
+        callback(event);
+      };
+      ca.client.getCompletionsStreaming(ca.authInfo, params, cb, options);
     } else if (ca) {
       return Promise.reject(Error(l10n.t("Unauthorized")));
     } else {

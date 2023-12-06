@@ -1,6 +1,6 @@
 import axios, { ResponseType } from "axios";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccountInfo } from "./CodeClient";
 
 export class TGIClient implements CodeClient {
   constructor(private readonly clientConfig: ClientConfig, private debug?: (message: string, ...args: any[]) => void) {
@@ -44,6 +44,10 @@ export class TGIClient implements CodeClient {
     } else {
       return Promise.resolve(undefined);
     }
+  }
+
+  public async syncUserInfo(auth: AuthInfo): Promise<AccountInfo> {
+    return Promise.resolve(auth.account);
   }
 
   public onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {
