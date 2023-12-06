@@ -642,8 +642,8 @@ export class RaccoonManager {
     if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
         url: ca.options[capacity].url,
-        ...ca.options[capacity].parameters,
-        ...config
+        ...config,
+        ...ca.options[capacity].parameters
       };
       return ca.client.getCompletions(ca.authInfo, params, options);
     } else if (ca) {
@@ -661,8 +661,8 @@ export class RaccoonManager {
     if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
         url: ca.options[capacity].url,
-        ...ca.options[capacity].parameters,
-        ...config
+        ...config,
+        ...ca.options[capacity].parameters
       };
       ca.client.getCompletionsStreaming(ca.authInfo, params, callback, options);
     } else if (ca) {

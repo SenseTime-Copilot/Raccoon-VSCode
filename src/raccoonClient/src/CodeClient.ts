@@ -69,7 +69,7 @@ export interface ChatRequestParam {
   messages: Array<Message>;
   temperature?: number | null;
   topP?: number | null;
-  repetitionPenalty: number | null;
+  repetitionPenalty?: number | null;
   n?: number | null;
   stream?: boolean | null;
   stop?: StopToken;
