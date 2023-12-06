@@ -2,7 +2,7 @@
     "publisher": "SenseTime",
     "name": "raccoon",
     "displayName": "Raccoon",
-    "description": "Raccoon is Another Code CO-pilot and Outstanding Navigator",
+    "description": "Raccoon is Another Code CO-pilOt Navigator",
     "homepage": "https://code.sensetime.com",
     "repository": {
         "type": "git",
@@ -16,7 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.60.2",
+    "version": "0.60.4",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
