@@ -55,7 +55,7 @@ const builtinEngines: RaccoonClientConfig[] = [
         stop: [
           "<|endofmessage|>"
         ],
-        temperature: 0.8
+        temperature: 0.4
       },
       maxInputTokenNum: 6144,
       totalTokenNum: 8192
