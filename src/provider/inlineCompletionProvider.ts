@@ -39,9 +39,9 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     let mt = (raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion));
     let lenPreference = raccoonManager.completionPreference;
     if (lenPreference === CompletionPreferenceType.balanced) {
-      mt = 128;
+      mt = 256;
     } else if (lenPreference === CompletionPreferenceType.speedPriority) {
-      mt = 64;
+      mt = 128;
     }
 
     let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
