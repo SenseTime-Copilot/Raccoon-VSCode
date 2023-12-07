@@ -645,7 +645,7 @@ export class RaccoonManager {
         ...ca.options[capacity].parameters
       };
       return ca.client.getCompletions(ca.authInfo, params, options).catch(e => {
-        if (e.response.status === 401) {
+        if (e.response?.status === 401) {
           this.updateToken(ca!.client.robotName);
         }
         return Promise.reject(e);
