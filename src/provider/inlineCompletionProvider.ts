@@ -127,12 +127,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       outlog.debug('[Ignore: Empty Suggestion]');
       continue;
     }
-    if (afterCursor) {
-      if (!tmpstr.trim().endsWith(afterCursor)) {
-        outlog.debug('[Ignore: After Cursor Mismatch]');
-        continue;
-      }
-    }
     if (completions.includes(tmpstr)) {
       outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);
       continue;
