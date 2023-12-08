@@ -218,7 +218,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       [{ scheme: "file" }, { scheme: "untitled" }, { scheme: "git" }],
-      new RaccoonAction())
+      new RaccoonAction(context))
   );
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);

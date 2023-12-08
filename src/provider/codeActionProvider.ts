@@ -6,6 +6,21 @@ import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 
 export class RaccoonAction implements vscode.CodeActionProvider {
+  constructor(context: vscode.ExtensionContext) {
+    context.subscriptions.push(vscode.commands.registerCommand('raccoon.codeaction', (prompt) => {
+      let editor: RaccoonEditor | undefined = this.getEditor();
+      if (editor) {
+        if (prompt) {
+          editor.sendApiRequest(new PromptInfo(prompt));
+        } else {
+          editor.sendMessage({ type: 'focus' });
+        }
+      } else {
+        RaccoonViewProvider.ask(prompt && new PromptInfo(prompt));
+      }
+    }));
+  }
+
   public provideCodeActions(_document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
     if (range.isEmpty) {
       return;
@@ -55,14 +70,12 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     }
     if (vscode.CodeActionKind.QuickFix.append('raccoon').append('preset').contains(codeAction.kind)) {
       if (codeAction.title === `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`) {
-        let editor: RaccoonEditor | undefined = this.getEditor();
-        if (editor) {
-          editor.sendMessage({ type: 'focus' });
-        } else {
-          RaccoonViewProvider.ask();
-        }
+        codeAction.command = {
+          command: 'raccoon.codeaction',
+          title: codeAction.title
+        };
+        return codeAction;
       }
-      return codeAction;
     }
 
     let selection = vscode.window.activeTextEditor?.selection;
@@ -86,13 +99,14 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       if (document.languageId !== "plaintext") {
         prompt.languageid = document.languageId;
       }
-      let editor: RaccoonEditor | undefined = this.getEditor();
-      if (editor) {
-        editor.sendApiRequest(new PromptInfo(prompt));
-      } else {
-        RaccoonViewProvider.ask(new PromptInfo(prompt));
-      }
+
+      codeAction.command = {
+        command: 'raccoon.codeaction',
+        arguments: [prompt],
+        title: codeAction.title
+      };
     }
+
     return codeAction;
   }
 
