@@ -109,9 +109,8 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     return;
   }
 
-  let range = new vscode.Range(new vscode.Position(position.line, 0),
-    new vscode.Position(position.line, position.character));
-  let prefix = document.getText(range);
+  // let range = new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, position.character));
+  // let prefix = document.getText(range);
 
   let afterCursor = document.lineAt(position.line).text.slice(position.character);
 
@@ -153,8 +152,8 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       ]
     };
     items.push({
-      insertText: prefix + completion,
-      range: new vscode.Range(new vscode.Position(position.line, 0),
+      insertText: completion,
+      range: new vscode.Range(new vscode.Position(position.line, position.character),
         new vscode.Position(position.line, position.character + afterCursor.length)),
       command
     });

@@ -4,6 +4,7 @@ import { raccoonManager } from '../extension';
 import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
+import { Role } from '../raccoonClient/src/CodeClient';
 
 export class RaccoonAction implements vscode.CodeActionProvider {
   constructor(context: vscode.ExtensionContext) {
@@ -21,10 +22,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     }));
   }
 
-  public provideCodeActions(_document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
-    if (range.isEmpty) {
-      return;
-    }
+  public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
     let ps = raccoonManager.prompt;
     let actions: vscode.CodeAction[] = [
       new vscode.CodeAction(
@@ -32,35 +30,35 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         vscode.CodeActionKind.QuickFix.append('raccoon').append("preset")
       )
     ];
-    for (let p of ps) {
-      if (p.type === PromptType.help) {
-        continue;
-      }
-      let kind = vscode.CodeActionKind.QuickFix.append('raccoon');
-      let name = `Raccoon: `;
-      if (p.type === PromptType.customPrompt) {
-        if (p.message.content.includes("{{code}}")) {
-          kind = kind.append("custom");
-          name += " ✨ ";
-        } else {
+    if (!range.isEmpty) {
+      for (let p of ps) {
+        if (p.type === PromptType.help) {
           continue;
         }
-      } else {
-        kind = kind.append("builtin");
+        let kind = vscode.CodeActionKind.QuickFix.append('raccoon');
+        let name = `Raccoon: `;
+        if (p.type === PromptType.customPrompt) {
+          if (p.message.content.includes("{{code}}")) {
+            kind = kind.append("custom");
+            name += " ✨ ";
+          } else {
+            continue;
+          }
+        } else {
+          kind = kind.append("builtin");
+        }
+        name += p.label;
+        actions.push(new vscode.CodeAction(name, kind));
       }
-      name += p.label;
-      actions.push(new vscode.CodeAction(name, kind));
     }
-    /*
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
     for (let diagnostic of diagnostics) {
       if ((diagnostic.severity === vscode.DiagnosticSeverity.Error || diagnostic.severity === vscode.DiagnosticSeverity.Warning) && range.intersection(diagnostic.range)) {
-        let a = new vscode.CodeAction(`Raccoon: Help to ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append('raccoon.diagnostic'));
+        let a = new vscode.CodeAction(`Raccoon: ${vscode.l10n.t("Code Correction")}: ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append('raccoon.diagnostic'));
         a.diagnostics = [diagnostic];
         actions.push(a);
       }
     }
-    */
     return actions;
   }
 
@@ -80,6 +78,27 @@ export class RaccoonAction implements vscode.CodeActionProvider {
 
     let selection = vscode.window.activeTextEditor?.selection;
     let document = vscode.window.activeTextEditor?.document;
+
+    if (selection && vscode.CodeActionKind.QuickFix.append('raccoon').append('diagnostic').contains(codeAction.kind)) {
+      let diagnosticPrompt : RaccoonPrompt = {
+        label: vscode.l10n.t("Code Correction"),
+        type: PromptType.codeErrorCorrection,
+        languageid: document?.languageId,
+        code: document?.lineAt(selection.anchor.line).text,
+        message: {
+          role: Role.user,
+          content: `${vscode.l10n.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`
+        }        
+      };
+      codeAction.command = {
+        command: 'raccoon.codeaction',
+        arguments: [diagnosticPrompt],
+        title: codeAction.title
+      };
+      return codeAction;
+    }
+
+
     let ps = raccoonManager.prompt;
     let label = codeAction.title.slice('raccoon'.length + 2);
     let prompt: RaccoonPrompt | undefined = undefined;
