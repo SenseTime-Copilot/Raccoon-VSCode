@@ -5,7 +5,7 @@ import {
   l10n,
   ExtensionContext,
 } from 'vscode';
-import { raccoonManager, telemetryReporter } from '../extension';
+import { raccoonManager, telemetryReporter } from "../globalEnv";
 import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';

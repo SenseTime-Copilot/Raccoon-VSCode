@@ -1,5 +1,5 @@
 import { StatusBarItem, MarkdownString, l10n, ThemeColor } from "vscode";
-import { raccoonManager } from "../extension";
+import { raccoonManager } from "../globalEnv";
 
 var statusbartimer: NodeJS.Timeout;
 

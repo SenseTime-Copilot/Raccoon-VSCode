@@ -36,7 +36,7 @@ export class RaccoonEditorProvider implements CustomReadonlyEditorProvider {
     let id = document.uri.query;
     if (id) {
       this.id = id;
-      this.editor = new RaccoonEditor(this.context, webviewPanel.webview, `raccoon-${id}.json`);
+      this.editor = new RaccoonEditor(this.context, webviewPanel.webview);
       commands.executeCommand('workbench.action.pinEditor', document.uri);
       RaccoonEditorProvider.editors[id] = this.editor;
     }

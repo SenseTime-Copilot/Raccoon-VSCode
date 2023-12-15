@@ -1,7 +1,7 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
 import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../raccoonClient/src/CodeClient";
 import { SenseNovaClient } from "../raccoonClient/src/sensenova-client";
-import { outlog } from "../extension";
+import { outlog } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";

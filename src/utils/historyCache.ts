@@ -1,4 +1,6 @@
-import { workspace, ExtensionContext, Uri } from 'vscode';
+import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, l10n } from 'vscode';
+import { RaccoonEditorProvider } from '../provider/assitantEditorProvider';
+import { RaccoonViewProvider } from '../provider/webviewProvider';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -20,9 +22,157 @@ export interface CacheItem {
 }
 
 export class HistoryCache {
+  static registerCommand(context: ExtensionContext) {
+    context.subscriptions.push(commands.registerCommand('raccoon.restoreHistory', (...args) => {
+      let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+      HistoryCache.getHistoryList(context).then(async l => {
+        let fl: QuickPickItem[] = [];
+        for (let f of l) {
+          await workspace.fs.stat(Uri.joinPath(cacheDir, f)).then(n => {
+            fl.push({
+              label: f,
+              detail: `${new Date(n.ctime).toLocaleString()}`,
+              buttons: [{
+                iconPath: new ThemeIcon("trash"),
+                tooltip: "Delete"
+              },
+              {
+                iconPath: new ThemeIcon("edit"),
+                tooltip: "Rename"
+              }]
+            });
+          });
+        }
+        if (fl.length > 0) {
+          fl.push(
+            { label: '', kind: QuickPickItemKind.Separator },
+            { label: 'Clear All History' }
+          );
+        }
+        const quickPick = window.createQuickPick();
+        quickPick.items = fl;
+        quickPick.title = "Manage history";
+        quickPick.placeholder = "Select a history to restore";
+        quickPick.onDidHide(() => quickPick.dispose());
+        quickPick.onDidTriggerItemButton((e) => {
+          if (e.button.tooltip === 'Delete') {
+            let uri = Uri.joinPath(cacheDir, e.item.label);
+            workspace.fs.delete(uri);
+            quickPick.items = quickPick.items.filter(item => item.label !== e.item.label);
+          } else if (e.button.tooltip === 'Rename') {
+            quickPick.hide();
+            window.showInputBox().then(newName => {
+              if (newName) {
+                let uri = Uri.joinPath(cacheDir, e.item.label);
+                let newUri = Uri.joinPath(cacheDir, newName + ".json");
+                workspace.fs.rename(uri, newUri).then(() => {
+                  commands.executeCommand('raccoon.restoreHistory', ...args);
+                });
+              } else {
+                commands.executeCommand('raccoon.restoreHistory', ...args);
+              }
+            });
+          }
+        });
+        quickPick.onDidChangeSelection(selection => {
+          if (selection[0]) {
+            if (selection[0].label === 'Clear All History') {
+              HistoryCache.deleteAllCacheFiles(context);
+            } else {
+              if (args[0]) {
+                let editor = RaccoonEditorProvider.getEditor(args[0]);
+                editor?.loadHistory(Uri.joinPath(cacheDir, selection[0].label));
+              } else {
+                RaccoonViewProvider.loadHistory(Uri.joinPath(cacheDir, selection[0].label));
+              }
+            }
+            quickPick.hide();
+          }
+        });
+        quickPick.show();
+      });
+    }));
+  }
+
+  static getHistoryList(context: ExtensionContext): Thenable<string[]> {
+    let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+    return workspace.fs.stat(cacheDir)
+      .then((dir) => {
+        if (dir.type !== FileType.Directory) {
+          return [];
+        }
+        return workspace.fs.readDirectory(cacheDir)
+          .then((files) => {
+            return files.filter(([_, type]) => type === FileType.File).map(([name]) => name);
+          }, () => {
+            return [];
+          });
+      }, () => {
+        return [];
+      });
+  }
+
+  static async readCacheItems(cacheUri: Uri): Promise<Array<CacheItem>> {
+    return workspace.fs.readFile(cacheUri).then(content => {
+      try {
+        let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
+        let answerReady = false;
+        return h.filter((v, idx, arr) => {
+          if ((idx) >= arr.length) {
+            answerReady = false;
+            return false;
+          } else if (v.type === CacheItemType.question && (idx + 1) < arr.length && arr[idx + 1].type === CacheItemType.answer) {
+            answerReady = true;
+            return true;
+          } else if (answerReady && v.type === CacheItemType.answer) {
+            answerReady = false;
+            return true;
+          } else {
+            answerReady = false;
+            return false;
+          }
+        });
+      } catch {
+        return [];
+      }
+    }, () => {
+      return [];
+    });
+  }
+
+  static async deleteAllCacheFiles(context: ExtensionContext, force: boolean = false): Promise<void> {
+    let cacheDir = Uri.joinPath(context.globalStorageUri, 'cache');
+    return new Promise(async (resolve, reject) => {
+      if (force) {
+        let files = await workspace.fs.readDirectory(cacheDir);
+        files.forEach(async file => {
+          await workspace.fs.delete(Uri.joinPath(cacheDir, file[0])).then(() => { }, () => { });
+        });
+        resolve();
+      } else {
+        window.showWarningMessage("This will delete all history. Are you sure?", { modal: true }, l10n.t("OK")).then(async answer => {
+          if (answer === l10n.t("OK")) {
+            let files = await workspace.fs.readDirectory(cacheDir);
+            files.forEach(async file => {
+              await workspace.fs.delete(Uri.joinPath(cacheDir, file[0])).then(() => { }, () => { });
+            });
+            resolve();
+          } else {
+            reject();
+          }
+        });
+      }
+    });
+  }
 
   constructor(private readonly context: ExtensionContext, private readonly cacheFile: string) {
 
+  }
+
+  get cacheFileUri(): Uri {
+    let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'cache');
+    let cacheUri = Uri.joinPath(cacheDir, this.cacheFile);
+    return cacheUri;
   }
 
   async appendCacheItem(data?: CacheItem): Promise<void> {
@@ -54,9 +204,7 @@ export class HistoryCache {
       });
   }
 
-  async getCacheItems(): Promise<Array<CacheItem>> {
-    let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'cache');
-    let cacheUri = Uri.joinPath(cacheDir, this.cacheFile);
+  static async getCacheItems(cacheUri: Uri): Promise<Array<CacheItem>> {
     return workspace.fs.readFile(cacheUri).then(content => {
       try {
         let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
@@ -98,13 +246,5 @@ export class HistoryCache {
         return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode('[]')));
       }
     }, () => { });
-  }
-
-  async deleteAllCacheFiles(): Promise<void> {
-    let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'cache');
-    return workspace.fs.stat(cacheDir)
-      .then(() => {
-        workspace.fs.delete(cacheDir, { recursive: true });
-      });
   }
 }

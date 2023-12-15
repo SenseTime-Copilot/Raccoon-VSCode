@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { raccoonManager } from '../extension';
+import { raccoonManager } from "../globalEnv";
 import { raccoonTelemetryUrl } from '../provider/contants';
 
 export class RaccoonTelemetry {

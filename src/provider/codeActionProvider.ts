@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { raccoonManager } from '../extension';
+import { raccoonManager } from "../globalEnv";
 import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -97,7 +97,6 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       };
       return codeAction;
     }
-
 
     let ps = raccoonManager.prompt;
     let label = codeAction.title.slice('raccoon'.length + 2);

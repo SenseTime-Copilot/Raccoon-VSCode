@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { RaccoonManager } from "./provider/raccoonManager";
 import { updateStatusBarItem } from "./utils/updateStatusBarItem";
 import { inlineCompletionProvider, showHideStatusBtn } from "./provider/inlineCompletionProvider";
 import { RaccoonViewProvider } from "./provider/webviewProvider";
@@ -12,13 +11,9 @@ import { TextDocumentShowOptions } from "vscode";
 import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
-import { RaccoonTelemetry } from "./utils/raccoonTelemetry";
 import { raccoonDocsUrl } from "./provider/contants";
-
-let statusBarItem: vscode.StatusBarItem;
-export let outlog: vscode.LogOutputChannel;
-export let raccoonManager: RaccoonManager;
-export let telemetryReporter: vscode.TelemetryLogger;
+import { HistoryCache } from "./utils/historyCache";
+import { raccoonManager, telemetryReporter, initEnv } from "./globalEnv";
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -31,43 +26,13 @@ class RaccoonUriHandler implements vscode.UriHandler {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  outlog = vscode.window.createOutputChannel("Raccoon", { log: true });
-  context.subscriptions.push(outlog);
+  let statusBarItem: vscode.StatusBarItem;
 
-  await vscode.workspace.fs.stat(context.globalStorageUri)
-    .then(
-      () => { },
-      async () => {
-        await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-      }
-    );
+  await initEnv(context);
 
   FavoriteCodeEditor.register(context);
 
-  raccoonManager = RaccoonManager.getInstance(context);
-  raccoonManager.update();
-
   await raccoonManager.initialClients();
-
-  let raccoonTelemetry: RaccoonTelemetry = new RaccoonTelemetry(vscode.env.appName, vscode.env.machineId);
-
-  const sender: vscode.TelemetrySender = {
-    flush() {
-    },
-    sendErrorData(_error, _data) {
-    },
-    sendEventData(eventName, data) {
-      let event = eventName;
-      if (eventName) {
-        if (eventName.startsWith(context.extension.id + "/")) {
-          // eslint-disable-next-line no-unused-vars
-          event = eventName.slice(context.extension.id.length + 1);
-        }
-        raccoonTelemetry?.sendTelemetry(event, data);
-      }
-    },
-  };
-  telemetryReporter = vscode.env.createTelemetryLogger(sender);
 
   let validateInput = function (v: string) {
     return v ? undefined : "The value must not be empty";
@@ -230,6 +195,8 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(RaccoonSearchEditorProvider.viewType, new RaccoonSearchEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
+
+  HistoryCache.registerCommand(context);
 
   DiffContentProvider.register(context);
 

@@ -262,7 +262,7 @@ export class RaccoonSearchEditorProvider implements CustomReadonlyEditorProvider
       let query = document.uri.query;
       if (query) {
         let q = JSON.parse(query);
-        await axios.get(`https://api.stackexchange.com/2.3/search/excerpts?order=desc&sort=relevance&site=stackoverflow&q=${encodeURIComponent(q.query)}`)
+        await axios.get(`https://api.stackexchange.com/2.3/search/excerpts?order=desc&sort=relevance&site=stackoverflow&q=${(q.query)}`)
           .then((resp) => {
             if (resp.status === 200 && resp.data.items) {
               let page = `<h1>${q.query}</h1>`;

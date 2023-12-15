@@ -300,6 +300,11 @@
             ],
             "raccoon-submenu": [
                 {
+                    "command": "raccoon.openEditor",
+                    "group": "navigation@2",
+                    "when": "view == raccoon.view"
+                },
+                {
                     "command": "raccoon.terminal",
                     "group": "navigation@3",
                     "when": "view == raccoon.view"
@@ -317,13 +322,13 @@
             ],
             "view/title": [
                 {
-                    "command": "raccoon.clear",
+                    "command": "raccoon.new-chat",
                     "group": "navigation@1",
                     "when": "view == raccoon.view"
                 },
                 {
-                    "command": "raccoon.openEditor",
-                    "group": "navigation@2",
+                    "command": "raccoon.restoreHistory",
+                    "group": "navigation@1",
                     "when": "view == raccoon.view"
                 },
                 {
@@ -339,7 +344,12 @@
             ],
             "editor/title": [
                 {
-                    "command": "raccoon.clear",
+                    "command": "raccoon.new-chat",
+                    "group": "navigation@1",
+                    "when": "resourceFilename == 'assistant.raccoon'"
+                },
+                {
+                    "command": "raccoon.restoreHistory",
                     "group": "navigation@1",
                     "when": "resourceFilename == 'assistant.raccoon'"
                 }
@@ -382,10 +392,10 @@
                 "enablement": "view == raccoon.view"
             },
             {
-                "command": "raccoon.clear",
+                "command": "raccoon.new-chat",
                 "category": "Raccoon",
-                "title": "%raccoon.command.clear%",
-                "icon": "$(clear-all)",
+                "title": "%raccoon.command.new-chat%",
+                "icon": "$(add)",
                 "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
             },
             {
@@ -404,6 +414,13 @@
                 "command": "raccoon.settings.reset",
                 "category": "Raccoon",
                 "title": "%raccoon.command.settingsReset%"
+            },
+            {
+                "command": "raccoon.restoreHistory",
+                "category": "Raccoon",
+                "title": "%raccoon.command.restoreHistory%",
+                "icon": "$(history)",
+                "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
             },
             {
                 "command": "raccoon.openEditor",
@@ -588,16 +605,16 @@
     },
     "devDependencies": {
         "@types/glob": "^7.2.0",
+        "@types/jwt-encode": "^1.0.3",
         "@types/mocha": "^9.1.1",
         "@types/node": "16.x",
         "@types/vscode": "1.75.0",
         "@typescript-eslint/eslint-plugin": "^5.31.0",
         "@typescript-eslint/parser": "^5.31.0",
         "@vscode/test-electron": "^2.1.5",
-        "@vscode/test-web": "^0.0.44",
+        "@vscode/test-web": "^0.0.22",
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
-        "@types/jwt-encode": "^1.0.3",
         "axios": "^1.6.2",
         "crypto-browserify": "^3.12.0",
         "eslint": "^8.20.0",

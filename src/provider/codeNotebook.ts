@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
-
-import { raccoonManager } from "../extension";
+import { raccoonManager } from "../globalEnv";
 import { Message } from "../raccoonClient/src/CodeClient";
 import { RaccoonRunner } from "./raccoonToolset";
 

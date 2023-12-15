@@ -1,5 +1,5 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
-import { raccoonManager, outlog, telemetryReporter } from '../extension';
+import { raccoonManager, outlog, telemetryReporter } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType, ModelCapacity } from './raccoonManager';
@@ -83,9 +83,9 @@ export class RaccoonEditor extends Disposable {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-notebook-cell" || d.uri.scheme === "vscode-userdata" || d.uri.scheme === "vscode-remote");
   }
 
-  constructor(private readonly context: ExtensionContext, private webview: Webview, private readonly cacheFile: string) {
+  constructor(private readonly context: ExtensionContext, private webview: Webview) {
     super(() => { });
-    this.cache = new HistoryCache(context, cacheFile);
+    this.cache = new HistoryCache(context, `${env.sessionId}-${new Date().valueOf()}.json`);
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     raccoonManager.onDidChangeStatus(async (e) => {
@@ -191,12 +191,16 @@ export class RaccoonEditor extends Disposable {
     this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
   }
 
-  private async restoreFromCache() {
-    return this.cache.getCacheItems().then((items?: Array<CacheItem>) => {
+  async loadHistory(history: Uri) {
+    if (history.toString() === this.cache.cacheFileUri.toString()) {
+      return;
+    }
+    return HistoryCache.getCacheItems(history).then((items?: Array<CacheItem>) => {
+      this.clear();
+      this.cache = new HistoryCache(this.context, history.path.split('/').pop()!);
       if (items && items.length > 0) {
         this.sendMessage({ type: 'restoreFromCache', value: items });
       }
-      this.showWelcome();
     });
   }
 
@@ -463,7 +467,7 @@ export class RaccoonEditor extends Disposable {
     this.webview.onDidReceiveMessage(async data => {
       switch (data.type) {
         case 'welcome': {
-          await this.restoreFromCache();
+          await this.showWelcome();
           break;
         }
         case 'listPrompt': {
@@ -662,12 +666,11 @@ export class RaccoonEditor extends Disposable {
           window.withProgress({
             location: { viewId: "raccoon.view" }
           }, async (progress, _cancel) => {
-            return this.cache.deleteAllCacheFiles().then(() => {
+            return HistoryCache.deleteAllCacheFiles(this.context).then(() => {
               progress.report({ increment: 100 });
               this.sendMessage({ type: 'showInfoTip', style: "message", category: 'clear-cache-done', value: l10n.t("Clear cached history done"), id: new Date().valueOf() });
             }, () => {
               progress.report({ increment: 100 });
-              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'clear-cache-fail', value: l10n.t("Clear cached history failed"), id: new Date().valueOf() });
             });
           });
           break;
@@ -680,7 +683,7 @@ export class RaccoonEditor extends Disposable {
             .then(v => {
               if (v === l10n.t("OK")) {
                 commands.executeCommand("keybindings.editor.resetKeybinding", "raccoon.inlineSuggest.trigger");
-                this.cache.deleteAllCacheFiles();
+                HistoryCache.deleteAllCacheFiles(this.context, true);
                 FavoriteCodeEditor.deleteSnippetFiles();
                 raccoonManager.clear();
               }
@@ -940,6 +943,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     for (let id in this.stopList) {
       this.stopList[id].abort();
     }
+    this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}.json`);
     this.sendMessage({ type: "clear" });
     this.showWelcome();
   }
@@ -1102,7 +1106,7 @@ export class RaccoonViewProvider implements WebviewViewProvider {
       })
     );
     context.subscriptions.push(
-      commands.registerCommand("raccoon.clear", async (uri) => {
+      commands.registerCommand("raccoon.new-chat", async (uri) => {
         if (!uri) {
           RaccoonViewProvider.editor?.clear();
         } else {
@@ -1122,7 +1126,7 @@ export class RaccoonViewProvider implements WebviewViewProvider {
     _context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    RaccoonViewProvider.editor = new RaccoonEditor(this.context, webviewView.webview, `raccoon-sidebar.json`);
+    RaccoonViewProvider.editor = new RaccoonEditor(this.context, webviewView.webview);
     RaccoonViewProvider.webviewView = webviewView;
     webviewView.onDidChangeVisibility(() => {
       if (!webviewView.visible) {
@@ -1138,6 +1142,10 @@ export class RaccoonViewProvider implements WebviewViewProvider {
 
   public static isVisible() {
     return RaccoonViewProvider.webviewView?.visible;
+  }
+
+  public static async loadHistory(history: Uri) {
+    return RaccoonViewProvider.editor?.loadHistory(history);
   }
 
   public static async ask(prompt?: PromptInfo) {

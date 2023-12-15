@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { raccoonManager, outlog } from "../extension";
+import { raccoonManager, outlog } from "../globalEnv";
 import { CompletionPreferenceType, ModelCapacity } from "./raccoonManager";
 import { Message, ResponseData, Role } from "../raccoonClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
@@ -220,7 +220,7 @@ export function inlineCompletionProvider(
       }
 
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        await new Promise((f) => setTimeout(f, (raccoonManager.delay - 1) * 1000));
+        await new Promise((f) => setTimeout(f, (raccoonManager.delay) * 1000));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }

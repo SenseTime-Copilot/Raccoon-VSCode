@@ -1,5 +1,5 @@
 import { Message, Role } from "../../raccoonClient/src/CodeClient";
-import { raccoonManager } from "../../extension";
+import { raccoonManager } from "../../globalEnv";
 import { ModelCapacity } from "../raccoonManager";
 import { Toolset } from "../raccoonToolset";
 

@@ -170,7 +170,6 @@ const vscode = acquireVsCodeApi();
         document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
         document.getElementById("question-input").disabled = false;
         document.getElementById("question-input").focus();
-        vscode.postMessage({ type: 'flushLog', action: "delete" });
         list.innerHTML = "";
         break;
       }
