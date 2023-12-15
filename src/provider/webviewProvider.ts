@@ -402,14 +402,6 @@ export class RaccoonEditor extends Disposable {
         <span>${l10n.t("Custom prompt")}</span>
         <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">tips_and_updates</span></vscode-link>
       </div>
-      <div class="flex px-2 gap-2 items-center">
-        <span>${l10n.t("Manage Favorites")}</span>
-        <vscode-link style="margin: -1px 0;"><span id="manageFavorites" class="material-symbols-rounded">bookmarks</span></vscode-link>
-      </div>
-      <div class="flex px-2 gap-2 items-center">
-        <span>${l10n.t("Clear cached history")}</span>
-        <vscode-link style="margin: -1px 0;"><span id="clearCacheFiles" class="material-symbols-rounded">manage_history</span></vscode-link>
-      </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
     <div class="flex flex-col">
@@ -658,23 +650,6 @@ export class RaccoonEditor extends Disposable {
           raccoonManager.candidates = data.value;
           break;
         }
-        case 'manageFavorites': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: "Favorite Snipets" }))}`), FavoriteCodeEditor.viweType);
-          break;
-        }
-        case 'clearCacheFiles': {
-          window.withProgress({
-            location: { viewId: "raccoon.view" }
-          }, async (progress, _cancel) => {
-            return HistoryCache.deleteAllCacheFiles(this.context).then(() => {
-              progress.report({ increment: 100 });
-              this.sendMessage({ type: 'showInfoTip', style: "message", category: 'clear-cache-done', value: l10n.t("Clear cached history done"), id: new Date().valueOf() });
-            }, () => {
-              progress.report({ increment: 100 });
-            });
-          });
-          break;
-        }
         case 'clearAll': {
           window.showWarningMessage(
             l10n.t("Clear all settings?"),
@@ -695,7 +670,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snippet [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'telemetry': {

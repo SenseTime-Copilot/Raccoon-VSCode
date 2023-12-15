@@ -331,13 +331,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
             id: `${id}`,
             code: ''
           };
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snippet [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), FavoriteCodeEditor.viweType);
           break;
         }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
-              commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `Favorite Snippet [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), FavoriteCodeEditor.viweType);
+              commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), FavoriteCodeEditor.viweType);
             }
           });
           break;
