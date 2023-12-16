@@ -28,7 +28,7 @@
     "raccoon.command.setAccessKey": "设置 Access Key",
     "raccoon.command.help": "帮助",
     "raccoon.command.favorite": "管理代码收藏",
-    "raccoon.command.restoreHistory": "加载历史",
+    "raccoon.command.restoreHistory": "历史会话",
     "raccoon.command.terminal": "新建 Raccoon 终端",
     "raccoon.command.notebook.new": "Raccoon Notebook",
     "raccoon.command.notebook.register": "注册为 Raccoon 指令",

@@ -191,13 +191,13 @@ export class RaccoonEditor extends Disposable {
     this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
   }
 
-  async loadHistory(history: Uri) {
-    if (history.toString() === this.cache.cacheFileUri.toString()) {
+  async loadHistory(history: string) {
+    if (history === this.cache.cacheFileId) {
       return;
     }
-    return HistoryCache.getCacheItems(history).then((items?: Array<CacheItem>) => {
+    return HistoryCache.getCacheItems(this.context, history).then((items?: Array<CacheItem>) => {
       this.clear();
-      this.cache = new HistoryCache(this.context, history.path.split('/').pop()!);
+      this.cache = new HistoryCache(this.context, history);
       if (items && items.length > 0) {
         this.sendMessage({ type: 'restoreFromCache', value: items });
       }
@@ -1119,8 +1119,8 @@ export class RaccoonViewProvider implements WebviewViewProvider {
     return RaccoonViewProvider.webviewView?.visible;
   }
 
-  public static async loadHistory(history: Uri) {
-    return RaccoonViewProvider.editor?.loadHistory(history);
+  public static async loadHistory(id: string) {
+    return RaccoonViewProvider.editor?.loadHistory(id);
   }
 
   public static async ask(prompt?: PromptInfo) {

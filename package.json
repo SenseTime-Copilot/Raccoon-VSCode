@@ -328,7 +328,7 @@
                 },
                 {
                     "command": "raccoon.restoreHistory",
-                    "group": "navigation@1",
+                    "group": "navigation@2",
                     "when": "view == raccoon.view"
                 },
                 {
@@ -350,7 +350,7 @@
                 },
                 {
                     "command": "raccoon.restoreHistory",
-                    "group": "navigation@1",
+                    "group": "navigation@2",
                     "when": "resourceFilename == 'assistant.raccoon'"
                 }
             ],
