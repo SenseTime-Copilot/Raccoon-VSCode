@@ -22,8 +22,6 @@ export interface CacheItem {
 }
 
 export class HistoryCache {
-  private readonly cacheFile: string;
-
   static registerCommand(context: ExtensionContext) {
     context.subscriptions.push(commands.registerCommand('raccoon.restoreHistory', (...args) => {
       let cacheDir = Uri.joinPath(context.globalStorageUri, 'history');
@@ -34,14 +32,15 @@ export class HistoryCache {
             fl.push({
               label: f,
               detail: `${new Date(n.ctime).toLocaleString()}`,
-              buttons: [{
-                iconPath: new ThemeIcon("trash"),
-                tooltip: l10n.t("Delete")
-              },
-              {
-                iconPath: new ThemeIcon("edit"),
-                tooltip: l10n.t("Rename")
-              }]
+              buttons: [
+                {
+                  iconPath: new ThemeIcon("edit"),
+                  tooltip: l10n.t("Rename")
+                },
+                {
+                  iconPath: new ThemeIcon("trash"),
+                  tooltip: l10n.t("Delete")
+                }]
             });
           });
         }
@@ -160,7 +159,6 @@ export class HistoryCache {
   }
 
   constructor(private readonly context: ExtensionContext, private readonly id: string) {
-    this.cacheFile = `${id}.json`;
   }
 
   get cacheFileId(): string {
@@ -169,7 +167,7 @@ export class HistoryCache {
 
   async appendCacheItem(data?: CacheItem): Promise<void> {
     let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'history');
-    let cacheUri = Uri.joinPath(cacheDir, this.cacheFile);
+    let cacheUri = Uri.joinPath(cacheDir, this.id + ".json");
     return workspace.fs.stat(cacheDir)
       .then(() => {
         return workspace.fs.stat(cacheUri)
@@ -228,7 +226,7 @@ export class HistoryCache {
 
   async removeCacheItem(id?: number): Promise<void> {
     let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'history');
-    let cacheUri = Uri.joinPath(cacheDir, this.cacheFile);
+    let cacheUri = Uri.joinPath(cacheDir, this.id + ".json");
     return workspace.fs.readFile(cacheUri).then(content => {
       if (id) {
         let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");

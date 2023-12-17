@@ -207,13 +207,17 @@ export class RaccoonManager {
           if (tks) {
             try {
               let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
+              let quiet = true;
               for (let c in this._clients) {
                 let ca = this._clients[c];
                 if (ca) {
+                  if (!ca.authInfo || !authinfos[c]) {
+                    quiet = false;
+                  }
                   ca.authInfo = authinfos[c];
                 }
               }
-              this.changeStatusEmitter.fire({ scope: ["authorization"] });
+              this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
             } catch (_e) { }
           }
         });
@@ -244,7 +248,7 @@ export class RaccoonManager {
         }
         if (client) {
           client.onDidChangeAuthInfo(async (ai) => {
-            await this.updateToken(e.robotname, ai, true);
+            await this.updateToken(e.robotname, ai);
           });
           if (authinfos[e.robotname]) {
             authinfos[e.robotname].account = await client.syncUserInfo(authinfos[e.robotname]);
@@ -261,7 +265,7 @@ export class RaccoonManager {
       if (username) {
         c.authInfo.account.username = username;
       }
-      return this.updateToken(name, c.authInfo, true);
+      return this.updateToken(name, c.authInfo);
     }
 
     let url = await c.client.getAuthUrlLogin("");
@@ -270,7 +274,7 @@ export class RaccoonManager {
         if (username) {
           ai.account.username = username;
         }
-        return this.updateToken(name, ai, true);
+        return this.updateToken(name, ai);
       }, (_err) => {
         return undefined;
       });
@@ -280,7 +284,7 @@ export class RaccoonManager {
     }
   }
 
-  private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
+  private async updateToken(clientName: string, ai?: AuthInfo) {
     let tks = await this.context.secrets.get("Raccoon.tokens");
     let authinfos: { [key: string]: AuthInfo } = {};
     if (tks) {
@@ -304,9 +308,7 @@ export class RaccoonManager {
     } else {
       outlog.debug(`Remove client ${clientName}`);
     }
-    return this.context.secrets.store("Raccoon.tokens", JSON.stringify(authinfos)).then(() => {
-      this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
-    });
+    return this.context.secrets.store("Raccoon.tokens", JSON.stringify(authinfos));
   }
 
   public clear(): void {

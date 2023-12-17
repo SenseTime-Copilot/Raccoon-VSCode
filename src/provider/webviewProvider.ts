@@ -85,7 +85,7 @@ export class RaccoonEditor extends Disposable {
 
   constructor(private readonly context: ExtensionContext, private webview: Webview) {
     super(() => { });
-    this.cache = new HistoryCache(context, `${env.sessionId}-${new Date().valueOf()}.json`);
+    this.cache = new HistoryCache(context, `${env.sessionId}-${new Date().valueOf()}`);
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     raccoonManager.onDidChangeStatus(async (e) => {
@@ -918,7 +918,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     for (let id in this.stopList) {
       this.stopList[id].abort();
     }
-    this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}.json`);
+    this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}`);
     this.sendMessage({ type: "clear" });
     this.showWelcome();
   }
