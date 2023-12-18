@@ -445,6 +445,7 @@
                 "command": "raccoon.notebook.new",
                 "category": "Raccoon",
                 "title": "%raccoon.command.notebook.new%",
+                "shortTitle": "%raccoon.command.notebook.new.short%",
                 "icon": "$(notebook)"
             },
             {
