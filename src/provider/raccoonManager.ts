@@ -580,7 +580,7 @@ export class RaccoonManager {
     }
   }
 
-  public getTokenFromLoginResult(callbackUrl: string, clientName?: string): Thenable<boolean> {
+  public getTokenFromLoginResult(callbackUrl: string, clientName?: string): Thenable<'ok' | Error> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
@@ -590,7 +590,7 @@ export class RaccoonManager {
       location: { viewId: "raccoon.view" }
     }, async (progress, _cancel) => {
       if (!ca) {
-        return false;
+        return new Error("Invalid Client Handler");
       }
       let verifier = this.seed;
       this.seed = this.randomUUID();
@@ -599,12 +599,12 @@ export class RaccoonManager {
         progress.report({ increment: 100 });
         if (ca && token) {
           this.updateToken(ca.client.robotName, token);
-          return true;
+          return 'ok';
         } else {
-          return false;
+          return new Error("Wrong username or password");
         }
-      }, (_err) => {
-        return false;
+      }, (err) => {
+        return new Error(err.response?.data?.details || err.message);
       });
     });
   }

@@ -484,9 +484,9 @@ export class RaccoonEditor extends Disposable {
             this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: l10n.t("Login failed"), id: new Date().valueOf() });
             break;
           }
-          raccoonManager.getTokenFromLoginResult(`authorization://password?${encodeURIComponent(JSON.stringify(data))}`).then((ok) => {
-            if (!ok) {
-              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login Failed"), id: new Date().valueOf() });
+          raccoonManager.getTokenFromLoginResult(`authorization://password?${encodeURIComponent(JSON.stringify(data))}`).then((res) => {
+            if (res !== "ok") {
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login Failed") + ": " + res.message, id: new Date().valueOf() });
             }
           });
           break;

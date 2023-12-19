@@ -17,9 +17,9 @@ import { raccoonManager, telemetryReporter, initEnv } from "./globalEnv";
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    raccoonManager.getTokenFromLoginResult(uri.toString()).then((ok) => {
-      if (!ok) {
-        RaccoonViewProvider.showError(vscode.l10n.t("Login failed"));
+    raccoonManager.getTokenFromLoginResult(uri.toString()).then((res) => {
+      if (res !== "ok") {
+        RaccoonViewProvider.showError(vscode.l10n.t("Login failed") + ": " + res.message);
       }
     });
   }
