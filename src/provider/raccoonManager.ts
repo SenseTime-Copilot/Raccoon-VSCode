@@ -208,11 +208,14 @@ export class RaccoonManager {
             try {
               let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
               let quiet = true;
+              let activeClientName = this.getActiveClientRobotName();
               for (let c in this._clients) {
                 let ca = this._clients[c];
                 if (ca) {
-                  if (!ca.authInfo || !authinfos[c]) {
-                    quiet = false;
+                  if (ca.client.robotName === activeClientName) {
+                    if ((!ca.authInfo && authinfos[c]) || (ca.authInfo && !authinfos[c])) {
+                      quiet = false;
+                    }
                   }
                   ca.authInfo = authinfos[c];
                 }
