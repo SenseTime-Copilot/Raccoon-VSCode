@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { raccoonManager, outlog } from "../globalEnv";
-import { CompletionPreferenceType, ModelCapacity } from "./raccoonManager";
+import { CompletionPreferenceType, RaccoonRequestParam, ModelCapacity } from "./raccoonManager";
 import { Message, ResponseData, Role } from "../raccoonClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 
@@ -26,6 +26,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
   }
 
   let data: ResponseData;
+  let lenPreference = raccoonManager.completionPreference;
   try {
     updateStatusBarItem(
       statusBarItem,
@@ -35,14 +36,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
         keep: true
       }
     );
-
-    let mt = (raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion));
-    let lenPreference = raccoonManager.completionPreference;
-    if (lenPreference === CompletionPreferenceType.balanced) {
-      mt = 256;
-    } else if (lenPreference === CompletionPreferenceType.speedPriority) {
-      mt = 128;
-    }
 
     let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
     if (!content) {
@@ -58,13 +51,21 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       content
     };
 
+    let cfg: RaccoonRequestParam = {
+      messages: [completionPrompt],
+      n: raccoonManager.candidates,
+      maxNewTokenNum: (raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion))
+    };
+    if (lenPreference === CompletionPreferenceType.balanced) {
+      cfg.maxNewTokenNum = 256;
+    } else if (lenPreference === CompletionPreferenceType.signleLine) {
+      cfg.maxNewTokenNum = 128;
+      cfg.stop = ["\n"];
+    }
+
     data = await raccoonManager.getCompletions(
       ModelCapacity.completion,
-      {
-        messages: [completionPrompt],
-        n: raccoonManager.candidates,
-        maxNewTokenNum: mt
-      },
+      cfg,
       {
         headers: buildHeader(extension.extension, 'inline completion'),
         signal: controller.signal
@@ -136,6 +137,9 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     } else {
       continueFlag.push(false);
       outlog.debug('[Completed Suggestion]: ' + tmpstr);
+    }
+    if (lenPreference === CompletionPreferenceType.signleLine) {
+      tmpstr = tmpstr.trimEnd();
     }
     completions.push(tmpstr);
   }

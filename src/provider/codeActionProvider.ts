@@ -24,12 +24,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
 
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
     let ps = raccoonManager.prompt;
-    let actions: vscode.CodeAction[] = [
-      new vscode.CodeAction(
-        `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`,
-        vscode.CodeActionKind.QuickFix.append('raccoon').append("preset")
-      )
-    ];
+    let actions: vscode.CodeAction[] = [];
     if (!range.isEmpty) {
       for (let p of ps) {
         if (p.type === PromptType.help) {
@@ -50,6 +45,12 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         name += p.label;
         actions.push(new vscode.CodeAction(name, kind));
       }
+      actions.push(
+        new vscode.CodeAction(
+          `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`,
+          vscode.CodeActionKind.QuickFix.append('raccoon').append("preset")
+        )
+      );
     }
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
     for (let diagnostic of diagnostics) {
@@ -80,7 +81,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     let document = vscode.window.activeTextEditor?.document;
 
     if (selection && vscode.CodeActionKind.QuickFix.append('raccoon').append('diagnostic').contains(codeAction.kind)) {
-      let diagnosticPrompt : RaccoonPrompt = {
+      let diagnosticPrompt: RaccoonPrompt = {
         label: vscode.l10n.t("Code Correction"),
         type: PromptType.codeErrorCorrection,
         languageid: document?.languageId,
@@ -88,7 +89,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         message: {
           role: Role.user,
           content: `${vscode.l10n.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`
-        }        
+        }
       };
       codeAction.command = {
         command: 'raccoon.codeaction',

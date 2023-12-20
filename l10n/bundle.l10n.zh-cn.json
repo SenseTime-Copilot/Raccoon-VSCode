@@ -77,7 +77,7 @@
   "1 candidate": "1 条候选",
   "{0} candidates": "{0} 条候选",
   "Completion Preference": "补全偏好",
-  "Speed Priority": "速度优先",
+  "Single Line": "行级补全",
   "Balanced": "平衡",
   "Best Effort": "最大长度",
   "Code assistant": "代码助手",

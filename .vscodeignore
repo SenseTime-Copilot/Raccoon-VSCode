@@ -5,6 +5,7 @@ out/test/**
 node_modules/**
 src/**
 .gitignore
+.gitlab-ci.yml
 **/tsconfig.json
 **/tslint.json
 **/*.map

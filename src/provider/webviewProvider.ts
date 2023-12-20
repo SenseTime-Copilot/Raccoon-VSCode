@@ -358,8 +358,8 @@ export class RaccoonEditor extends Disposable {
         <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
           ${l10n.t("Balanced")}
         </vscode-radio>
-        <vscode-radio ${completionPreference === CompletionPreferenceType.speedPriority ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.speedPriority}" title="${l10n.t("Speed Priority")}">
-          ${l10n.t("Speed Priority")}
+        <vscode-radio ${completionPreference === CompletionPreferenceType.signleLine ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.signleLine}" title="${l10n.t("Single Line")}">
+          ${l10n.t("Single Line")}
         </vscode-radio>
       </vscode-radio-group>
     </div>

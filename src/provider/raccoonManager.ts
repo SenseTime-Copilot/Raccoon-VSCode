@@ -63,10 +63,10 @@ const builtinEngines: RaccoonClientConfig[] = [
   }
 ];
 
-type RaccoonRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum">;
+export type RaccoonRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum" | "stop">;
 
 export enum CompletionPreferenceType {
-  speedPriority = "Speed Priority",
+  signleLine = "Signle Line",
   balanced = "Balanced",
   bestEffort = "Best Effort"
 }
@@ -301,10 +301,6 @@ export class RaccoonManager {
       } catch (e) { }
     } else if (ai) {
       authinfos[clientName] = ai;
-    }
-    let ca = this.getClient(clientName);
-    if (ca) {
-      ca.authInfo = ai;
     }
     if (ai) {
       outlog.debug(`Append client ${clientName}: [Authorized - ${ai.account.username}]`);
@@ -647,8 +643,8 @@ export class RaccoonManager {
     if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
         url: ca.options[capacity].url,
-        ...config,
-        ...ca.options[capacity].parameters
+        ...ca.options[capacity].parameters,
+        ...config
       };
       return ca.client.getCompletions(ca.authInfo, params, options).catch(e => {
         if (e.response?.status === 401) {
@@ -671,8 +667,8 @@ export class RaccoonManager {
     if (ca && ca.authInfo && ca.options[capacity]) {
       let params: ChatRequestParam = {
         url: ca.options[capacity].url,
-        ...config,
-        ...ca.options[capacity].parameters
+        ...ca.options[capacity].parameters,
+        ...config
       };
       let resetToken = this.updateToken.bind(this);
       let cb = function (event: MessageEvent<ResponseData>) {
