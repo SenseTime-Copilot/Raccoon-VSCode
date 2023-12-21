@@ -85,7 +85,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         label: vscode.l10n.t("Code Correction"),
         type: PromptType.codeErrorCorrection,
         languageid: document?.languageId,
-        code: document?.lineAt(selection.anchor.line).text,
+        code: document?.getText(selection) || document?.lineAt(selection.anchor.line).text,
         message: {
           role: Role.user,
           content: `${vscode.l10n.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`
