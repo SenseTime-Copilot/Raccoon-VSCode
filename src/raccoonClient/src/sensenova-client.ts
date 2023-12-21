@@ -82,7 +82,7 @@ export class SenseNovaClient implements CodeClient {
                 let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
                 return {
                   account: {
-                    userId: decoded["iss"],
+                    userId: jwtDecoded["iss"],
                     username: jwtDecoded["name"],
                     userIdProvider: "Raccoon"
                   },
