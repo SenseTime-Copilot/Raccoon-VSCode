@@ -855,7 +855,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               }
             },
             {
-              headers: buildHeader(this.context.extension, prompt.type),
+              headers: buildHeader(this.context.extension, prompt.type, `${id}`),
               signal
             }
           );
@@ -867,7 +867,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               n: 1
             },
             {
-              headers: buildHeader(this.context.extension, prompt.type),
+              headers: buildHeader(this.context.extension, prompt.type, `${id}`),
               signal: this.stopList[id].signal
             })
             .then(rs => {
@@ -960,13 +960,11 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             <body class="overflow-hidden">
               <div id="setting-page"></div>
               <div class="flex flex-col h-screen" id="qa-list-wrapper">
-                <vscode-panels class="grow">
-                  <vscode-panel-view id="view-1" class="p-0 m-0">
-                    <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
-                      <vscode-progress-ring class="progress-ring w-full content-center mt-32"></vscode-progress-ring>
-                    </div>
-                  </vscode-panel-view>
-                </vscode-panels>
+                <vscode-panel-view id="view-1" class="grow overscroll-y-none p-0 m-0" style="max-height: calc(100vh - 44px);">
+                  <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
+                    <vscode-progress-ring class="progress-ring w-full content-center mt-32"></vscode-progress-ring>
+                  </div>
+                </vscode-panel-view>
                 <div id="msg-wrapper">
                 </div>
                 <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center px-1 gap-1">

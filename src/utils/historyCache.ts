@@ -60,8 +60,11 @@ export class HistoryCache {
             let uri = Uri.joinPath(cacheDir, e.item.label + ".json");
             workspace.fs.delete(uri);
             quickPick.items = quickPick.items.filter(item => item.label !== e.item.label);
+            if (quickPick.items.length === 2) {
+              quickPick.items = [];
+            }
           } else if (e.button.tooltip === l10n.t('Rename')) {
-            quickPick.hide();
+            quickPick.dispose();
             let oldName = e.item.label;
             function validateInput(value: string) {
               if (!value) {
@@ -99,6 +102,7 @@ export class HistoryCache {
           if (selection[0]) {
             if (selection[0].label === l10n.t('Clear All History')) {
               HistoryCache.deleteAllCacheFiles(context);
+              quickPick.dispose();
             } else {
               if (args[0]) {
                 let editor = RaccoonEditorProvider.getEditor(args[0]);
@@ -107,7 +111,7 @@ export class HistoryCache {
                 RaccoonViewProvider.loadHistory(selection[0].label);
               }
             }
-            quickPick.hide();
+            quickPick.dispose();
           }
         });
         quickPick.show();

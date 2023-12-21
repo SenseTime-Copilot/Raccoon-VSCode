@@ -160,7 +160,7 @@ export class RaccoonManager {
               }
             },
             {
-              headers: buildHeader(context.extension, "commit-message"),
+              headers: buildHeader(context.extension, "commit-message", `${new Date().valueOf()}`),
               signal: RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].signal
             }
           ).catch(e => {
@@ -646,6 +646,18 @@ export class RaccoonManager {
         ...ca.options[capacity].parameters,
         ...config
       };
+      let useridInfo;
+      if (ca.authInfo.account.userId) {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        useridInfo = { "x-raccoon-user-id": ca.authInfo.account.userId };
+      }
+      if (!options) {
+        options = { headers: useridInfo };
+      } else if (!options.headers) {
+        options.headers = useridInfo;
+      } else {
+        options.headers = { ...options.headers, ...useridInfo };
+      }
       return ca.client.getCompletions(ca.authInfo, params, options).catch(e => {
         if (e.response?.status === 401) {
           this.updateToken(ca!.client.robotName);
@@ -677,6 +689,18 @@ export class RaccoonManager {
         }
         callback(event);
       };
+      let useridInfo;
+      if (ca.authInfo.account.userId) {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        useridInfo = { "x-raccoon-user-id": ca.authInfo.account.userId };
+      }
+      if (!options) {
+        options = { headers: useridInfo };
+      } else if (!options.headers) {
+        options.headers = useridInfo;
+      } else {
+        options.headers = { ...options.headers, ...useridInfo };
+      }
       ca.client.getCompletionsStreaming(ca.authInfo, params, cb, options);
     } else if (ca) {
       return Promise.reject(Error(l10n.t("Unauthorized")));

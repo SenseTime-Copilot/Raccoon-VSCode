@@ -67,7 +67,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       ModelCapacity.completion,
       cfg,
       {
-        headers: buildHeader(extension.extension, 'inline completion'),
+        headers: buildHeader(extension.extension, 'inline completion', `${new Date().valueOf()}`),
         signal: controller.signal
       });
   } catch (err: any) {

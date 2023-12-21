@@ -282,7 +282,7 @@ export class RaccoonTerminal {
               }
             },
             {
-              headers: buildHeader(this.context.extension, 'free chat terminal'),
+              headers: buildHeader(this.context.extension, 'free chat terminal', `${new Date().valueOf()}`),
               signal: this.cancel?.signal
             }
           ).catch(e => {

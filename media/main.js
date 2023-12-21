@@ -181,7 +181,7 @@ const vscode = acquireVsCodeApi();
             var lang = '';
             var code = '';
             preCodeList.forEach((preCode, index) => {
-              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "fold", "mt-4");
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "mt-4");
               preCode.classList.forEach((cls, _idx, _arr) => {
                 if (cls.startsWith('language-')) {
                   lang = cls.slice(9);
@@ -204,29 +204,35 @@ const vscode = acquireVsCodeApi();
               wrapButton.innerHTML = wrapIcon;
               wrapButton.classList.add("wrap-element-gnc", "rounded");
 
-              const view = document.createElement("button");
-              view.dataset.id = item.id;
+              buttonWrapper.append(wrapButton);
+
               if (preCode.parentElement.dataset.lang === 'mermaid') {
+                const view = document.createElement("button");
+                view.dataset.id = item.id;
                 view.title = l10nForUI["Show graph"];
                 view.innerHTML = viewIcon;
                 view.classList.add("mermaid-element-gnc", "rounded");
-              } else {
-                view.classList.add("hide");
+                buttonWrapper.append(view);
               }
 
-              // Create fold button
-              const foldButton = document.createElement("button");
-              foldButton.dataset.id = item.id;
-              foldButton.innerHTML = foldIcon;
-              foldButton.classList.add("fold-btn", "expend-code", "rounded", "hidden");
+              var lineNum = preCode.innerText.split("\n").length;
+              if (lineNum > 10) {
+                preCode.parentElement.classList.add("fold");
 
-              // Create unfold button
-              const unfoldButton = document.createElement("button");
-              unfoldButton.dataset.id = item.id;
-              unfoldButton.innerHTML = unfoldIcon;
-              unfoldButton.classList.add("unfold-btn", "expend-code", "rounded");
+                // Create fold button
+                const foldButton = document.createElement("button");
+                foldButton.dataset.id = item.id;
+                foldButton.innerHTML = foldIcon;
+                foldButton.classList.add("fold-btn", "expend-code", "rounded");
 
-              buttonWrapper.append(wrapButton, view, unfoldButton, foldButton);
+                // Create unfold button
+                const unfoldButton = document.createElement("button");
+                unfoldButton.dataset.id = item.id;
+                unfoldButton.innerHTML = unfoldIcon;
+                unfoldButton.classList.add("unfold-btn", "expend-code", "rounded", "hidden");
+
+                buttonWrapper.append(unfoldButton, foldButton);
+              }
 
               preCode.parentElement.prepend(buttonWrapper);
             });
@@ -238,7 +244,7 @@ const vscode = acquireVsCodeApi();
               <div class="languageid-value">${lang}</div>
               <div class="code-value">${code}</div>
             </div>`;
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelInstruction} ${markedResponse.documentElement.innerHTML} ${values}</div>`;
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2" data-prompt="${item.value}">${labelInstruction} ${markedResponse.documentElement.innerHTML} ${values}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
@@ -317,7 +323,7 @@ const vscode = acquireVsCodeApi();
                                 </span>
                               </span>
                             </h2>
-                            <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body">
+                            <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body" data-response="${item.value}">
                               ${markedResponse.documentElement.innerHTML}
                             </div>
                           </div>`;

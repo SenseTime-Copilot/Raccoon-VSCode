@@ -135,14 +135,20 @@ export class PromptInfo {
       let langdata = renderHtml.prompt.languageid ? `data-lang="${renderHtml.prompt.languageid}"` : "";
       let codelines = renderHtml.prompt.code.split('\n').length;
       let btnView = '';
+      let btn1 = '';
+      let btn2 = '';
+      let classList = 'pre-code-element flex flex-col';
       if (langclass === 'language-mermaid') {
         btnView = '<button class="mermaid-element-gnc rounded"><span class="material-symbols-rounded">visibility</span></button>';
       }
-      let btn1 = '<button class="unfold-btn expend-code rounded"><span class="material-symbols-rounded">expand</span></button>';
-      let btn2 = '<button class="fold-btn expend-code rounded hidden"><span class="material-symbols-rounded">compress</span></button>';
+      if (codelines > 10) {
+        classList += " fold";
+        btn1 = '<button class="unfold-btn expend-code rounded"><span class="material-symbols-rounded">expand</span></button>';
+        btn2 = '<button class="fold-btn expend-code rounded hidden"><span class="material-symbols-rounded">compress</span></button>';
+      }
       let btns = `${btnView}${btn1}${btn2}`;
       let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;");
-      codeHtml = `<pre ${langdata} class="pre-code-element flex flex-col ${codelines > 10 ? "fold" : ""}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
+      codeHtml = `<pre ${langdata} class="${classList}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
     prompthtml = prompthtml.replace("{{code}}", codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
