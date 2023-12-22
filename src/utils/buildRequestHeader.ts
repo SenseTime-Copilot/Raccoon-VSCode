@@ -9,7 +9,7 @@ export function buildHeader(extension: Extension<any>, action: string, id: strin
     // eslint-disable-next-line @typescript-eslint/naming-convention
     "x-raccoon-machine-id": env.machineId,
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    "x-raccoon-turn-id": id,
+    "x-raccoon-turn-id": `${env.sessionId}-${id}`,
     // eslint-disable-next-line @typescript-eslint/naming-convention
     "x-raccoon-action": action
   };
