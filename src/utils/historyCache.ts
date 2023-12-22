@@ -27,23 +27,29 @@ export class HistoryCache {
       let cacheDir = Uri.joinPath(context.globalStorageUri, 'history');
       HistoryCache.getHistoryList(context).then(async l => {
         let fl: QuickPickItem[] = [];
+        let fltemp: { ctime: number; item: QuickPickItem }[] = [];
         for (let f of l) {
           await workspace.fs.stat(Uri.joinPath(cacheDir, f + ".json")).then(n => {
-            fl.push({
-              label: f,
-              detail: `${new Date(n.ctime).toLocaleString()}`,
-              buttons: [
-                {
-                  iconPath: new ThemeIcon("edit"),
-                  tooltip: l10n.t("Rename")
-                },
-                {
-                  iconPath: new ThemeIcon("trash"),
-                  tooltip: l10n.t("Delete")
-                }]
+            fltemp.push({
+              ctime: n.ctime, item: {
+                label: f,
+                detail: `${new Date(n.ctime).toLocaleString()}`,
+                buttons: [
+                  {
+                    iconPath: new ThemeIcon("edit"),
+                    tooltip: l10n.t("Rename")
+                  },
+                  {
+                    iconPath: new ThemeIcon("trash"),
+                    tooltip: l10n.t("Delete")
+                  }]
+              }
             });
           });
         }
+        fl = fltemp.sort((a, b) => {
+          return b.ctime - a.ctime;
+        }).map((item) => item.item);
         if (fl.length > 0) {
           fl.push(
             { label: '', kind: QuickPickItemKind.Separator },
