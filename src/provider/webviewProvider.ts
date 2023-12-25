@@ -1074,7 +1074,7 @@ export class RaccoonViewProvider implements WebviewViewProvider {
       commands.registerCommand("raccoon.settings", async () => {
         raccoonManager.update();
         commands.executeCommand('raccoon.view.focus').then(() => {
-          return RaccoonViewProvider.editor?.updateSettingPage("toogle");
+          return RaccoonViewProvider.editor?.updateSettingPage("toggle");
         });
       })
     );

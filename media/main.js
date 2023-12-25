@@ -365,12 +365,12 @@ const vscode = acquireVsCodeApi();
       }
       case "updateSettingPage": {
         var settings = document.getElementById('settings');
-        if (message.action === "close" || (message.action === "toogle" && settings)) {
+        if (message.action === "close" || (message.action === "toggle" && settings)) {
           settings?.remove();
           document.getElementById("question-input").focus();
           break;
         }
-        if (message.action === "open" || message.action === "toogle" || settings) {
+        if (message.action === "open" || message.action === "toggle" || settings) {
           if (!settings || message.action === "full") {
             const sp = document.getElementById("setting-page");
             sp.innerHTML = message.value;
@@ -1229,6 +1229,15 @@ const vscode = acquireVsCodeApi();
   document.addEventListener('keyup', (e) => {
     if (e.key === 'Control') {
       document.getElementById('qa-list').classList.remove('ctrl-down');
+    }
+    if (e.key === 'Process' && e.code === 'Slash') {
+      if (document.getElementById("question-input").value === '、') {
+        document.getElementById("question-input").value = '/';
+      }
+      if (document.getElementById("question-input").value === '？') {
+        document.getElementById("question-input").value = '?';
+      }
+      toggleSubMenuList();
     }
   });
 
