@@ -44,11 +44,11 @@ const vscode = acquireVsCodeApi();
   setTimeout(showTips, 1000);
 
   function scrollPositionAtBottom() {
-    var a = document.getElementById('qa-list-wrapper').children[0].offsetHeight;
-    var b = document.getElementById('qa-list-wrapper').children[0].scrollTop;
-    var c = document.getElementById('qa-list-wrapper').children[0].children[0].offsetHeight;
+    var lastChild = document.getElementById('qa-list').lastChild;
+    var btm = lastChild.getBoundingClientRect().top + lastChild.offsetHeight;
+    var hgt = document.getElementById('qa-list').offsetHeight;
 
-    return a + b + 120 >= c;
+    return btm - hgt < 100;
   }
 
   function showTips() {

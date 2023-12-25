@@ -763,8 +763,8 @@ span.shortcut:after {
     color: var(--progress-background);
 }
 
-#qa-list-wrapper vscode-panels::-webkit-scrollbar {
-    width: 2px;
+#qa-list::-webkit-scrollbar {
+    width: 6px;
 }
 
 .question-element-gnc .pre-code-element::-webkit-scrollbar {
