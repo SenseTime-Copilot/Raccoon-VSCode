@@ -14,6 +14,7 @@ import { CodeNotebook } from "./provider/codeNotebook";
 import { raccoonDocsUrl } from "./provider/contants";
 import { HistoryCache } from "./utils/historyCache";
 import { raccoonManager, telemetryReporter, initEnv } from "./globalEnv";
+import { PromptEditor } from "./provider/promptManager";
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -31,6 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await initEnv(context);
 
   FavoriteCodeEditor.register(context);
+  PromptEditor.register(context);
 
   await raccoonManager.initialClients();
 
@@ -69,6 +71,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("raccoon.favorite.manage", async () => {
       vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`raccoon://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Favorite Snippet") }))}`), FavoriteCodeEditor.viweType);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("raccoon.prompt.manage", async () => {
+      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`raccoon://raccoon.prompt/all.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Custom Prompt") }))}`), PromptEditor.viweType);
     })
   );
 

@@ -216,6 +216,9 @@
                                     "type": "object",
                                     "description": "%raccoon.config.prompt.advanced%",
                                     "properties": {
+                                        "origin": {
+                                            "type": "string"
+                                        },
                                         "prompt": {
                                             "type": "string",
                                             "markdownDescription": "%raccoon.config.prompt.advanced.item%"
@@ -310,8 +313,13 @@
                     "when": "view == raccoon.view"
                 },
                 {
-                    "command": "raccoon.favorite.manage",
+                    "command": "raccoon.prompt.manage",
                     "group": "cache@0",
+                    "when": "view == raccoon.view"
+                },
+                {
+                    "command": "raccoon.favorite.manage",
+                    "group": "cache@1",
                     "when": "view == raccoon.view"
                 },
                 {
@@ -382,6 +390,13 @@
                 "category": "Raccoon",
                 "title": "%raccoon.command.favorite%",
                 "icon": "$(repo)",
+                "enablement": "view == raccoon.view"
+            },
+            {
+                "command": "raccoon.prompt.manage",
+                "category": "Raccoon",
+                "title": "%raccoon.command.prompt%",
+                "icon": "$(wand)",
                 "enablement": "view == raccoon.view"
             },
             {
@@ -480,7 +495,8 @@
             {
                 "id": "raccoon-files",
                 "extensions": [
-                    ".favorites",
+                    ".raccoon.favorites",
+                    ".raccoon.prompt",
                     ".rcnb",
                     ".search",
                     ".question"
@@ -535,6 +551,13 @@
             },
             {
                 "scheme": "raccoon",
+                "authority": "raccoon.prompt",
+                "formatting": {
+                    "label": "${query.title}"
+                }
+            },
+            {
+                "scheme": "raccoon",
                 "authority": "raccoon.editor",
                 "formatting": {
                     "label": "%raccoon.view.title%"
@@ -573,6 +596,15 @@
                 "selector": [
                     {
                         "filenamePattern": "*.raccoon.favorites"
+                    }
+                ]
+            },
+            {
+                "viewType": "raccoon.promptManager",
+                "displayName": "Raccoon Prompt Manager",
+                "selector": [
+                    {
+                        "filenamePattern": "*.raccoon.prompt"
                     }
                 ]
             },

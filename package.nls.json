@@ -28,6 +28,7 @@
     "raccoon.command.setAccessKey": "Set Access Key",
     "raccoon.command.help": "Help",
     "raccoon.command.favorite": "Manage Favorites Folder",
+    "raccoon.command.prompt": "Manage Custom Prompts",
     "raccoon.command.restoreHistory": "History",
     "raccoon.command.terminal": "New Raccoon Terminal",
     "raccoon.command.notebook.new": "New Raccoon Notebook",

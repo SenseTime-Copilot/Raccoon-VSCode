@@ -261,7 +261,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       var shortcutNode = document.getElementById("shortcut");
       var saveNode = document.getElementById("save");
       shortcutNode.addEventListener("input", (_e)=>{
-        if (/^[a-zA-Z]\\w{3,16}$/.test(shortcutNode.value)){
+        if (/^[a-zA-Z]\\w{3,15}$/.test(shortcutNode.value)){
           saveNode.disabled = false;
         } else {
           saveNode.disabled = true;
@@ -285,8 +285,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       color: var(--vscode-foreground);
       cursor: pointer;
       font-size: var(--vscode-font-size);
-      line-height: normal;
-      margin-bottom: 5px;
+      line-height: 22px;
     }
 
     #lang-dropdown {
@@ -299,7 +298,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       <h2>${l10n.t("Favorite Snippet")} <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem;">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of 4-16 characters")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,16}$/">
+          <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of {0} characters", "4-16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,15}$/">
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>

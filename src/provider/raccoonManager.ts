@@ -412,39 +412,13 @@ export class RaccoonManager {
     let prompts: RaccoonPrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
-        let promptStr = customPrompts[label] as string;
-        let promptProcessed = customPrompts[label] as string;
-        let regex = /\{\{input(:.+?)?\}\}/g;
-        let m;
-        let args: any = {};
-        while ((m = regex.exec(promptStr)) !== null) {
-          if (m.index === regex.lastIndex) {
-            regex.lastIndex++;
-          }
-          let placeholder;
-          if (m.length > 1 && m[1]) {
-            placeholder = m[1].slice(1);
-          }
-          promptProcessed = promptProcessed.replace(m[0], `{{v${m.index}}}`);
-          args[`v${m.index}`] = {
-            type: "text",
-            placeholder
-          };
-        }
-        prompts.push({
-          label,
-          type: PromptType.customPrompt,
-          message: {
-            role: Role.user,
-            content: `${promptProcessed}`
-          },
-          args
-        });
+        prompts.push(RaccoonManager.parseStringPrompt(label, customPrompts[label] as string));
       } else {
         let p: RaccoonPrompt = {
           label: label,
           type: PromptType.customPrompt,
           shortcut: customPrompts[label].shortcut,
+          origin: customPrompts[label].origin,
           message: {
             role: Role.user,
             content: `${customPrompts[label].prompt}`
@@ -460,6 +434,38 @@ export class RaccoonManager {
       }
     }
     return prompts;
+  }
+
+  public static parseStringPrompt(label:string, prompt: string, shortcut?: string): RaccoonPrompt {
+    let promptProcessed = prompt;
+    let regex = /\{\{input(:.+?)?\}\}/g;
+    let m;
+    let args: any = {};
+    while ((m = regex.exec(prompt)) !== null) {
+      if (m.index === regex.lastIndex) {
+        regex.lastIndex++;
+      }
+      let placeholder;
+      if (m.length > 1 && m[1]) {
+        placeholder = m[1].slice(1);
+      }
+      promptProcessed = promptProcessed.replace(m[0], `{{v${m.index}}}`);
+      args[`v${m.index}`] = {
+        type: "text",
+        placeholder
+      };
+    }
+    return {
+      label,
+      type: PromptType.customPrompt,
+      shortcut,
+      origin: prompt,
+      message: {
+        role: Role.user,
+        content: `${promptProcessed}`
+      },
+      args
+    };
   }
 
   public get robotNames(): string[] {

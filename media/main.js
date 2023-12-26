@@ -1232,9 +1232,11 @@ const vscode = acquireVsCodeApi();
     }
     if (e.key === 'Process' && e.code === 'Slash') {
       if (document.getElementById("question-input").value === '、') {
+        document.getElementById("question-sizer").dataset.value = '/';
         document.getElementById("question-input").value = '/';
       }
       if (document.getElementById("question-input").value === '？') {
+        document.getElementById("question-sizer").dataset.value = '?';
         document.getElementById("question-input").value = '?';
       }
       toggleSubMenuList();

@@ -216,7 +216,7 @@ export class RaccoonEditor extends Disposable {
     let streamResponse = raccoonManager.streamResponse;
     let delay = raccoonManager.delay;
     let candidates = raccoonManager.candidates;
-    let setPromptUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "Raccoon.Prompt" }))}`);
+    let setPromptUri = Uri.parse(`command:raccoon.prompt.manage`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "Raccoon.Engines" }))}`);
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
     let es = raccoonManager.robotNames;
@@ -393,14 +393,6 @@ export class RaccoonEditor extends Disposable {
           ${l10n.t("Monolithic")}
         </vscode-radio>
       </vscode-radio-group>
-      </div>
-    </div>
-    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-    <b>${l10n.t("Advanced")}</b>
-    <div class="ml-4 my-2 flex flex-col gap-2">
-      <div class="flex px-2 gap-2 items-center">
-        <span>${l10n.t("Custom prompt")}</span>
-        <vscode-link href="${setPromptUri}" style="margin: -1px 0;"><span class="material-symbols-rounded">tips_and_updates</span></vscode-link>
       </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -960,7 +952,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             <body class="overflow-hidden">
               <div id="setting-page"></div>
               <div class="flex flex-col h-screen" id="qa-list-wrapper">
-                <vscode-panel-view id="view-1" class="grow overscroll-y-none p-0 m-0" style="max-height: calc(100vh - 44px);">
+                <vscode-panel-view id="view-1" class="grow overflow-y-auto p-0 m-0">
                   <div class="flex flex-col flex-1 overflow-y-auto" id="qa-list">
                     <vscode-progress-ring class="progress-ring w-full content-center mt-32"></vscode-progress-ring>
                   </div>
@@ -1001,7 +993,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                       <div class="search-hint items-center">
                         <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Search")}
                       </div>
-                      <div class="history-hint  items-center">
+                      <div class="history-hint  items-center" style="margin-left: 1rem;">
                       <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Send")}
                       </div>
                       <div class="history-hint items-center">

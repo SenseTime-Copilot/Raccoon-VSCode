@@ -267,6 +267,8 @@ textarea::placeholder {
 
 #chat-button-wrapper {
     user-select: none;
+    position: sticky;
+    bottom: 0;
     background-color: var(--input-background);
     border-top: 1px solid var(--panel-view-border);
 }
@@ -407,10 +409,10 @@ textarea::placeholder {
 }
 
 .op-hint {
-    position: absolute;
+    position: fixed;
     height: 12px;
-    padding-left: 0.25rem;
-    bottom: 0px;
+    padding-left: 0.75rem;
+    bottom: 1px;
     display: flex;
     gap: 0.5rem;
     font-size: 9px;
@@ -422,12 +424,10 @@ textarea::placeholder {
 .history-hint {
     display: none;
     opacity: 0.6;
-    font-weight: bold;
 }
 
 #code-hint {
     display: none;
-    font-weight: bold;
 }
 
 #code-hint .material-symbols-rounded {
@@ -490,7 +490,7 @@ textarea::placeholder {
 }
 
 #question-sizer[data-value="/"]:before {
-    content: "\00a0" attr(data-hint);
+    content: attr(data-hint);
     margin-left: 1.5ch;
 }
 
