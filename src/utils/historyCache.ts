@@ -186,7 +186,7 @@ export class HistoryCache {
               return;
             }
             workspace.fs.readFile(cacheUri).then(content => {
-              let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");
+              let items: Array<CacheItem> = JSON.parse(decoder.decode(content) || "[]");
               if (items) {
                 workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify([...items, data], undefined, 2))));
               } else {
@@ -239,13 +239,11 @@ export class HistoryCache {
     let cacheUri = Uri.joinPath(cacheDir, this.id + ".json");
     return workspace.fs.readFile(cacheUri).then(content => {
       if (id) {
-        let items: Array<any> = JSON.parse(decoder.decode(content) || "[]");
+        let items: Array<CacheItem> = JSON.parse(decoder.decode(content) || "[]");
         let log = items.filter((v, _idx, _arr) => {
           return v.id !== id;
         });
         return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode(JSON.stringify(log, undefined, 2))));
-      } else {
-        return workspace.fs.writeFile(cacheUri, new Uint8Array(encoder.encode('[]')));
       }
     }, () => { });
   }

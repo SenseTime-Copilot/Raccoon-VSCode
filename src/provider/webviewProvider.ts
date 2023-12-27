@@ -216,7 +216,6 @@ export class RaccoonEditor extends Disposable {
     let streamResponse = raccoonManager.streamResponse;
     let delay = raccoonManager.delay;
     let candidates = raccoonManager.candidates;
-    let setPromptUri = Uri.parse(`command:raccoon.prompt.manage`);
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "Raccoon.Engines" }))}`);
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
     let es = raccoonManager.robotNames;
@@ -282,7 +281,7 @@ export class RaccoonEditor extends Disposable {
                       <button id="login" tabindex="0">${l10n.t("Login")}</button>
                       <span class="flex mx-4 self-center">
                         ${l10n.t("Do not have an account?")}
-                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}">
+                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}?utm_source=${encodeURIComponent(env.appName)}">
                           ${l10n.t("Sign Up")}
                         </vscode-link>
                       </span>`;
