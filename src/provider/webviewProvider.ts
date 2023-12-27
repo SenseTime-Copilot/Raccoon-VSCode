@@ -11,6 +11,7 @@ import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { RaccoonSearchEditorProvider } from './searchEditorProvider';
 import { FavoriteCodeEditor } from './favoriteCode';
 import { raccoonDocsUrl, raccoonResetPasswordUrl, raccoonSignupUrl } from './contants';
+import { phoneZoneCode } from '../utils/phoneZoneCode';
 
 const guide = `
 <h3>${l10n.t("Coding with Raccoon")}</h3>
@@ -67,9 +68,9 @@ ${l10n.t("Select prompt/write your question in input box at bottom, complete the
 <li>
 ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>Alt+/</code>)")}:
       <div class="flex flex-col m-2 text-xs" style="border: 1px solid var(--vscode-editorSuggestWidget-border);background-color: var(--vscode-editorSuggestWidget-background);">
-      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
-      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
-      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground); font-variation-settings: 'FILL' 1;" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
+      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
+      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
+      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
 </li>
 </ol>
 `;
@@ -225,7 +226,7 @@ export class RaccoonEditor extends Disposable {
     esList += "</vscode-dropdown>";
     let userId: string | undefined = undefined;
     let username: string | undefined = undefined;
-    let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px; font-variation-settings: 'opsz' 48;">person_pin</span>`;
+    let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px;">person_pin</span>`;
     let loginForm = ``;
     let logout = ``;
     let accountInfo = ``;
@@ -247,8 +248,7 @@ export class RaccoonEditor extends Disposable {
         if (url.scheme === "command" && url.path === "raccoon.password") {
           loginForm = `
                     <style>
-                    #login-account:invalid + #login-password + #login,
-                    #login-password:invalid + #login {
+                    #login.disabled {
                         pointer-events: none;
                         opacity: var(--disabled-opacity);
                     }
@@ -264,21 +264,41 @@ export class RaccoonEditor extends Disposable {
                       outline: 1px solid var(--focus-border);
                       background-color: var(--button-primary-hover-background);
                     }
+                    vscode-text-field:invalid {
+                      --focus-border: var(--vscode-inputValidation-warningBorder);
+                    }
                     </style>
                     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-                      <vscode-text-field type="tel" autofocus pattern="[0-9]{11}" maxlength=11 id="login-account" class="mx-4 my-1" required="required">${l10n.t("Account")}
-                        <span slot="start" style="line-height: 1.4; margin-right: 11px; opacity: 0.8;">+86</span>
+                      <span class="mx-4">${l10n.t("Account")}</span>
+                      <div class="flex flex-row mx-4">
+                      <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
+                      <vscode-dropdown class="grow" id="login-code" value="86">
+                        ${Object.keys(phoneZoneCode).map((v, _idx, _arr) => `<vscode-option value="${phoneZoneCode[v]}" style="padding: 0 calc(var(--design-unit) * 2px);">${v} (${phoneZoneCode[v]})</vscode-option>`).join('')}
+                      </vscode-dropdown>
+                      </div>
+                      <div class="flex flex-row mx-4">
+                      <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">smartphone</span>
+                      <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-account" required="required">
                       </vscode-text-field>
-                      <vscode-text-field type="password" pattern=".{8,64}" maxlength=64 id="login-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-account');var pwd = document.getElementById('login-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login').click();};})(this)" class="mx-4 my-1" required="required">${l10n.t("Password")}
+                      </div>
+                      <div class="flex flex-col mx-4 my-2">
+                      <div class="mb-2">
+                        <span>${l10n.t("Password")}</span>
                         <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonResetPasswordUrl}">
                           ${l10n.t("Forgot Password")}?
                         </vscode-link>
-                        <div slot="end" onclick="((e) => {e.children[0].classList.toggle('hidden');e.children[1].classList.toggle('hidden');var pwd = document.getElementById('login-password');if (pwd.type === 'password') {pwd.type = 'text';} else {pwd.type = 'password';}})(this)">
-                          <span class="material-symbols-rounded opacity-50 cursor-pointer">visibility_off</span>
-                          <span class="material-symbols-rounded opacity-50 cursor-pointer hidden">visibility</span>
-                        </div>
-                      </vscode-text-field>
-                      <button id="login" tabindex="0">${l10n.t("Login")}</button>
+                      </div>
+                      <div class="flex flex-row">
+                        <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">lock</span>
+                        <vscode-text-field type="password" pattern="(?![A-Za-z0-9]+$)(?![a-z0-9\\W]+$)(?![A-Za-z\\W]+$)(?![A-Z0-9\\W]+$)[a-zA-Z0-9\\W]{8,64}" maxlength=64 id="login-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-account');var pwd = document.getElementById('login-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login').click();};})(this)" class="grow" required="required">
+                          <div slot="end" onclick="((e) => {e.children[0].classList.toggle('hidden');e.children[1].classList.toggle('hidden');var pwd = document.getElementById('login-password');if (pwd.type === 'password') {pwd.type = 'text';} else {pwd.type = 'password';}})(this)">
+                            <span class="material-symbols-rounded opacity-50 cursor-pointer">visibility_off</span>
+                            <span class="material-symbols-rounded opacity-50 cursor-pointer hidden">visibility</span>
+                          </div>
+                        </vscode-text-field>
+                      </div>
+                      </div>
+                      <button id="login" tabindex="0" class="disabled">${l10n.t("Login")}</button>
                       <span class="flex mx-4 self-center">
                         ${l10n.t("Do not have an account?")}
                         <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}?utm_source=${encodeURIComponent(env.appName)}">
@@ -398,7 +418,7 @@ export class RaccoonEditor extends Disposable {
     <div class="flex flex-col">
       <vscode-checkbox id="privacy" ${this.context.globalState.get("privacy") ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
       <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
-        <span class="material-symbols-rounded" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report issue")}</span>
+        <span class="material-symbols-rounded text-2xl" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report issue")}</span>
       </div>
     </div>
     <div class="flex grow place-content-center py-8">
@@ -424,7 +444,7 @@ export class RaccoonEditor extends Disposable {
       <div class="flex flex-col ml-4 my-2 px-2 gap-2 ${es.length === 1 ? "hidden" : ""}">
         <span>${l10n.t("Code engine")}</span>
         <div class="flex flex-row">
-          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px;" title="${l10n.t("Code engine")}">assistant</span>
+          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);" title="${l10n.t("Code engine")}">assistant</span>
           ${esList}
           <vscode-link href="${setEngineUri}" class="pt-px attach-btn-right" title="${l10n.t("Settings")}">
             <span class="material-symbols-rounded">tune</span>
@@ -471,7 +491,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'login': {
-          if (!data.account || !data.password) {
+          if (!data.code || !data.account || !data.password) {
             this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: l10n.t("Login failed"), id: new Date().valueOf() });
             break;
           }

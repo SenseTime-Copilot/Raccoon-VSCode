@@ -71,12 +71,13 @@ export class SenseNovaClient implements CodeClient {
             weaverdKey: decoded.secretAccessKey,
           };
         } else if (url.host === 'password') {
-          if (decoded["account"] && decoded["password"]) {
+          if (decoded["code"] && decoded["account"] && decoded["password"]) {
+            let code = decoded["code"];
             let phone = encrypt(decoded["account"]);
             let password = encrypt(decoded["password"]);
             return axios.post(this.clientConfig.authUrl + "/login_with_password", {
               // eslint-disable-next-line @typescript-eslint/naming-convention
-              nation_code: "86", phone, password
+              nation_code: code, phone, password
             }).then(resp => {
               if (resp.status === 200 && resp.data.code === 0) {
                 let jwtDecoded: any = jwt_decode(resp.data.data.access_token);

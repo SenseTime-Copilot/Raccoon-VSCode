@@ -968,6 +968,27 @@ const vscode = acquireVsCodeApi();
     toggleSubMenuList();
   });
 
+  document.addEventListener("input", (e) => {
+    if (e.target.id === "login-account") {
+      var pwd = document.getElementById("login-password");
+      var loginBtn = document.getElementById("login");
+      if (e.target.checkValidity() && pwd.checkValidity()) {
+        loginBtn.classList.remove('disabled');
+      } else {
+        loginBtn.classList.add('disabled');
+      }
+    }
+    if (e.target.id === "login-password") {
+      var username = document.getElementById("login-account");
+      var loginBtn1 = document.getElementById("login");
+      if (e.target.checkValidity() && username.checkValidity()) {
+        loginBtn1.classList.remove('disabled');
+      } else {
+        loginBtn1.classList.add('disabled');
+      }
+    }
+  });
+
   document.getElementById("question-input").addEventListener("input", () => {
     toggleSubMenuList();
   });
@@ -1247,10 +1268,12 @@ const vscode = acquireVsCodeApi();
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
 
     if (targetButton?.id === "login") {
+      let code = document.getElementById("login-code").value;
       let account = document.getElementById("login-account").value;
       let password = document.getElementById("login-password").value;
       vscode.postMessage({
         type: "login",
+        code,
         account,
         password
       });
@@ -1559,5 +1582,5 @@ const vscode = acquireVsCodeApi();
       });
     }
   }
-})();
+}) ();
 
