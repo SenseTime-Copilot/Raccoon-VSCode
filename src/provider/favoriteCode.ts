@@ -69,7 +69,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
           }
           let item = new CompletionItem(snippet.shortcut, CompletionItemKind.Snippet);
           item.insertText = snippet.code;
-          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n $(raccoon-icon) _from Raccoon favorite code snippets_`, true);
+          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(raccoon-icon) _${l10n.t("from Raccoon favorite code snippets")}_`, true);
           return new CompletionList([item]);
         }
       }
