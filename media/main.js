@@ -395,7 +395,7 @@ const vscode = acquireVsCodeApi();
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:workbench.action.openGlobalSettings?%7B%22query%22%3A%22Raccoon.Prompt%22%7D"><span class="material-symbols-rounded">add</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
+        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:raccoon.prompt.manage"><span class="material-symbols-rounded">edit_note</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
           shortcuts += `  <button class="flex gap-2 items-center"
@@ -406,7 +406,7 @@ const vscode = acquireVsCodeApi();
                                         });
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
-                            ${p.label}
+                            ${p.label}${p.inputRequired ? "..." : ""}
                             ${p.shortcut ? `<span class="shortcut grow text-right" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
                           </button>
                       `;
@@ -1059,6 +1059,8 @@ const vscode = acquireVsCodeApi();
             break;
           }
         };
+      } else {
+        document.getElementById("question-input").focus();
       }
       return;
     } else if (!search.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
@@ -1582,5 +1584,5 @@ const vscode = acquireVsCodeApi();
       });
     }
   }
-}) ();
+})();
 

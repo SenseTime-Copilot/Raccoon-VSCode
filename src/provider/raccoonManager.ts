@@ -417,6 +417,7 @@ export class RaccoonManager {
         let p: RaccoonPrompt = {
           label: label,
           type: PromptType.customPrompt,
+          icon: customPrompts[label].icon,
           shortcut: customPrompts[label].shortcut,
           origin: customPrompts[label].origin,
           message: {
@@ -430,7 +431,7 @@ export class RaccoonManager {
     }
     for (let p of prompts) {
       if (p.args && Object.keys(p.args).length > 0) {
-        p.label += "...";
+        p.inputRequired = true;
       }
     }
     return prompts;
@@ -726,7 +727,7 @@ export class RaccoonManager {
   }
 
   public get completionPreference(): CompletionPreferenceType {
-    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.bestEffort);
+    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.signleLine);
   }
 
   public set completionPreference(v: CompletionPreferenceType) {

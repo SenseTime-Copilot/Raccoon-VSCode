@@ -371,14 +371,14 @@ export class RaccoonEditor extends Disposable {
     <div>
       <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
         <label slot="label">${l10n.t("Completion Preference")}</label>
-        <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
-          ${l10n.t("Best Effort")}
+        <vscode-radio ${completionPreference === CompletionPreferenceType.signleLine ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.signleLine}" title="${l10n.t("Single Line")}">
+          ${l10n.t("Single Line")}
         </vscode-radio>
         <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
           ${l10n.t("Balanced")}
         </vscode-radio>
-        <vscode-radio ${completionPreference === CompletionPreferenceType.signleLine ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.signleLine}" title="${l10n.t("Single Line")}">
-          ${l10n.t("Single Line")}
+        <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
+          ${l10n.t("Best Effort")}
         </vscode-radio>
       </vscode-radio-group>
     </div>

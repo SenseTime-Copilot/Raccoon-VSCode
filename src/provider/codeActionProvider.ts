@@ -43,6 +43,9 @@ export class RaccoonAction implements vscode.CodeActionProvider {
           kind = kind.append("builtin");
         }
         name += p.label;
+        if (p.inputRequired) {
+          name += "...";
+        }
         actions.push(new vscode.CodeAction(name, kind));
       }
       actions.push(
@@ -108,7 +111,11 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     }
 
     for (let p of ps) {
-      if ((prefix + p.label) === label) {
+      let match = (prefix + p.label) === label;
+      if (p.inputRequired) {
+        match = (prefix + p.label + "...") === label;
+      }
+      if (match) {
         prompt = { ...p };
         break;
       }

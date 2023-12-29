@@ -19,6 +19,7 @@
     "raccoon.config.prompt.item": "カスタマイズプロンプトテンプレート",
     "raccoon.config.prompt.advanced": "上級プロンプトテンプレート",
     "raccoon.config.prompt.advanced.item": "上級プロンプトテンプレート, 任意の `{*}` カスタマイズパラメーターを含む",
+    "raccoon.config.prompt.advanced.icon": "プロンプトテンプレートのアイコン、参考 https://fonts.google.com/icons",
     "raccoon.config.prompt.advanced.shortcut": "現在のプロンプト テンプレートのショートカットコマンド",
     "raccoon.config.prompt.advanced.args": "現在のプロンプトテンプレートに対応するパラメータ設定, 各キーは同じ名前のパラメータに対応",
     "raccoon.config.prompt.advanced.args.type": "パラメータの種類、 `input` 要素タイプのサブセット、参考 https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#input_types",

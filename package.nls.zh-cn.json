@@ -19,6 +19,7 @@
     "raccoon.config.prompt.item": "自定义提示模版",
     "raccoon.config.prompt.advanced": "高级提示模板",
     "raccoon.config.prompt.advanced.item": "高级提示模板, 可包含任意的 `{*}` 自定义参数",
+    "raccoon.config.prompt.advanced.icon": "当前提示模板的图标, 参考 https://fonts.google.com/icons",
     "raccoon.config.prompt.advanced.shortcut": "当前提示模板的快捷指令",
     "raccoon.config.prompt.advanced.args": "当前提示模板对应的参数配置, 每个键对应同名的参数",
     "raccoon.config.prompt.advanced.args.type": "参数类型, `input` 元素类型的子集, 参考 https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#input_types",

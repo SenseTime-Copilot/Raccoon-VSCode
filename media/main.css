@@ -1756,7 +1756,6 @@ button.stopGenerate:hover,
     line-height: 36px;
     margin-left: 0.5rem;
     color: var(--badge-foreground);
-    z-index: 99999;
     height: 0px;
     opacity: 0.4;
     width: fit-content;
