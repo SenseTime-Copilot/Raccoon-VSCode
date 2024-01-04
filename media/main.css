@@ -651,12 +651,15 @@ span.shortcut:before {
     content: '/';
     opacity: 80%;
     color: var(--input-placeholder-foreground);
+    text-shadow: none;
+    margin-right: 1px;
 }
 
 span.shortcut:after {
     content: attr(data-suffix);
     opacity: 80%;
     color: var(--input-placeholder-foreground);
+    text-shadow: none;
 }
 
 #ask-list.pin button {
