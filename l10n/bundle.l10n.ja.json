@@ -15,6 +15,7 @@
   "Label": "ラベル",
   "Display label": "ラベルを表示",
   "Custom Prompt": "カスタマプロンプト",
+  "Preview": "プレビュー",
   "File already exists": "ファイルはすでに存在しています",
   "Invalid filename": "無効なファイル名",
   "Manage history": "会話履歴を管理",

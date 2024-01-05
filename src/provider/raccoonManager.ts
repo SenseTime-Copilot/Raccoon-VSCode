@@ -439,7 +439,7 @@ export class RaccoonManager {
 
   public static parseStringPrompt(label:string, prompt: string, shortcut?: string): RaccoonPrompt {
     let promptProcessed = prompt;
-    let regex = /\{\{input(:.+?)?\}\}/g;
+    let regex = /\{\{input(:.*?)?\}\}?/g;
     let m;
     let args: any = {};
     while ((m = regex.exec(prompt)) !== null) {

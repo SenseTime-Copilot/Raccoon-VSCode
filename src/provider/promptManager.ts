@@ -1,5 +1,5 @@
 import { ExtensionContext, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
-import { PromptType, RaccoonPrompt } from "./promptTemplates";
+import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { raccoonManager } from "../globalEnv";
 import { RaccoonManager } from "./raccoonManager";
 
@@ -120,6 +120,33 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     };
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
+        case 'preview': {
+          let icon = "smart_button";
+          let p = RaccoonManager.parseStringPrompt(msg.label, msg.prompt, msg.shortcut);
+          p.code =
+            "Set moveCount to 1\n" +
+            "FOR each row on the board\n" +
+            "    FOR each column on the board\n" +
+            "        IF gameBoard position (row, column) is occupied THEN\n" +
+            "            CALL findAdjacentTiles with row, column\n" +
+            "            INCREMENT moveCount\n" +
+            "        END IF\n" +
+            "    END FOR\n" +
+            "END FOR\n";
+          p.languageid = "pseudo";
+          let pi: PromptInfo = new PromptInfo(p);
+          let promptHtml = pi.generatePromptHtml(0);
+          webview.postMessage({
+            "type": "preview",
+            "menu": `<button class="flex gap-2 items-center" ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}>
+                      <span class="material-symbols-rounded">${icon}</span>
+                      ${p.label}${p.inputRequired ? "..." : ""}
+                      ${p.shortcut ? `<span class="shortcut grow text-right" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
+                    </button>`,
+            "html": promptHtml.html
+          });
+          break;
+        }
         case 'save': {
           this.appendPrompt(msg.label, msg.shortcut, msg.prompt, msg.force).then(() => {
             if (label && label !== msg.label) {
@@ -138,6 +165,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
 
     const toolkitUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "media", "toolkit.js"));
     const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
+    const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
 
     webview.html = `
@@ -145,6 +173,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     <head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource};  style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';" >
     <script type="module" src="${toolkitUri}"></script>
+    <script src="${vendorTailwindJs}"></script>
     <link href="${iconUri}" rel="stylesheet" />
     <link href="${mainCSS}" rel="stylesheet" />
     <script>
@@ -170,6 +199,19 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         }
       )
     }
+    function updatePreview() {
+      var promptNode = document.getElementById("prompt");
+      var labelNode = document.getElementById("label");
+      var shortcutNode = document.getElementById("shortcut");
+      vscode.postMessage(
+        {
+          "type": "preview",
+          "label": labelNode.value,
+          "prompt": promptNode.value,
+          "shortcut": shortcutNode.value
+        }
+      )
+    }
     window.onload = (event) => {
       var prompt = document.getElementById("prompt");
       prompt.value = ${JSON.stringify(prompt || "")};
@@ -182,6 +224,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         } else {
           saveNode.disabled = true;
         }
+        updatePreview();
       });
       shortcutNode.addEventListener("input", (_e)=>{
         if (labelNode.value && /^[a-zA-Z]\\w{0,15}$/.test(shortcutNode.value)){
@@ -189,7 +232,24 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         } else {
           saveNode.disabled = true;
         }
+        updatePreview();
       });
+      prompt.addEventListener("input", (_e)=>{
+        updatePreview();
+      });
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        switch (message.type) {
+          case 'preview': {
+            var menuNode = document.getElementById("ask-list");
+            menuNode.innerHTML = message.menu;
+            var previewNode = document.getElementById("preview");
+            previewNode.innerHTML = message.html;
+            break;
+          }
+        }
+      });
+      updatePreview();
       labelNode.focus();
     };
     </script>
@@ -198,18 +258,30 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     <div class="markdown-body" style="margin: 1rem 4rem;">
       <h2>${l10n.t("Custom Prompt")}</h2>
       <div style="display: flex; flex-direction: column;">
-        <div style="display: flex; grid-gap: 1rem;">
+        <div style="display: flex; grid-gap: 1rem; flex-flow: wrap">
           <vscode-text-field id="label" tabindex="1" placeholder="${l10n.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${label && `value="${label}"`}>${l10n.t("Label")}
+            <vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Display label")}">
+              <span class="material-symbols-rounded">text_fields</span>
+            </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="shortcut" tabindex="2" placeholder="${l10n.t("Start with a letter, with a length limit of {0} characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{0,15}$/">
+          <vscode-text-field id="shortcut" tabindex="2" placeholder="${l10n.t("Start with a letter, with a length limit of {0} characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}
+            <vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{0,15}$/">
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>
         </div>
-        <vscode-text-area tabindex="3" id="prompt" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
-        ${l10n.t("Custom Prompt")}
-        </vscode-text-area>
-        <div style="display: flex; align-self: flex-end; grid-gap: 1rem;">
+        <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
+          <vscode-text-area tabindex="3" id="prompt" rows="20" resize="vertical" style="flex-grow: 10; min-width: 480px; margin-top: 1rem; font-family: var(--vscode-editor-font-family);">
+            ${l10n.t("Custom Prompt")}
+          </vscode-text-area>
+          <div style="display: flex;flex-direction: column;min-width: 480px;flex-grow: 1;margin-top: 1rem;">
+            <label for="preview" style="display: block; line-height: 22px;">${l10n.t("Preview")}</label>
+            <div id="ask-list" style="position: initial; border-bottom: none; padding: 0;"></div>
+            <div id="preview" style="box-sizing: border-box;flex-grow: 1;padding: 1rem;margin-bottom: 7px;border: 1px solid var(--dropdown-border);border-radius: 0 0 6px 6px; background-color: var(--panel-view-background);">
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
           <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
           <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save('${label}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
         </div>
