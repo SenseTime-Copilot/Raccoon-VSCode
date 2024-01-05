@@ -271,7 +271,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
           </vscode-text-field>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
-          <vscode-text-area tabindex="3" id="prompt" rows="20" resize="vertical" style="flex-grow: 10; min-width: 480px; margin-top: 1rem; font-family: var(--vscode-editor-font-family);">
+          <vscode-text-area tabindex="3" id="prompt" rows="20" resize="vertical" style="flex-grow: 50; min-width: 320px; margin-top: 1rem; font-family: var(--vscode-editor-font-family);">
             ${l10n.t("Custom Prompt")}
           </vscode-text-area>
           <div style="display: flex;flex-direction: column;min-width: 480px;flex-grow: 1;margin-top: 1rem;">

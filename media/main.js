@@ -843,7 +843,11 @@ const vscode = acquireVsCodeApi();
       if (answer && answer.classList?.contains("answer-element-gnc")) {
         const rs = answer.getElementsByClassName("response");
         if (rs && rs[0] && rs[0].dataset.response) {
-          r = `${rs[0].dataset.response.trim()}`;
+          if (rs[0].dataset.error) {
+            // skip errors
+          } else if (rs[0].dataset.response) {
+            r = `${rs[0].dataset.response.trim()}`;
+          }
         }
       }
       if (p && r) {
@@ -868,7 +872,7 @@ const vscode = acquireVsCodeApi();
       }
       document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
       document.getElementById("question-input").disabled = false;
-      document.getElementById("question-input").focus();
+      //document.getElementById("question-input").focus();
     }
     if (status === "start") {
       document.getElementById('settings')?.remove();

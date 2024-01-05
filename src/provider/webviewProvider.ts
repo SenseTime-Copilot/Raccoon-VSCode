@@ -886,7 +886,11 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               let stopReason = rs.choices[0]?.finishReason;
               let rts = new Date(rs.created).toLocaleString();
               outlog.debug(content + (stopReason ? `\n<StopReason: ${stopReason}>` : ""));
-              this.sendMessage({ type: 'addResponse', id, value: content, timestamp: rts });
+              if (stopReason !== 'length' && stopReason !== 'stop') {
+                this.sendMessage({ type: 'addError', error: stopReason, id, timestamp: rts });
+              } else {
+                this.sendMessage({ type: 'addResponse', id, value: content, timestamp: rts });
+              }
               this.sendMessage({ type: 'stopResponse', id });
             }, (err) => {
               let error = err.response?.statusText || err.message;
