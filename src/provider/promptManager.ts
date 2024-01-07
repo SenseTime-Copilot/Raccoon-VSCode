@@ -212,6 +212,36 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         }
       )
     }
+    function insert_code() {
+      var promptNode = document.getElementById("prompt");
+      var posStart = promptNode.selectionStart;
+      var posEnd = promptNode.selectionEnd;
+      var prefix = promptNode.value.slice(0, posStart);
+      var suffix = promptNode.value.slice(posEnd);
+      promptNode.value = prefix + "{{code}}" + suffix;
+      promptNode.selectionStart = posStart;
+      promptNode.selectionEnd = posStart + 8;
+      updatePreview();
+      promptNode.focus();
+    }
+    function insert_textfield(placeholder) {
+      var promptNode = document.getElementById("prompt");
+      var posStart = promptNode.selectionStart;
+      var posEnd = promptNode.selectionEnd;
+      var prefix = promptNode.value.slice(0, posStart);
+      var suffix = promptNode.value.slice(posEnd);
+      if (!placeholder) {
+        promptNode.value = prefix + "{{input}}" + suffix;
+        promptNode.selectionStart = posStart;
+        promptNode.selectionEnd = posStart + 9;
+      } else {
+        promptNode.value = prefix + "{{input:" + placeholder + "}}" + suffix;
+        promptNode.selectionStart = posStart + 8;
+        promptNode.selectionEnd = posStart + 8 + 11;
+      }
+      updatePreview();
+      promptNode.focus();
+    }
     window.onload = (event) => {
       var prompt = document.getElementById("prompt");
       prompt.value = ${JSON.stringify(prompt || "")};
@@ -271,13 +301,27 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
           </vscode-text-field>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
-          <vscode-text-area tabindex="3" id="prompt" rows="20" resize="vertical" style="flex-grow: 50; min-width: 320px; margin-top: 1rem; font-family: var(--vscode-editor-font-family);">
-            ${l10n.t("Custom Prompt")}
-          </vscode-text-area>
+          <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
+            <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Custom Prompt")}</label>
+            <div class="flex gap-1 p-1" style="border-radius: 6px 6px 0 0;background-color: var(--input-background);border-bottom: 1px dashed var(--panel-view-border);">
+              <span class="material-symbols-rounded" style="padding: 4px 5px 0 2px;border-right: 1px solid var(--panel-view-border);">home_repair_service</span>
+              <vscode-button appearance="icon" onclick="insert_code()" title="${l10n.t("Captured code from editor")}">
+                <span class="material-symbols-rounded">data_object</span>
+              </vscode-button>
+              <vscode-button appearance="icon" onclick="insert_textfield()" title="${l10n.t("Text field")}">
+                <span class="material-symbols-rounded">insert_text</span>
+              </vscode-button>
+              <vscode-button appearance="icon" onclick="insert_textfield('placeholder')" title="${l10n.t("Text field with placeholder")}">
+                <span class="material-symbols-rounded">glyphs</span>
+              </vscode-button>
+            </div>
+            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 0 0 0 6px;padding:9px;outline-color:var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);">
+            </textarea>
+          </div>
           <div style="display: flex;flex-direction: column;min-width: 480px;flex-grow: 1;margin-top: 1rem;">
-            <label for="preview" style="display: block; line-height: 22px;">${l10n.t("Preview")}</label>
+            <label for="preview" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Preview")}</label>
             <div id="ask-list" style="position: initial; border-bottom: none; padding: 0;"></div>
-            <div id="preview" style="box-sizing: border-box;flex-grow: 1;padding: 1rem;margin-bottom: 7px;border: 1px solid var(--dropdown-border);border-radius: 0 0 6px 6px; background-color: var(--panel-view-background);">
+            <div id="preview" style="box-sizing: border-box;flex-grow: 1;padding: 1rem;border: 1px solid var(--dropdown-border);border-radius: 0 0 6px 6px; background-color: var(--panel-view-background);">
             </div>
           </div>
         </div>

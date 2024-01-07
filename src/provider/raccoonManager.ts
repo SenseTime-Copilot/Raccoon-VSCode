@@ -437,9 +437,9 @@ export class RaccoonManager {
     return prompts;
   }
 
-  public static parseStringPrompt(label:string, prompt: string, shortcut?: string): RaccoonPrompt {
+  public static parseStringPrompt(label: string, prompt: string, shortcut?: string): RaccoonPrompt {
     let promptProcessed = prompt;
-    let regex = /\{\{input(:.*?)?\}\}?/g;
+    let regex = /(\{\{)input(:.*?)?(\}\})/g;
     let m;
     let args: any = {};
     while ((m = regex.exec(prompt)) !== null) {
@@ -447,8 +447,8 @@ export class RaccoonManager {
         regex.lastIndex++;
       }
       let placeholder;
-      if (m.length > 1 && m[1]) {
-        placeholder = m[1].slice(1);
+      if (m.length > 2 && m[2]) {
+        placeholder = m[2].slice(1);
       }
       promptProcessed = promptProcessed.replace(m[0], `{{v${m.index}}}`);
       args[`v${m.index}`] = {
