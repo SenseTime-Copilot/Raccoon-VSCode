@@ -141,7 +141,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
             "menu": `<button class="flex gap-2 items-center" ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}>
                       <span class="material-symbols-rounded">${icon}</span>
                       ${p.label}${p.inputRequired ? "..." : ""}
-                      ${p.shortcut ? `<span class="shortcut grow text-right" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
+                      <span class="shortcut grow text-right" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut || ""}></span>
                     </button>`,
             "html": promptHtml.html
           });
@@ -327,7 +327,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         </div>
         <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
           <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save('${label}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length > 0) ? '' : 'disabled'} onclick="save('${label}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
         </div>
       </div>
       </div>
