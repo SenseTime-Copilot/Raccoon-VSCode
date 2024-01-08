@@ -303,7 +303,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
             <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Custom Prompt")}</label>
-            <div class="flex gap-1 p-1" style="border-radius: 6px 6px 0 0;background-color: var(--input-background);border-bottom: 1px dashed var(--panel-view-border);">
+            <div class="flex gap-1 p-1" style="border-radius: 6px 6px 0 0;border: 1px solid transparent;background-color: var(--input-background);border-bottom: 1px dashed var(--panel-view-border);z-index: 1;width: calc(100% - 2px);margin: 1px;">
               <span class="material-symbols-rounded" style="padding: 4px 5px 0 2px;border-right: 1px solid var(--panel-view-border);">home_repair_service</span>
               <vscode-button appearance="icon" onclick="insert_code()" title="${l10n.t("Captured code from editor")}">
                 <span class="material-symbols-rounded">data_object</span>
@@ -315,7 +315,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
                 <span class="material-symbols-rounded">glyphs</span>
               </vscode-button>
             </div>
-            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 0 0 0 6px;padding:9px;outline-color:var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);">
+            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 43px 9px 9px 9px;margin-top: -34px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;">
             </textarea>
           </div>
           <div style="display: flex;flex-direction: column;min-width: 480px;flex-grow: 1;margin-top: 1rem;">
