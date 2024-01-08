@@ -319,6 +319,37 @@ textarea::placeholder {
     text-align: justify;
 }
 
+#attach-code-container {
+    font-size: 0.8em;
+    width: calc(100% + 5px);
+    max-height: 100px;
+    overflow-y: auto;
+    cursor: pointer;
+    margin-right: 0px;
+    border-bottom: 1px solid var(--panel-view-border);
+}
+
+#attach-code-container #code-title {
+    position: fixed;
+    height: 1rem;
+    left: 0px;
+    right: 0px;
+    border-bottom: 1px solid var(--panel-view-border);
+    background-color: var(--input-background);
+    font-family: var(--vscode-editor-font-family);
+    color: var(--panel-tab-foreground);
+}
+
+#attach-code-container::-webkit-scrollbar {
+    width: 5px;
+    height: 0px;
+}
+
+#attach-code {
+    background: none;
+    padding: 0;
+}
+
 #question-input {
     width: auto;
     min-width: 1em;
@@ -421,33 +452,10 @@ textarea::placeholder {
     opacity: 0.6;
 }
 
-#code-hint {
-    display: none;
-}
-
-#code-hint .material-symbols-rounded {
-    cursor: pointer;
-}
-
-#code-hint {
-    display: inline-block;
-    flex-grow: 1;
-    text-align: end;
-    transition-duration: 0.3s;
-    transform: scale(0);
-    transform-origin: bottom right;
-    z-index: 9999;
-}
-
 .history .op-hint .history-hint,
 .search .op-hint .search-hint {
     display: inline-flex;
     grid-gap: 0.1rem;
-}
-
-.code-ready:not(.search) .op-hint #code-hint {
-    display: inline-block;
-    transform: none;
 }
 
 .search .search-hint {
@@ -457,17 +465,6 @@ textarea::placeholder {
 
 .search .history-hint.trigger {
     display: none;
-}
-
-#code-hint span.material-symbols-rounded {
-    position: relative;
-    padding: 1px;
-    color: var(--vscode-statusBar-foreground);
-    background: var(--vscode-statusBar-background);
-    border-radius: 50%;
-    border: 1px solid var(--vscode-statusBar-border);
-    font-size: 13px;
-    transform: translate(-3px, -7px);
 }
 
 #question-sizer:before {
@@ -497,10 +494,6 @@ textarea::placeholder {
     transition-duration: 0.2s;
     transition-delay: 0.1s;
     margin-top: -0.5rem;
-}
-
-#question.code-ready:not(.search) button .material-symbols-rounded {
-    margin-top: -0.75rem;
 }
 
 #send-button,
@@ -535,17 +528,8 @@ textarea::placeholder {
     display: none;
 }
 
-#question.code-ready #send-button:after {
-    font-size: 9px;
-    position: absolute;
-    right: 0.25rem;
-    margin-top: 0.9rem;
-    border-radius: 100%;
-    font-weight: bold;
-    font-family: var(--vscode-editor-font-family);
-}
-
 #chat-button-wrapper.responsing .op-hint,
+#chat-button-wrapper.responsing #attach-code-container,
 #chat-button-wrapper.responsing button#send-button {
     display: none !important;
 }

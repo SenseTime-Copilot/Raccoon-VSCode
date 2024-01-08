@@ -152,6 +152,13 @@ const vscode = acquireVsCodeApi();
     return cont;
   }
 
+  document.getElementById('question-input').addEventListener("focus", (_e) => {
+    var acc = document.getElementById("attach-code-container");
+    if (acc && acc.classList.contains('with-code')) {
+      acc.classList.remove('hidden');
+    }
+  });
+
   // Handle messages sent from the extension to the webview
   window.addEventListener("message", (event) => {
     const message = event.data;
@@ -338,28 +345,31 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case 'codeReady': {
-        var hint = document.getElementById("code-hint");
+        var acc = document.getElementById("attach-code-container");
+        var ct = document.getElementById("code-title");
+        var ac = document.getElementById("attach-code");
         if (message.value) {
-          var sameFile = (message.file === hint.dataset['file']);
-          hint.dataset['file'] = message.file;
-          var btn = hint.getElementsByClassName("material-symbols-rounded")[0];
-          btn.onclick = (_event) => {
-            vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
-          };
-          if (!sameFile) {
-            document.getElementById("question").classList.remove("code-ready");
-            void document.getElementById("question").offsetHeight;
-            setTimeout(() => {
-              document.getElementById("question").classList.add("code-ready");
-            }, 300);
-          } else {
-            document.getElementById("question").classList.add("code-ready");
+          if (acc && ac && message.content) {
+            acc.classList.add("with-code");
+            acc.onclick = (_event) => {
+              vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
+            };
+            acc.classList.remove('hidden');
+            ct.innerHTML = '<span class="material-symbols-rounded">chevron_right</span>' + message.file.split('/').slice(-1);
+            if (!hljs.getLanguage(message.lang)) {
+              ac.innerHTML = hljs.highlightAuto(message.content).value;
+            } else {
+              ac.innerHTML = hljs.highlight(message.lang, message.content).value;
+            }
           }
         } else {
-          document.getElementById("question").classList.remove("code-ready");
-          hint.dataset['file'] = undefined;
-          var btn1 = hint.getElementsByClassName("material-symbols-rounded")[0];
-          btn1.onclick = undefined;
+          if (acc) {
+            acc.classList.remove("with-code");
+            acc.onclick = undefined;
+            acc.classList.add('hidden');
+            ct.innerText = '';
+            ac.innerHTML = '';
+          }
         }
         break;
       }
@@ -437,6 +447,11 @@ const vscode = acquireVsCodeApi();
         document.getElementById(`question-${id}`).querySelectorAll('pre code').forEach((el) => {
           hljs.highlightElement(el);
         });
+        document.getElementById('question-input').blur();
+        var c = document.getElementById("attach-code-container");
+        if (c) {
+          c.classList.add("hidden");
+        }
 
         if (promptInfo.status === "editRequired") {
           document.getElementById("chat-button-wrapper")?.classList?.add("editing");
@@ -818,7 +833,7 @@ const vscode = acquireVsCodeApi();
   function updateHistory(prompt) {
     if (prompt.type === 'free chat') {
       let item = prompt.message.content;
-      item = item.replace("{{code}}", "");
+      item = item.replaceAll("{{code}}", "");
       history = [item.trim(), ...history];
     }
   }
@@ -837,7 +852,7 @@ const vscode = acquireVsCodeApi();
       const code = values[0]?.getElementsByClassName("code-value")[0]?.textContent || "";
       p = prompt[0].dataset.prompt;
       if (p) {
-        p = p.replace("{{code}}", `\n\`\`\`${languageid}\n${code}\n\`\`\``);
+        p = p.replaceAll("{{code}}", `\n\`\`\`${languageid}\n${code}\n\`\`\``);
       }
       const answer = q.nextElementSibling;
       if (answer && answer.classList?.contains("answer-element-gnc")) {
@@ -1233,7 +1248,6 @@ const vscode = acquireVsCodeApi();
       vscode.postMessage({ type: 'stopGenerate' });
       document.getElementById("chat-button-wrapper")?.classList?.remove("editing", "responsing");
       document.getElementById("question-input").disabled = false;
-      document.getElementById("question-input").focus();
       return;
     }
 

@@ -152,7 +152,7 @@ export class PromptInfo {
       let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;");
       codeHtml = `<pre ${langdata} class="${classList}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
-    prompthtml = prompthtml.replace("{{code}}", codeHtml);
+    prompthtml = prompthtml.replace(/\{\{code\}\}/g, codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {
     } else {
       prompthtml = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${renderHtml.prompt.label.replace("...", "")}</p>` + prompthtml;

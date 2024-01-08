@@ -120,7 +120,9 @@ export class RaccoonEditor extends Disposable {
         } else if (this.isSupportedScheme(doc)) {
           this.lastTextEditor = e;
           if (e && this.checkCodeReady(e)) {
-            this.sendMessage({ type: 'codeReady', value: true, file: e.document.uri.toString(), range: e.selections[0] });
+            let content = doc.getText(e.selections[0]);
+            let lang = doc.languageId;
+            this.sendMessage({ type: 'codeReady', value: true, file: e.document.uri.toString(), range: e.selections[0], lang, content });
           } else {
             this.sendMessage({ type: 'codeReady', value: false });
           }
@@ -144,7 +146,9 @@ export class RaccoonEditor extends Disposable {
             let doc = e.textEditor.document;
             let text = doc.getText(e.selections[0]);
             if (text.trim()) {
-              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: e.selections[0] });
+              let content = doc.getText(e.selections[0]);
+              let lang = doc.languageId;
+              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: e.selections[0], lang, content });
               return;
             }
           }
@@ -692,7 +696,7 @@ export class RaccoonEditor extends Disposable {
               issueTitle = '[Feedback]';
               let renderRequestBody = data.info.request.prompt;
               if (renderRequestBody) {
-                renderRequestBody = renderRequestBody.replace("{{code}}", data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
+                renderRequestBody = renderRequestBody.replace(/\{\{code\}\}/g, data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
                 issueTitle = '[Need Improvement]';
                 issueBody = `## Your question\n\n
 ${renderRequestBody}
@@ -725,7 +729,9 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     const editor = window.activeTextEditor || this.lastTextEditor;
     if (editor && this.checkCodeReady(editor)) {
       setTimeout(() => {
-        this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0] });
+        let content = editor.document.getText(editor.selection);
+        let lang = editor.document.languageId;
+        this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0], lang, content });
       }, 1000);
     }
   }
@@ -780,12 +786,12 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
         this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
           let codeBlock = `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``;
-          instruction.content = instruction.content.replace("{{code}}",
+          instruction.content = instruction.content.replace(/\{\{code\}\}/g,
             () => {
               return codeBlock;
             });
         } else {
-          instruction.content = instruction.content.replace("{{code}}", "");
+          instruction.content = instruction.content.replace(/\{\{code\}\}/g, "");
         }
         let historyMsgs: Message[] = [];
         if (history) {
@@ -1008,6 +1014,10 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                   </div>
                   <div id="ask-list" class="flex flex-col hidden">
                   </div>
+                  <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
+                  <div id="code-title"></div>
+                  <pre style="margin-top: 1rem;padding: 0.25rem;"><code id="attach-code"></code></pre>
+                  </div>
                   <div id="question" class="w-full flex justify-center items-center">
                     <span class="material-symbols-rounded opacity-60 history-icon">
                       history
@@ -1024,9 +1034,6 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                       </div>
                       <div class="history-hint items-center">
                         <kbd><span class="material-symbols-rounded">first_page</span>Esc</kbd>${l10n.t("Clear")}
-                      </div>
-                      <div id="code-hint" title="${l10n.t("Code attached")}">
-                        <span class="material-symbols-rounded">code</span>
                       </div>
                     </div>
                     <label id="question-sizer" data-value
