@@ -13,67 +13,69 @@ import { FavoriteCodeEditor } from './favoriteCode';
 import { raccoonDocsUrl, raccoonResetPasswordUrl, raccoonSignupUrl } from './contants';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
-const guide = `
-<h3>${l10n.t("Coding with Raccoon")}</h3>
-<ol>
-<li>
-  ${l10n.t("Stop typing or press hotkey (default: <code>Alt+/</code>) to starts Raccoon thinking")}:
-  <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-    <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
-    <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
-  </code>
-</li>
-<li>
-${l10n.t("When multi candidates generated, use <code>Alt+[</code> or <code>Alt+]</code> to switch between them")}:
-  <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-    <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
-    <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
-  </code>
-</li>
-<li>
-${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
-  <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-    <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
-    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
-    <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
-    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
-    <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
-  </code>
-</li>
-</ol>
-<h3>${l10n.t("Ask Raccoon")}</h3>
-<ol>
-<li>
-${l10n.t("Select code in editor")}:
-  <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-  <div class="flex" style="display: flex; padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
-    <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
-    <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
-    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
-    <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
-    <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
-    <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
-  </div>
-  </code>
-</li>
-<li>
-${l10n.t("Select prompt/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon")}:
-    <a onclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
-      <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
-    </a>
-</li>
-<li>
-${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>Alt+/</code>)")}:
-      <div class="flex flex-col m-2 text-xs" style="border: 1px solid var(--vscode-editorSuggestWidget-border);background-color: var(--vscode-editorSuggestWidget-background);">
-      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
-      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
-      <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
-</li>
-</ol>
-`;
+function makeGuide(isMac: boolean) {
+  return `
+  <h3>${l10n.t("Coding with Raccoon")}</h3>
+  <ol>
+  <li>
+    ${l10n.t("Stop typing or press hotkey (default: <code>{0}</code>) to starts Raccoon thinking", isMac ? "⌥/" : "Alt+/")}:
+    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+      <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+      <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
+      <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
+    </code>
+  </li>
+  <li>
+  ${l10n.t("When multi candidates generated, use <code>{0}</code> or <code>{1}</code> to switch between them", isMac ? "⌥[" : "Alt+[", isMac ? "⌥]" : "Alt+]")}:
+    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+      <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+      <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
+      <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
+    </code>
+  </li>
+  <li>
+  ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
+    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+      <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+      <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
+      <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
+      <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
+      <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
+      <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+    </code>
+  </li>
+  </ol>
+  <h3>${l10n.t("Ask Raccoon")}</h3>
+  <ol>
+  <li>
+  ${l10n.t("Select code in editor (if necessary)")}:
+    <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <div class="flex" style="display: flex; padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
+      <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
+      <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
+      <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
+      <span style="color: var(--vscode-symbolIcon-colorForeground);">, </span>
+      <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
+      <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
+    </div>
+    </code>
+  </li>
+  <li>
+  ${l10n.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon")}:
+      <a onclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
+        <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
+      </a>
+  </li>
+  <li>
+  ${l10n.t("Or, select prompt without leaving the editor by pressing hotkey (default: <code>{0}</code>)", isMac ? "⌥/" : "Alt+/")}:
+        <div class="flex flex-col m-2 text-xs" style="border: 1px solid var(--vscode-editorSuggestWidget-border);background-color: var(--vscode-editorSuggestWidget-background);">
+        <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 70%;"></span></div>
+        <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 50%;" class="animate-pulse"></span></div>
+        <div class="flex py-1 pl-2 gap-2"><span style="color: var(--vscode-editorLightBulb-foreground);" class="material-symbols-rounded">lightbulb</span><span style="background-color: var(--progress-background);opacity: 0.3;width: 60%;"></span></div>
+  </li>
+  </ol>
+  `;
+}
 
 export class RaccoonEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
@@ -188,7 +190,7 @@ export class RaccoonEditor extends Disposable {
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
       + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');">Ctrl</kbd>`)}</div>`
       + detail
-      + `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" onclick='vscode.postMessage({type: "sendQuestion", prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'>
+      + `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" onclick='vscode.postMessage({type: "sendQuestion", userAgent: navigator.userAgent, prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'>
   <span class="material-symbols-rounded">celebration</span>
   <div class="inline-block leading-loose">${l10n.t("Quick Start")}</div>
   <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
@@ -540,6 +542,7 @@ export class RaccoonEditor extends Disposable {
               case PromptType.help: {
                 let tm = new Date();
                 let id = tm.valueOf();
+                let isMac = data.userAgent.includes("Mac OS X");
                 let timestamp = tm.toLocaleString();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
                 let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${raccoonDocsUrl}">
@@ -548,7 +551,7 @@ export class RaccoonEditor extends Disposable {
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
               </a>`;
                 let loginHint = raccoonManager.isClientLoggedin() ? "" : this.buildLoginHint();
-                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: guide + loginHint + helplink, timestamp });
+                this.sendMessage({ type: 'addMessage', category: PromptType.help, robot, value: makeGuide(isMac) + loginHint + helplink, timestamp });
                 this.sendMessage({ type: 'stopResponse', id });
                 break;
               }

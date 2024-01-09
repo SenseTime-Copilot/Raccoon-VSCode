@@ -7,7 +7,7 @@ export let raccoonManager: RaccoonManager;
 export let telemetryReporter: vscode.TelemetryLogger;
 
 export async function initEnv(context: vscode.ExtensionContext) {
- 
+
   await vscode.workspace.fs.stat(context.globalStorageUri)
     .then(
       () => { },

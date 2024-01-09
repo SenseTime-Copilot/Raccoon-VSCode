@@ -356,7 +356,7 @@ const vscode = acquireVsCodeApi();
             };
             acc.classList.remove('hidden');
             let fl = new URL(message.file);
-            ct.innerHTML = '<span class="material-symbols-rounded">chevron_right</span>' + fl.pathname.split('/').slice(-1);
+            ct.innerHTML = '<span class="material-symbols-rounded" style="transform: rotate(90deg);">chevron_right</span>' + fl.pathname.split('/').slice(-1);
             if (!hljs.getLanguage(message.lang)) {
               ac.innerHTML = hljs.highlightAuto(message.content).value;
             } else {
@@ -1272,7 +1272,7 @@ const vscode = acquireVsCodeApi();
     if (e.key === 'Control') {
       document.getElementById('qa-list').classList.remove('ctrl-down');
     }
-    if (e.key === 'Process' && e.code === 'Slash') {
+    if (e.code === 'Slash') {
       if (document.getElementById("question-input").value === '、') {
         document.getElementById("question-sizer").dataset.value = '/';
         document.getElementById("question-input").value = '/';
