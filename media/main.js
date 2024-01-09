@@ -355,7 +355,8 @@ const vscode = acquireVsCodeApi();
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
             acc.classList.remove('hidden');
-            ct.innerHTML = '<span class="material-symbols-rounded">chevron_right</span>' + message.file.split('/').slice(-1);
+            let fl = new URL(message.file);
+            ct.innerHTML = '<span class="material-symbols-rounded">chevron_right</span>' + fl.pathname.split('/').slice(-1);
             if (!hljs.getLanguage(message.lang)) {
               ac.innerHTML = hljs.highlightAuto(message.content).value;
             } else {
