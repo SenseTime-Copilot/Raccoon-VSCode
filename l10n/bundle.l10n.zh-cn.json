@@ -24,6 +24,7 @@
   "Manage history": "管理历史会话",
   "Select a history to restore": "选择一个历史会话以继续",
   "Clear All History": "清除所有历史会话",
+  "Are you sure you want to permanently delete all history files? This action is irreversible!": "您确定要永久删除所有历史文件吗？此操作不可逆！",
   "Favorite Snippet": "代码收藏",
   "List": "列表",
   "Shortcut": "快捷词",

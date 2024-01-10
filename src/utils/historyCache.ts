@@ -26,14 +26,15 @@ export class HistoryCache {
     context.subscriptions.push(commands.registerCommand('raccoon.restoreHistory', (...args) => {
       let cacheDir = Uri.joinPath(context.globalStorageUri, 'history');
       HistoryCache.getHistoryList(context).then(async l => {
+        let action: QuickPickItem[] = [];
         let fl: QuickPickItem[] = [];
         let fltemp: { ctime: number; item: QuickPickItem }[] = [];
         for (let f of l) {
           await workspace.fs.stat(Uri.joinPath(cacheDir, f + ".json")).then(n => {
             fltemp.push({
               ctime: n.ctime, item: {
-                label: f,
-                detail: `${new Date(n.ctime).toLocaleString()}`,
+                label: '$(git-commit) ' + f,
+                detail: `$(kebab-vertical) ${new Date(n.ctime).toLocaleString()}`,
                 buttons: [
                   {
                     iconPath: new ThemeIcon("edit"),
@@ -50,20 +51,22 @@ export class HistoryCache {
         fl = fltemp.sort((a, b) => {
           return b.ctime - a.ctime;
         }).map((item) => item.item);
-        if (fl.length > 0) {
-          fl.push(
-            { label: '', kind: QuickPickItemKind.Separator },
-            { label: l10n.t('Clear All History') }
-          );
-        }
         const quickPick = window.createQuickPick();
-        quickPick.items = fl;
+        if (fl.length > 0) {
+          action = [
+            { label: '$(close-all) ' + l10n.t('Clear All History') },
+            { label: '', kind: QuickPickItemKind.Separator }
+          ];
+          quickPick.activeItems = [];
+        }
+        quickPick.items = fl.length > 0 ? [...action, ...fl] : [];
         quickPick.title = l10n.t("Manage history");
         quickPick.placeholder = l10n.t("Select a history to restore");
         quickPick.onDidHide(() => quickPick.dispose());
         quickPick.onDidTriggerItemButton((e) => {
+          let fid = e.item.label.replace('$(git-commit) ', '');
           if (e.button.tooltip === l10n.t('Delete')) {
-            let uri = Uri.joinPath(cacheDir, e.item.label + ".json");
+            let uri = Uri.joinPath(cacheDir, fid + ".json");
             workspace.fs.delete(uri);
             quickPick.items = quickPick.items.filter(item => item.label !== e.item.label);
             if (quickPick.items.length === 2) {
@@ -71,7 +74,7 @@ export class HistoryCache {
             }
           } else if (e.button.tooltip === l10n.t('Rename')) {
             quickPick.dispose();
-            let oldName = e.item.label;
+            let oldName = fid;
             function validateInput(value: string) {
               if (!value) {
                 return undefined;
@@ -106,15 +109,16 @@ export class HistoryCache {
         });
         quickPick.onDidChangeSelection(selection => {
           if (selection[0]) {
-            if (selection[0].label === l10n.t('Clear All History')) {
+            if (selection[0].label === '$(close-all) ' + l10n.t('Clear All History')) {
               HistoryCache.deleteAllCacheFiles(context);
               quickPick.dispose();
             } else {
+              let fid = selection[0].label.replace('$(git-commit) ', '');
               if (args[0]) {
                 let editor = RaccoonEditorProvider.getEditor(args[0]);
-                editor?.loadHistory(selection[0].label);
+                editor?.loadHistory(fid);
               } else {
-                RaccoonViewProvider.loadHistory(selection[0].label);
+                RaccoonViewProvider.loadHistory(fid);
               }
             }
             quickPick.dispose();
@@ -153,8 +157,15 @@ export class HistoryCache {
         });
         resolve();
       } else {
-        window.showWarningMessage(l10n.t("This will delete all history. Are you sure?"), { modal: true }, l10n.t("OK")).then(async answer => {
-          if (answer === l10n.t("OK")) {
+        window.showWarningMessage(
+          l10n.t('Clear All History'),
+          {
+            modal: true,
+            detail: l10n.t("Are you sure you want to permanently delete all history files? This action is irreversible!")
+          },
+          l10n.t("Delete")
+        ).then(async answer => {
+          if (answer === l10n.t("Delete")) {
             let files = await workspace.fs.readDirectory(cacheDir);
             files.forEach(async file => {
               await workspace.fs.delete(Uri.joinPath(cacheDir, file[0])).then(() => { }, () => { });

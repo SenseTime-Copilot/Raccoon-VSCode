@@ -24,6 +24,7 @@
   "Manage history": "会話履歴を管理",
   "Select a history to restore": "会話履歴を選択して、継続",
   "Clear All History": "会話履歴を削除",
+  "Are you sure you want to permanently delete all history files? This action is irreversible!": "すべての会話履歴を完全に削除しますか？この操作は取り消せません！",
   "Favorite Snippet": "スニペットをお気に入りに保存",
   "List": "リスト",
   "Shortcut": "ショットカット",
