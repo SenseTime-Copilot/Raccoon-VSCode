@@ -861,6 +861,8 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                     raccoonManager.getAuthUrlLogin().then((url) => {
                       this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
                     });
+                  } else if (content === 'canceled') {
+                    this.sendMessage({ type: 'stopResponse', id });
                   } else if (content?.includes('maximum context length limit')) {
                     this.sendMessage({ type: 'addError', error: l10n.t("Too many tokens"), id, timestamp: rts });
                   } else {

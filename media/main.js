@@ -325,7 +325,7 @@ const vscode = acquireVsCodeApi();
                                 <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${item.name}</b>
                                   <div class="response-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                    ${item.timestamp}
+                                    ${item.timestamp || `<span class="material-symbols-rounded">more_horiz</span>`}
                                   </div>
                                 </span>
                               </span>
@@ -576,10 +576,19 @@ const vscode = acquireVsCodeApi();
         if (!chatText) {
           break;
         }
+        let r = document.getElementById(`${message.id}`);
+        let name = r.dataset['name'];
+        let ts = '';
         if (chatText.classList.contains("empty")) {
           document.getElementById(`feedback-${message.id}`)?.classList?.add("empty");
+        } else {
+          let rts = r?.getElementsByClassName("response-ts");
+          if (rts && rts[0] && !rts[0].classList.contains("material-symbols-rounded")) {
+            ts = rts[0].textContent;
+          }
         }
         if (!chatText.dataset.response || chatText.dataset.error) {
+          vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: '' });
           break;
         }
         chatText.dataset.response = wrapCode(chatText.dataset.response);
@@ -649,21 +658,15 @@ const vscode = acquireVsCodeApi();
           preCode.parentElement.prepend(buttonWrapper);
         });
         chatText.innerHTML = markedResponse.documentElement.innerHTML;
-        //chatText.classList.add("markdown-body");
         if (scrollPositionAtBottom()) {
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         }
         if (message.byUser === true) {
-          vscode.postMessage({ type: 'telemetry', info: collectInfo(message.id, "stopped-by-user") });
+          var ci = collectInfo(message.id, "stopped-by-user");
+          vscode.postMessage({ type: 'telemetry', info: ci });
+          vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: ci.response[0] });
         } else {
           var info = collectInfo(message.id, "");
-          let r = document.getElementById(`${message.id}`);
-          let name = r.dataset['name'];
-          let rts = r?.getElementsByClassName("response-ts");
-          let ts = '';
-          if (rts && rts[0]) {
-            ts = rts[0].textContent;
-          }
           if (info.response[0]) {
             vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: info.response[0] });
           } else if (info.error) {
