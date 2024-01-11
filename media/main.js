@@ -251,7 +251,7 @@ const vscode = acquireVsCodeApi();
               <div class="languageid-value">${lang}</div>
               <div class="code-value">${code}</div>
             </div>`;
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2" data-prompt="${item.value}">${labelInstruction} ${markedResponse.documentElement.innerHTML} ${values}</div>`;
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2" data-prompt="${item.value}">${labelInstruction}${markedResponse.documentElement.innerHTML} ${values}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
