@@ -147,7 +147,9 @@ const vscode = acquireVsCodeApi();
 
   function wrapCode(cont) {
     if (cont.split("```").length % 2 !== 1) {
-      cont = cont + "\n```";
+      if (!cont.trim().endsWith("```")) {
+        cont = cont + "\n```";
+      }
     }
     return cont;
   }
