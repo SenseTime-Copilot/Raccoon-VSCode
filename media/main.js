@@ -39,6 +39,9 @@ const vscode = acquireVsCodeApi();
   var history = [];
   var tipN = 0;
 
+  document.oncontextmenu = () => {
+    return false;
+  };
   document.getElementById("question-input").disabled = true;
 
   setTimeout(showTips, 1000);
@@ -353,12 +356,15 @@ const vscode = acquireVsCodeApi();
         if (message.value) {
           if (acc && ac && message.content) {
             acc.classList.add("with-code");
-            acc.onclick = (_event) => {
-              vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
-            };
             acc.classList.remove('hidden');
             let fl = new URL(message.file);
-            ct.innerHTML = '<span class="material-symbols-rounded" style="transform: rotate(90deg);">chevron_right</span>' + fl.pathname.split('/').slice(-1);
+            ct.innerHTML = '<span class="material-symbols-rounded" style="transform: rotate(90deg);">chevron_right</span>'
+              + '<span class="grow">' + fl.pathname.split('/').slice(-1) + '</span>'
+              + '<span class="material-symbols-rounded" style="float: right">open_in_new</span>';
+            ct.title = decodeURIComponent(fl.pathname);
+            ct.onclick = (_event) => {
+              vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
+            };
             if (!hljs.getLanguage(message.lang)) {
               ac.innerHTML = hljs.highlightAuto(message.content).value;
             } else {
@@ -368,9 +374,10 @@ const vscode = acquireVsCodeApi();
         } else {
           if (acc) {
             acc.classList.remove("with-code");
-            acc.onclick = undefined;
             acc.classList.add('hidden');
             ct.innerText = '';
+            ct.title = '';
+            ct.onclick = undefined;
             ac.innerHTML = '';
           }
         }

@@ -1021,7 +1021,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                   </div>
                   <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
                   <div id="code-title"></div>
-                  <pre style="margin-top: 1rem;padding: 0.25rem;"><code id="attach-code"></code></pre>
+                  <pre id="attach-code-wrapper"><code id="attach-code"></code></pre>
                   </div>
                   <div id="question" class="w-full flex justify-center items-center">
                     <span class="material-symbols-rounded opacity-60 history-icon">
