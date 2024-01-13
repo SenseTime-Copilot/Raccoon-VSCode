@@ -296,7 +296,7 @@ export class RaccoonEditor extends Disposable {
                       </div>
                       <div class="flex flex-row">
                         <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">lock</span>
-                        <vscode-text-field type="password" pattern="(?![A-Za-z0-9]+$)(?![a-z0-9\\W]+$)(?![A-Za-z\\W]+$)(?![A-Z0-9\\W]+$)[a-zA-Z0-9\\W]{8,64}" maxlength=64 id="login-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-account');var pwd = document.getElementById('login-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login').click();};})(this)" class="grow" required="required">
+                        <vscode-text-field type="password" pattern=".{8,32}" maxlength=32 id="login-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-account');var pwd = document.getElementById('login-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login').click();};})(this)" class="grow" required="required">
                           <div slot="end" onclick="((e) => {e.children[0].classList.toggle('hidden');e.children[1].classList.toggle('hidden');var pwd = document.getElementById('login-password');if (pwd.type === 'password') {pwd.type = 'text';} else {pwd.type = 'password';}})(this)">
                             <span class="material-symbols-rounded opacity-50 cursor-pointer">visibility_off</span>
                             <span class="material-symbols-rounded opacity-50 cursor-pointer hidden">visibility</span>

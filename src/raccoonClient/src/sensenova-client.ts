@@ -97,10 +97,10 @@ export class SenseNovaClient implements CodeClient {
               throw err;
             });
           } else {
-            throw new Error("Unsupported auth method");
+            throw new Error("Malformed login info");
           }
         } else {
-          throw new Error("Malformed login info");
+          throw new Error("Unsupported auth method");
         }
       } catch (e) {
         throw e;
