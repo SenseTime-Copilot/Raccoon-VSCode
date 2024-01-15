@@ -1,5 +1,6 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
 import { supportedLanguages } from "../utils/getSupportedLanguages";
+import { favoriteCodeEditorViewType, extensionNameKebab } from "../globalEnv";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -13,7 +14,6 @@ interface SnippetItem {
 
 export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposable {
   private readonly cacheFile: string = "snippets.json";
-  static readonly viweType: string = "raccoon.favorites";
   static instance?: FavoriteCodeEditor;
   private watcher?: FileSystemWatcher;
   private webview?: Webview;
@@ -54,7 +54,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       dd += '</vscode-dropdown></div>';
       FavoriteCodeEditor.languageDropDown = dd;
       FavoriteCodeEditor.instance = new FavoriteCodeEditor(context);
-      context.subscriptions.push(window.registerCustomEditorProvider(FavoriteCodeEditor.viweType, FavoriteCodeEditor.instance));
+      context.subscriptions.push(window.registerCustomEditorProvider(favoriteCodeEditorViewType, FavoriteCodeEditor.instance));
       context.subscriptions.push(FavoriteCodeEditor.instance);
     }
   }
@@ -255,7 +255,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       var codesnippet = document.getElementById("codesnippet");
       codesnippet.value = ${JSON.stringify(snippet.code)};
       ${supportedLanguages[snippet.languageid || ""] &&
-        `var langdd = document.getElementById("lang-dropdown");
+      `var langdd = document.getElementById("lang-dropdown");
         langdd.value = "${supportedLanguages[snippet.languageid!]} (${snippet.languageid})"
         `}      
       var shortcutNode = document.getElementById("shortcut");
@@ -330,13 +330,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
             id: `${id}`,
             code: ''
           };
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), favoriteCodeEditorViewType);
           break;
         }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
-              commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), FavoriteCodeEditor.viweType);
+              commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), favoriteCodeEditorViewType);
             }
           });
           break;

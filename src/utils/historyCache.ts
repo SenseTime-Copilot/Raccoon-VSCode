@@ -1,6 +1,7 @@
 import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, l10n } from 'vscode';
 import { RaccoonEditorProvider } from '../provider/assitantEditorProvider';
 import { RaccoonViewProvider } from '../provider/webviewProvider';
+import { registerCommand } from '../globalEnv';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -22,8 +23,8 @@ export interface CacheItem {
 }
 
 export class HistoryCache {
-  static registerCommand(context: ExtensionContext) {
-    context.subscriptions.push(commands.registerCommand('raccoon.restoreHistory', (...args) => {
+  static register(context: ExtensionContext) {
+    registerCommand(context, "restoreHistory", (...args) => {
       let cacheDir = Uri.joinPath(context.globalStorageUri, 'history');
       HistoryCache.getHistoryList(context).then(async l => {
         let action: QuickPickItem[] = [];
@@ -126,7 +127,7 @@ export class HistoryCache {
         });
         quickPick.show();
       });
-    }));
+    });
   }
 
   static getHistoryList(context: ExtensionContext): Thenable<string[]> {

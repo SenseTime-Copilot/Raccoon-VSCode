@@ -5,11 +5,11 @@ import {
   l10n,
   ExtensionContext,
 } from 'vscode';
-import { raccoonManager, telemetryReporter } from "../globalEnv";
+import { extensionDisplayName, raccoonManager, telemetryReporter } from "../globalEnv";
 import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
-import { ModelCapacity } from './raccoonManager';
+import { ModelCapacity } from './contants';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -88,7 +88,7 @@ export class RaccoonTerminal {
       }
     });
     let terminal = window.createTerminal({
-      name: `Raccoon`,
+      name: `${extensionDisplayName}`,
       isTransient: true,
       iconPath: new ThemeIcon('raccoon-icon'),
       pty: {

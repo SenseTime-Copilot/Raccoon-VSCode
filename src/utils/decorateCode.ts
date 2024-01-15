@@ -1,4 +1,5 @@
 import { window, workspace, Range, TextEditor, OverviewRulerLane, ThemeColor } from 'vscode';
+import { extensionDisplayName } from '../globalEnv';
 
 export function decorateCodeWithRaccoonLabel(editor: TextEditor, start: number, end: number) {
   if (start !== undefined && end !== undefined) {
@@ -8,7 +9,7 @@ export function decorateCodeWithRaccoonLabel(editor: TextEditor, start: number, 
       overviewRulerColor: new ThemeColor("minimapGutter.addedBackground"),
       overviewRulerLane: OverviewRulerLane.Full,
       after: {
-        contentText: "⁣⁣⁣⁣　Raccoon⁣⁣⁣⁣　",
+        contentText: `⁣⁣⁣⁣　${extensionDisplayName}⁣　`,
         backgroundColor: new ThemeColor("button.background"),
         color: new ThemeColor("button.foreground"),
         border: "1px outset",

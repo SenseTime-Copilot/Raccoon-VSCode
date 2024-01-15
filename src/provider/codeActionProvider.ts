@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { raccoonManager } from "../globalEnv";
+import { raccoonEditorProviderViewType, extensionNameKebab, raccoonManager, registerCommand, extensionDisplayName } from "../globalEnv";
 import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -8,7 +8,7 @@ import { Role } from '../raccoonClient/src/CodeClient';
 
 export class RaccoonAction implements vscode.CodeActionProvider {
   constructor(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('raccoon.codeaction', (prompt) => {
+    registerCommand(context, 'codeaction', (prompt) => {
       let editor: RaccoonEditor | undefined = this.getEditor();
       if (editor) {
         if (prompt) {
@@ -19,7 +19,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       } else {
         RaccoonViewProvider.ask(prompt && new PromptInfo(prompt));
       }
-    }));
+    });
   }
 
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
@@ -30,8 +30,8 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         if (p.type === PromptType.help) {
           continue;
         }
-        let kind = vscode.CodeActionKind.QuickFix.append('raccoon');
-        let name = `Raccoon: `;
+        let kind = vscode.CodeActionKind.QuickFix.append(extensionNameKebab);
+        let name = `${extensionDisplayName}: `;
         if (p.type === PromptType.customPrompt) {
           if (p.message.content.includes("{{code}}")) {
             kind = kind.append("custom");
@@ -50,15 +50,15 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       }
       actions.push(
         new vscode.CodeAction(
-          `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`,
-          vscode.CodeActionKind.QuickFix.append('raccoon').append("preset")
+          `${extensionDisplayName}: ${vscode.l10n.t("Ask Raccoon")}...`,
+          vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append("preset")
         )
       );
     }
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
     for (let diagnostic of diagnostics) {
       if ((diagnostic.severity === vscode.DiagnosticSeverity.Error || diagnostic.severity === vscode.DiagnosticSeverity.Warning) && range.intersection(diagnostic.range)) {
-        let a = new vscode.CodeAction(`Raccoon: ${vscode.l10n.t("Code Correction")}: ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append('raccoon.diagnostic'));
+        let a = new vscode.CodeAction(`${extensionDisplayName}: ${vscode.l10n.t("Code Correction")}: ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append(`${extensionNameKebab}.diagnostic`));
         a.diagnostics = [diagnostic];
         actions.push(a);
       }
@@ -70,10 +70,10 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     if (!codeAction.kind) {
       return codeAction;
     }
-    if (vscode.CodeActionKind.QuickFix.append('raccoon').append('preset').contains(codeAction.kind)) {
-      if (codeAction.title === `Raccoon: ${vscode.l10n.t("Ask Raccoon")}...`) {
+    if (vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('preset').contains(codeAction.kind)) {
+      if (codeAction.title === `${extensionDisplayName}: ${vscode.l10n.t("Ask Raccoon")}...`) {
         codeAction.command = {
-          command: 'raccoon.codeaction',
+          command: `${extensionNameKebab}.codeaction`,
           title: codeAction.title
         };
         return codeAction;
@@ -83,7 +83,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     let selection = vscode.window.activeTextEditor?.selection;
     let document = vscode.window.activeTextEditor?.document;
 
-    if (selection && vscode.CodeActionKind.QuickFix.append('raccoon').append('diagnostic').contains(codeAction.kind)) {
+    if (selection && vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('diagnostic').contains(codeAction.kind)) {
       let diagnosticPrompt: RaccoonPrompt = {
         label: vscode.l10n.t("Code Correction"),
         type: PromptType.codeErrorCorrection,
@@ -95,7 +95,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         }
       };
       codeAction.command = {
-        command: 'raccoon.codeaction',
+        command: `${extensionNameKebab}.codeaction`,
         arguments: [diagnosticPrompt],
         title: codeAction.title
       };
@@ -103,10 +103,10 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     }
 
     let ps = raccoonManager.prompt;
-    let label = codeAction.title.slice('raccoon'.length + 2);
+    let label = codeAction.title.slice(`${extensionDisplayName}: `.length);
     let prompt: RaccoonPrompt | undefined = undefined;
     let prefix = '';
-    if (vscode.CodeActionKind.QuickFix.append('raccoon').append('custom').contains(codeAction.kind)) {
+    if (vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('custom').contains(codeAction.kind)) {
       prefix = ' ✨ ';
     }
 
@@ -127,7 +127,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       }
 
       codeAction.command = {
-        command: 'raccoon.codeaction',
+        command: `${extensionNameKebab}.codeaction`,
         arguments: [prompt],
         title: codeAction.title
       };
@@ -141,7 +141,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     let allTabGroups = vscode.window.tabGroups.all;
     for (let tg of allTabGroups) {
       for (let tab of tg.tabs) {
-        if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === RaccoonEditorProvider.viewType) {
+        if (tab.isActive && tab.input instanceof vscode.TabInputCustom && tab.input.viewType === raccoonEditorProviderViewType) {
           if (editor === undefined || tab.group.isActive) {
             editor = RaccoonEditorProvider.getEditor(tab.input.uri);
           }

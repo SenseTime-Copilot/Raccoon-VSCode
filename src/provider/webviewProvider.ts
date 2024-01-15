@@ -1,16 +1,15 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
-import { raccoonManager, outlog, telemetryReporter } from "../globalEnv";
+import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
-import { CompletionPreferenceType, ModelCapacity } from './raccoonManager';
+import { CompletionPreferenceType } from './raccoonManager';
 import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
 import { decorateCodeWithRaccoonLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
-import { RaccoonSearchEditorProvider } from './searchEditorProvider';
 import { FavoriteCodeEditor } from './favoriteCode';
-import { raccoonDocsUrl, raccoonResetPasswordUrl, raccoonSignupUrl } from './contants';
+import { ModelCapacity, raccoonDocsUrl, raccoonResetPasswordUrl, raccoonSignupUrl } from './contants';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
 function makeGuide(isMac: boolean) {
@@ -166,7 +165,7 @@ export class RaccoonEditor extends Disposable {
 
   private buildLoginHint() {
     let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
-    return `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:raccoon.settings">
+    return `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.settings">
             <span class='material-symbols-rounded'>person</span>
             <div class='inline-block leading-loose'>${l10n.t("Login to <b>{0}</b>", robot)}</div>
             <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
@@ -226,7 +225,7 @@ export class RaccoonEditor extends Disposable {
     let streamResponse = raccoonManager.streamResponse;
     let delay = raccoonManager.delay;
     let candidates = raccoonManager.candidates;
-    let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: "Raccoon.Engines" }))}`);
+    let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: extensionNameCamel + ".Engines" }))}`);
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
     let es = raccoonManager.robotNames;
     for (let label of es) {
@@ -246,7 +245,7 @@ export class RaccoonEditor extends Disposable {
         }
         let url = Uri.parse(authUrl);
         let title;
-        if (url.scheme === "command" && url.path !== "raccoon.password") {
+        if (url.scheme === "command" && url.path !== `${extensionNameKebab}.password`) {
           title = l10n.t("Setup Access Key");
         } else {
           title = `${l10n.t("Login")}`;
@@ -254,7 +253,7 @@ export class RaccoonEditor extends Disposable {
         loginForm = `<vscode-link title="${title}" href="${url.toString(true)}">
                         <vscode-button>${title}</vscode-button>
                       </vscode-link>`;
-        if (url.scheme === "command" && url.path === "raccoon.password") {
+        if (url.scheme === "command" && url.path === `${extensionNameKebab}.password`) {
           loginForm = `
                     <style>
                     #login.disabled {
@@ -336,7 +335,7 @@ export class RaccoonEditor extends Disposable {
         let url = Uri.parse(authUrl);
         let title = l10n.t("Logout");
         let icon = 'logout';
-        if (url.scheme === "command" && url.path !== "raccoon.password") {
+        if (url.scheme === "command" && url.path !== `${extensionNameKebab}.password`) {
           icon = 'key_off';
           title = l10n.t("Clear Access Key");
         }
@@ -356,7 +355,7 @@ export class RaccoonEditor extends Disposable {
     let settingOptions = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
     <div class="flex gap-2">
       <b>${l10n.t("Inline completion")}</b>
-      <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest."))}`)}" title="${l10n.t("Set keyboard shortcut")}">
+      <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify(`${extensionNameKebab}.inlineSuggest.`))}`)}" title="${l10n.t("Set keyboard shortcut")}">
         <span class="material-symbols-rounded">keyboard</span>
       </vscode-link>
     </div>
@@ -377,7 +376,7 @@ export class RaccoonEditor extends Disposable {
         </vscode-radio>
         <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
           ${l10n.t("Manual")}
-          <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest.trigger"))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}" style="position: absolute; margin: -2px 4px;">
+          <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify(`${extensionNameKebab}.inlineSuggest.trigger`))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}" style="position: absolute; margin: -2px 4px;">
             <span class="material-symbols-rounded">keyboard</span>
           </vscode-link>
         </vscode-radio>
@@ -494,6 +493,10 @@ export class RaccoonEditor extends Disposable {
           this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
           break;
         }
+        case 'promptManage': {
+          commands.executeCommand(`${extensionNameKebab}.prompt.manage`);
+          break;
+        }
         case 'openDoc': {
           let allTabGroups = window.tabGroups.all;
           for (let tg of allTabGroups) {
@@ -522,9 +525,9 @@ export class RaccoonEditor extends Disposable {
         case 'searchQuery': {
           this.sendMessage({ type: 'addSearch', value: '?' + data.query });
           for (let url of data.searchUrl) {
-            if (url.startsWith("raccoon://raccoon.search/stackoverflow")) {
+            if (url.startsWith(`${extensionNameKebab}://raccoon.search/stackoverflow`)) {
               let q = url.replace('${query}', `${encodeURIComponent(JSON.stringify({ "query": data.query }))}`);
-              commands.executeCommand('vscode.openWith', Uri.parse(q), RaccoonSearchEditorProvider.viewType);
+              commands.executeCommand('vscode.openWith', Uri.parse(q), raccoonSearchEditorProviderViewType);
             } else {
               let q = url.replace('${query}', encodeURIComponent(data.query));
               commands.executeCommand("vscode.open", q);
@@ -686,7 +689,7 @@ export class RaccoonEditor extends Disposable {
             l10n.t("OK"))
             .then(v => {
               if (v === l10n.t("OK")) {
-                commands.executeCommand("keybindings.editor.resetKeybinding", "raccoon.inlineSuggest.trigger");
+                commands.executeCommand("keybindings.editor.resetKeybinding", `${extensionNameKebab}.inlineSuggest.trigger`);
                 HistoryCache.deleteAllCacheFiles(this.context, true);
                 FavoriteCodeEditor.deleteSnippetFiles();
                 raccoonManager.clear();
@@ -699,7 +702,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), FavoriteCodeEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
           break;
         }
         case 'telemetry': {
@@ -987,7 +990,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 <script src="${vendorTailwindJs}"></script>
                 <script type="module" src="${toolkitUri}"></script>
                 <style>
-                .raccoon-avatar {
+                .robot-avatar {
                   background-image: url("${avatarUri}");
                   -webkit-mask: url("${avatarUri}");
                   -webkit-mask-size: contain;
@@ -1006,7 +1009,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 </div>
                 <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center px-1 gap-1">
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
-                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='raccoon://raccoon.search/stackoverflow.search?\${query}'>
+                    <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://raccoon.search/stackoverflow.search?\${query}'>
                       StackOverflow
                     </vscode-checkbox>
                     <vscode-checkbox class="px-2 py-1 m-0" title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>
@@ -1109,15 +1112,15 @@ export class RaccoonViewProvider implements WebviewViewProvider {
   private static webviewView?: WebviewView;
   constructor(private context: ExtensionContext) {
     context.subscriptions.push(
-      commands.registerCommand("raccoon.settings", async () => {
+      commands.registerCommand(`${extensionNameKebab}.settings`, async () => {
         raccoonManager.update();
-        commands.executeCommand('raccoon.view.focus').then(() => {
+        commands.executeCommand(`${extensionNameKebab}.view.focus`).then(() => {
           return RaccoonViewProvider.editor?.updateSettingPage("toggle");
         });
       })
     );
     context.subscriptions.push(
-      commands.registerCommand("raccoon.new-chat", async (uri) => {
+      commands.registerCommand(`${extensionNameKebab}.new-chat`, async (uri) => {
         if (!uri) {
           RaccoonViewProvider.editor?.clear();
         } else {
@@ -1160,7 +1163,7 @@ export class RaccoonViewProvider implements WebviewViewProvider {
   }
 
   public static async ask(prompt?: PromptInfo) {
-    commands.executeCommand('raccoon.view.focus');
+    commands.executeCommand(`${extensionNameKebab}.view.focus`);
     while (!RaccoonViewProvider.editor) {
       await new Promise((f) => setTimeout(f, 1000));
     }

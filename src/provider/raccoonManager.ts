@@ -1,7 +1,7 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
-import { AuthInfo, AuthMethod, ChatRequestParam, ClientConfig, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../raccoonClient/src/CodeClient";
+import { AuthInfo, AuthMethod, ChatRequestParam, ClientReqeustOptions, ClientType, CodeClient, ResponseData, ResponseEvent, Role } from "../raccoonClient/src/CodeClient";
 import { SenseNovaClient } from "../raccoonClient/src/sensenova-client";
-import { outlog } from "../globalEnv";
+import { extensionNameCamel, extensionNameKebab, outlog, registerCommand } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
@@ -10,58 +10,7 @@ import { TGIClient } from "../raccoonClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { raccoonAssistantUrl, raccoonAuthBaseUrl, raccoonCompletionUrl } from "./contants";
-
-export enum ModelCapacity {
-  assistant = "assistant",
-  completion = "completion"
-}
-
-export interface ClientOption {
-  url: string;
-  template: string;
-  parameters: any;
-  maxInputTokenNum: number;
-  totalTokenNum: number;
-}
-
-type RaccoonClientConfig = ClientConfig & {
-  [key in ModelCapacity]: ClientOption;
-};
-
-const builtinEngines: RaccoonClientConfig[] = [
-  {
-    type: ClientType.sensenova,
-    robotname: "Raccoon",
-    authUrl: raccoonAuthBaseUrl,
-    completion: {
-      url: raccoonCompletionUrl,
-      template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
-      parameters: {
-        model: "nova-ptc-s-v1-codecompletion",
-        stop: [
-          "<EOT>"
-        ],
-        temperature: 0.4
-      },
-      maxInputTokenNum: 12288,
-      totalTokenNum: 16384
-    },
-    assistant: {
-      url: raccoonAssistantUrl,
-      template: "[prefix]",
-      parameters: {
-        model: "nova-ptc-l-v1-code",
-        stop: [
-          "<|endofmessage|>"
-        ],
-        temperature: 0.4
-      },
-      maxInputTokenNum: 6144,
-      totalTokenNum: 8192
-    }
-  }
-];
+import { ClientOption, ModelCapacity, RaccoonClientConfig, builtinEngines } from "./contants";
 
 export type RaccoonRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum" | "stop">;
 
@@ -102,7 +51,7 @@ export class RaccoonManager {
   public static getInstance(context: ExtensionContext): RaccoonManager {
     if (!RaccoonManager.instance) {
       RaccoonManager.instance = new RaccoonManager(context);
-      context.subscriptions.push(commands.registerCommand("raccoon.commit-msg", async (...args: any[]) => {
+      registerCommand(context, "commit-msg", async (...args: any[]) => {
         let gitApi = GitUtils.getInstance().api;
         if (!gitApi) {
           return;
@@ -169,7 +118,7 @@ export class RaccoonManager {
         } else {
           window.showErrorMessage("There's no any change in stage to commit", l10n.t("Close"));
         }
-      }));
+      });
     }
     return RaccoonManager.instance;
   }
@@ -179,7 +128,7 @@ export class RaccoonManager {
 
     outlog.debug(`------------------- ${flag} -------------------`);
 
-    this.configuration = workspace.getConfiguration("Raccoon", undefined);
+    this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
     let ret = context.globalState.get<boolean>(flag);
     if (!ret) {
       //outlog.debug('Clear settings');
@@ -188,12 +137,12 @@ export class RaccoonManager {
     }
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration("Raccoon")) {
+        if (e.affectsConfiguration(extensionNameCamel)) {
           this.update();
-          if (e.affectsConfiguration("Raccoon.Prompt")) {
+          if (e.affectsConfiguration(`${extensionNameCamel}.Prompt`)) {
             this.changeStatusEmitter.fire({ scope: ["prompt"] });
           }
-          if (e.affectsConfiguration("Raccoon.Engines")) {
+          if (e.affectsConfiguration(`${extensionNameCamel}.Engines`)) {
             this.initialClients().then(() => {
               this.changeStatusEmitter.fire({ scope: ["engines"] });
             });
@@ -202,8 +151,8 @@ export class RaccoonManager {
       })
     );
     context.secrets.onDidChange((e) => {
-      if (e.key === "Raccoon.tokens") {
-        context.secrets.get("Raccoon.tokens").then((tks) => {
+      if (e.key === `${extensionNameCamel}.tokens`) {
+        context.secrets.get(`${extensionNameCamel}.tokens`).then((tks) => {
           if (tks) {
             try {
               let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
@@ -229,7 +178,7 @@ export class RaccoonManager {
   }
 
   public async initialClients(): Promise<void> {
-    let tks = await this.context.secrets.get("Raccoon.tokens");
+    let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
     let authinfos: any = {};
     if (tks) {
       try {
@@ -288,7 +237,7 @@ export class RaccoonManager {
   }
 
   private async updateToken(clientName: string, ai?: AuthInfo) {
-    let tks = await this.context.secrets.get("Raccoon.tokens");
+    let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
     let authinfos: { [key: string]: AuthInfo } = {};
     if (tks) {
       try {
@@ -307,7 +256,7 @@ export class RaccoonManager {
     } else {
       outlog.debug(`Remove client ${clientName}`);
     }
-    return this.context.secrets.store("Raccoon.tokens", JSON.stringify(authinfos));
+    return this.context.secrets.store(`${extensionNameCamel}.tokens`, JSON.stringify(authinfos));
   }
 
   public clear(): void {
@@ -352,12 +301,12 @@ export class RaccoonManager {
     await this.context.globalState.update("Delay", undefined);
     await this.configuration.update("Prompt", undefined, true);
 
-    await this.context.secrets.delete("Raccoon.tokens");
+    await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
     this.changeStatusEmitter.fire({ scope: ["authorization", "active", "engines", "prompt", "config"] });
   }
 
   public update(): void {
-    this.configuration = workspace.getConfiguration("Raccoon", undefined);
+    this.configuration = workspace.getConfiguration(`${extensionNameCamel}.tokens`, undefined);
   }
 
   public get devConfig(): any {
@@ -573,11 +522,11 @@ export class RaccoonManager {
         }
       }
       if (authMethods.includes(AuthMethod.password)) {
-        return Promise.resolve("command:raccoon.password");
+        return Promise.resolve(`command:${extensionNameKebab}.password`);
       } else if (authMethods.includes(AuthMethod.accesskey)) {
-        return Promise.resolve("command:raccoon.setAccessKey");
+        return Promise.resolve(`command:${extensionNameKebab}.setAccessKey`);
       } else if (authMethods.includes(AuthMethod.apikey)) {
-        return Promise.resolve("command:raccoon.setApiKey");
+        return Promise.resolve(`command:${extensionNameKebab}.setApiKey`);
       } else {
         return Promise.reject();
       }
@@ -593,7 +542,7 @@ export class RaccoonManager {
     }
 
     return window.withProgress({
-      location: { viewId: "raccoon.view" }
+      location: { viewId: `${extensionNameKebab}.view` }
     }, async (progress, _cancel) => {
       if (!ca) {
         return new Error("Invalid Client Handler");
@@ -617,7 +566,7 @@ export class RaccoonManager {
 
   public async logout(clientName?: string) {
     return window.withProgress({
-      location: { viewId: "raccoon.view" }
+      location: { viewId: `${extensionNameKebab}.view` }
     }, async (progress, _cancel) => {
       let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
       if (clientName) {

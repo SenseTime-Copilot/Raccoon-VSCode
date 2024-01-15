@@ -13,7 +13,7 @@ import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
 import { raccoonDocsUrl } from "./provider/contants";
 import { HistoryCache } from "./utils/historyCache";
-import { raccoonManager, telemetryReporter, initEnv } from "./globalEnv";
+import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 
 class RaccoonUriHandler implements vscode.UriHandler {
@@ -40,7 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return v ? undefined : "The value must not be empty";
   };
 
-  context.subscriptions.push(vscode.commands.registerCommand("raccoon.setAccessKey", () => {
+  registerCommand(context, "setAccessKey", () => {
     vscode.window.showInputBox({ placeHolder: "Access Key Id", password: true, validateInput, ignoreFocusOut: true }).then(async (accessKeyId) => {
       if (accessKeyId) {
         vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then(async (secretAccessKey) => {
@@ -50,96 +50,77 @@ export async function activate(context: vscode.ExtensionContext) {
         });
       }
     });
-  }));
+  });
 
-  context.subscriptions.push(vscode.commands.registerCommand("raccoon.setApiKey", () => {
+  registerCommand(context, "setApiKey", () => {
     vscode.window.showInputBox({ placeHolder: "API Key", password: true, validateInput, ignoreFocusOut: true }).then(async (key) => {
       if (key) {
         raccoonManager.getTokenFromLoginResult(`authorization://apikey?${key}`);
       }
     });
-  }));
+  });
 
   context.subscriptions.push(vscode.window.registerUriHandler(new RaccoonUriHandler()));
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.help", async () => {
-      vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(raccoonDocsUrl));
-    })
-  );
+  registerCommand(context, "help", async () => {
+    vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(raccoonDocsUrl));
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.favorite.manage", async () => {
-      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`raccoon://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Favorite Snippet") }))}`), FavoriteCodeEditor.viweType);
-    })
-  );
+  registerCommand(context, "favorite.manage", async () => {
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Favorite Snippet") }))}`), favoriteCodeEditorViewType);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.prompt.manage", async () => {
-      vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`raccoon://raccoon.prompt/all.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Custom Prompt") }))}`), PromptEditor.viweType);
-    })
-  );
+  registerCommand(context, "prompt.manage", async () => {
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.prompt/all.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Custom Prompt") }))}`), promptEditorViewType);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.terminal", async () => {
-      new RaccoonTerminal(context);
-    })
-  );
+  registerCommand(context, "terminal", async () => {
+    new RaccoonTerminal(context);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.openEditor", async () => {
-      let id = new Date().valueOf();
-      let showOption: TextDocumentShowOptions | undefined = undefined;
-      if (vscode.window.tabGroups.all.length === 1) {
-        showOption = { viewColumn: vscode.ViewColumn.Beside };
-      }
-      vscode.commands.executeCommand('vscode.openWith',
-        vscode.Uri.parse(`raccoon://raccoon.editor/assistant.raccoon?${id}`),
-        RaccoonEditorProvider.viewType, showOption);
-    })
-  );
+  registerCommand(context, "openEditor", async () => {
+    let id = new Date().valueOf();
+    let showOption: TextDocumentShowOptions | undefined = undefined;
+    if (vscode.window.tabGroups.all.length === 1) {
+      showOption = { viewColumn: vscode.ViewColumn.Beside };
+    }
+    vscode.commands.executeCommand('vscode.openWith',
+      vscode.Uri.parse(`${extensionNameKebab}://raccoon.editor/assistant.raccoon?${id}`),
+      raccoonEditorProviderViewType, showOption);
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.settings.reset", async () => {
-      raccoonManager.clear();
-    })
-  );
+  registerCommand(context, "settings.reset", async () => {
+    raccoonManager.clear();
+  });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.inlineSuggest.trigger", async () => {
-      let editor = vscode.window.activeTextEditor;
-      if (!editor) {
-      } else if (!editor.selection.isEmpty) {
-        vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append("raccoon").value });
-      } else {
+  registerCommand(context, "inlineSuggest.trigger", async () => {
+    let editor = vscode.window.activeTextEditor;
+    if (!editor) {
+    } else if (!editor.selection.isEmpty) {
+      vscode.commands.executeCommand("editor.action.codeAction", { kind: vscode.CodeActionKind.QuickFix.append(extensionNameKebab).value });
+    } else {
+      vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
+    }
+  });
+
+  registerCommand(context, "inlineSuggest.acceptLine", async () => {
+    vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
+  });
+
+  registerCommand(context, "onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, selection) => {
+    let editor = vscode.window.activeTextEditor;
+    if (editor) {
+      let start = range.start.line;
+      let end = range.end.line;
+      decorateCodeWithRaccoonLabel(editor, start, end);
+    }
+    telemetryReporter.logUsage("suggestion accepted", { selection });
+    if (continueFlag && raccoonManager.autoComplete) {
+      setTimeout(() => {
         vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.inlineSuggest.acceptLine", async () => {
-      vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
-    })
-  );
-
-  context.subscriptions.push(
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    vscode.commands.registerCommand("raccoon.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, selection) => {
-      let editor = vscode.window.activeTextEditor;
-      if (editor) {
-        let start = range.start.line;
-        let end = range.end.line;
-        decorateCodeWithRaccoonLabel(editor, start, end);
-      }
-      telemetryReporter.logUsage("suggestion accepted", { selection });
-      if (continueFlag && raccoonManager.autoComplete) {
-        setTimeout(() => {
-          vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
-        }, 1000);
-      }
-    })
-  );
+      }, 1000);
+    }
+  });
 
   // create a new status bar item that we can now manage
   statusBarItem = vscode.window.createStatusBarItem(
@@ -147,7 +128,7 @@ export async function activate(context: vscode.ExtensionContext) {
     -1
   );
 
-  statusBarItem.command = "raccoon.settings";
+  statusBarItem.command = extensionNameKebab + ".settings";
   updateStatusBarItem(statusBarItem);
 
   raccoonManager.onDidChangeStatus((_e) => {
@@ -178,7 +159,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      "raccoon.view",
+      `${extensionNameKebab}.view`,
       new RaccoonViewProvider(context),
       {
         webviewOptions: {
@@ -188,11 +169,9 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("raccoon.ask", () => {
-      RaccoonViewProvider.ask();
-    })
-  );
+  registerCommand(context, "ask", () => {
+    RaccoonViewProvider.ask();
+  });
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
@@ -202,15 +181,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
   showHideStatusBtn(vscode.window.activeTextEditor?.document, statusBarItem);
 
-  context.subscriptions.push(vscode.window.registerCustomEditorProvider(RaccoonEditorProvider.viewType, new RaccoonEditorProvider(context), {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(raccoonEditorProviderViewType, new RaccoonEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 
-  context.subscriptions.push(vscode.window.registerCustomEditorProvider(RaccoonSearchEditorProvider.viewType, new RaccoonSearchEditorProvider(context), {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(raccoonSearchEditorProviderViewType, new RaccoonSearchEditorProvider(context), {
     webviewOptions: { enableFindWidget: true, retainContextWhenHidden: true }
   }));
 
-  HistoryCache.registerCommand(context);
+  HistoryCache.register(context);
 
   DiffContentProvider.register(context);
 

@@ -1,6 +1,6 @@
 import { Message, Role } from "../../raccoonClient/src/CodeClient";
 import { raccoonManager } from "../../globalEnv";
-import { ModelCapacity } from "../raccoonManager";
+import { ModelCapacity } from "../contants";
 import { Toolset } from "../raccoonToolset";
 
 export class LlmToolset implements Toolset {

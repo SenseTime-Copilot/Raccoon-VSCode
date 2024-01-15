@@ -19,7 +19,7 @@ const vscode = acquireVsCodeApi();
     xhtml: false
   });
 
-  const aiIcon = `<div class="raccoon-avatar w-8 h-8"></div>`;
+  const aiIcon = `<div class="robot-avatar w-8 h-8"></div>`;
   const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
@@ -415,7 +415,7 @@ const vscode = acquireVsCodeApi();
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link href="command:raccoon.prompt.manage"><span class="material-symbols-rounded">edit_note</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
+        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
           shortcuts += `  <button class="flex gap-2 items-center"
@@ -604,6 +604,10 @@ const vscode = acquireVsCodeApi();
         const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response), "text/html");
         // chatText.dataset.response = undefined;
         const preCodeList = markedResponse.querySelectorAll("pre > code");
+
+        if (preCodeList.length > 0) {
+          vscode.postMessage({ type: 'telemetry', info: collectInfo(message.id, "chat output code") });
+        }
 
         preCodeList.forEach((preCode, index) => {
           preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
@@ -1363,9 +1367,16 @@ const vscode = acquireVsCodeApi();
       targetButton.classList.add('selected');
       return;
     }
+
+    if (e.target.id === "prompt-manage") {
+      vscode.postMessage({ type: "promptManage" });
+      return;
+    }
+
     if (e.target.id === "pin-ask-list") {
       document.getElementById("ask-list").classList.toggle("pin");
       document.getElementById("question-input").focus();
+      return;
     }
 
     if (e.target.id === "logout") {
@@ -1499,6 +1510,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       let id = targetButton?.dataset.id;
       var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "favorite") });
       vscode.postMessage({
         type: "addFavorite",
         id,

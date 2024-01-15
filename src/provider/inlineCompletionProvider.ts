@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { raccoonManager, outlog } from "../globalEnv";
-import { CompletionPreferenceType, RaccoonRequestParam, ModelCapacity } from "./raccoonManager";
+import { raccoonManager, outlog, telemetryReporter, extensionNameKebab } from "../globalEnv";
+import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
 import { Message, ResponseData, Role } from "../raccoonClient/src/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
+import { ModelCapacity } from "./contants";
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   if (doc) {
@@ -62,6 +63,8 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       cfg.maxNewTokenNum = 128;
       cfg.stop = ["\n"];
     }
+
+    telemetryReporter.logUsage("suggestion");
 
     data = await raccoonManager.getCompletions(
       ModelCapacity.completion,
@@ -147,7 +150,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     let completion = completions[i];
     let command = {
       title: "suggestion-accepted",
-      command: "raccoon.onSuggestionAccepted",
+      command: `${extensionNameKebab}.onSuggestionAccepted`,
       arguments: [
         document.uri,
         new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),

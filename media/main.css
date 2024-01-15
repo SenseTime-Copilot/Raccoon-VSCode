@@ -142,7 +142,7 @@ textarea::placeholder {
     user-select: none;
 }
 
-.raccoon-avatar {
+.robot-avatar {
     background: transparent;
     background-size: contain;
     background-position-y: 50%;

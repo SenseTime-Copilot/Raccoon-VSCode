@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
-import { raccoonManager } from "../globalEnv";
+import { codeNotebookType, extensionNameKebab, raccoonManager, registerCommand } from "../globalEnv";
 import { Message } from "../raccoonClient/src/CodeClient";
 import { RaccoonRunner } from "./raccoonToolset";
 
@@ -98,7 +98,7 @@ class CodeNotebookCellStatusBarItemProvider implements vscode.NotebookCellStatus
         title: '',
         command: "vscode.open",
         arguments: [
-          vscode.Uri.parse(`raccoon://code/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
+          vscode.Uri.parse(`${extensionNameKebab}://code/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
         ]
       };
       reg.tooltip = vscode.l10n.t("Show Transpiled Typescript Code");
@@ -239,16 +239,15 @@ beside: output[29].content === 'yes'
 `;
 
 export class CodeNotebook {
-  public static readonly notebookType = 'raccoon';
   static rigister(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.workspace.registerNotebookSerializer(CodeNotebook.notebookType, new CodeNotebookSerializer(), { transientOutputs: true }));
+    context.subscriptions.push(vscode.workspace.registerNotebookSerializer(codeNotebookType, new CodeNotebookSerializer(), { transientOutputs: true }));
     for (let c of raccoonManager.robotNames) {
       if (c) {
-        let ctrl = new CodeNotebookController(context, c, CodeNotebook.notebookType);
+        let ctrl = new CodeNotebookController(context, c, codeNotebookType);
         context.subscriptions.push(ctrl);
       }
     }
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('raccoon', {
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(extensionNameKebab, {
       provideTextDocumentContent(uri: vscode.Uri, _token: vscode.CancellationToken) {
         let code = uri.fragment;
         let ts = RaccoonRunner.parseRaccoon('raccoon', code);
@@ -269,17 +268,17 @@ interface RaccoonContext {
         }
       }
     }));
-    context.subscriptions.push(vscode.notebooks.registerNotebookCellStatusBarItemProvider(CodeNotebook.notebookType, new CodeNotebookCellStatusBarItemProvider()));
-    context.subscriptions.push(vscode.commands.registerCommand("raccoon.notebook.register", (ne: any) => {
+    context.subscriptions.push(vscode.notebooks.registerNotebookCellStatusBarItemProvider(codeNotebookType, new CodeNotebookCellStatusBarItemProvider()));
+    registerCommand(context, "notebook.register", (ne: any) => {
       if (ne.notebookEditor) {
         vscode.workspace.fs.readFile(ne.notebookEditor.notebookUri).then((data) => {
           let content = decoder.decode(data);
           RaccoonRunner.runChain(parseMarkdown(content), {});
         });
       }
-    }));
+    });
 
-    context.subscriptions.push(vscode.commands.registerCommand("raccoon.notebook.new",
+    registerCommand(context, "notebook.new",
       () => {
         if (!context.extension.isActive) {
           return;
@@ -316,11 +315,11 @@ interface RaccoonContext {
         if (rootUri) {
           newfile(rootUri, defaultName);
         } else {
-          vscode.workspace.openNotebookDocument(CodeNotebook.notebookType, parseMarkdown(notebookInitialContent)).then((doc: vscode.NotebookDocument) => {
+          vscode.workspace.openNotebookDocument(codeNotebookType, parseMarkdown(notebookInitialContent)).then((doc: vscode.NotebookDocument) => {
             vscode.window.showNotebookDocument(doc, { preview: false });
           });
         }
       }
-    ));
+    );
   }
 }

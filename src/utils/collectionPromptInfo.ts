@@ -1,4 +1,5 @@
 import { TextDocument, Range, commands, LocationLink, Location, SemanticTokens, Position, ExtensionContext, window, workspace } from "vscode";
+import { registerCommand } from "../globalEnv";
 
 interface CollectionInfo {
   declarations: LocationLink[];
@@ -68,46 +69,44 @@ async function collectionPromptInfo(doc: TextDocument, position: Position) {
 }
 
 export function registerInfoCollector(context: ExtensionContext) {
-  context.subscriptions.push(
-    commands.registerCommand("raccoon.collectInfo", () => {
-      let editor = window.activeTextEditor;
-      if (editor) {
-        collectionPromptInfo(editor.document, editor.selection.anchor).then(async v => {
-          if (!v) {
-            return;
-          }
-          let n = { declarations: [] as string[], definitions: [] as string[], implementations: [] as string[], references: [] as string[], typeDefinitions: [] as string[] };
-          for (let a of v.declarations) {
-            await workspace.openTextDocument(a.targetUri).then(doc => {
-              n.declarations.push(doc.getText(a.targetRange));
-            });
-          }
-          for (let b of v.definitions) {
-            await workspace.openTextDocument(b.targetUri).then(doc => {
-              n.definitions.push(doc.getText(b.targetRange));
-            });
-          }
-          for (let c of v.implementations) {
-            await workspace.openTextDocument(c.uri).then(doc => {
-              let line = doc.lineAt(c.range.start.line);
-              n.implementations.push(line.text);
-            });
-          }
-          for (let d of v.references) {
-            await workspace.openTextDocument(d.uri).then(doc => {
-              let line = doc.lineAt(d.range.start.line);
-              n.references.push(line.text);
-            });
-          }
-          for (let e of v.typeDefinitions) {
-            await workspace.openTextDocument(e.uri).then(doc => {
-              let line = doc.lineAt(e.range.start.line);
-              n.typeDefinitions.push(line.text);
-            });
-          }
-          console.log(JSON.stringify(n, undefined, 2));
-        });
-      }
-    })
-  );
+  registerCommand(context, "collectInfo", () => {
+    let editor = window.activeTextEditor;
+    if (editor) {
+      collectionPromptInfo(editor.document, editor.selection.anchor).then(async v => {
+        if (!v) {
+          return;
+        }
+        let n = { declarations: [] as string[], definitions: [] as string[], implementations: [] as string[], references: [] as string[], typeDefinitions: [] as string[] };
+        for (let a of v.declarations) {
+          await workspace.openTextDocument(a.targetUri).then(doc => {
+            n.declarations.push(doc.getText(a.targetRange));
+          });
+        }
+        for (let b of v.definitions) {
+          await workspace.openTextDocument(b.targetUri).then(doc => {
+            n.definitions.push(doc.getText(b.targetRange));
+          });
+        }
+        for (let c of v.implementations) {
+          await workspace.openTextDocument(c.uri).then(doc => {
+            let line = doc.lineAt(c.range.start.line);
+            n.implementations.push(line.text);
+          });
+        }
+        for (let d of v.references) {
+          await workspace.openTextDocument(d.uri).then(doc => {
+            let line = doc.lineAt(d.range.start.line);
+            n.references.push(line.text);
+          });
+        }
+        for (let e of v.typeDefinitions) {
+          await workspace.openTextDocument(e.uri).then(doc => {
+            let line = doc.lineAt(e.range.start.line);
+            n.typeDefinitions.push(line.text);
+          });
+        }
+        console.log(JSON.stringify(n, undefined, 2));
+      });
+    }
+  });
 }

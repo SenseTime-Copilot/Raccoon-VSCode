@@ -1,7 +1,7 @@
 {
     "publisher": "SenseTime",
-    "name": "raccoon",
-    "displayName": "Raccoon",
+    "name": "raccoon-canary",
+    "displayName": "Raccoon Canary",
     "description": "Raccoon is Another Code CO-pilOt Navigator",
     "homepage": "https://code.sensetime.com",
     "repository": {
@@ -48,7 +48,7 @@
         "configuration": [
             {
                 "properties": {
-                    "Raccoon.Engines": {
+                    "RaccoonCanary.Engines": {
                         "type": "array",
                         "description": "%raccoon.config.engines.description%",
                         "items": {
@@ -207,7 +207,7 @@
                             "additionalProperties": false
                         }
                     },
-                    "Raccoon.Prompt": {
+                    "RaccoonCanary.Prompt": {
                         "type": "object",
                         "markdownDescription": "%raccoon.config.prompt%",
                         "additionalProperties": {
@@ -272,7 +272,7 @@
                             ]
                         }
                     },
-                    "Raccoon.Dev": {
+                    "RaccoonCanary.Dev": {
                         "type": "object"
                     }
                 }
@@ -280,7 +280,7 @@
         ],
         "submenus": [
             {
-                "id": "raccoon-submenu",
+                "id": "raccoon-canary-submenu",
                 "label": "%raccoon.submenu%",
                 "icon": "$(more)"
             }
@@ -288,210 +288,210 @@
         "menus": {
             "file/newFile": [
                 {
-                    "command": "raccoon.notebook.new"
+                    "command": "raccoon-canary.notebook.new"
                 }
             ],
             "editor/context": [
                 {
-                    "command": "raccoon.ask",
+                    "command": "raccoon-canary.ask",
                     "group": "z_commands",
                     "when": "editorTextFocus"
                 }
             ],
             "scm/title": [
                 {
-                    "command": "raccoon.commit-msg",
+                    "command": "raccoon-canary.commit-msg",
                     "group": "navigation@1000",
                     "when": "view == workbench.scm && config.git.enabled && !git.missing && scmProvider == git && gitOpenRepositoryCount != 0"
                 }
             ],
-            "raccoon-submenu": [
+            "raccoon-canary-submenu": [
                 {
-                    "command": "raccoon.openEditor",
+                    "command": "raccoon-canary.openEditor",
                     "group": "navigation@2",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "command": "raccoon.terminal",
+                    "command": "raccoon-canary.terminal",
                     "group": "navigation@3",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "command": "raccoon.prompt.manage",
+                    "command": "raccoon-canary.prompt.manage",
                     "group": "cache@0",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "command": "raccoon.favorite.manage",
+                    "command": "raccoon-canary.favorite.manage",
                     "group": "cache@1",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "command": "raccoon.help",
+                    "command": "raccoon-canary.help",
                     "group": "help@0",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 }
             ],
             "view/title": [
                 {
-                    "command": "raccoon.new-chat",
+                    "command": "raccoon-canary.new-chat",
                     "group": "navigation@1",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "command": "raccoon.restoreHistory",
+                    "command": "raccoon-canary.restoreHistory",
                     "group": "navigation@2",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "command": "raccoon.settings",
+                    "command": "raccoon-canary.settings",
                     "group": "navigation@3",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 },
                 {
-                    "submenu": "raccoon-submenu",
+                    "submenu": "raccoon-canary-submenu",
                     "group": "navigation@4",
-                    "when": "view == raccoon.view"
+                    "when": "view == raccoon-canary.view"
                 }
             ],
             "editor/title": [
                 {
-                    "command": "raccoon.new-chat",
+                    "command": "raccoon-canary.new-chat",
                     "group": "navigation@1",
-                    "when": "resourceFilename == 'assistant.raccoon'"
+                    "when": "resourceFilename == 'assistant.raccoon-canary'"
                 },
                 {
-                    "command": "raccoon.restoreHistory",
+                    "command": "raccoon-canary.restoreHistory",
                     "group": "navigation@2",
-                    "when": "resourceFilename == 'assistant.raccoon'"
+                    "when": "resourceFilename == 'assistant.raccoon-canary'"
                 }
             ],
             "notebook/toolbar": [
                 {
-                    "command": "raccoon.notebook.register",
+                    "command": "raccoon-canary.notebook.register",
                     "group": "navigation@1",
-                    "when": "notebookType == 'raccoon'"
+                    "when": "notebookType == 'raccoon-canary'"
                 }
             ]
         },
         "commands": [
             {
-                "command": "raccoon.settings",
-                "category": "Raccoon",
+                "command": "raccoon-canary.settings",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.settings%",
                 "icon": "$(gear)",
-                "enablement": "view == raccoon.view"
+                "enablement": "view == raccoon-canary.view"
             },
             {
-                "command": "raccoon.help",
-                "category": "Raccoon",
+                "command": "raccoon-canary.help",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.help%",
                 "icon": "$(question)",
-                "enablement": "view == raccoon.view"
+                "enablement": "view == raccoon-canary.view"
             },
             {
-                "command": "raccoon.favorite.manage",
-                "category": "Raccoon",
+                "command": "raccoon-canary.favorite.manage",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.favorite%",
                 "icon": "$(repo)",
-                "enablement": "view == raccoon.view"
+                "enablement": "view == raccoon-canary.view"
             },
             {
-                "command": "raccoon.prompt.manage",
-                "category": "Raccoon",
+                "command": "raccoon-canary.prompt.manage",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.prompt%",
                 "icon": "$(wand)",
-                "enablement": "view == raccoon.view"
+                "enablement": "view == raccoon-canary.view"
             },
             {
-                "command": "raccoon.terminal",
-                "category": "Raccoon",
+                "command": "raccoon-canary.terminal",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.terminal%",
                 "icon": "$(terminal)",
-                "enablement": "view == raccoon.view"
+                "enablement": "view == raccoon-canary.view"
             },
             {
-                "command": "raccoon.new-chat",
-                "category": "Raccoon",
+                "command": "raccoon-canary.new-chat",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.new-chat%",
                 "icon": "$(add)",
-                "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
+                "enablement": "view == raccoon-canary.view || resourceFilename == 'assistant.raccoon-canary'"
             },
             {
-                "command": "raccoon.ask",
-                "category": "Raccoon",
+                "command": "raccoon-canary.ask",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.ask%"
             },
             {
-                "command": "raccoon.commit-msg",
-                "category": "Raccoon",
+                "command": "raccoon-canary.commit-msg",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.commit-msg%",
-                "icon": "$(wand)"
+                "icon": "$(hubot)"
             },
             {
-                "command": "raccoon.settings.reset",
-                "category": "Raccoon",
+                "command": "raccoon-canary.settings.reset",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.settingsReset%"
             },
             {
-                "command": "raccoon.restoreHistory",
-                "category": "Raccoon",
+                "command": "raccoon-canary.restoreHistory",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.restoreHistory%",
                 "icon": "$(history)",
-                "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
+                "enablement": "view == raccoon-canary.view || resourceFilename == 'assistant.raccoon-canary'"
             },
             {
-                "command": "raccoon.openEditor",
-                "category": "Raccoon",
+                "command": "raccoon-canary.openEditor",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.openEditor%",
                 "icon": "$(empty-window)",
-                "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
+                "enablement": "view == raccoon-canary.view || resourceFilename == 'assistant.raccoon-canary'"
             },
             {
-                "command": "raccoon.inlineSuggest.trigger",
-                "category": "Raccoon",
+                "command": "raccoon-canary.inlineSuggest.trigger",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.completionTrigger%",
                 "enablement": "editorTextFocus && !editorReadonly"
             },
             {
-                "command": "raccoon.inlineSuggest.acceptLine",
-                "category": "Raccoon",
+                "command": "raccoon-canary.inlineSuggest.acceptLine",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.completionAcceptLine%",
                 "enablement": "editorTextFocus && !editorReadonly"
             },
             {
-                "command": "raccoon.onSuggestionAccepted",
-                "category": "Raccoon",
+                "command": "raccoon-canary.onSuggestionAccepted",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.onSuggestionAccepted%",
                 "enablement": "editorTextFocus && !editorReadonly"
             },
             {
-                "command": "raccoon.notebook.new",
-                "category": "Raccoon",
+                "command": "raccoon-canary.notebook.new",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.notebook.new%",
                 "shortTitle": "%raccoon.command.notebook.new.short%",
                 "icon": "$(notebook)"
             },
             {
-                "command": "raccoon.notebook.register",
-                "category": "Raccoon",
+                "command": "raccoon-canary.notebook.register",
+                "category": "Raccoon Canary",
                 "title": "%raccoon.command.notebook.register%",
                 "shortTitle": "Register",
                 "icon": "$(raccoon-icon)",
-                "enablement": "notebookType == 'raccoon'"
+                "enablement": "notebookType == 'raccoon-canary'"
             }
         ],
         "keybindings": [
             {
-                "command": "raccoon.inlineSuggest.acceptLine",
+                "command": "raccoon-canary.inlineSuggest.acceptLine",
                 "key": "ctrl+down"
             },
             {
-                "command": "raccoon.inlineSuggest.trigger",
+                "command": "raccoon-canary.inlineSuggest.trigger",
                 "key": "Alt+/"
             },
             {
-                "command": "raccoon.ask",
+                "command": "raccoon-canary.ask",
                 "key": "ctrl ctrl"
             }
         ],
@@ -545,7 +545,7 @@
         ],
         "notebooks": [
             {
-                "type": "raccoon",
+                "type": "raccoon-canary",
                 "displayName": "Raccoon Notebook",
                 "selector": [
                     {
@@ -556,55 +556,55 @@
         ],
         "resourceLabelFormatters": [
             {
-                "scheme": "raccoon",
+                "scheme": "raccoon-canary",
                 "authority": "raccoon.favorites",
                 "formatting": {
-                    "label": "${query.title}"
+                    "label": "Canary: ${query.title}"
                 }
             },
             {
-                "scheme": "raccoon",
+                "scheme": "raccoon-canary",
                 "authority": "raccoon.prompt",
                 "formatting": {
-                    "label": "${query.title}"
+                    "label": "Canary: ${query.title}"
                 }
             },
             {
-                "scheme": "raccoon",
+                "scheme": "raccoon-canary",
                 "authority": "raccoon.editor",
                 "formatting": {
-                    "label": "%raccoon.view.title%"
+                    "label": "Canary"
                 }
             },
             {
-                "scheme": "raccoon",
+                "scheme": "raccoon-canary",
                 "authority": "raccoon.search",
                 "formatting": {
-                    "label": "${query.query}"
+                    "label": "Canary: ${query.query}"
                 }
             }
         ],
         "viewsContainers": {
             "activitybar": [
                 {
-                    "id": "raccoon-view-container",
-                    "title": "Raccoon",
+                    "id": "raccoon-canary-view-container",
+                    "title": "Raccoon Canary",
                     "icon": "media/raccoon.svg"
                 }
             ]
         },
         "views": {
-            "raccoon-view-container": [
+            "raccoon-canary-view-container": [
                 {
                     "type": "webview",
-                    "id": "raccoon.view",
+                    "id": "raccoon-canary.view",
                     "name": "%raccoon.view.title%"
                 }
             ]
         },
         "customEditors": [
             {
-                "viewType": "raccoon.favorites",
+                "viewType": "raccoon-canary.favorites",
                 "displayName": "Raccoon Favorites",
                 "selector": [
                     {
@@ -613,7 +613,7 @@
                 ]
             },
             {
-                "viewType": "raccoon.promptManager",
+                "viewType": "raccoon-canary.promptManager",
                 "displayName": "Raccoon Prompt Manager",
                 "selector": [
                     {
@@ -622,7 +622,7 @@
                 ]
             },
             {
-                "viewType": "raccoon.editor",
+                "viewType": "raccoon-canary.editor",
                 "displayName": "Raccoon Assistant",
                 "selector": [
                     {
@@ -631,7 +631,7 @@
                 ]
             },
             {
-                "viewType": "raccoon.search",
+                "viewType": "raccoon-canary.search",
                 "displayName": "Raccoon Search Result",
                 "selector": [
                     {

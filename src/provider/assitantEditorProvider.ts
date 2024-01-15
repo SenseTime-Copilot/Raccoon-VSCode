@@ -2,7 +2,6 @@ import { CustomReadonlyEditorProvider, ExtensionContext, CancellationToken, Uri,
 import { RaccoonEditor } from './webviewProvider';
 
 export class RaccoonEditorProvider implements CustomReadonlyEditorProvider {
-  public static readonly viewType = "raccoon.editor";
   private static editors: { [key: string]: RaccoonEditor } = {};
   private editor?: RaccoonEditor;
   private id?: string;

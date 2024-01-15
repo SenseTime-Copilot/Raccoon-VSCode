@@ -1,16 +1,15 @@
 import { ExtensionContext, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
-import { raccoonManager } from "../globalEnv";
+import { promptEditorViewType, extensionNameCamel, extensionNameKebab, raccoonManager } from "../globalEnv";
 import { RaccoonManager } from "./raccoonManager";
 
 export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
-  static readonly viweType: string = "raccoon.promptManager";
   static instance?: PromptEditor;
   private webview?: Webview;
 
   private constructor(private readonly context: ExtensionContext) {
     workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("Raccoon.Prompt")) {
+      if (e.affectsConfiguration(`${extensionNameCamel}.Prompt`)) {
         if (this.webview) {
           this.renderList(this.webview);
         }
@@ -24,7 +23,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
   static register(context: ExtensionContext) {
     if (!PromptEditor.instance) {
       PromptEditor.instance = new PromptEditor(context);
-      context.subscriptions.push(window.registerCustomEditorProvider(PromptEditor.viweType, PromptEditor.instance, {
+      context.subscriptions.push(window.registerCustomEditorProvider(promptEditorViewType, PromptEditor.instance, {
         webviewOptions: {
           retainContextWhenHidden: true
         }
@@ -40,7 +39,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
   }
 
   private async appendPrompt(label: string, shortcut: string, prompt: string, overwrite?: boolean): Promise<void> {
-    let cfg = workspace.getConfiguration("Raccoon", undefined);
+    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let customPrompts: { [key: string]: string | any } = {};
     let writeable = true;
     if (cfg) {
@@ -71,7 +70,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
   }
 
   private async removePromptItem(label: string) {
-    let cfg = workspace.getConfiguration("Raccoon", undefined);
+    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let customPrompts: { [key: string]: string | any } = {};
     if (cfg) {
       customPrompts = cfg.get("Prompt", {});
@@ -343,14 +342,14 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
         case 'add': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.prompt/new.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${l10n.t("New")}]` }))}`), PromptEditor.viweType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/new.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${l10n.t("New")}]` }))}`), promptEditorViewType);
           break;
         }
         case 'edit': {
           let prompt = this.getPromptItems(msg.label);
           if (prompt) {
             let info = { label: prompt.label, shortcut: prompt.shortcut || "", origin: prompt.origin || prompt.message.content || "" };
-            commands.executeCommand("vscode.openWith", Uri.parse(`raccoon://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), PromptEditor.viweType);
+            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), promptEditorViewType);
           }
           break;
         }

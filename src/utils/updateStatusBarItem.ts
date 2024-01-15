@@ -1,5 +1,5 @@
 import { StatusBarItem, MarkdownString, l10n, ThemeColor } from "vscode";
-import { raccoonManager } from "../globalEnv";
+import { extensionDisplayName, raccoonManager } from "../globalEnv";
 
 var statusbartimer: NodeJS.Timeout;
 
@@ -42,7 +42,7 @@ export function updateStatusBarItem(
     tip.supportThemeIcons = true;
     tip.supportHtml = true;
     if (raccoonManager.isClientLoggedin()) {
-      tip.appendMarkdown(`**Raccoon**\n\n`);
+      tip.appendMarkdown(`**${extensionDisplayName}**\n\n`);
     } else {
       tip.appendMarkdown(`**Raccoon**    <code>${l10n.t("Unauthorized")}</code>\n\n`);
     }
