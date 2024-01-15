@@ -41,5 +41,6 @@
     "raccoon.command.settings": "Settings",
     "raccoon.command.settingsReset": "Reset all settings",
     "raccoon.command.completionTrigger": "Code Inline Completion Trigger",
+    "raccoon.command.completionAcceptLine": "Aceept Line",
     "raccoon.command.onSuggestionAccepted": "Suggestion acception report"
 }

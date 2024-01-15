@@ -34,7 +34,7 @@ function makeGuide(isMac: boolean) {
     </code>
   </li>
   <li>
-  ${l10n.t("Accepct the chosen code snippet with <code>Tab</code> key")}:
+  ${l10n.t("Accept the chosen code snippet with <code>Tab</code> key")}:
     <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
       <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
       <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
@@ -43,6 +43,9 @@ function makeGuide(isMac: boolean) {
       <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"world"</span>
       <span style="color: var(--vscode-symbolIcon-colorForeground);">);</span>
     </code>
+  </li>
+  <li>
+  ${l10n.t("Or, accept signle word by <code>Ctrl+→</code>, accept signle line by <code>Ctrl+↓</code>")}:
   </li>
   </ol>
   <h3>${l10n.t("Ask Raccoon")}</h3>
@@ -305,12 +308,15 @@ export class RaccoonEditor extends Disposable {
                       </div>
                       </div>
                       <button id="login" tabindex="0" class="disabled">${l10n.t("Login")}</button>
-                      <span class="flex mx-4 self-center">
+                      <span class="self-center grow">
                         ${l10n.t("Do not have an account?")}
                         <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}?utm_source=${encodeURIComponent(env.appName)}">
                           ${l10n.t("Sign Up")}
                         </vscode-link>
-                      </span>`;
+                      </span>
+                      <div class="flex self-center cursor-pointer items-end opacity-50">
+                        <span class="material-symbols-rounded">bug_report</span><span id="report-issue">Report issue</span>
+                      </div>`;
         }
       }, () => { });
     } else {
@@ -348,7 +354,12 @@ export class RaccoonEditor extends Disposable {
     </div>
     `;
     let settingOptions = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-    <b>${l10n.t("Inline completion")}</b>
+    <div class="flex gap-2">
+      <b>${l10n.t("Inline completion")}</b>
+      <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify("raccoon.inlineSuggest."))}`)}" title="${l10n.t("Set keyboard shortcut")}">
+        <span class="material-symbols-rounded">keyboard</span>
+      </vscode-link>
+    </div>
     <div class="ml-4">
       <div>
       <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">

@@ -41,5 +41,6 @@
     "raccoon.command.settings": "設定",
     "raccoon.command.settingsReset": "すべての設定項目をリセット",
     "raccoon.command.completionTrigger": "コード補完を行う",
+    "raccoon.command.completionAcceptLine": "行を承諾する",
     "raccoon.command.onSuggestionAccepted": "補完提示採用レポート"
 }

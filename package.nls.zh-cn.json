@@ -41,5 +41,6 @@
     "raccoon.command.settings": "设置",
     "raccoon.command.settingsReset": "重置所有配置项",
     "raccoon.command.completionTrigger": "触发代码补全",
+    "raccoon.command.completionAcceptLine": "接受行",
     "raccoon.command.onSuggestionAccepted": "补全建议接受事件上报"
 }

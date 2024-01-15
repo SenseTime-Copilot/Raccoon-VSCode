@@ -118,6 +118,12 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("raccoon.inlineSuggest.acceptLine", async () => {
+      vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
+    })
+  );
+
+  context.subscriptions.push(
     // eslint-disable-next-line @typescript-eslint/naming-convention
     vscode.commands.registerCommand("raccoon.onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, selection) => {
       let editor = vscode.window.activeTextEditor;

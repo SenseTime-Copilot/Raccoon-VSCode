@@ -455,6 +455,12 @@
                 "enablement": "editorTextFocus && !editorReadonly"
             },
             {
+                "command": "raccoon.inlineSuggest.acceptLine",
+                "category": "Raccoon",
+                "title": "%raccoon.command.completionAcceptLine%",
+                "enablement": "editorTextFocus && !editorReadonly"
+            },
+            {
                 "command": "raccoon.onSuggestionAccepted",
                 "category": "Raccoon",
                 "title": "%raccoon.command.onSuggestionAccepted%",
@@ -477,6 +483,10 @@
             }
         ],
         "keybindings": [
+            {
+                "command": "raccoon.inlineSuggest.acceptLine",
+                "key": "ctrl+down"
+            },
             {
                 "command": "raccoon.inlineSuggest.trigger",
                 "key": "Alt+/"
