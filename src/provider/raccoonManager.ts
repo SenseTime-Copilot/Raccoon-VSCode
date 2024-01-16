@@ -306,7 +306,7 @@ export class RaccoonManager {
   }
 
   public update(): void {
-    this.configuration = workspace.getConfiguration(`${extensionNameCamel}.tokens`, undefined);
+    this.configuration = workspace.getConfiguration(`${extensionNameCamel}`, undefined);
   }
 
   public get devConfig(): any {
