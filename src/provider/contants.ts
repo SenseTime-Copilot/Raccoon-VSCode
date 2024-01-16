@@ -8,7 +8,7 @@ export const raccoonResetPasswordUrl = `${raccoonBaseUrl}/reset-password`;
 
 const raccoonApiBaseUrl = 'https://code-api.sensetime.com/api/plugin';
 const raccoonAuthBaseUrl = `${raccoonApiBaseUrl}/auth/v1`;
-export const raccoonTelemetryUrl = `${raccoonApiBaseUrl}/b/v1/s`;
+const raccoonTelemetryUrl = `${raccoonApiBaseUrl}/b/v1/s`;
 
 const raccoonNovaApiBaseUrl = `${raccoonApiBaseUrl}/nova/v1/proxy`;
 const raccoonCompletionUrl = `${raccoonNovaApiBaseUrl}/v1/llm/completions`;
