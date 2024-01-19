@@ -16,7 +16,8 @@ const raccoonAssistantUrl = `${raccoonNovaApiBaseUrl}/v1/llm/chat-completions`;
 
 export enum ModelCapacity {
   assistant = "assistant",
-  completion = "completion"
+  completion = "completion",
+  agent = "agent"
 }
 
 export interface ClientOption {
@@ -28,7 +29,7 @@ export interface ClientOption {
 }
 
 export type RaccoonClientConfig = ClientConfig & {
-  [key in ModelCapacity]: ClientOption;
+  [key in ModelCapacity]?: ClientOption;
 };
 
 export const builtinEngines: RaccoonClientConfig[] = [

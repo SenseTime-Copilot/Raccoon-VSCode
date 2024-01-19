@@ -140,7 +140,7 @@
   "Generation": "注释生成代码",
   "Generate code according comment message": "根据注释生成相应的代码",
   "Add Test": "测试代码生成",
-  "Generate unit test code to the following code": "为以下代码生成测试用例",
+  "Generate unit test code to the following code": "为以下代码生成测试用例代码",
   "Code Correction": "代码修正",
   "Fix any problem in the following code": "修正以下代码中的问题",
   "Code Conversion": "代码翻译",

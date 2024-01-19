@@ -81,7 +81,9 @@ const webExtensionConfig = {
   },
   plugins: [
     new webpack.ProvidePlugin({
-      process: 'process/browser' // provide a shim for the global `process` variable
+      process: 'process/browser', // provide a shim for the global `process` variable
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      Buffer: ['buffer', 'Buffer'],
     })
   ],
   externals: {

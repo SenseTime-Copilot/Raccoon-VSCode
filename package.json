@@ -198,6 +198,54 @@
                                         "template"
                                     ],
                                     "additionalProperties": false
+                                },
+                                "agent": {
+                                    "type": "object",
+                                    "description": "%raccoon.config.engines.engine.agent%",
+                                    "properties": {
+                                        "url": {
+                                            "type": "string",
+                                            "description": "%raccoon.config.engines.engine.url%",
+                                            "format": "uri"
+                                        },
+                                        "template": {
+                                            "type": "string",
+                                            "description": "%raccoon.config.engines.engine.option.template%"
+                                        },
+                                        "parameters": {
+                                            "type": "object",
+                                            "markdownDescription": "%raccoon.config.engines.engine.option.parameters%",
+                                            "properties": {
+                                                "model": {
+                                                    "type": "string"
+                                                },
+                                                "stop": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "temperature": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        },
+                                        "totalTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%raccoon.config.engines.engine.option.total_token_num%"
+                                        },
+                                        "maxInputTokenNum": {
+                                            "type": "number",
+                                            "minimum": 1,
+                                            "description": "%raccoon.config.engines.engine.option.max_input_token_num%"
+                                        }
+                                    },
+                                    "required": [
+                                        "url",
+                                        "template"
+                                    ],
+                                    "additionalProperties": false
                                 }
                             },
                             "required": [
@@ -647,7 +695,7 @@
         "watch": "webpack --mode development --watch",
         "webpack": "webpack --mode development",
         "test-compile": "tsc -p ./",
-        "open-in-browser": "vscode-test-web --extensionDevelopmentPath=. ."
+        "open-in-browser": "vscode-test-web --extensionDevelopmentPath=."
     },
     "devDependencies": {
         "@types/glob": "^7.2.0",
@@ -658,7 +706,7 @@
         "@typescript-eslint/eslint-plugin": "^5.31.0",
         "@typescript-eslint/parser": "^5.31.0",
         "@vscode/test-electron": "^2.1.5",
-        "@vscode/test-web": "^0.0.22",
+        "@vscode/test-web": "^0.0.50",
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
         "axios": "^1.6.2",

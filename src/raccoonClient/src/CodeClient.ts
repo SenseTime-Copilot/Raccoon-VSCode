@@ -61,12 +61,48 @@ export interface Message {
   content: string;
 }
 
+export enum ToolType {
+  function = 'function'
+}
+
+export interface FuntcionTool {
+  type: ToolType.function;
+  function: {
+    name: string;
+    description: string;
+    parameters: any;
+  };
+};
+
+export type Tool = FuntcionTool;
+
+export interface ToolChoice {
+  mode: "auto" | undefined;
+  tools? : {
+    type: ToolType;
+    name: string;
+  };
+};
+
+export interface FunctionCall {
+  type: 'function';
+  id: string;
+  function: {
+    name: string;
+    arguments: any;
+  };
+};
+
+export type ToolCall = FunctionCall;
+
 export type StopToken = Array<string> | undefined;
 
 export interface ChatRequestParam {
   url: string;
   model: string;
   messages: Array<Message>;
+  tools?: Array<Tool>;
+  toolChoice?: ToolChoice;
   temperature?: number | null;
   topP?: number | null;
   repetitionPenalty?: number | null;
@@ -79,11 +115,13 @@ export interface ChatRequestParam {
 export enum FinishReason {
   stop = 'stop',
   length = 'length',
-  eos = 'eos'
+  eos = 'eos',
+  toolCalls = 'tool_calls'
 }
 
 export interface Choice {
   index: number;
+  toolCalls?: Array<ToolCall>;
   message?: Message;
   finishReason?: FinishReason;
 }

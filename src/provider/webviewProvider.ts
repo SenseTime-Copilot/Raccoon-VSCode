@@ -934,7 +934,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             });
         }
       } catch (err: any) {
-        if (err.message === "canceled") {
+        if (err.name === "CanceledError") {
           delete this.stopList[id];
           this.sendMessage({ type: 'stopResponse', id });
           return;

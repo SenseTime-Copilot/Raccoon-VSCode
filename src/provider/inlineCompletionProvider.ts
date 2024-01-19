@@ -74,7 +74,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
         signal: controller.signal
       });
   } catch (err: any) {
-    if (err.message === "canceled") {
+    if (err.name === "CanceledError") {
       return;
     }
     outlog.error(err);

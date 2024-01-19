@@ -2,7 +2,7 @@ import axios, { AxiosError, ResponseType } from "axios";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
 import { IncomingMessage } from "http";
-import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey, AccountInfo } from "./CodeClient";
+import { CodeClient, AuthInfo, ResponseData, Role, ClientConfig, Choice, ResponseEvent, ChatRequestParam, ClientReqeustOptions, AuthMethod, AccessKey, AccountInfo, Message } from "./CodeClient";
 import { ResponseDataBuilder, handleStreamError } from "./handleStreamError";
 
 import sign = require('jwt-encode');
@@ -59,9 +59,10 @@ export class SenseNovaClient implements CodeClient {
     }
     if (url.protocol === "authorization:") {
       let logininfo = decodeURIComponent(query);
+      let method = url.host || url.pathname.slice(2);
       try {
         let decoded = JSON.parse(logininfo);
-        if (url.host === 'accesskey') {
+        if (method === AuthMethod.accesskey) {
           return {
             account: {
               userId: decoded.accessKeyId,
@@ -70,7 +71,7 @@ export class SenseNovaClient implements CodeClient {
             },
             weaverdKey: decoded.secretAccessKey,
           };
-        } else if (url.host === 'password') {
+        } else if (method === AuthMethod.password) {
           if (decoded["code"] && decoded["account"] && decoded["password"]) {
             let code = decoded["code"];
             let phone = encrypt(decoded["account"]);
@@ -217,6 +218,8 @@ export class SenseNovaClient implements CodeClient {
     config.top_p = requestParam.topP;
     config.repetition_penalty = requestParam.repetitionPenalty;
     config.n = requestParam.n ?? 1;
+    config.tools = requestParam.tools;
+    config.tool_choice = requestParam.toolChoice;
 
     config.stream = requestParam.stream;
     config.max_new_tokens = requestParam.maxNewTokenNum;
@@ -262,13 +265,18 @@ export class SenseNovaClient implements CodeClient {
       const choices = Array<Choice>();
       for (let i = 0; i < codeArray.length; i++) {
         const completion = codeArray[i];
+        let message: Message | undefined;
+        if (completion.message || completion.text) {
+          message = {
+            role: Role.assistant,
+            content: completion.message || completion.text
+          };
+        }
         choices.push({
           index: completion.index,
           finishReason: completion.finish_reason,
-          message: {
-            role: Role.assistant,
-            content: completion.message || completion.text
-          }
+          message,
+          toolCalls: completion.tool_calls
         });
       }
       return {
