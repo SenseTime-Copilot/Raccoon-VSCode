@@ -12,13 +12,19 @@ export class GitUtils {
     return GitUtils.instance;
   }
 
-  public get api(): API | undefined {
+  public async api(): Promise<API | undefined> {
+    if (this._api == null) {
+      const extension = extensions.getExtension<GitExtension>('vscode.git');
+      if (extension == null) {
+        return;
+      }
+      const gitExtension = extension.isActive ? extension.exports : await extension.activate();
+      this._api = gitExtension?.getAPI(1);
+    }
     return this._api;
   }
 
   private constructor() {
-    const gitExtension = extensions.getExtension<GitExtension>('vscode.git')?.exports;
-    this._api = gitExtension?.getAPI(1);
   }
 
 }
