@@ -134,7 +134,7 @@ export class RaccoonManager {
     if (!RaccoonManager.instance) {
       RaccoonManager.instance = new RaccoonManager(context);
       registerCommand(context, "commit-msg", async (...args: any[]) => {
-        let gitApi = GitUtils.getInstance().api;
+        let gitApi = await GitUtils.getInstance().api();
         if (!RaccoonManager.instance || !gitApi) {
           return;
         }
