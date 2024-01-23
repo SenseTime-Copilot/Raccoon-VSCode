@@ -203,11 +203,11 @@ export class RaccoonManager {
         if (e.affectsConfiguration(extensionNameCamel)) {
           this.update();
           if (e.affectsConfiguration(`${extensionNameCamel}.Prompt`)) {
-            this.changeStatusEmitter.fire({ scope: ["prompt"] });
+            this.notifyStateChange({ scope: ["prompt"] });
           }
           if (e.affectsConfiguration(`${extensionNameCamel}.Engines`)) {
             this.initialClients().then(() => {
-              this.changeStatusEmitter.fire({ scope: ["engines"] });
+              this.notifyStateChange({ scope: ["engines"] });
             });
           }
         }
@@ -232,8 +232,19 @@ export class RaccoonManager {
                   ca.authInfo = authinfos[c];
                 }
               }
-              this.changeStatusEmitter.fire({ scope: ["authorization"], quiet });
+              this.notifyStateChange({ scope: ["authorization"], quiet });
             } catch (_e) { }
+          }
+        });
+      } else if (e.key === `${extensionNameCamel}.stateUpdated`) {
+        this.context.secrets.get(`${extensionNameCamel}.stateUpdated`).then((notify) => {
+          if (notify) {
+            let ntfy = JSON.parse(notify);
+            if (ntfy.sessionId !== env.sessionId) {
+              let evt = ntfy.event as StatusChangeEvent;
+              evt.scope = evt.scope.filter((v) => v !== "authorization");
+              this.changeStatusEmitter.fire(evt);
+            }
           }
         });
       }
@@ -354,18 +365,20 @@ export class RaccoonManager {
     });
   }
 
+  private notifyStateChange(event: StatusChangeEvent) {
+    this.changeStatusEmitter.fire(event);
+    let timeStamp = new Date().valueOf();
+    this.context.secrets.store(`${extensionNameCamel}.stateUpdated`, `${JSON.stringify({ sessionId: env.sessionId, timeStamp, event })}`);
+  }
+
   private async resetAllCacheData() {
-    await this.context.globalState.update("privacy", undefined);
-    await this.context.globalState.update("ActiveClient", undefined);
-    await this.context.globalState.update("CompletionAutomatically", undefined);
-    await this.context.globalState.update("CompletionPreference", undefined);
-    await this.context.globalState.update("StreamResponse", undefined);
-    await this.context.globalState.update("Candidates", undefined);
-    await this.context.globalState.update("Delay", undefined);
+    this.context.globalState.keys().forEach(async (v, _idx, _arr) => {
+      await this.context.globalState.update(v, undefined);
+    });
     await this.configuration.update("Prompt", undefined, true);
 
     await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
-    this.changeStatusEmitter.fire({ scope: ["authorization", "active", "engines", "prompt", "config"] });
+    this.notifyStateChange({ scope: ["authorization", "active", "engines", "prompt", "config"] });
   }
 
   public update(): void {
@@ -403,11 +416,12 @@ export class RaccoonManager {
     return this.getActiveClient()?.client.robotName;
   }
 
-  public async setActiveClient(clientName: string | undefined) {
+  public setActiveClient(clientName: string | undefined) {
     let originClientState = this.context.globalState.get<string>("ActiveClient");
     if (originClientState !== clientName) {
-      await this.context.globalState.update("ActiveClient", clientName);
-      this.changeStatusEmitter.fire({ scope: ["active"] });
+      this.context.globalState.update("ActiveClient", clientName).then(() => {
+        this.notifyStateChange({ scope: ["active"] });
+      });
     }
   }
 
@@ -755,7 +769,7 @@ export class RaccoonManager {
 
   public set autoComplete(v: boolean) {
     this.context.globalState.update("CompletionAutomatically", v).then(() => {
-      this.changeStatusEmitter.fire({ scope: ["config"] });
+      this.notifyStateChange({ scope: ["config"] });
     });
   }
 
@@ -765,7 +779,7 @@ export class RaccoonManager {
 
   public set completionPreference(v: CompletionPreferenceType) {
     this.context.globalState.update("CompletionPreference", v).then(() => {
-      this.changeStatusEmitter.fire({ scope: ["config"] });
+      this.notifyStateChange({ scope: ["config"] });
     });
   }
 
@@ -775,7 +789,7 @@ export class RaccoonManager {
 
   public set streamResponse(v: boolean) {
     this.context.globalState.update("StreamResponse", v).then(() => {
-      this.changeStatusEmitter.fire({ scope: ["config"] });
+      this.notifyStateChange({ scope: ["config"] });
     });
   }
 
@@ -785,7 +799,7 @@ export class RaccoonManager {
 
   public set candidates(v: number) {
     this.context.globalState.update("Candidates", v).then(() => {
-      this.changeStatusEmitter.fire({ scope: ["config"] });
+      this.notifyStateChange({ scope: ["config"] });
     });
   }
 
@@ -811,13 +825,23 @@ export class RaccoonManager {
     return 0;
   }
 
-  public get delay(): number {
-    return this.context.globalState.get("Delay", 1);
+  public get completionDelay(): number {
+    return this.context.globalState.get("CompletionDelay", 1000);
   }
 
-  public set delay(v: number) {
-    this.context.globalState.update("Delay", v).then(() => {
-      this.changeStatusEmitter.fire({ scope: ["config"] });
+  public set completionDelay(v: number) {
+    this.context.globalState.update("CompletionDelay", v).then(() => {
+      this.notifyStateChange({ scope: ["config"] });
+    });
+  }
+
+  public get privacy(): boolean {
+    return this.context.globalState.get("Privacy", false);
+  }
+
+  public set privacy(accept: boolean) {
+    this.context.globalState.update("Privacy", accept).then(() => {
+      this.notifyStateChange({ scope: ["config"] });
     });
   }
 }

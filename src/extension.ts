@@ -169,7 +169,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  registerCommand(context, "ask", () => {
+  registerCommand(context, "chat.ask", () => {
     RaccoonViewProvider.ask();
   });
 

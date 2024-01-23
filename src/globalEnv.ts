@@ -43,9 +43,6 @@ export async function initEnv(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(extensionDisplayName, { log: true });
   context.subscriptions.push(outlog);
 
-  let logDir = vscode.Uri.joinPath(context.globalStorageUri, `usage`);
-  outlog.debug(logDir.toString());
-
   raccoonManager = RaccoonManager.getInstance(context);
   raccoonManager.update();
 

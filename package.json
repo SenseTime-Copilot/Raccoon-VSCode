@@ -340,7 +340,7 @@
             ],
             "editor/context": [
                 {
-                    "command": "raccoon.ask",
+                    "command": "raccoon.chat.ask",
                     "group": "z_commands",
                     "when": "editorTextFocus"
                 }
@@ -465,7 +465,7 @@
                 "enablement": "view == raccoon.view || resourceFilename == 'assistant.raccoon'"
             },
             {
-                "command": "raccoon.ask",
+                "command": "raccoon.chat.ask",
                 "category": "Raccoon",
                 "title": "%raccoon.command.ask%"
             },
@@ -504,7 +504,7 @@
                 "command": "raccoon.inlineSuggest.acceptLine",
                 "category": "Raccoon",
                 "title": "%raccoon.command.completionAcceptLine%",
-                "enablement": "editorTextFocus && !editorReadonly"
+                "enablement": "inlineSuggestionVisile && !editorReadonly"
             },
             {
                 "command": "raccoon.onSuggestionAccepted",
@@ -538,7 +538,7 @@
                 "key": "Alt+/"
             },
             {
-                "command": "raccoon.ask",
+                "command": "raccoon.chat.ask",
                 "key": "ctrl ctrl"
             }
         ],

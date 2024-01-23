@@ -103,6 +103,8 @@ export class RaccoonEditor extends Disposable {
       } else if (e.scope.includes("active")) {
         this.updateSettingPage("full");
         this.showWelcome(true);
+      } else if (e.scope.includes("config")) {
+        this.updateSettingPage();
       }
     });
     context.subscriptions.push(
@@ -220,10 +222,9 @@ export class RaccoonEditor extends Disposable {
   }
 
   async updateSettingPage(action?: string): Promise<void> {
-    let autoComplete = raccoonManager.autoComplete;
     let completionPreference = raccoonManager.completionPreference;
     let streamResponse = raccoonManager.streamResponse;
-    let delay = raccoonManager.delay;
+    let completionDelay = raccoonManager.completionDelay;
     let candidates = raccoonManager.candidates;
     let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: extensionNameCamel + ".Engines" }))}`);
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
@@ -314,7 +315,7 @@ export class RaccoonEditor extends Disposable {
                         </vscode-link>
                       </span>
                       <div class="flex self-center cursor-pointer items-end opacity-50">
-                        <span class="material-symbols-rounded">bug_report</span><span id="report-issue">Report issue</span>
+                        <span class="material-symbols-rounded">bug_report</span><span id="report-issue">Report Issue</span>
                       </div>`;
         }
       }, () => { });
@@ -345,6 +346,8 @@ export class RaccoonEditor extends Disposable {
       }, () => { });
     }
 
+    let trigger = (completionDelay === 3500) ? "opacity-60" : "";
+
     accountInfo = `
     <div class="flex gap-2 items-center w-full" title="${userId || ""}">
       ${avatarEle}
@@ -353,74 +356,61 @@ export class RaccoonEditor extends Disposable {
     </div>
     `;
     let settingOptions = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-    <div class="flex gap-2">
-      <b>${l10n.t("Inline completion")}</b>
-      <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify(`${extensionNameKebab}.inlineSuggest.`))}`)}" title="${l10n.t("Set keyboard shortcut")}">
+    <div class="flex gap-2 items-center">
+      <b>${l10n.t("Inline Completion")}</b>
+      <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify(`${extensionNameKebab}.inlineSuggest.`))}`)}" title="${l10n.t("Set Keyboard Shortcuts")}">
         <span class="material-symbols-rounded">keyboard</span>
       </vscode-link>
     </div>
-    <div class="ml-4">
-      <div>
-      <vscode-radio-group id="triggerModeRadio" class="flex flex-wrap px-2">
-        <label slot="label">${l10n.t("Trigger Mode")}</label>
-        <vscode-radio ${autoComplete ? "checked" : ""} class="w-32" value="Auto" title="${l10n.t("Get completion suggestions once stop typing")}">
-          ${l10n.t("Auto")}
-          <span id="triggerDelay" class="${autoComplete ? "" : "hidden"}">
-            <vscode-link id="triggerDelayShortBtn" class="${delay === 1 ? "" : "hidden"}" title="${l10n.t("Short delay")}" style="position: absolute; margin: -2px 4px;">
-              <span id="triggerDelayShort" class="material-symbols-rounded">timer</span>
-            </vscode-link>
-            <vscode-link id="triggerDelayLongBtn" class="${delay !== 1 ? "" : "hidden"}" title="${l10n.t("Delay 3 senconds")}" style="position: absolute; margin: -2px 4px;">
-              <span id="triggerDelayLong" class="material-symbols-rounded">timer_3_alt_1</span>
-            </vscode-link>
-          </span>
-        </vscode-radio>
-        <vscode-radio ${autoComplete ? "" : "checked"} class="w-32" value="Manual" title="${l10n.t("Get completion suggestions on keyboard event")}">
-          ${l10n.t("Manual")}
-          <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify(`${extensionNameKebab}.inlineSuggest.trigger`))}`)}" id="keyBindingBtn" class="${autoComplete ? "hidden" : ""}" title="${l10n.t("Set keyboard shortcut")}" style="position: absolute; margin: -2px 4px;">
-            <span class="material-symbols-rounded">keyboard</span>
-          </vscode-link>
-        </vscode-radio>
-      </vscode-radio-group>
+    <div class="ml-4 mb-4">
+      <div class="container px-2 min-w-max">
+        <label slot="label" class="-ml-2">${l10n.t("Trigger Delay")}</label>
+        <div class="sliderLabels">
+          <span class="cursor-pointer ${trigger} ${completionDelay === 0 ? "active" : ""} material-symbols-rounded" onclick="vscode.postMessage({ type: 'completionDelay', value: 0 })" title="${l10n.t("Instant")}">timer</span>
+          <span class="cursor-pointer ${trigger} ${completionDelay === 500 ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionDelay', value: 500 })" title="${l10n.t("Delay {0}s", "0.5")}">0.5</span>
+          <span class="cursor-pointer ${trigger} ${completionDelay === 1000 ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionDelay', value: 1000 })" title="${l10n.t("Delay {0}s", "1")}">1.0</span>
+          <span class="cursor-pointer ${trigger} ${completionDelay === 1500 ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionDelay', value: 1500 })" title="${l10n.t("Delay {0}s", "1.5")}">1.5</span>
+          <span class="cursor-pointer ${trigger} ${completionDelay === 2000 ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionDelay', value: 2000 })" title="${l10n.t("Delay {0}s", "2")}">2.0</span>
+          <span class="cursor-pointer ${trigger} ${completionDelay === 2500 ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionDelay', value: 2500 })" title="${l10n.t("Delay {0}s", "2.5")}">2.5</span>
+          <span class="cursor-pointer ${trigger} ${completionDelay === 3000 ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionDelay', value: 3000 })" title="${l10n.t("Delay {0}s", "3")}">3.0</span>
+          <span class="cursor-pointer ${completionDelay === 3500 ? "active" : ""} material-symbols-rounded" onclick="vscode.postMessage({ type: 'completionDelay', value: 3500 })" title="${l10n.t("Manual")}">block</span>
+        </div>
+        <input type="range" min="0" max="3500" value="${completionDelay}" step="500" class="slider" id="triggerDelay">
       </div>
     </div>
-    <div class="ml-4">
-    <div>
-      <vscode-radio-group id="completionPreferenceRadio" class="flex flex-wrap px-2">
-        <label slot="label">${l10n.t("Completion Preference")}</label>
-        <vscode-radio ${completionPreference === CompletionPreferenceType.signleLine ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.signleLine}" title="${l10n.t("Single Line")}">
-          ${l10n.t("Single Line")}
-        </vscode-radio>
-        <vscode-radio ${completionPreference === CompletionPreferenceType.balanced ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.balanced}" title="${l10n.t("Balanced")}">
-          ${l10n.t("Balanced")}
-        </vscode-radio>
-        <vscode-radio ${completionPreference === CompletionPreferenceType.bestEffort ? "checked" : ""} class="w-32" value="${CompletionPreferenceType.bestEffort}" title="${l10n.t("Best Effort")}">
-          ${l10n.t("Best Effort")}
-        </vscode-radio>
-      </vscode-radio-group>
+    <div class="ml-4 mb-4">
+      <div class="container px-2 min-w-max">
+        <label slot="label" class="-ml-2">${l10n.t("Completion Preference")}</label>
+        <div class="sliderLabels">
+          <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.signleLine ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 0 })" title="${l10n.t("Single Line")}">text_select_jump_to_end</span>
+          <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.balanced ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 1 })" title="${l10n.t("Balanced")}">notes</span>
+          <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.bestEffort ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 2 })" title="${l10n.t("Best Effort")}">all_inclusive</span>
+        </div>
+        <input type="range" min="0" max="2" value="${completionPreference === CompletionPreferenceType.signleLine ? 0 : completionPreference === CompletionPreferenceType.balanced ? 1 : 2}" class="slider" id="completionPreference">
+      </div>
     </div>
-    </div>
-    <div class="ml-4">
-    <div>
-      <vscode-radio-group id="candidateNumberRadio" class="flex flex-wrap px-2">
-        <label slot="label">${l10n.t("Max Candidate Number")}</label>
-        <vscode-radio ${candidates === 1 ? "checked" : ""} class="w-32" value="1" title="${l10n.t("Show {0} candidate snippet(s) at most", 1)}">
-        ${l10n.t("1 candidate")}
-        </vscode-radio>
-        <vscode-radio ${candidates === 2 ? "checked" : ""} class="w-32" value="2" title="${l10n.t("Show {0} candidate snippet(s) at most", 2)}">
-        ${l10n.t("{0} candidates", 2)}
-        </vscode-radio>
-        <vscode-radio ${candidates === 3 ? "checked" : ""} class="w-32" value="3" title="${l10n.t("Show {0} candidate snippet(s) at most", 3)}">
-        ${l10n.t("{0} candidates", 3)}
-        </vscode-radio>
-      </vscode-radio-group>
-    </div>
+    <div class="ml-4 mb-4">
+      <div class="container px-2 min-w-max">
+        <label slot="label" class="-ml-2">${l10n.t("Max Candidate Number")}</label>
+        <div class="sliderLabels">
+          <span class="cursor-pointer material-symbols-rounded ${candidates === 1 ? "active" : ""}" onclick="vscode.postMessage({ type: 'candidates', value: 1 })" title="${l10n.t("1 Candidate")}">looks_one</span>
+          <span class="cursor-pointer material-symbols-rounded ${candidates === 2 ? "active" : ""}" onclick="vscode.postMessage({ type: 'candidates', value: 2 })" title="${l10n.t("{0} Candidates", 2)}">filter_2</span>
+          <span class="cursor-pointer material-symbols-rounded ${candidates === 3 ? "active" : ""}" onclick="vscode.postMessage({ type: 'candidates', value: 3 })" title="${l10n.t("{0} Candidates", 3)}">filter_3</span>
+        </div>
+        <input type="range" min="1" max="3" value="${candidates}" class="slider" class="slider" id="candidateNumber">
+      </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-    <b>${l10n.t("Code assistant")}</b>
+    <div class="flex gap-2 items-center">
+    <b>${l10n.t("Code Assistant")}</b>
+    <vscode-link href="${Uri.parse(`command:workbench.action.openGlobalKeybindings?${encodeURIComponent(JSON.stringify(`${extensionNameKebab}.chat.`))}`)}" title="${l10n.t("Set Keyboard Shortcuts")}">
+      <span class="material-symbols-rounded">keyboard</span>
+    </vscode-link>
+    </div>
     <div class="ml-4">
       <div>
       <vscode-radio-group id="responseModeRadio" class="flex flex-wrap px-2">
-        <label slot="label">${l10n.t("Show response")}</label>
+        <label slot="label" class="-ml-2">${l10n.t("Show Response")}</label>
         <vscode-radio ${streamResponse ? "checked" : ""} class="w-32" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
           ${l10n.t("Streaming")}
         </vscode-radio>
@@ -432,9 +422,9 @@ export class RaccoonEditor extends Disposable {
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
     <div class="flex flex-col">
-      <vscode-checkbox id="privacy" ${this.context.globalState.get("privacy") ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
+      <vscode-checkbox id="privacy" ${raccoonManager.privacy ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
       <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
-        <span class="material-symbols-rounded text-2xl" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report issue")}</span>
+        <span class="material-symbols-rounded text-2xl" style="font-size: 18px;margin: 0 -1px;">bug_report</span><span id="report-issue" style="cursor: pointer">${l10n.t("Report Issue")}</span>
       </div>
     </div>
     <div class="flex grow place-content-center py-8">
@@ -446,7 +436,7 @@ export class RaccoonEditor extends Disposable {
   </div>
   `;
     let settingPage = `
-    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-xl">
+    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-sm">
       <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
       </div>
@@ -458,9 +448,9 @@ export class RaccoonEditor extends Disposable {
       <vscode-divider class="${es.length === 1 ? "hidden" : ""}" style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
       <b class="${es.length === 1 ? "hidden" : ""}">${l10n.t("Service")}</b>
       <div class="flex flex-col ml-4 my-2 px-2 gap-2 ${es.length === 1 ? "hidden" : ""}">
-        <span>${l10n.t("Code engine")}</span>
+        <span class="-ml-2">${l10n.t("Code Engine")}</span>
         <div class="flex flex-row">
-          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);" title="${l10n.t("Code engine")}">assistant</span>
+          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);" title="${l10n.t("Code Engine")}">assistant</span>
           ${esList}
           <vscode-link href="${setEngineUri}" class="pt-px attach-btn-right" title="${l10n.t("Settings")}">
             <span class="material-symbols-rounded">tune</span>
@@ -650,28 +640,26 @@ export class RaccoonEditor extends Disposable {
             });
           break;
         }
-        case 'triggerMode': {
-          if (raccoonManager.autoComplete !== (data.value === "Auto")) {
-            raccoonManager.autoComplete = (data.value === "Auto");
-            this.updateSettingPage();
-          }
-          break;
-        }
         case 'completionPreference': {
-          raccoonManager.completionPreference = data.value;
+          if (data.value === 0) {
+            raccoonManager.completionPreference = CompletionPreferenceType.signleLine;
+          } else if (data.value === 1) {
+            raccoonManager.completionPreference = CompletionPreferenceType.balanced;
+          } else if (data.value === 2) {
+            raccoonManager.completionPreference = CompletionPreferenceType.bestEffort;
+          }
           break;
         }
         case 'responseMode': {
           if (raccoonManager.streamResponse !== (data.value === "Streaming")) {
             raccoonManager.streamResponse = (data.value === "Streaming");
-            this.updateSettingPage();
           }
           break;
         }
-        case 'delay': {
-          if (data.value !== raccoonManager.delay) {
-            raccoonManager.delay = data.value;
-            this.updateSettingPage();
+        case 'completionDelay': {
+          if (data.value !== raccoonManager.completionDelay) {
+            raccoonManager.completionDelay = data.value;
+            raccoonManager.autoComplete = (data.value !== 3500);
           }
           break;
         }
@@ -698,7 +686,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'privacy': {
-          this.context.globalState.update("privacy", data.value);
+          raccoonManager.privacy = !!data.value;
           break;
         }
         case 'addFavorite': {

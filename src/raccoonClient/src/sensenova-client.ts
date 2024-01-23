@@ -115,9 +115,9 @@ export class SenseNovaClient implements CodeClient {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
     } else {
-      let date = new Date();
+      //let date = new Date();
       let headers: any = {};
-      headers["Date"] = date.toUTCString();
+      //headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
       return axios.post(`${this.clientConfig.authUrl}/logout`, {}, { headers }).then(() => {
@@ -201,7 +201,7 @@ export class SenseNovaClient implements CodeClient {
     let headers = options ? {
       ...options?.headers
     } : {};
-    headers["Date"] = date.toUTCString();
+    //headers["Date"] = date.toUTCString();
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;

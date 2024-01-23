@@ -976,12 +976,12 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("change", (e) => {
     if (e.target.id === "question-input") {
       toggleSubMenuList();
-    } else if (e.target.id === "triggerModeRadio") {
-      vscode.postMessage({ type: "triggerMode", value: e.target._value });
-    } else if (e.target.id === "candidateNumberRadio") {
-      vscode.postMessage({ type: "candidates", value: parseInt(e.target._value) });
-    } else if (e.target.id === "completionPreferenceRadio") {
-      vscode.postMessage({ type: "completionPreference", value: e.target._value });
+    } else if (e.target.id === "triggerDelay") {
+      vscode.postMessage({ type: "completionDelay", value: e.target.valueAsNumber });
+    } else if (e.target.id === "completionPreference") {
+      vscode.postMessage({ type: "completionPreference", value: e.target.valueAsNumber });
+    } else if (e.target.id === "candidateNumber") {
+      vscode.postMessage({ type: "candidates", value: e.target.valueAsNumber });
     } else if (e.target.id === "responseModeRadio") {
       vscode.postMessage({ type: "responseMode", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
@@ -1381,20 +1381,6 @@ const vscode = acquireVsCodeApi();
 
     if (e.target.id === "logout") {
       vscode.postMessage({ type: "logout" });
-      return;
-    }
-
-    if (e.target.id === "triggerDelayShort") {
-      document.getElementById("triggerDelayShortBtn").classList.add("hidden");
-      document.getElementById("triggerDelayLongBtn").classList.remove("hidden");
-      vscode.postMessage({ type: "delay", value: 3 });
-      return;
-    }
-
-    if (e.target.id === "triggerDelayLong") {
-      document.getElementById("triggerDelayShortBtn").classList.remove("hidden");
-      document.getElementById("triggerDelayLongBtn").classList.add("hidden");
-      vscode.postMessage({ type: "delay", value: 1 });
       return;
     }
 

@@ -48,18 +48,19 @@ export function updateStatusBarItem(
     }
     tip.appendMarkdown(`***\n\n`);
     tip.appendMarkdown(`<table>\n\n`);
-    tip.appendMarkdown(`<tr><td align="left">$(server-environment) ${l10n.t("Code engine")}</td><td>  </td><td align="right">${raccoonManager.getActiveClientRobotName()}</td></tr>\n\n`);
+    tip.appendMarkdown(`<tr><td align="left">$(server-environment) ${l10n.t("Code Engine")}</td><td>  </td><td align="right">${raccoonManager.getActiveClientRobotName()}</td></tr>\n\n`);
     if (raccoonManager.autoComplete) {
-      tip.appendMarkdown(`<tr><td align="left">$(play) ${l10n.t("Trigger Mode")}</td><td>  </td><td align="right">${l10n.t("Auto")}</td></tr>\n\n`);
+      let delay = raccoonManager.completionDelay === 0 ? l10n.t("Instant") : l10n.t("Delay {0}s", raccoonManager.completionDelay / 1000);
+      tip.appendMarkdown(`<tr><td align="left">$(play) ${l10n.t("Trigger Delay")}</td><td>  </td><td align="right">${l10n.t("Auto")} (${delay})</td></tr>\n\n`);
     } else {
-      tip.appendMarkdown(`<tr><td align="left">$(keyboard) ${l10n.t("Trigger Mode")}</td><td>  </td><td align="right">${l10n.t("Manual")}</td></tr>\n\n`);
+      tip.appendMarkdown(`<tr><td align="left">$(keyboard) ${l10n.t("Trigger Delay")}</td><td>  </td><td align="right">${l10n.t("Manual")}</td></tr>\n\n`);
     }
     tip.appendMarkdown(`<tr><td align="left">$(dashboard) ${l10n.t("Completion Preference")}</td><td>  </td><td align="right">${l10n.t(raccoonManager.completionPreference)}</td></tr>\n\n`);
     let candidate = raccoonManager.candidates;
     if (candidate === 1) {
-      tip.appendMarkdown(`<tr><td align="left">$(list-ordered) ${l10n.t("Max Candidate Number")}</td><td>  </td><td align="right">${l10n.t("1 candidate")}</td></tr>\n\n`);
+      tip.appendMarkdown(`<tr><td align="left">$(list-ordered) ${l10n.t("Max Candidate Number")}</td><td>  </td><td align="right">${l10n.t("1 Candidate")}</td></tr>\n\n`);
     } else {
-      tip.appendMarkdown(`<tr><td align="left">$(list-ordered) ${l10n.t("Max Candidate Number")}</td><td>  </td><td align="right">${l10n.t("{0} candidates", raccoonManager.candidates)}</td></tr>\n\n`);
+      tip.appendMarkdown(`<tr><td align="left">$(list-ordered) ${l10n.t("Max Candidate Number")}</td><td>  </td><td align="right">${l10n.t("{0} Candidates", raccoonManager.candidates)}</td></tr>\n\n`);
     }
     tip.appendMarkdown(`</table>\n\n`);
     if (msg) {

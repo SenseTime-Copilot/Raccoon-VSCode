@@ -176,6 +176,9 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     <link href="${iconUri}" rel="stylesheet" />
     <link href="${mainCSS}" rel="stylesheet" />
     <script>
+    document.oncontextmenu = () => {
+      return false;
+    };
     const vscode = acquireVsCodeApi();
     function save(old) {
       var label = document.getElementById("label").value;
@@ -390,7 +393,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
       emptyPlaceholder = '';
       table += `
       <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
-        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="${s.label}">${s.label}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="${s.label}" onclick="editPrompt('${s.label}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="align-self: center; overflow-x: auto; white-space: pre;">${s.origin?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center;" title="/${s.shortcut}">${s.shortcut || '-'}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="align-self: center;">
@@ -420,6 +423,9 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     }
     </style>
     <script>
+    document.oncontextmenu = () => {
+      return false;
+    };
     const vscode = acquireVsCodeApi();
     function addPrompt() {
       vscode.postMessage(

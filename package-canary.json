@@ -293,7 +293,7 @@
             ],
             "editor/context": [
                 {
-                    "command": "raccoon-canary.ask",
+                    "command": "raccoon-canary.chat.ask",
                     "group": "z_commands",
                     "when": "editorTextFocus"
                 }
@@ -418,7 +418,7 @@
                 "enablement": "view == raccoon-canary.view || resourceFilename == 'assistant.raccoon-canary'"
             },
             {
-                "command": "raccoon-canary.ask",
+                "command": "raccoon-canary.chat.ask",
                 "category": "Raccoon Canary",
                 "title": "%raccoon.command.ask%"
             },
@@ -491,7 +491,7 @@
                 "key": "Alt+/"
             },
             {
-                "command": "raccoon-canary.ask",
+                "command": "raccoon-canary.chat.ask",
                 "key": "ctrl ctrl"
             }
         ],

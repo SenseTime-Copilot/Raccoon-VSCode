@@ -53,6 +53,51 @@ button.bug:focus {
     transform: scale(1.1);
 }
 
+.sliderLabels {
+    margin: 1em 0 0 0;
+    display: flex;
+    grid-gap: 0.2em;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sliderLabels span {
+    display: inline-block;
+    text-align: center;
+    padding-bottom: 4px;
+}
+
+.sliderLabels span.active {
+    color: var(--link-foreground);
+}
+
+input.slider[type='range'] {
+    padding: 0px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: transparent;
+}
+
+input.slider::-webkit-slider-runnable-track {
+    background-color:var(--vscode-input-background);
+    border: calc(var(--border-width) * 1px) solid var(--dropdown-border);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+input.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 8px;
+    background-color: var(--link-foreground);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+input.slider:focus {
+    outline: none;
+}
+
 input:not([type='checkbox']),
 textarea {
     display: block;
