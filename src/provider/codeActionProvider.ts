@@ -58,7 +58,8 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
     for (let diagnostic of diagnostics) {
       if ((diagnostic.severity === vscode.DiagnosticSeverity.Error || diagnostic.severity === vscode.DiagnosticSeverity.Warning) && range.intersection(diagnostic.range)) {
-        let a = new vscode.CodeAction(`${extensionDisplayName}: ${vscode.l10n.t("Code Correction")}: ${diagnostic.message}`, vscode.CodeActionKind.QuickFix.append(`${extensionNameKebab}.diagnostic`));
+        let diagnosticMsg = diagnostic.message.length > 64 ? diagnostic.message.slice(0, 60) + "..." : diagnostic.message;
+        let a = new vscode.CodeAction(`${extensionDisplayName}: ${vscode.l10n.t("Code Correction")}: ${diagnosticMsg}`, vscode.CodeActionKind.QuickFix.append(`${extensionNameKebab}.diagnostic`));
         a.diagnostics = [diagnostic];
         actions.push(a);
       }
