@@ -15,7 +15,7 @@ import { ClientOption, ModelCapacity, RaccoonClientConfig, builtinEngines } from
 export type RaccoonRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 
 export enum CompletionPreferenceType {
-  signleLine = "Signle Line",
+  singleLine = "Single Line",
   balanced = "Balanced",
   bestEffort = "Best Effort"
 }
@@ -774,7 +774,7 @@ export class RaccoonManager {
   }
 
   public get completionPreference(): CompletionPreferenceType {
-    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.signleLine);
+    return this.context.globalState.get("CompletionPreference", CompletionPreferenceType.balanced);
   }
 
   public set completionPreference(v: CompletionPreferenceType) {

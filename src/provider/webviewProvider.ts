@@ -44,7 +44,7 @@ function makeGuide(isMac: boolean) {
     </code>
   </li>
   <li>
-  ${l10n.t("Or, accept signle word by <code>Ctrl+→</code>, accept signle line by <code>Ctrl+↓</code>")}:
+  ${l10n.t("Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>")}:
   </li>
   </ol>
   <h3>${l10n.t("Ask Raccoon")}</h3>
@@ -382,11 +382,11 @@ export class RaccoonEditor extends Disposable {
       <div class="container px-2 min-w-max">
         <label slot="label" class="-ml-2">${l10n.t("Completion Preference")}</label>
         <div class="sliderLabels">
-          <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.signleLine ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 0 })" title="${l10n.t("Single Line")}">text_select_jump_to_end</span>
+          <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.singleLine ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 0 })" title="${l10n.t("Single Line")}">text_select_jump_to_end</span>
           <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.balanced ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 1 })" title="${l10n.t("Balanced")}">notes</span>
           <span class="cursor-pointer material-symbols-rounded ${completionPreference === CompletionPreferenceType.bestEffort ? "active" : ""}" onclick="vscode.postMessage({ type: 'completionPreference', value: 2 })" title="${l10n.t("Best Effort")}">all_inclusive</span>
         </div>
-        <input type="range" min="0" max="2" value="${completionPreference === CompletionPreferenceType.signleLine ? 0 : completionPreference === CompletionPreferenceType.balanced ? 1 : 2}" class="slider" id="completionPreference">
+        <input type="range" min="0" max="2" value="${completionPreference === CompletionPreferenceType.singleLine ? 0 : completionPreference === CompletionPreferenceType.balanced ? 1 : 2}" class="slider" id="completionPreference">
       </div>
     </div>
     <div class="ml-4 mb-4">
@@ -642,7 +642,7 @@ export class RaccoonEditor extends Disposable {
         }
         case 'completionPreference': {
           if (data.value === 0) {
-            raccoonManager.completionPreference = CompletionPreferenceType.signleLine;
+            raccoonManager.completionPreference = CompletionPreferenceType.singleLine;
           } else if (data.value === 1) {
             raccoonManager.completionPreference = CompletionPreferenceType.balanced;
           } else if (data.value === 2) {

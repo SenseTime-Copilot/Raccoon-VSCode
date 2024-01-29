@@ -504,7 +504,7 @@
                 "command": "raccoon.inlineSuggest.acceptLine",
                 "category": "Raccoon",
                 "title": "%raccoon.command.completionAcceptLine%",
-                "enablement": "inlineSuggestionVisile && !editorReadonly"
+                "enablement": "editorTextFocus && !editorReadonly"
             },
             {
                 "command": "raccoon.onSuggestionAccepted",

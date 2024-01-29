@@ -53,7 +53,7 @@
   "Stop typing or press hotkey (default: <code>{0}</code>) to starts Raccoon thinking": "暂停输入或通过热键 (默认为 <code>{0}</code>) 来触发 Raccoon 工作",
   "When multi candidates generated, use <code>{0}</code> or <code>{1}</code> to switch between them": "当有多条候选建议生成时, 使用 <code>{0}</code> 或 <code>{1}</code> 在候选项间切换",
   "Accept the chosen code snippet with <code>Tab</code> key": "使用 <code>Tab</code> 键接受选定的建议代码",
-  "Or, accept signle word by <code>Ctrl+→</code>, accept signle line by <code>Ctrl+↓</code>": "或者, 使用快捷键 <code>Ctrl+→</code> 接受单词提示, 使用 <code>Ctrl+↓</code> 接受单行提示",
+  "Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>": "或者, 使用快捷键 <code>Ctrl+→</code> 接受单词提示, 使用 <code>Ctrl+↓</code> 接受单行提示",
   "Ask Raccoon": "向 Raccoon 提问",
   "Select code in editor (if necessary)": "在编辑器中选择代码 (如有必要)",
   "Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon": "在底部的输入框选择提示 (键入<code>/</code>) 或输入问题, 补全提示信息 (如有必要), 点击发送按钮 (或使用快捷键 <code>Enter</code>) 向 Raccoon 提问",

@@ -53,7 +53,7 @@
   "Stop typing or press hotkey (default: <code>{0}</code>) to starts Raccoon thinking": "Stop typing or press hotkey (default: <code>{0}</code>) to starts Raccoon thinking",
   "When multi candidates generated, use <code>{0}</code> or <code>{1}</code> to switch between them": "When multi candidates generated, use <code>{0}</code> or <code>{1}</code> to switch between them",
   "Accept the chosen code snippet with <code>Tab</code> key": "Accept the chosen code snippet with <code>Tab</code> key",
-  "Or, accept signle word by <code>Ctrl+→</code>, accept signle line by <code>Ctrl+↓</code>": "Or, accept signle word by <code>Ctrl+→</code>, accept signle line by <code>Ctrl+↓</code>",
+  "Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>": "Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>",
   "Ask Raccoon": "Ask Raccoon",
   "Select code in editor (if necessary)": "Select code in editor (if necessary)",
   "Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon": "Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon",

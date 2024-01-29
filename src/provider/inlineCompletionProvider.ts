@@ -59,7 +59,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     };
     if (lenPreference === CompletionPreferenceType.balanced) {
       cfg.maxNewTokenNum = 256;
-    } else if (lenPreference === CompletionPreferenceType.signleLine) {
+    } else if (lenPreference === CompletionPreferenceType.singleLine) {
       cfg.maxNewTokenNum = 128;
       cfg.stop = ["\n"];
     }
@@ -141,7 +141,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       continueFlag.push(false);
       outlog.debug('[Completed Suggestion]: ' + tmpstr);
     }
-    if (lenPreference === CompletionPreferenceType.signleLine) {
+    if (lenPreference === CompletionPreferenceType.singleLine) {
       tmpstr = tmpstr.trimEnd();
     }
     completions.push(tmpstr);
@@ -227,7 +227,8 @@ export function inlineCompletionProvider(
       }
 
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
-        await new Promise((f) => setTimeout(f, raccoonManager.completionDelay));
+        let delay = raccoonManager.completionDelay;
+        await new Promise((f) => setTimeout(f, delay > 75 ? delay : 75));
         if (!cancel.isCancellationRequested) {
           vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
         }
