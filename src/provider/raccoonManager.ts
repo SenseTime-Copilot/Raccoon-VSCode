@@ -784,7 +784,10 @@ export class RaccoonManager {
   }
 
   public get streamResponse(): boolean {
-    return this.context.globalState.get("StreamResponse", true);
+    if (env.uiKind === UIKind.Web) {
+      return false;
+    }
+    return this.context.globalState.get("StreamResponse", true);    
   }
 
   public set streamResponse(v: boolean) {
