@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { ClientConfig, ClientType } from "../raccoonClient/src/CodeClient";
 
-const raccoonBaseUrl = 'https://code.sensetime.com';
-export const raccoonDocsUrl = `${raccoonBaseUrl}/docs`;
+const raccoonBaseUrl = 'https://raccoon.sensetime.com';
+export const raccoonDocsUrl = `${raccoonBaseUrl}/code/docs`;
 export const raccoonSignupUrl = `${raccoonBaseUrl}/register`;
 export const raccoonResetPasswordUrl = `${raccoonBaseUrl}/reset-password`;
 
-const raccoonApiBaseUrl = 'https://code-api.sensetime.com/api/plugin';
+const raccoonApiBaseUrl = 'https://raccoon-api.sensetime.com/api/plugin';
 const raccoonAuthBaseUrl = `${raccoonApiBaseUrl}/auth/v1`;
 const raccoonTelemetryUrl = `${raccoonApiBaseUrl}/b/v1/s`;
 
