@@ -41,7 +41,7 @@ export const builtinEngines: RaccoonClientConfig[] = [
       url: raccoonCompletionUrl,
       template: "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
       parameters: {
-        model: "nova-ptc-s-v1-codecompletion",
+        model: "SenseChat-CodeCompletion-Lite",
         stop: [
           "<EOT>"
         ],
@@ -54,7 +54,7 @@ export const builtinEngines: RaccoonClientConfig[] = [
       url: raccoonAssistantUrl,
       template: "[prefix]",
       parameters: {
-        model: "nova-ptc-l-v1-code",
+        model: "SenseChat-Code",
         stop: [
           "<|endofmessage|>"
         ],
