@@ -1,10 +1,6 @@
 import axios from 'axios';
 import { ClientConfig, ClientType } from "../raccoonClient/src/CodeClient";
-
-const raccoonBaseUrl = 'https://raccoon.sensetime.com';
-export const raccoonDocsUrl = `${raccoonBaseUrl}/code/docs`;
-export const raccoonSignupUrl = `${raccoonBaseUrl}/register`;
-export const raccoonResetPasswordUrl = `${raccoonBaseUrl}/reset-password`;
+import { env } from 'vscode';
 
 const raccoonApiBaseUrl = 'https://raccoon-api.sensetime.com/api/plugin';
 const raccoonAuthBaseUrl = `${raccoonApiBaseUrl}/auth/v1`;
@@ -13,6 +9,33 @@ const raccoonTelemetryUrl = `${raccoonApiBaseUrl}/b/v1/s`;
 const raccoonNovaApiBaseUrl = `${raccoonApiBaseUrl}/nova/v1/proxy`;
 const raccoonCompletionUrl = `${raccoonNovaApiBaseUrl}/v1/llm/completions`;
 const raccoonAssistantUrl = `${raccoonNovaApiBaseUrl}/v1/llm/chat-completions`;
+
+export class RaccoonConstants {
+  static language: string = env.language;
+  static utmSource: string = env.appName;
+  static baseUrl = 'https://raccoon.sensetime.com';
+
+  static get docUrl(): string {
+    if (RaccoonConstants.language === 'zh-tw') {
+      return `${RaccoonConstants.baseUrl}/code/docs?lang=zh-Hant`;
+    }
+    return `${RaccoonConstants.baseUrl}/code/docs`;
+  }
+
+  static get signupUrl(): string {
+    if (RaccoonConstants.language === 'zh-tw') {
+      return `${RaccoonConstants.baseUrl}/register?utm_source=${RaccoonConstants.utmSource}&lang=zh-Hant`;
+    }
+    return `${RaccoonConstants.baseUrl}/register?utm_source=${RaccoonConstants.utmSource}`;
+  }
+
+  static get resetPasswordUrl(): string {
+    if (RaccoonConstants.language === 'zh-tw') {
+      return `${RaccoonConstants.baseUrl}/reset-password?lang=zh-Hant`;
+    }
+    return `${RaccoonConstants.baseUrl}/reset-password`;
+  }
+}
 
 export enum ModelCapacity {
   assistant = "assistant",

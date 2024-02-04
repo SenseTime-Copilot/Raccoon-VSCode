@@ -8,7 +8,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 
 您可以在 Raccoon 代码助手 侧边栏视图中，点击欢迎信息内的引导链接，或点击面板标题栏上的 `齿轮图标` 进入设置页面进行登录。
 
-> 界面的显示语言会跟随您的 IDE 配置，自动切换 中文/英文/日文，可以在 VS Code 的命令面板中搜索 `Configure Display Language` 来切换。
+> 界面的显示语言会跟随您的 IDE 配置，自动切换 简体中文/繁体中文/英文/日文，可以在 VS Code 的命令面板中搜索 `Configure Display Language` 来切换。
 
 ![login](media/Raccoon-Login.gif)
 

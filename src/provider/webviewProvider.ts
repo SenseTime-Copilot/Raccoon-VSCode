@@ -9,7 +9,7 @@ import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { FavoriteCodeEditor } from './favoriteCode';
-import { ModelCapacity, raccoonDocsUrl, raccoonResetPasswordUrl, raccoonSignupUrl } from './contants';
+import { ModelCapacity, RaccoonConstants } from './contants';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
 function makeGuide(isMac: boolean) {
@@ -280,20 +280,20 @@ export class RaccoonEditor extends Disposable {
                     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
                       <span class="mx-4">${l10n.t("Account")}</span>
                       <div class="flex flex-row mx-4">
-                      <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
-                      <vscode-dropdown class="grow" id="login-code" value="86">
-                        ${Object.keys(phoneZoneCode).map((v, _idx, _arr) => `<vscode-option value="${phoneZoneCode[v]}" style="padding: 0 calc(var(--design-unit) * 2px);">${v} (${phoneZoneCode[v]})</vscode-option>`).join('')}
-                      </vscode-dropdown>
+                        <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
+                        <vscode-dropdown class="grow" id="login-code" value="86">
+                          ${Object.keys(phoneZoneCode).map((v, _idx, _arr) => `<vscode-option value="${phoneZoneCode[v]}" style="padding: 0 calc(var(--design-unit) * 2px);">${v} (${phoneZoneCode[v]})</vscode-option>`).join('')}
+                        </vscode-dropdown>
                       </div>
                       <div class="flex flex-row mx-4">
-                      <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">smartphone</span>
-                      <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-account" required="required">
-                      </vscode-text-field>
+                        <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">smartphone</span>
+                        <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-account" required="required">
+                        </vscode-text-field>
                       </div>
                       <div class="flex flex-col mx-4 my-2">
                       <div class="mb-2">
                         <span>${l10n.t("Password")}</span>
-                        <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonResetPasswordUrl}">
+                        <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${RaccoonConstants.resetPasswordUrl}">
                           ${l10n.t("Forgot Password")}?
                         </vscode-link>
                       </div>
@@ -310,12 +310,12 @@ export class RaccoonEditor extends Disposable {
                       <button id="login" tabindex="0" class="disabled">${l10n.t("Login")}</button>
                       <span class="self-center grow">
                         ${l10n.t("Do not have an account?")}
-                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonSignupUrl}?utm_source=${encodeURIComponent(env.appName)}">
+                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${RaccoonConstants.signupUrl}">
                           ${l10n.t("Sign Up")}
                         </vscode-link>
                       </span>
                       <div class="flex self-center cursor-pointer items-end opacity-50">
-                        <span class="material-symbols-rounded">bug_report</span><span id="report-issue">Report Issue</span>
+                        <span class="material-symbols-rounded">bug_report</span><span id="report-issue">${l10n.t("Report Issue")}</span>
                       </div>`;
         }
       }, () => { });
@@ -549,7 +549,7 @@ export class RaccoonEditor extends Disposable {
                 let isMac = data.userAgent.includes("Mac OS X");
                 let timestamp = tm.toLocaleString();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
-                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${raccoonDocsUrl}">
+                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${RaccoonConstants.docUrl}">
                 <span class="material-symbols-rounded">book</span>
                 <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>

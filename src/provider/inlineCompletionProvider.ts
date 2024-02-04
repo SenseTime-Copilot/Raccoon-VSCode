@@ -55,7 +55,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     let cfg: RaccoonRequestParam = {
       messages: [completionPrompt],
       n: raccoonManager.candidates,
-      maxNewTokenNum: (raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion))
+      maxNewTokenNum: 1024//(raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion))
     };
     if (lenPreference === CompletionPreferenceType.balanced) {
       cfg.maxNewTokenNum = 256;
