@@ -353,8 +353,8 @@ export class SenseNovaClient implements CodeClient {
                 }
               }
             } catch (e: any) {
-              if (!tail && e.stack?.startsWith("SyntaxError")) {
-                tail = content;
+              if (e.stack?.startsWith("SyntaxError")) {
+                tail += content;
                 continue;
               }
               throw (e);
