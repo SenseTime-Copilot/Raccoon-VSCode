@@ -307,11 +307,13 @@ export class SenseNovaClient implements CodeClient {
             .filter((str, _idx, _arr) => {
               return !!str;
             });
+          tail = "";
           for (let msg of msgs) {
             let content = "";
             if (msg.startsWith("data:")) {
               content = msg.slice(5).trim();
             } else {
+              tail += msg;
               continue;
             }
 
@@ -319,9 +321,6 @@ export class SenseNovaClient implements CodeClient {
               data.destroy();
               callback(new MessageEvent(ResponseEvent.done));
               return;
-            }
-            if (!content) {
-              continue;
             }
             try {
               let json = JSON.parse(content);
