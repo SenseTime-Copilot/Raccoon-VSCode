@@ -1,5 +1,5 @@
 import { l10n } from "vscode";
-import { Message, Role } from "../raccoonClient/src/CodeClient";
+import { Message, Role } from "../raccoonClient/CodeClient";
 
 export enum PromptType {
   help = "help",

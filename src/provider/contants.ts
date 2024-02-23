@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ClientConfig, ClientType } from "../raccoonClient/src/CodeClient";
+import { ClientConfig } from "../raccoonClient/CodeClient";
 import { env } from 'vscode';
 
 const raccoonApiBaseUrl = 'https://raccoon-api.sensetime.com/api/plugin';
@@ -40,7 +40,6 @@ export class RaccoonConstants {
 export enum ModelCapacity {
   assistant = "assistant",
   completion = "completion",
-  agent = "agent"
 }
 
 export interface ClientOption {
@@ -57,7 +56,6 @@ export type RaccoonClientConfig = ClientConfig & {
 
 export const builtinEngines: RaccoonClientConfig[] = [
   {
-    type: ClientType.sensenova,
     robotname: "Raccoon",
     authUrl: raccoonAuthBaseUrl,
     completion: {

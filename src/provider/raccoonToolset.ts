@@ -1,6 +1,6 @@
 import { transpile } from "typescript";
-import { Message } from "../raccoonClient/src/CodeClient";
-import { NotebookCellKind, NotebookData } from "vscode";
+import { Message } from "../raccoonClient/CodeClient";
+import { CancellationToken, NotebookCellKind, NotebookData } from "vscode";
 import { VscodeToolset } from "./toolset/VscodeToolset";
 import { LlmToolset } from "./toolset/LlmToolset";
 
@@ -74,7 +74,7 @@ export class RaccoonRunner {
     }
   }
 
-  static async run(output: { [key: number]: Message }, language: string, content: string, abortController?: AbortController): Promise<Message> {
+  static async run(output: { [key: number]: Message }, language: string, content: string, cancel?: CancellationToken): Promise<Message> {
     let gencode: string | undefined;
     if (content && content.length > 0) {
       gencode = RaccoonRunner.parseRaccoon(language, content);
@@ -91,8 +91,8 @@ export class RaccoonRunner {
           }
       })`);
       let runnalbe: any = eval(runableCode);
-      let llm = new Proxy(new LlmToolset(abortController), RaccoonRunner.proxyhandler);
-      let ide = new Proxy(new VscodeToolset(), RaccoonRunner.proxyhandler);
+      let llm = new Proxy(new LlmToolset(cancel), RaccoonRunner.proxyhandler);
+      let ide = new Proxy(new VscodeToolset(cancel), RaccoonRunner.proxyhandler);
       let context = RaccoonContext.create({ llm, ide }, output);
       return runnalbe.__cell_code__(context).then((res: Message) => {
         return res;
@@ -102,7 +102,7 @@ export class RaccoonRunner {
     }
   }
 
-  static runChain(doc: NotebookData, output: { [key: number]: Message }, abortController?: AbortController) {
+  static runChain(doc: NotebookData, output: { [key: number]: Message }, cancel?: CancellationToken) {
     let codeContent = 'let fx: { [key: number]: (context: RaccoonContext)=> Promise<Message> } = {};\n\n';
     for (let idx in doc.cells) {
       if (doc.cells[idx].kind !== NotebookCellKind.Code || doc.cells[idx].metadata?.readonly) {
@@ -127,7 +127,7 @@ export class RaccoonRunner {
     return p;
 }
 `;
-    RaccoonRunner.run(output, 'typescript', chain, abortController).then((msg) => {
+    RaccoonRunner.run(output, 'typescript', chain, cancel).then((msg) => {
       // console.log(msg.content);
     });
   }

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
 import { codeNotebookType, extensionNameKebab, raccoonManager, registerCommand } from "../globalEnv";
-import { Message } from "../raccoonClient/src/CodeClient";
+import { Message } from "../raccoonClient/CodeClient";
 import { RaccoonRunner } from "./raccoonToolset";
 
 const decoder = new TextDecoder();
@@ -64,11 +64,7 @@ class CodeNotebookController {
           }
         }
       }
-      let abortController = new AbortController();
-      execution.token.onCancellationRequested((_e) => {
-        abortController.abort();
-      });
-      RaccoonRunner.run(output, cell.document.languageId, cell.document.getText(), abortController).then((result: Message) => {
+      RaccoonRunner.run(output, cell.document.languageId, cell.document.getText(), execution.token).then((result: Message) => {
         if (result) {
           let outputItems = new vscode.NotebookCellOutput([
             vscode.NotebookCellOutputItem.text(`${roleIcon[result.role] || result.role} \`${new Date().toLocaleString()}\`\n\n${result.content}`, "text/markdown"),

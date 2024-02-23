@@ -54,15 +54,6 @@
                             "type": "object",
                             "description": "%raccoon.config.engines.engine.description%",
                             "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "description": "%raccoon.config.engines.engine.type%",
-                                    "enum": [
-                                        "sensenova",
-                                        "openai",
-                                        "tgi"
-                                    ]
-                                },
                                 "robotname": {
                                     "type": "string",
                                     "description": "%raccoon.config.engines.engine.label%",
@@ -153,54 +144,6 @@
                                 "assistant": {
                                     "type": "object",
                                     "description": "%raccoon.config.engines.engine.assistant%",
-                                    "properties": {
-                                        "url": {
-                                            "type": "string",
-                                            "description": "%raccoon.config.engines.engine.url%",
-                                            "format": "uri"
-                                        },
-                                        "template": {
-                                            "type": "string",
-                                            "description": "%raccoon.config.engines.engine.option.template%"
-                                        },
-                                        "parameters": {
-                                            "type": "object",
-                                            "markdownDescription": "%raccoon.config.engines.engine.option.parameters%",
-                                            "properties": {
-                                                "model": {
-                                                    "type": "string"
-                                                },
-                                                "stop": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "temperature": {
-                                                    "type": "number"
-                                                }
-                                            }
-                                        },
-                                        "totalTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%raccoon.config.engines.engine.option.total_token_num%"
-                                        },
-                                        "maxInputTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%raccoon.config.engines.engine.option.max_input_token_num%"
-                                        }
-                                    },
-                                    "required": [
-                                        "url",
-                                        "template"
-                                    ],
-                                    "additionalProperties": false
-                                },
-                                "agent": {
-                                    "type": "object",
-                                    "description": "%raccoon.config.engines.engine.agent%",
                                     "properties": {
                                         "url": {
                                             "type": "string",
@@ -705,10 +648,11 @@
         "@typescript-eslint/eslint-plugin": "^5.31.0",
         "@typescript-eslint/parser": "^5.31.0",
         "@vscode/test-electron": "^2.1.5",
-        "@vscode/test-web": "^0.0.50",
+        "@vscode/test-web": "^0.0.51",
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
         "axios": "^1.6.2",
+        "@fortaine/fetch-event-source": "^3.0.6",
         "crypto-browserify": "^3.12.0",
         "eslint": "^8.20.0",
         "form-data": "^4.0.0",

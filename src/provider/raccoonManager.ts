@@ -1,18 +1,17 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
-import { AuthInfo, AuthMethod, ChatRequestParam, ClientReqeustOptions, ClientType, CodeClient, FinishReason, ResponseData, ResponseEvent, Role, ToolType } from "../raccoonClient/src/CodeClient";
-import { SenseNovaClient } from "../raccoonClient/src/sensenova-client";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions } from "../raccoonClient/CodeClient";
+import { SenseNovaClient } from "../raccoonClient/sensenova-client";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonManager, registerCommand } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
-import { OpenAIClient } from "../raccoonClient/src/openai-client";
-import { TGIClient } from "../raccoonClient/src/tgi-client";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity, RaccoonClientConfig, builtinEngines } from "./contants";
 
-export type RaccoonRequestParam = Pick<ChatRequestParam, "messages" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
+export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
+export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
 
 export enum CompletionPreferenceType {
   singleLine = "Single Line",
@@ -49,84 +48,36 @@ export class RaccoonManager {
   }
 
   public static getInstance(context: ExtensionContext): RaccoonManager {
-    function commitMessageByLLM(rm: RaccoonManager, changes: string, targetRepo: Repository, abortCtrller: AbortController): Promise<void> {
+    function commitMessageByLLM(rm: RaccoonManager, changes: string, targetRepo: Repository): Promise<void> {
+      if (RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] && !RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
+        RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].abort();
+        delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
+      }
       targetRepo.inputBox.value = '';
-      return rm.getCompletionsStreaming(
-        ModelCapacity.assistant,
+      return rm.chat(
+        [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
         {
-          messages: [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
+          stream: true,
           n: 1
         },
-        (e: any) => {
-          if (e.type === ResponseEvent.error) {
-            window.showErrorMessage(e.data?.choices[0]?.message?.content, l10n.t("Close"));
-            abortCtrller.abort();
-          } else if (e.type === ResponseEvent.data) {
-            let cmtmsg = e.data?.choices[0]?.message?.content;
+        {
+          onError: (e: Choice) => {
+            outlog.error(JSON.stringify(e));
+            window.showErrorMessage(e.message?.content || "", l10n.t("Close"));
+          },
+          onUpdate: (choice: Choice) => {
+            outlog.debug(JSON.stringify(choice));
+            let cmtmsg = choice.message?.content;
             if (cmtmsg && targetRepo) {
               targetRepo.inputBox.value += cmtmsg;
             }
-          } else if (e.type === ResponseEvent.cancel) {
-            abortCtrller.abort();
-          }
+          },
+          onController(controller) {
+            RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] = controller;
+          },
         },
-        {
-          headers: buildHeader(context.extension, "commit-message", `${new Date().valueOf()}`),
-          signal: abortCtrller.signal
-        }
+        buildHeader(context.extension, "commit-message", `${new Date().valueOf()}`)
       ).catch(e => {
-        window.showErrorMessage(e.message, l10n.t("Close"));
-      });
-    }
-
-    function commitMessageByFunctionCall(rm: RaccoonManager, changes: string, targetRepo: Repository, abortCtrller: AbortController): Promise<void> {
-      targetRepo.inputBox.value = '';
-      return rm.getCompletions(
-        ModelCapacity.agent,
-        {
-          messages: [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes and fill it into submit input text filed, not have to cover erevything, key-points only, limited the message up to 50 characters.` }],
-          tools: [{
-            type: ToolType.function,
-            function: {
-              name: "fillCommitMessage",
-              description: "fill commit message to submit input text filed",
-              parameters: {
-                type: "object",
-                properties: {
-                  message: {
-                    type: "string",
-                    description: "commit message"
-                  }
-                }
-              }
-            }
-          }],
-          toolChoice: { mode: "auto" },
-          n: 1
-        },
-        {
-          headers: buildHeader(context.extension, "commit-message", `${new Date().valueOf()}`),
-          signal: abortCtrller.signal
-        }
-      ).then((data?: ResponseData) => {
-        if (!data || !data.choices[0] || data.choices[0].finishReason !== FinishReason.toolCalls) {
-          return;
-        }
-        const fx: { [key: string]: any } = {
-          'fillCommitMessage': (result: { message: string }) => {
-            targetRepo!.inputBox.value = result.message;
-          }
-        };
-        if (data.choices[0] && data.choices[0].toolCalls) {
-          let tc = data.choices[0].toolCalls[0];
-          fx[tc.function.name](JSON.parse(tc.function.arguments));
-        }
-      }, (reason) => {
-        if (reason && reason.name !== 'CanceledError') {
-          window.showErrorMessage(JSON.stringify(reason.response.data), l10n.t("Close"));
-          abortCtrller.abort();
-        }
-      }).catch(e => {
         window.showErrorMessage(e.message, l10n.t("Close"));
       });
     }
@@ -160,24 +111,13 @@ export class RaccoonManager {
           window.showErrorMessage("No repository found", l10n.t("Close"));
           return;
         }
-        if (RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] && !RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
-          RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].abort();
-          return;
-        }
         changes = await targetRepo.diff(true) || await targetRepo.diff();
         if (changes) {
-          if (raccoonManager.getModelCapacites().includes(ModelCapacity.agent)) {
-            let ac = new AbortController();
-            RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] = ac;
-            commitMessageByFunctionCall(RaccoonManager.instance, changes, targetRepo, ac);
-          } else if (raccoonManager.getModelCapacites().includes(ModelCapacity.assistant)) {
-            let ac = new AbortController();
-            RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] = ac;
-            commitMessageByLLM(RaccoonManager.instance, changes, targetRepo, ac);
+          if (raccoonManager.getModelCapacites().includes(ModelCapacity.assistant)) {
+            commitMessageByLLM(RaccoonManager.instance, changes, targetRepo);
           } else {
             window.showErrorMessage("Model capacity not supported yet", l10n.t("Close"));
           }
-          delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
         } else {
           window.showErrorMessage("There's no any change in stage to commit", l10n.t("Close"));
         }
@@ -263,15 +203,8 @@ export class RaccoonManager {
     es = builtinEngines.concat(es);
     this._clients = {};
     for (let e of es) {
-      if (e.type && e.robotname) {
-        let client;
-        if (e.type === ClientType.sensenova) {
-          client = new SenseNovaClient(e, outlog.debug);
-        } else if (e.type === ClientType.openai) {
-          client = new OpenAIClient(e, outlog.debug);
-        } else if (e.type === ClientType.tgi) {
-          client = new TGIClient(e, outlog.debug);
-        }
+      if (e.robotname) {
+        let client = new SenseNovaClient(e);
         if (client) {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.robotname, ai);
@@ -689,30 +622,32 @@ export class RaccoonManager {
     return mc;
   }
 
-  public async getCompletions(capacity: ModelCapacity, config: RaccoonRequestParam, options?: ClientReqeustOptions, clientName?: string): Promise<ResponseData> {
+  public async chat(messages: Message[], param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>, clientName?: string): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca && ca.authInfo && ca.options[capacity]) {
-      let params: ChatRequestParam = {
-        url: ca.options[capacity]!.url,
-        ...ca.options[capacity]!.parameters,
-        ...config
+    let opts = ca?.options[ModelCapacity.assistant];
+    if (ca && ca.authInfo && opts) {
+      let config: RequestParam = {
+        ...opts.parameters,
+        ...param
       };
       let useridInfo;
       if (ca.authInfo.account.userId) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         useridInfo = { "x-raccoon-user-id": ca.authInfo.account.userId };
       }
-      if (!options) {
-        options = { headers: useridInfo };
-      } else if (!options.headers) {
-        options.headers = useridInfo;
-      } else {
-        options.headers = { ...options.headers, ...useridInfo };
-      }
-      return ca.client.getCompletions(ca.authInfo, params, options).catch(e => {
+      let options: ChatOptions = {
+        messages,
+        config,
+        headers: { ...headers, ...useridInfo },
+        ...callbacks
+      };
+      outlog.debug("Request URL : " + opts.url);
+      outlog.debug("Options:\n" + JSON.stringify(config, undefined, 2));
+      outlog.debug("Message:\n" + JSON.stringify(messages, undefined, 2));
+      return ca.client.chat(opts.url, ca.authInfo, options).catch(e => {
         if (e.response?.status === 401) {
           this.updateToken(ca!.client.robotName);
         }
@@ -725,37 +660,37 @@ export class RaccoonManager {
     }
   }
 
-  public async getCompletionsStreaming(capacity: ModelCapacity, config: RaccoonRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions, clientName?: string) {
+  public async completion(prompt: string, param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>, clientName?: string): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca && ca.authInfo && ca.options[capacity]) {
-      let params: ChatRequestParam = {
-        url: ca.options[capacity]!.url,
-        ...ca.options[capacity]!.parameters,
-        ...config
-      };
-      let resetToken = this.updateToken.bind(this);
-      let cb = function (event: MessageEvent<ResponseData>) {
-        if (event.type === ResponseEvent.error && event.data.choices[0].message?.content === "Unauthorized") {
-          resetToken(ca!.client.robotName);
-        }
-        callback(event);
+    let opts = ca?.options[ModelCapacity.completion];
+    if (ca && ca.authInfo && opts) {
+      let config: RequestParam = {
+        ...opts.parameters,
+        ...param
       };
       let useridInfo;
       if (ca.authInfo.account.userId) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         useridInfo = { "x-raccoon-user-id": ca.authInfo.account.userId };
       }
-      if (!options) {
-        options = { headers: useridInfo };
-      } else if (!options.headers) {
-        options.headers = useridInfo;
-      } else {
-        options.headers = { ...options.headers, ...useridInfo };
-      }
-      ca.client.getCompletionsStreaming(ca.authInfo, params, cb, options);
+      let options: CompletionOptions = {
+        prompt,
+        config,
+        headers: { ...headers, ...useridInfo },
+        ...callbacks
+      };
+      outlog.debug("Request URL : " + opts.url);
+      outlog.debug("Options:\n" + JSON.stringify(config, undefined, 2));
+      outlog.debug("Prompt:\n" + prompt);
+      return ca.client.completion(opts.url, ca.authInfo, options).catch(e => {
+        if (e.response?.status === 401) {
+          this.updateToken(ca!.client.robotName);
+        }
+        return Promise.reject(e);
+      });
     } else if (ca) {
       return Promise.reject(Error(l10n.t("Unauthorized")));
     } else {
@@ -784,10 +719,7 @@ export class RaccoonManager {
   }
 
   public get streamResponse(): boolean {
-    if (env.uiKind === UIKind.Web) {
-      return false;
-    }
-    return this.context.globalState.get("StreamResponse", true);    
+    return this.context.globalState.get("StreamResponse", true);
   }
 
   public set streamResponse(v: boolean) {

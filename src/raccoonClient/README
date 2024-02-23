@@ -1,8 +1,0 @@
-# Raccoon Client
-
-## build
-
-```bash
-npm install
-npm run compile
-```

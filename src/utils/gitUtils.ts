@@ -13,9 +13,9 @@ export class GitUtils {
   }
 
   public async api(): Promise<API | undefined> {
-    if (this._api == null) {
+    if (!this._api) {
       const extension = extensions.getExtension<GitExtension>('vscode.git');
-      if (extension == null) {
+      if (!extension) {
         return;
       }
       const gitExtension = extension.isActive ? extension.exports : await extension.activate();

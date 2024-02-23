@@ -1,7 +1,6 @@
 {
     "raccoon.config.engines.description": "AI 后端引擎配置列表",
     "raccoon.config.engines.engine.description": "AI 后端引擎配置",
-    "raccoon.config.engines.engine.type": "引擎类型",
     "raccoon.config.engines.engine.label": "后端引擎名称, 用于在 UI 上显示",
     "raccoon.config.engines.engine.authurl": "授权服务 URL",
     "raccoon.config.engines.engine.url": "后端引擎 API URL 地址",

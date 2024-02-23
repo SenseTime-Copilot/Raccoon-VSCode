@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab } from "../globalEnv";
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
-import { Message, ResponseData, Role } from "../raccoonClient/src/CodeClient";
+import { Choice } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ModelCapacity } from "./contants";
 
@@ -16,8 +16,11 @@ export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBa
   }
 }
 
-async function getCompletionSuggestions(extension: vscode.ExtensionContext, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, controller: AbortController, statusBarItem: vscode.StatusBarItem) {
-
+async function getCompletionSuggestions(extension: vscode.ExtensionContext, document: vscode.TextDocument, position: vscode.Position, cancel: vscode.CancellationToken, statusBarItem: vscode.StatusBarItem) {
+  let abortCtler: AbortController;
+  cancel.onCancellationRequested(_e => {
+    abortCtler.abort();
+  });
   let maxLength = raccoonManager.maxInputTokenNum(ModelCapacity.completion) * 2;
   let codeSnippets = await captureCode(document, position, maxLength);
 
@@ -26,162 +29,93 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     return;
   }
 
-  let data: ResponseData;
-  let lenPreference = raccoonManager.completionPreference;
-  try {
-    updateStatusBarItem(
-      statusBarItem,
-      {
-        text: "$(loading~spin)",
-        tooltip: vscode.l10n.t("Thinking..."),
-        keep: true
-      }
-    );
-
-    let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
-    if (!content) {
-      updateStatusBarItem(statusBarItem,
-        {
-          text: "$(exclude)",
-          tooltip: vscode.l10n.t("Out of service")
-        });
-      return;
-    }
-    const completionPrompt: Message = {
-      role: Role.completion,
-      content
-    };
-
-    let cfg: RaccoonRequestParam = {
-      messages: [completionPrompt],
-      n: raccoonManager.candidates,
-      maxNewTokenNum: 1024//(raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion))
-    };
-    if (lenPreference === CompletionPreferenceType.balanced) {
-      cfg.maxNewTokenNum = 256;
-    } else if (lenPreference === CompletionPreferenceType.singleLine) {
-      cfg.maxNewTokenNum = 128;
-      cfg.stop = ["\n"];
-    }
-
-    telemetryReporter.logUsage("suggestion");
-
-    data = await raccoonManager.getCompletions(
-      ModelCapacity.completion,
-      cfg,
-      {
-        headers: buildHeader(extension.extension, 'inline completion', `${new Date().valueOf()}`),
-        signal: controller.signal
-      });
-  } catch (err: any) {
-    if (err.name === "CanceledError") {
-      return;
-    }
-    outlog.error(err);
-    let error = err.response?.data?.error?.message || err.message || "";
-    if (!cancel.isCancellationRequested) {
-      updateStatusBarItem(
-        statusBarItem,
-        {
-          text: `$(error)${err.response?.statusText || err.response?.status || ""}`,
-          tooltip: error
-        }
-      );
-    } else {
-      updateStatusBarItem(statusBarItem);
-    }
-    return;
-  }
-  if (cancel.isCancellationRequested) {
-    updateStatusBarItem(
-      statusBarItem,
-      {
-        text: "$(circle-slash)",
-        tooltip: vscode.l10n.t("User cancelled")
-      }
-    );
-    return;
-  }
-  if (data === null || data.choices === null || data.choices.length === 0) {
-    updateStatusBarItem(
-      statusBarItem,
-      {
-        text: "$(array)",
-        tooltip: vscode.l10n.t("No completion suggestion")
-      }
-    );
-    return;
-  }
-
-  // let range = new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, position.character));
-  // let prefix = document.getText(range);
-
-  let afterCursor = document.lineAt(position.line).text.slice(position.character);
-
-  // Add the generated code to the inline suggestion list
   let items = new Array<vscode.InlineCompletionItem>();
-  let continueFlag = new Array<boolean>();
-  let codeArray = data.choices;
-  const completions = Array<string>();
-  for (let i = 0; i < codeArray.length; i++) {
-    const completion = codeArray[i];
-    let tmpstr: string = completion.message?.content || "";
-    if (!tmpstr.trim()) {
-      outlog.debug('[Ignore: Empty Suggestion]');
-      continue;
+  let lenPreference = raccoonManager.completionPreference;
+  updateStatusBarItem(
+    statusBarItem,
+    {
+      text: "$(loading~spin)",
+      tooltip: vscode.l10n.t("Thinking..."),
+      keep: true
     }
-    if (completions.includes(tmpstr)) {
-      outlog.debug('[Ignore: Duplicated Suggestion]: ' + tmpstr);
-      continue;
-    }
-    if (completion.finishReason === 'length') {
-      continueFlag.push(true);
-      outlog.debug('[Truncated Suggestion]: ' + tmpstr);
-    } else {
-      continueFlag.push(false);
-      outlog.debug('[Completed Suggestion]: ' + tmpstr);
-    }
-    if (lenPreference === CompletionPreferenceType.singleLine) {
-      tmpstr = tmpstr.trimEnd();
-    }
-    completions.push(tmpstr);
-  }
-  for (let i = 0; i < completions.length; i++) {
-    let completion = completions[i];
-    let command = {
-      title: "suggestion-accepted",
-      command: `${extensionNameKebab}.onSuggestionAccepted`,
-      arguments: [
-        document.uri,
-        new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + completion.split('\n').length - 1, character: 0 })),
-        continueFlag[i],
-        i.toString()
-      ]
-    };
-    items.push({
-      insertText: completion,
-      range: new vscode.Range(new vscode.Position(position.line, position.character),
-        new vscode.Position(position.line, position.character + afterCursor.length)),
-      command
-    });
-  }
-  if (items.length === 0) {
-    updateStatusBarItem(
-      statusBarItem,
+  );
+
+  let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
+  if (!content) {
+    updateStatusBarItem(statusBarItem,
       {
-        text: "$(array)",
-        tooltip: vscode.l10n.t("No completion suggestion")
-      }
-    );
-  } else if (!cancel.isCancellationRequested) {
-    updateStatusBarItem(
-      statusBarItem,
-      {
-        text: "$(pass)",
-        tooltip: vscode.l10n.t("Done")
-      }
-    );
+        text: "$(exclude)",
+        tooltip: vscode.l10n.t("Out of service")
+      });
+    return;
   }
+
+  let cfg: RaccoonRequestParam = {
+    stream: false,
+    n: raccoonManager.candidates,
+    maxNewTokenNum: 1024//(raccoonManager.totalTokenNum(ModelCapacity.completion) - raccoonManager.maxInputTokenNum(ModelCapacity.completion))
+  };
+  if (lenPreference === CompletionPreferenceType.balanced) {
+    cfg.maxNewTokenNum = 256;
+  } else if (lenPreference === CompletionPreferenceType.singleLine) {
+    cfg.maxNewTokenNum = 128;
+    cfg.stop = ["\n"];
+  }
+
+  telemetryReporter.logUsage("suggestion");
+
+  await raccoonManager.completion(
+    content,
+    cfg,
+    {
+      onError(err: Choice) {
+        updateStatusBarItem(
+          statusBarItem,
+          {
+            text: "$(circle-slash)",
+            tooltip: vscode.l10n.t(err.message?.content || "Unknown error")
+          }
+        );
+      },
+      onFinish(choices: Choice[]) {
+        for (let i = 0; i < choices.length; i++) {
+          outlog.debug(JSON.stringify(choices[i]));
+          let message = choices[i].message?.content;
+          if (!message) {
+            continue;
+          }
+          let command = {
+            title: "suggestion-accepted",
+            command: `${extensionNameKebab}.onSuggestionAccepted`,
+            arguments: [
+              document.uri,
+              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + message.split('\n').length - 1, character: 0 })),
+              i.toString()
+            ]
+          };
+          let afterCursor = document.lineAt(position.line).text.slice(position.character);
+          items.push({
+            insertText: message,
+            range: new vscode.Range(new vscode.Position(position.line, position.character),
+              new vscode.Position(position.line, position.character + afterCursor.length)),
+            command
+          });
+        }
+        updateStatusBarItem(
+          statusBarItem,
+          {
+            text: items.length > 0 ? "$(pass)" : "$(array)",
+            tooltip: items.length > 0 ? vscode.l10n.t("Done") : vscode.l10n.t("No completion suggestion")
+          }
+        );
+      },
+      onController(controller) {
+        abortCtler = controller;
+      },
+    },
+    buildHeader(extension.extension, 'inline completion', `${new Date().valueOf()}`)
+  );
+
   return cancel.isCancellationRequested ? null : items;
 }
 
@@ -196,17 +130,6 @@ export function inlineCompletionProvider(
       context,
       cancel
     ) => {
-      const controller = new AbortController();
-      cancel.onCancellationRequested(_e => {
-        controller.abort();
-        updateStatusBarItem(
-          statusBarItem,
-          {
-            text: "$(circle-slash)",
-            tooltip: vscode.l10n.t("User cancelled")
-          }
-        );
-      });
       if (!showHideStatusBtn(document, statusBarItem)) {
         return;
       }
@@ -239,7 +162,7 @@ export function inlineCompletionProvider(
         return;
       }
 
-      return getCompletionSuggestions(extension, document, position, cancel, controller, statusBarItem);
+      return getCompletionSuggestions(extension, document, position, cancel, statusBarItem);
     },
   };
   return provider;

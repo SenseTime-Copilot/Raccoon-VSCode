@@ -1,7 +1,6 @@
 {
     "raccoon.config.engines.description": "AI バックグランドエンジン設定リスト",
     "raccoon.config.engines.engine.description": "AI バックグランドエンジン設定",
-    "raccoon.config.engines.engine.type": "エンジン種類",
     "raccoon.config.engines.engine.label": "バックグランドエンジン名称, UI に表示するため",
     "raccoon.config.engines.engine.authurl": "Licenseサービス URL",
     "raccoon.config.engines.engine.url": "バックグランドエンジン API URL アドレス",

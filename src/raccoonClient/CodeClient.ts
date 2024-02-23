@@ -1,9 +1,3 @@
-export enum ClientType {
-  sensenova = "sensenova",
-  openai = "openai",
-  tgi = "tgi"
-}
-
 export enum AuthMethod {
   browser = "browser",
   apikey = "apikey",
@@ -22,16 +16,10 @@ export interface Password {
 }
 
 export interface ClientConfig {
-  type: ClientType;
   robotname: string;
   authUrl?: string;
   username?: string;
   key?: string | AccessKey | Password;
-}
-
-export interface ClientReqeustOptions {
-  headers?: Record<string, string>;
-  signal?: AbortSignal;
 }
 
 export interface AccountInfo {
@@ -78,7 +66,7 @@ export type Tool = FuntcionTool;
 
 export interface ToolChoice {
   mode: "auto" | undefined;
-  tools? : {
+  tools?: {
     type: ToolType;
     name: string;
   };
@@ -97,10 +85,8 @@ export type ToolCall = FunctionCall;
 
 export type StopToken = Array<string> | undefined;
 
-export interface ChatRequestParam {
-  url: string;
+export interface RequestParam {
   model: string;
-  messages: Array<Message>;
   tools?: Array<Tool>;
   toolChoice?: ToolChoice;
   temperature?: number | null;
@@ -140,6 +126,29 @@ export interface ResponseData {
   choices: Choice[];
 }
 
+export interface ChatOptions {
+  messages: Array<Message>;
+  config: RequestParam;
+  headers?: Record<string, string>;
+
+  thisArg?: any;
+  onUpdate?: (choice: Choice, thisArg?: any) => void;
+  onFinish?: (choices: Choice[], thisArg?: any) => void;
+  onError?: (choice: Choice, thisArg?: any) => void;
+  onController?: (controller: AbortController, thisArg?: any) => void;
+}
+
+export interface CompletionOptions {
+  prompt: string;
+  config: RequestParam;
+  headers?: Record<string, string>;
+
+  thisArg?: any;
+  onFinish?: (choices: Choice[], thisArg?: any) => void;
+  onError?: (choice: Choice, thisArg?: any) => void;
+  onController?: (controller: AbortController, thisArg?: any) => void;
+}
+
 export interface CodeClient {
 
   get robotName(): string;
@@ -156,7 +165,7 @@ export interface CodeClient {
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 
-  getCompletions(auth: AuthInfo, requestParam: ChatRequestParam, options?: ClientReqeustOptions): Promise<ResponseData>;
+  chat(url: string, auth: AuthInfo, options: ChatOptions): Promise<void>;
 
-  getCompletionsStreaming(auth: AuthInfo, requestParam: ChatRequestParam, callback: (event: MessageEvent<ResponseData>) => void, options?: ClientReqeustOptions): void;
+  completion(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void>;
 }

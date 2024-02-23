@@ -1,11 +1,12 @@
-import { Message, Role } from "../../raccoonClient/src/CodeClient";
+import { Message, Role } from "../../raccoonClient/CodeClient";
 import { FileType, Uri, workspace, window, ViewColumn } from "vscode";
 import { Toolset } from "../raccoonToolset";
+import { CancellationToken } from "vscode";
 
 export class VscodeToolset implements Toolset {
   fn: { [key: string]: { func: (args: any) => Promise<Message>; description: string; parameters: { type: 'object'; properties: object } } };
 
-  constructor() {
+  constructor(cancel?: CancellationToken) {
     this.fn = {
       input: {
         func: this._input,

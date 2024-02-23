@@ -3,7 +3,7 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensio
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
-import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
+import { Choice, Message, Role } from '../raccoonClient/CodeClient';
 import { decorateCodeWithRaccoonLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
@@ -226,7 +226,7 @@ export class RaccoonEditor extends Disposable {
     let streamResponse = raccoonManager.streamResponse;
     let completionDelay = raccoonManager.completionDelay;
     let candidates = raccoonManager.candidates;
-    let setEngineUri = Uri.parse(`command:workbench.action.openGlobalSettings?${encodeURIComponent(JSON.stringify({ query: extensionNameCamel + ".Engines" }))}`);
+    let setEngineUri = Uri.parse(`command:workbench.action.openSettingsJson?${encodeURIComponent(JSON.stringify({ revealSetting: { key: extensionNameCamel + ".Engines" } }))}`);
     let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
     let es = raccoonManager.robotNames;
     for (let label of es) {
@@ -828,98 +828,61 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
         telemetryReporter.logUsage(prompt.type);
         let msgs = [...historyMsgs, { role: instruction.role, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
         if (streaming) {
-          let signal = this.stopList[id].signal;
-          raccoonManager.getCompletionsStreaming(
-            ModelCapacity.assistant,
+          raccoonManager.chat(
+            msgs,
             {
-              messages: msgs,
+              stream: streaming,
               n: 1
             },
-            (event) => {
-              let rts = new Date().toLocaleString();
-              let content: string | undefined = undefined;
-              let data = event.data;
-              if (data) {
-                rts = new Date(data.created).toLocaleString();
-              }
-              if (data && data.choices && data.choices[0]) {
-                content = data.choices[0].message?.content || "";
-              }
-              switch (event.type) {
-                case ResponseEvent.cancel: {
-                  delete this.stopList[id];
-                  this.sendMessage({ type: 'stopResponse', id });
-                  break;
-                }
-                case ResponseEvent.finish:
-                case ResponseEvent.data: {
-                  if (content) {
-                    this.sendMessage({ type: 'addResponse', id, value: content, timestamp: rts });
-                  }
-                  break;
-                }
-                case ResponseEvent.error: {
-                  if (content === "Authentication expired") {
-                    raccoonManager.getAuthUrlLogin().then((url) => {
-                      this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
-                    });
-                  } else if (content === 'canceled') {
-                    this.sendMessage({ type: 'stopResponse', id });
-                  } else if (content?.includes('maximum context length limit')) {
-                    this.sendMessage({ type: 'addError', error: l10n.t("Too many tokens"), id, timestamp: rts });
-                  } else {
-                    this.sendMessage({ type: 'addError', error: content || "", id, timestamp: rts });
-                  }
-                  break;
-                }
-                case ResponseEvent.done: {
-                  this.sendMessage({ type: 'stopResponse', id });
-                  break;
-                }
+            {
+              thisArg: this,
+              onController(controller, thisArg) {
+                thisArg.stopList[id] = controller;
+              },
+              onError(err: Choice, thisArg) {
+                outlog.error(JSON.stringify(err));
+                let rts = new Date().toLocaleString();
+                thisArg.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
+              },
+              onFinish(choices: Choice[], thisArg) {
+                outlog.debug(JSON.stringify(choices));
+                delete thisArg.stopList[id];
+                thisArg.sendMessage({ type: 'stopResponse', id });
+              },
+              onUpdate(choice: Choice, thisArg) {
+                outlog.debug(JSON.stringify(choice));
+                let rts = new Date().toLocaleString();
+                thisArg.sendMessage({ type: 'addResponse', id, value: choice.message?.content || "", timestamp: rts });
               }
             },
-            {
-              headers: buildHeader(this.context.extension, prompt.type, `${id}`),
-              signal
-            }
+            buildHeader(this.context.extension, prompt.type, `${id}`)
           );
         } else {
-          await raccoonManager.getCompletions(
-            ModelCapacity.assistant,
+          await raccoonManager.chat(
+            msgs,
             {
-              messages: msgs,
+              stream: streaming,
               n: 1
             },
             {
-              headers: buildHeader(this.context.extension, prompt.type, `${id}`),
-              signal: this.stopList[id].signal
-            })
-            .then(rs => {
-              let content = rs.choices[0]?.message?.content || "";
-              let stopReason = rs.choices[0]?.finishReason;
-              let rts = new Date(rs.created).toLocaleString();
-              outlog.debug(content + (stopReason ? `\n<StopReason: ${stopReason}>` : ""));
-              if (stopReason !== 'length' && stopReason !== 'stop') {
-                this.sendMessage({ type: 'addError', error: stopReason, id, timestamp: rts });
-              } else {
-                this.sendMessage({ type: 'addResponse', id, value: content, timestamp: rts });
+              thisArg: this,
+              onController(controller, thisArg) {
+                thisArg.stopList[id] = controller;
+              },
+              onError(err, thisArg) {
+                outlog.error(JSON.stringify(err));
+                let rts = new Date().toLocaleString();
+                thisArg.sendMessage({ type: 'addError', error: err.message, id, timestamp: rts });
+              },
+              onFinish(choices, thisArg) {
+                outlog.error(JSON.stringify(choices));
+                let rts = new Date().toLocaleString();
+                thisArg.sendMessage({ type: 'addResponse', id, value: choices[0].message?.content, timestamp: rts });
+                delete thisArg.stopList[id];
+                thisArg.sendMessage({ type: 'stopResponse', id });
               }
-              this.sendMessage({ type: 'stopResponse', id });
-            }, (err) => {
-              let error = err.response?.statusText || err.message;
-              if (err.response?.data?.error?.message) {
-                error = err.response.data.error.message;
-              }
-              let rts = new Date().toLocaleString();
-              if (error === "Authentication expired") {
-                raccoonManager.getAuthUrlLogin().then((url) => {
-                  this.sendMessage({ type: 'reLogin', message: l10n.t("Authentication expired, please login again"), url, id, timestamp: rts });
-                });
-              } else {
-                this.sendMessage({ type: 'addError', error, id, timestamp: rts });
-              }
-              this.sendMessage({ type: 'stopResponse', id });
-            });
+            },
+            buildHeader(this.context.extension, prompt.type, `${id}`));
         }
       } catch (err: any) {
         if (err.name === "CanceledError") {

@@ -107,7 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
   });
 
-  registerCommand(context, "onSuggestionAccepted", (uri, range: vscode.Range, continueFlag, selection) => {
+  registerCommand(context, "onSuggestionAccepted", (uri, range: vscode.Range, selection) => {
     let editor = vscode.window.activeTextEditor;
     if (editor) {
       let start = range.start.line;
@@ -115,11 +115,6 @@ export async function activate(context: vscode.ExtensionContext) {
       decorateCodeWithRaccoonLabel(editor, start, end);
     }
     telemetryReporter.logUsage("suggestion accepted", { selection });
-    if (continueFlag && raccoonManager.autoComplete) {
-      setTimeout(() => {
-        vscode.commands.executeCommand("editor.action.inlineSuggest.trigger", vscode.window.activeTextEditor);
-      }, 1000);
-    }
   });
 
   // create a new status bar item that we can now manage

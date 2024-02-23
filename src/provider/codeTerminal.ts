@@ -5,8 +5,8 @@ import {
   l10n,
   ExtensionContext,
 } from 'vscode';
-import { extensionDisplayName, raccoonManager, telemetryReporter } from "../globalEnv";
-import { Message, ResponseEvent, Role } from '../raccoonClient/src/CodeClient';
+import { extensionDisplayName, outlog, raccoonManager, telemetryReporter } from "../globalEnv";
+import { Choice, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
 import { ModelCapacity } from './contants';
@@ -70,7 +70,6 @@ function isBksp(char: string): boolean {
 
 export class RaccoonTerminal {
   private cacheInput: string = '';
-  private cacheOutput: string = '';
   private cancel?: AbortController;
   private responsing: boolean = false;
   private history: CacheItem[] = [];
@@ -104,8 +103,6 @@ export class RaccoonTerminal {
             if (this.responsing) {
               this.cancel?.abort();
               this.responsing = false;
-              writeEmitter.fire('\r\n');
-              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
             } else {
               if (this.cacheInput) {
                 this.cacheInput = '';
@@ -126,7 +123,6 @@ export class RaccoonTerminal {
                 writeEmitter.fire("\x1b[1M");
               }
               this.cacheInput = "";
-              this.cacheOutput = "";
               writeEmitter.fire("\r\n\x1b[7m  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  new session  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  \x1b[0m\r\n\r\n");
               writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
             }
@@ -163,11 +159,11 @@ export class RaccoonTerminal {
           } else if (input === '\r') {
             question = this.cacheInput;
             if (!question) {
+              writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
               return;
             }
             this.id = new Date().valueOf();
             this.cacheInput = '';
-            this.cacheOutput = '';
             this.inputHistory = [question, ...this.inputHistory];
 
             let suffix = '⮨';
@@ -203,7 +199,6 @@ export class RaccoonTerminal {
             return;
           }
 
-          this.cancel = new AbortController();
           this.responsing = true;
           let totalLens: number[] = [];
           for (let h of this.history) {
@@ -229,69 +224,42 @@ export class RaccoonTerminal {
           this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
 
           telemetryReporter.logUsage('free chat terminal');
-          raccoonManager.getCompletionsStreaming(
-            ModelCapacity.assistant,
+          raccoonManager.chat(
+            [...hlist, { role: Role.user, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
             {
-              messages: [...hlist, { role: Role.user, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
+              stream: true,
               n: 1
             },
-            (event) => {
-              if (this.cancel?.signal.aborted) {
-                this.responsing = false;
-                this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
-                this.cacheOutput = "";
-                writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
-                return;
-              }
-              let content: string | undefined = undefined;
-              let data = event.data;
-              if (data && data.choices && data.choices[0] && data.choices[0].message) {
-                content = data.choices[0].message.content;
-              }
-              switch (event.type) {
-                case ResponseEvent.cancel: {
-                  this.responsing = false;
-                  this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
-                  this.cacheOutput = "";
-                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
-                  break;
-                }
-                case ResponseEvent.finish:
-                case ResponseEvent.data: {
-                  if (content) {
-                    this.cacheOutput += content;
-                    writeEmitter.fire(content.replace(/\n/g, '\r\n'));
-                  }
-                  break;
-                }
-                case ResponseEvent.error: {
-                  this.responsing = false;
-                  this.history.pop();
-                  this.cacheOutput = "";
-                  writeEmitter.fire(`\x1b[1;31merror: ${content}\x1b[0m`);
-                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
-                  break;
-                }
-                case ResponseEvent.done: {
-                  this.responsing = false;
-                  this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.answer, value: this.cacheOutput }]);
-                  this.cacheOutput = "";
-                  writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
-                  break;
-                }
-              }
-            },
             {
-              headers: buildHeader(this.context.extension, 'free chat terminal', `${new Date().valueOf()}`),
-              signal: this.cancel?.signal
-            }
-          ).catch(e => {
-            this.responsing = false;
-            this.history.pop();
-            this.cacheOutput = "";
-            writeEmitter.fire(`\x1b[1;31merror: ${e.message}\x1b[0m`);
-            writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
-          });
+              thisArg: this,
+              onError: (err: Choice, thisArg?: any) => {
+                outlog.error(JSON.stringify(err));
+                thisArg.responsing = false;
+                thisArg.history.pop();
+                thisArg.cacheOutput = "";
+                writeEmitter.fire(`\x1b[1;31merror: ${err.message?.content}\x1b[0m`);
+                writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
+              },
+              onFinish(choices: Choice[], thisArg?: any) {
+                thisArg.responsing = false;
+                thisArg.history = thisArg.history.concat([{ id: thisArg.id, timestamp: "", name: username, type: CacheItemType.answer, value: thisArg.cacheOutput }]);
+                thisArg.cacheOutput = "";
+                writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
+              },
+              onUpdate(choice: Choice, thisArg?: any) {
+                outlog.debug(JSON.stringify(choice));
+                let chunk = choice.message?.content;
+                if (chunk) {
+                  thisArg.cacheOutput += chunk;
+                  writeEmitter.fire(chunk.replace(/\n/g, '\r\n'));
+                }
+              },
+              onController(controller, thisArg?: any) {
+                thisArg.cancel = controller;
+              },
+            },
+            buildHeader(this.context.extension, 'free chat terminal', `${new Date().valueOf()}`)
+          );
         }
       }
     });
