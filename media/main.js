@@ -1305,7 +1305,7 @@ const vscode = acquireVsCodeApi();
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
 
     if (targetButton?.id === "login") {
-      let code = document.getElementById("login-code").value;
+      let code = document.getElementById("login-code")?.value;
       let account = document.getElementById("login-account").value;
       let password = document.getElementById("login-password").value;
       vscode.postMessage({

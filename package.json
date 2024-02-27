@@ -191,7 +191,6 @@
                                 }
                             },
                             "required": [
-                                "type",
                                 "robotname"
                             ],
                             "additionalProperties": false

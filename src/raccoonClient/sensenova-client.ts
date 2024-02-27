@@ -99,6 +99,29 @@ export class SenseNovaClient implements CodeClient {
             }).catch(err => {
               throw err;
             });
+          } else if (decoded["account"] && decoded["password"]) {
+            let email = decoded["account"];
+            let password = encrypt(decoded["password"]);
+            return axios.post(this.clientConfig.authUrl + "/login_with_email_password", {
+              email, password
+            }).then(resp => {
+              if (resp.status === 200 && resp.data.code === 0) {
+                let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
+                return {
+                  account: {
+                    userId: jwtDecoded["iss"],
+                    username: jwtDecoded["name"],
+                    userIdProvider: "Raccoon"
+                  },
+                  expiration: jwtDecoded["exp"],
+                  weaverdKey: resp.data.data.access_token,
+                  refreshToken: resp.data.data.refresh_token,
+                };
+              }
+              throw new Error(resp.data.message || resp.data);
+            }).catch(err => {
+              throw err;
+            });
           } else {
             throw new Error("Malformed login info");
           }
