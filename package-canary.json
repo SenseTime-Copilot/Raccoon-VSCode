@@ -16,7 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.62.4",
+    "version": "0.68.0",
     "preview": true,
     "engines": {
         "vscode": "^1.75.0"
@@ -41,7 +41,6 @@
     "browser": "./dist/web/extension.js",
     "l10n": "./l10n",
     "extensionKind": [
-        "ui",
         "workspace"
     ],
     "contributes": {
@@ -55,15 +54,6 @@
                             "type": "object",
                             "description": "%raccoon.config.engines.engine.description%",
                             "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "description": "%raccoon.config.engines.engine.type%",
-                                    "enum": [
-                                        "sensenova",
-                                        "openai",
-                                        "tgi"
-                                    ]
-                                },
                                 "robotname": {
                                     "type": "string",
                                     "description": "%raccoon.config.engines.engine.label%",
@@ -201,7 +191,6 @@
                                 }
                             },
                             "required": [
-                                "type",
                                 "robotname"
                             ],
                             "additionalProperties": false
@@ -559,28 +548,28 @@
                 "scheme": "raccoon-canary",
                 "authority": "raccoon.favorites",
                 "formatting": {
-                    "label": "Canary: ${query.title}"
+                    "label": "Raccoon: ${query.title}"
                 }
             },
             {
                 "scheme": "raccoon-canary",
                 "authority": "raccoon.prompt",
                 "formatting": {
-                    "label": "Canary: ${query.title}"
+                    "label": "Raccoon: ${query.title}"
                 }
             },
             {
                 "scheme": "raccoon-canary",
                 "authority": "raccoon.editor",
                 "formatting": {
-                    "label": "Canary"
+                    "label": "Raccoon"
                 }
             },
             {
                 "scheme": "raccoon-canary",
                 "authority": "raccoon.search",
                 "formatting": {
-                    "label": "Canary: ${query.query}"
+                    "label": "Raccoon: ${query.query}"
                 }
             }
         ],
@@ -647,7 +636,7 @@
         "watch": "webpack --mode development --watch",
         "webpack": "webpack --mode development",
         "test-compile": "tsc -p ./",
-        "open-in-browser": "vscode-test-web --extensionDevelopmentPath=. ."
+        "open-in-browser": "vscode-test-web --extensionDevelopmentPath=."
     },
     "devDependencies": {
         "@types/glob": "^7.2.0",
@@ -658,10 +647,11 @@
         "@typescript-eslint/eslint-plugin": "^5.31.0",
         "@typescript-eslint/parser": "^5.31.0",
         "@vscode/test-electron": "^2.1.5",
-        "@vscode/test-web": "^0.0.22",
+        "@vscode/test-web": "^0.0.51",
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
         "axios": "^1.6.2",
+        "@fortaine/fetch-event-source": "^3.0.6",
         "crypto-browserify": "^3.12.0",
         "eslint": "^8.20.0",
         "form-data": "^4.0.0",
