@@ -9,7 +9,7 @@ import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { FavoriteCodeEditor } from './favoriteCode';
-import { ModelCapacity, RaccoonConstants } from './contants';
+import { MetricType, ModelCapacity, RaccoonConstants } from './contants';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
 function makeGuide(isMac: boolean) {
@@ -163,6 +163,9 @@ export class RaccoonEditor extends Disposable {
       })
     );
     this.showPage();
+
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { new_session_num: 1 } });
   }
 
   private buildLoginHint() {
@@ -729,8 +732,73 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             });
             break;
           }
-          let action = data.info.action;
-          telemetryReporter.logUsage(action);
+
+          /* eslint-disable  @typescript-eslint/naming-convention */
+          let code_accept_usage: any;
+          let dialog_window_usage: any;
+
+          switch (data.info.action) {
+            case "like-cancelled": {
+              dialog_window_usage = {
+                positive_feedback_num: -1
+              };
+              break;
+            }
+            case "like": {
+              dialog_window_usage = {
+                positive_feedback_num: 1
+              };
+              break;
+            }
+            case "dislike-cancelled": {
+              dialog_window_usage = {
+                negative_feedback_num: -1
+              };
+              break;
+            }
+            case "dislike": {
+              dialog_window_usage = {
+                negative_feedback_num: 1
+              };
+              break;
+            }
+            case "regenerate": {
+              dialog_window_usage = {
+                regenerate_answer_num: 1
+              };
+              break;
+            }
+            case "favorite": {
+              let metrics_by_language: any = {};
+              metrics_by_language[data.info.request?.languageid || "Unknown"] = {
+                code_collect_num: 1
+              };
+              code_accept_usage = { metrics_by_language };
+              break;
+            }
+            case "copy-snippet": {
+              let metrics_by_language: any = {};
+              metrics_by_language[data.info.request?.languageid || "Unknown"] = {
+                code_copy_num: 1
+              };
+              code_accept_usage = { metrics_by_language };
+              break;
+            }
+            case "insert-snippet": {
+              let metrics_by_language: any = {};
+              metrics_by_language[data.info.request?.languageid || "Unknown"] = {
+                code_insert_num: 1
+              };
+              code_accept_usage = { metrics_by_language };
+              break;
+            }
+          }
+
+          telemetryReporter.logUsage(MetricType.dialog, {
+            code_accept_usage,
+            dialog_window_usage
+          });
+          /* eslint-enable */
           break;
         }
         default:
@@ -832,7 +900,10 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
         this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
 
         historyMsgs = historyMsgs.reverse();
-        telemetryReporter.logUsage(prompt.type);
+
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+
         let msgs = [...historyMsgs, { role: instruction.role, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
         if (streaming) {
           raccoonManager.chat(
@@ -855,6 +926,9 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 outlog.debug(JSON.stringify(choices));
                 delete thisArg.stopList[id];
                 thisArg.sendMessage({ type: 'stopResponse', id });
+
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
               },
               onUpdate(choice: Choice, thisArg) {
                 outlog.debug(JSON.stringify(choice));
@@ -919,6 +993,9 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}`);
     this.sendMessage({ type: "clear" });
     this.showWelcome();
+
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { new_session_num: 1 } });
   }
 
   private async getWebviewHtml(webview: Webview) {

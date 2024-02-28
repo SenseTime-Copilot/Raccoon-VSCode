@@ -1,10 +1,11 @@
 import axios from 'axios';
-import { ClientConfig } from "../raccoonClient/CodeClient";
+import { AuthInfo, ClientConfig } from "../raccoonClient/CodeClient";
 import { env } from 'vscode';
+import { outlog } from '../globalEnv';
 
 const raccoonApiBaseUrl = 'https://raccoon-api.sensetime.com/api/plugin';
 const raccoonAuthBaseUrl = `${raccoonApiBaseUrl}/auth/v1`;
-const raccoonTelemetryUrl = `${raccoonApiBaseUrl}/b/v1/s`;
+const raccoonTelemetryUrl = `${raccoonApiBaseUrl}/b/v1/m`;
 
 const raccoonNovaApiBaseUrl = `${raccoonApiBaseUrl}/nova/v1/proxy`;
 const raccoonCompletionUrl = `${raccoonNovaApiBaseUrl}/v1/llm/completions`;
@@ -87,15 +88,33 @@ export const builtinEngines: RaccoonClientConfig[] = [
   }
 ];
 
+export enum MetricType {
+  codeCompletion = "code_completion",
+  dialog = "dialog",
+  commitMessage = "commit_message",
+}
+
 export class RaccoonTelemetry {
-  public async sendTelemetry(eventName: string, user: any, info: Record<string, string> | undefined) {
+  public async sendTelemetry(authInfo: AuthInfo, metricType: MetricType, metric: Record<string, any> | undefined) {
+    let metricInfo: any = {};
+    metricInfo[metricType] = metric;
+    outlog.debug(`${metricType}: ${JSON.stringify(metricInfo)}`);
+    /* eslint-disable @typescript-eslint/naming-convention */
     axios.post(raccoonTelemetryUrl,
       {
-        eventName,
-        user,
-        metadata: info || {}
-
+        common_header: {
+          client_agent: env.appName,
+          machine_id: env.machineId
+        },
+        metrics: [metricInfo],
+        metric_type: metricType.replace("_", "-")
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${authInfo.weaverdKey}`
+        }
       }
     );
+    /* eslint-enable */
   }
 }

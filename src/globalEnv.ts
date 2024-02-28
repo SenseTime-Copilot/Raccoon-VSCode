@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { RaccoonManager } from "./provider/raccoonManager";
-import { RaccoonTelemetry } from "./provider/contants";
+import { MetricType, RaccoonTelemetry } from "./provider/contants";
 
 export let extensionDisplayName: string;
 export let extensionNameKebab: string;
@@ -55,16 +55,13 @@ export async function initEnv(context: vscode.ExtensionContext) {
     },
     async sendEventData(eventName, data) {
       let event = eventName;
-      if (data && eventName) {
+      let authInfo = raccoonManager.getActiveClientAuth();
+      if (data && eventName && authInfo) {
         if (eventName.startsWith(context.extension.id + "/")) {
           // eslint-disable-next-line no-unused-vars
           event = eventName.slice(context.extension.id.length + 1);
         }
-        let user = {
-          userID: raccoonManager.userId() || vscode.env.machineId,
-          userAgent: vscode.env.appName
-        };
-        raccoonTelemetry?.sendTelemetry(event, user, data);
+        raccoonTelemetry?.sendTelemetry(authInfo, <MetricType>event, data);
       }
     },
   };

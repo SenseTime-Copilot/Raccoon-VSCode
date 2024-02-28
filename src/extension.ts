@@ -11,7 +11,7 @@ import { TextDocumentShowOptions } from "vscode";
 import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
-import { RaccoonConstants } from "./provider/contants";
+import { MetricType, RaccoonConstants } from "./provider/contants";
 import { HistoryCache } from "./utils/historyCache";
 import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
@@ -107,14 +107,20 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
   });
 
-  registerCommand(context, "onSuggestionAccepted", (uri, range: vscode.Range, selection) => {
+  registerCommand(context, "onSuggestionAccepted", (uri, languageid, range: vscode.Range, _selection) => {
     let editor = vscode.window.activeTextEditor;
     if (editor) {
       let start = range.start.line;
       let end = range.end.line;
       decorateCodeWithRaccoonLabel(editor, start, end);
     }
-    telemetryReporter.logUsage("suggestion accepted", { selection });
+    let usage: any = {};
+    usage[languageid] = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      code_accept_num: 1
+    };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
   });
 
   // create a new status bar item that we can now manage

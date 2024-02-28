@@ -4,7 +4,7 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab } from ".
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
 import { Choice } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { ModelCapacity } from "./contants";
+import { MetricType, ModelCapacity } from "./contants";
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   if (doc) {
@@ -62,7 +62,13 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     cfg.stop = ["\n"];
   }
 
-  telemetryReporter.logUsage("suggestion");
+  let usage: any = {};
+  usage[document.languageId] = {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    code_generate_num: 1
+  };
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
 
   await raccoonManager.completion(
     content,
@@ -89,6 +95,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
             command: `${extensionNameKebab}.onSuggestionAccepted`,
             arguments: [
               document.uri,
+              document.languageId,
               new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + message.split('\n').length - 1, character: 0 })),
               i.toString()
             ]

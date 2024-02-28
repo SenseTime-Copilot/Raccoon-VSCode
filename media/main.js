@@ -605,10 +605,6 @@ const vscode = acquireVsCodeApi();
         // chatText.dataset.response = undefined;
         const preCodeList = markedResponse.querySelectorAll("pre > code");
 
-        if (preCodeList.length > 0) {
-          vscode.postMessage({ type: 'telemetry', info: collectInfo(message.id, "chat output code") });
-        }
-
         preCodeList.forEach((preCode, index) => {
           preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
           preCode.classList.forEach((cls, _idx, _arr) => {

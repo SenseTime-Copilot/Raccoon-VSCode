@@ -1,14 +1,14 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions } from "../raccoonClient/CodeClient";
 import { SenseNovaClient } from "../raccoonClient/sensenova-client";
-import { extensionNameCamel, extensionNameKebab, outlog, raccoonManager, registerCommand } from "../globalEnv";
+import { extensionNameCamel, extensionNameKebab, outlog, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { ClientOption, ModelCapacity, RaccoonClientConfig, builtinEngines } from "./contants";
+import { ClientOption, MetricType, ModelCapacity, RaccoonClientConfig, builtinEngines } from "./contants";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -54,6 +54,10 @@ export class RaccoonManager {
         delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
       }
       targetRepo.inputBox.value = '';
+
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      telemetryReporter.logUsage(MetricType.commitMessage, { usage_num: 1 });
+
       return rm.chat(
         [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
         {
@@ -347,6 +351,10 @@ export class RaccoonManager {
 
   public getActiveClientRobotName(): string | undefined {
     return this.getActiveClient()?.client.robotName;
+  }
+
+  public getActiveClientAuth(): AuthInfo | undefined {
+    return this.getActiveClient()?.authInfo;
   }
 
   public setActiveClient(clientName: string | undefined) {

@@ -9,7 +9,7 @@ import { extensionDisplayName, outlog, raccoonManager, telemetryReporter } from 
 import { Choice, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
-import { ModelCapacity } from './contants';
+import { MetricType, ModelCapacity } from './contants';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -86,6 +86,10 @@ export class RaccoonTerminal {
         welcome();
       }
     });
+
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    // telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { new_session_num: 1 } });
+
     let terminal = window.createTerminal({
       name: `${extensionDisplayName}`,
       isTransient: true,
@@ -125,6 +129,9 @@ export class RaccoonTerminal {
               this.cacheInput = "";
               writeEmitter.fire("\r\n\x1b[7m  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  new session  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  \x1b[0m\r\n\r\n");
               writeEmitter.fire('\x1b[1;34m' + username + " > \x1b[0m\r\n");
+
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              // telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { new_session_num: 1 } });
             }
             return;
           } else if (isUpKey(input)) {
@@ -223,7 +230,9 @@ export class RaccoonTerminal {
 
           this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
 
-          telemetryReporter.logUsage('free chat terminal');
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { user_question_num: 1 } });
+
           raccoonManager.chat(
             [...hlist, { role: Role.user, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
             {
@@ -245,6 +254,9 @@ export class RaccoonTerminal {
                 thisArg.history = thisArg.history.concat([{ id: thisArg.id, timestamp: "", name: username, type: CacheItemType.answer, value: thisArg.cacheOutput }]);
                 thisArg.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
+
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { model_answer_num: 1 } });
               },
               onUpdate(choice: Choice, thisArg?: any) {
                 outlog.debug(JSON.stringify(choice));
