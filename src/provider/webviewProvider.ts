@@ -863,7 +863,6 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     } else {
       this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
       try {
-        this.stopList[id] = new AbortController();
         if (promptHtml.prompt.code) {
           let codeBlock = `\n\`\`\`${promptHtml.prompt.languageid || ""}\n${promptHtml.prompt.code}\n\`\`\``;
           instruction.content = instruction.content.replace(/\{\{code\}\}/g,
@@ -902,7 +901,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
         historyMsgs = historyMsgs.reverse();
 
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+        telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { user_question_num: 1 } });
 
         let msgs = [...historyMsgs, { role: instruction.role, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
         if (streaming) {
@@ -915,20 +914,23 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             {
               thisArg: this,
               onController(controller, thisArg) {
-                thisArg.stopList[id] = controller;
+                let h = <RaccoonEditor>thisArg;
+                h.stopList[id] = controller;
               },
               onError(err: Choice, thisArg) {
+                let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
-                thisArg.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
+                h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
               },
               onFinish(choices: Choice[], thisArg) {
-                outlog.debug(JSON.stringify(choices));
-                delete thisArg.stopList[id];
-                thisArg.sendMessage({ type: 'stopResponse', id });
-
+                let h = <RaccoonEditor>thisArg;
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+
+                outlog.debug(JSON.stringify(choices));
+                delete h.stopList[id];
+                h.sendMessage({ type: 'stopResponse', id });
               },
               onUpdate(choice: Choice, thisArg) {
                 outlog.debug(JSON.stringify(choice));
@@ -948,19 +950,25 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             {
               thisArg: this,
               onController(controller, thisArg) {
-                thisArg.stopList[id] = controller;
+                let h = <RaccoonEditor>thisArg;
+                h.stopList[id] = controller;
               },
               onError(err, thisArg) {
+                let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
-                thisArg.sendMessage({ type: 'addError', error: err.message, id, timestamp: rts });
+                h.sendMessage({ type: 'addError', error: err.message, id, timestamp: rts });
               },
               onFinish(choices, thisArg) {
+                let h = <RaccoonEditor>thisArg;
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+
                 outlog.error(JSON.stringify(choices));
                 let rts = new Date().toLocaleString();
-                thisArg.sendMessage({ type: 'addResponse', id, value: choices[0].message?.content, timestamp: rts });
-                delete thisArg.stopList[id];
-                thisArg.sendMessage({ type: 'stopResponse', id });
+                h.sendMessage({ type: 'addResponse', id, value: choices[0].message?.content, timestamp: rts });
+                delete h.stopList[id];
+                h.sendMessage({ type: 'stopResponse', id });
               }
             },
             buildHeader(this.context.extension, prompt.type, `${id}`));

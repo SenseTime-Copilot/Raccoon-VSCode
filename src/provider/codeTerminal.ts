@@ -76,6 +76,7 @@ export class RaccoonTerminal {
   private inputHistory: string[] = [];
   private id: number = 0;
   private curHistoryId = -1;
+  private cacheOutput: string = "";
 
   constructor(private readonly context: ExtensionContext) {
     let writeEmitter = new EventEmitter<string>();
@@ -242,32 +243,36 @@ export class RaccoonTerminal {
             {
               thisArg: this,
               onError: (err: Choice, thisArg?: any) => {
+                let h = <RaccoonTerminal>thisArg;
                 outlog.error(JSON.stringify(err));
-                thisArg.responsing = false;
-                thisArg.history.pop();
-                thisArg.cacheOutput = "";
+                h.responsing = false;
+                h.history.pop();
+                h.cacheOutput = "";
                 writeEmitter.fire(`\x1b[1;31merror: ${err.message?.content}\x1b[0m`);
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
               },
               onFinish(choices: Choice[], thisArg?: any) {
-                thisArg.responsing = false;
-                thisArg.history = thisArg.history.concat([{ id: thisArg.id, timestamp: "", name: username, type: CacheItemType.answer, value: thisArg.cacheOutput }]);
-                thisArg.cacheOutput = "";
+                let h = <RaccoonTerminal>thisArg;
+                h.responsing = false;
+                h.history = h.history.concat([{ id: h.id, timestamp: "", name: username, type: CacheItemType.answer, value: h.cacheOutput }]);
+                h.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
 
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { model_answer_num: 1 } });
               },
               onUpdate(choice: Choice, thisArg?: any) {
+                let h = <RaccoonTerminal>thisArg;
                 outlog.debug(JSON.stringify(choice));
                 let chunk = choice.message?.content;
                 if (chunk) {
-                  thisArg.cacheOutput += chunk;
+                  h.cacheOutput += chunk;
                   writeEmitter.fire(chunk.replace(/\n/g, '\r\n'));
                 }
               },
               onController(controller, thisArg?: any) {
-                thisArg.cancel = controller;
+                let h = <RaccoonTerminal>thisArg;
+                h.cancel = controller;
               },
             },
             buildHeader(this.context.extension, 'free chat terminal', `${new Date().valueOf()}`)

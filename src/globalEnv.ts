@@ -65,5 +65,5 @@ export async function initEnv(context: vscode.ExtensionContext) {
       }
     },
   };
-  telemetryReporter = vscode.env.createTelemetryLogger(sender);
+  telemetryReporter = vscode.env.createTelemetryLogger(sender, { ignoreBuiltInCommonProperties: true });
 }

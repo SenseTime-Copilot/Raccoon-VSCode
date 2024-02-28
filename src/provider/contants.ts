@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { AuthInfo, ClientConfig } from "../raccoonClient/CodeClient";
 import { env } from 'vscode';
-import { outlog } from '../globalEnv';
+import { raccoonManager } from '../globalEnv';
 
 const raccoonApiBaseUrl = 'https://raccoon-api.sensetime.com/api/plugin';
 const raccoonAuthBaseUrl = `${raccoonApiBaseUrl}/auth/v1`;
@@ -98,16 +98,16 @@ export class RaccoonTelemetry {
   public async sendTelemetry(authInfo: AuthInfo, metricType: MetricType, metric: Record<string, any> | undefined) {
     let metricInfo: any = {};
     metricInfo[metricType] = metric;
-    outlog.debug(`${metricType}: ${JSON.stringify(metricInfo)}`);
+    metricInfo['metric_type'] = metricType.replace("_", "-");
+    let telemetryUrl = raccoonManager.devConfig['telemetryUrl'] || raccoonTelemetryUrl;
     /* eslint-disable @typescript-eslint/naming-convention */
-    axios.post(raccoonTelemetryUrl,
+    axios.post(telemetryUrl,
       {
         common_header: {
           client_agent: env.appName,
           machine_id: env.machineId
         },
         metrics: [metricInfo],
-        metric_type: metricType.replace("_", "-")
       },
       {
         headers: {

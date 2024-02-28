@@ -41,12 +41,17 @@ export class LlmToolset implements Toolset {
       {
         thisArg: this,
         onController(controller, thisArg) {
-          thisArg.abortController = controller;
+          let h = <LlmToolset>thisArg;
+          h.abortController = controller;
         },
         onFinish(message, thisArg) {
+          // eslint-disable-next-line no-unused-vars
+          let h = <LlmToolset>thisArg;
           msg.content = message[0]?.message?.content || "";
         },
         onError(choice, thisArg) {
+          // eslint-disable-next-line no-unused-vars
+          let h = <LlmToolset>thisArg;
           throw new Error(choice.message?.content || "");
         },
       },
@@ -62,12 +67,17 @@ export class LlmToolset implements Toolset {
       {
         thisArg: this,
         onController(controller, thisArg) {
-          thisArg.abortController = controller;
+          let h = <LlmToolset>thisArg;
+          h.abortController = controller;
         },
         onFinish(message, thisArg) {
+          // eslint-disable-next-line no-unused-vars
+          let h = <LlmToolset>thisArg;
           msg.content = message[0]?.message?.content || "";
         },
         onError(choice, thisArg) {
+          // eslint-disable-next-line no-unused-vars
+          let h = <LlmToolset>thisArg;
           throw new Error(choice.message?.content || "");
         },
       }, {});
