@@ -11,9 +11,9 @@ const raccoonCompletionUrl = `${raccoonNovaApiBaseUrl}/v1/llm/completions`;
 const raccoonAssistantUrl = `${raccoonNovaApiBaseUrl}/v1/llm/chat-completions`;
 
 export class RaccoonConstants {
-  static language: string = env.language;
-  static utmSource: string = env.appName;
-  static baseUrl = 'https://raccoon.sensetime.com';
+  private static language: string = env.language;
+  private static utmSource: string = env.appName;
+  private static baseUrl = 'https://raccoon.sensetime.com';
 
   static get docUrl(): string {
     if (RaccoonConstants.language === 'zh-tw') {
@@ -31,9 +31,9 @@ export class RaccoonConstants {
 
   static get resetPasswordUrl(): string {
     if (RaccoonConstants.language === 'zh-tw') {
-      return `${RaccoonConstants.baseUrl}/reset-password?lang=zh-Hant`;
+      return `${RaccoonConstants.baseUrl}/login?step=forgot-password&lang=zh-Hant`;
     }
-    return `${RaccoonConstants.baseUrl}/reset-password`;
+    return `${RaccoonConstants.baseUrl}/login?step=forgot-password`;
   }
 }
 

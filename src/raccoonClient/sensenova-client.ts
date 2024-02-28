@@ -375,7 +375,7 @@ export class SenseNovaClient implements CodeClient {
           onclose() {
             finish();
           },
-          onerror(e) {
+          onerror(e: Error) {
             let error: Choice = {
               index: 0,
               message: {
