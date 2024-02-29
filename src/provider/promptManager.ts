@@ -296,7 +296,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
               <span class="material-symbols-rounded">smart_button</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="shortcut" tabindex="2" placeholder="${l10n.t("Start with a letter, with a length limit of {0} characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}
+          <vscode-text-field id="shortcut" tabindex="2" placeholder="${l10n.t("Start with a letter, with a length limit of {0} word characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}
             <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Shortcut")}">
               <span class="material-symbols-rounded">pen_size_3</span>
             </vscode-link>

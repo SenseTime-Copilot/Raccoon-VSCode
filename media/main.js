@@ -792,7 +792,7 @@ const vscode = acquireVsCodeApi();
         chatText.dataset.error = message.error;
         chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">report</span>
-                                        <div class="grow py-4">
+                                        <div class="grow py-4 overflow-auto">
                                             <div>An error occurred</div>
                                             <div>${message.error}</div>
                                         </div>

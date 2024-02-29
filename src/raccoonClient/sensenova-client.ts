@@ -254,6 +254,10 @@ export class SenseNovaClient implements CodeClient {
     const controller = new AbortController();
     options.onController?.(controller, options.thisArg);
 
+    let tokenRevoke = (() => {
+      this.onChangeAuthInfo?.();
+    }).bind(this);
+
     try {
       const chatPath = url;
       const chatPayload = {
@@ -303,6 +307,7 @@ export class SenseNovaClient implements CodeClient {
 
               if (res.status === 401) {
                 responseTexts.push("Unauthorized");
+                tokenRevoke();
               }
 
               if (extraInfo) {
@@ -310,7 +315,7 @@ export class SenseNovaClient implements CodeClient {
               }
 
               let error: Choice = {
-                index: 0,
+                index: res.status,
                 message: {
                   role: Role.assistant,
                   content: responseTexts.join("\n\n")
@@ -325,27 +330,25 @@ export class SenseNovaClient implements CodeClient {
             }
             const text = msg.data;
             try {
+              /* eslint-disable @typescript-eslint/naming-convention */
               const json = JSON.parse(text) as {
                 data: {
                   id: string;
                   usage:
                   {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     prompt_tokens: number;
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     completion_tokens: number;
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     total_tokens: number;
                   };
                   choices: Array<{
                     index: number;
                     role: string;
                     delta: string;
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     finish_reason: FinishReason;
                   }>;
                 };
               };
+              /* eslint-enable */
               let choicesCnt = json.data.choices?.length || 0;
               for (let i = 0; i < choicesCnt; i++) {
                 const delta = json.data.choices[i]?.delta;
@@ -375,16 +378,15 @@ export class SenseNovaClient implements CodeClient {
           onclose() {
             finish();
           },
-          onerror(e: Error) {
+          onerror(e: Response) {
             let error: Choice = {
-              index: 0,
+              index: e.status,
               message: {
                 role: Role.assistant,
-                content: e.message
+                content: e.statusText
               }
             };
             options.onError?.(error, options.thisArg);
-            throw e;
           },
           openWhenHidden: true,
         });
@@ -393,12 +395,20 @@ export class SenseNovaClient implements CodeClient {
         clearTimeout(requestTimeoutId);
 
         const resJson = await res.json();
-        if (resJson.error) {
+        if (!res.ok) {
+          const responseTexts = [];
+          if (res.status === 401) {
+            responseTexts.push("Unauthorized");
+            tokenRevoke();
+          }
+
+          responseTexts.push(JSON.stringify(resJson));
+
           let error: Choice = {
-            index: 0,
+            index: res.status,
             message: {
               role: Role.assistant,
-              content: resJson.error.message
+              content: responseTexts.join("\n\n")
             }
           };
           options.onError?.(error, options.thisArg);
@@ -494,12 +504,15 @@ export class SenseNovaClient implements CodeClient {
         const res = await fetch(chatPath, chatPayload);
         clearTimeout(requestTimeoutId);
         const resJson = await res.json();
-        if (resJson.error) {
+        if (!res.ok) {
+          if (res.status === 401) {
+            this.onChangeAuthInfo?.();
+          }
           let error: Choice = {
-            index: 0,
+            index: res.status,
             message: {
               role: Role.assistant,
-              content: resJson.error.message
+              content: JSON.stringify(resJson)
             }
           };
           options.onError?.(error, options.thisArg);
