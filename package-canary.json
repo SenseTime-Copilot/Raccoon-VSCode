@@ -24,13 +24,17 @@
     "categories": [
         "Programming Languages",
         "Snippets",
-        "Machine Learning",
-        "Other"
+        "Notebooks",
+        "Education",
+        "Machine Learning"
     ],
     "keywords": [
         "ai",
+        "assistant",
+        "co-pilot",
         "autocomplete",
-        "inline completion"
+        "inline completion",
+        "代码小浣熊"
     ],
     "activationEvents": [
         "onStartupFinished",

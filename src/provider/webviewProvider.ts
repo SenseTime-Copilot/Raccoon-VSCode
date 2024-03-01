@@ -263,7 +263,7 @@ export class RaccoonEditor extends Disposable {
                               <vscode-text-field class="grow" type="email" autofocus id="login-account" required="required">
                               </vscode-text-field>
                             </div>`;
-          let forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs float-right" href="${RaccoonConstants.resetPasswordUrl}">
+          let forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs">
                             <span class="material-symbols-rounded cursor-pointer opacity-50" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;">help</span>
                           </vscode-link>`;
           let tips = ``;
