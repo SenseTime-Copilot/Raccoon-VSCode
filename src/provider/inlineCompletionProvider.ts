@@ -4,7 +4,8 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab } from ".
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
 import { Choice } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { MetricType, ModelCapacity } from "./contants";
+import { ModelCapacity } from "./config";
+import { MetricType } from './telemetry';
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   if (doc) {

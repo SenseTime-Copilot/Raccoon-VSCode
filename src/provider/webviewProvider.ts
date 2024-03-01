@@ -1,5 +1,5 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
-import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType } from "../globalEnv";
+import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
@@ -9,7 +9,8 @@ import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { FavoriteCodeEditor } from './favoriteCode';
-import { MetricType, ModelCapacity, RaccoonConstants } from './contants';
+import { ModelCapacity } from './config';
+import { MetricType } from './telemetry';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
 function makeGuide(isMac: boolean) {
@@ -258,16 +259,19 @@ export class RaccoonEditor extends Disposable {
                         <vscode-button>${title}</vscode-button>
                       </vscode-link>`;
         if (url.scheme === "command" && url.path === `${extensionNameKebab}.password`) {
-          let accountForm = `<div class="flex flex-row mx-4">
-                              <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
-                              <vscode-text-field class="grow" type="email" autofocus id="login-account" required="required">
-                              </vscode-text-field>
-                            </div>`;
-          let forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs">
-                            <span class="material-symbols-rounded cursor-pointer opacity-50" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;">help</span>
-                          </vscode-link>`;
+          let accountForm = ``;
+          let forgetPwd = ``;
           let tips = ``;
-          if (extensionNameKebab === "raccoon") {
+          if (raccoonConfig.value("managedByOrganization")) {
+            accountForm = `<div class="flex flex-row mx-4">
+                                <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
+                                <vscode-text-field class="grow" type="email" autofocus id="login-account" required="required">
+                                </vscode-text-field>
+                              </div>`;
+            forgetPwd = `<div tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs cursor-pointer">
+                              <span class="material-symbols-rounded cursor-pointer opacity-50" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;">help</span>
+                            </div>`;
+          } else {
             accountForm = `<div class="flex flex-row mx-4">
                               <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
                               <vscode-dropdown class="grow" id="login-code" value="86">
@@ -279,12 +283,12 @@ export class RaccoonEditor extends Disposable {
                               <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-account" required="required">
                               </vscode-text-field>
                             </div>`;
-            forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${RaccoonConstants.resetPasswordUrl}">
+            forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonConfig.value("forgetPassword")}">
                           ${l10n.t("Forgot Password")}?
                         </vscode-link>`;
             tips = `<span class="self-center grow">
                       ${l10n.t("Do not have an account?")}
-                      <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${RaccoonConstants.signupUrl}">
+                      <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonConfig.value("signup")}">
                         ${l10n.t("Sign Up")}
                       </vscode-link>
                     </span>
@@ -317,7 +321,7 @@ export class RaccoonEditor extends Disposable {
                       <span class="mx-4">${l10n.t("Account")}</span>
                       ${accountForm}
                       <div class="flex flex-col mx-4 my-2">
-                      <div class="mb-2">
+                      <div class="flex mb-2 items-baseline gap-1">
                         <span>${l10n.t("Password")}</span>
                         ${forgetPwd}
                       </div>
@@ -565,7 +569,7 @@ export class RaccoonEditor extends Disposable {
                 let isMac = data.userAgent.includes("Mac OS X");
                 let timestamp = tm.toLocaleString();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
-                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${RaccoonConstants.docUrl}">
+                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${raccoonConfig.value("docs")}">
                 <span class="material-symbols-rounded">book</span>
                 <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { RaccoonManager } from "./provider/raccoonManager";
-import { MetricType, RaccoonTelemetry } from "./provider/contants";
+import { RaccoonConfig } from "./provider/config";
+import { MetricType, RaccoonTelemetry } from './provider/telemetry';
 
 export let extensionDisplayName: string;
 export let extensionNameKebab: string;
@@ -12,6 +13,7 @@ export let raccoonSearchEditorProviderViewType: string;
 export let codeNotebookType: string;
 export let diffContentProviderScheme: string;
 export let outlog: vscode.LogOutputChannel;
+export let raccoonConfig: RaccoonConfig;
 export let raccoonManager: RaccoonManager;
 export let telemetryReporter: vscode.TelemetryLogger;
 
@@ -42,6 +44,8 @@ export async function initEnv(context: vscode.ExtensionContext) {
 
   outlog = vscode.window.createOutputChannel(extensionDisplayName, { log: true });
   context.subscriptions.push(outlog);
+
+  raccoonConfig = await RaccoonConfig.getInstance(context);
 
   raccoonManager = RaccoonManager.getInstance(context);
   raccoonManager.update();

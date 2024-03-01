@@ -1,0 +1,40 @@
+{
+    "home": "https://raccoon.sensetime.com",
+    "docs": "https://raccoon.sensetime.com/code/docs",
+    "signup": "https://raccoon.sensetime.com/register",
+    "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
+    "telemetryApi": "https://raccoon-api.sensetime.com/api/plugin/b/v1/m",
+    "managedByOrganization": true,
+    "engines": [
+        {
+            "robotname": "Raccoon",
+            "authUrl": "https://raccoon-api.sensetime.com/api/plugin/auth/v1",
+            "completion": {
+                "url": "https://raccoon-api.sensetime.com/api/plugin/nova/v1/proxy/v1/llm/completions",
+                "template": "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
+                "parameters": {
+                    "model": "SenseChat-CodeCompletion-Lite",
+                    "stop": [
+                        "<EOT>"
+                    ],
+                    "temperature": 0.4
+                },
+                "maxInputTokenNum": 12288,
+                "totalTokenNum": 16384
+            },
+            "assistant": {
+                "url": "https://raccoon-api.sensetime.com/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
+                "template": "[prefix]",
+                "parameters": {
+                    "model": "SenseChat-Code",
+                    "stop": [
+                        "<|endofmessage|>"
+                    ],
+                    "temperature": 0.4
+                },
+                "maxInputTokenNum": 6144,
+                "totalTokenNum": 8192
+            }
+        }
+    ]
+}

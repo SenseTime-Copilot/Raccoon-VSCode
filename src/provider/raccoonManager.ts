@@ -1,14 +1,15 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions } from "../raccoonClient/CodeClient";
 import { SenseNovaClient } from "../raccoonClient/sensenova-client";
-import { extensionNameCamel, extensionNameKebab, outlog, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
+import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { randomBytes } from "crypto";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { ClientOption, MetricType, ModelCapacity, RaccoonClientConfig, builtinEngines } from "./contants";
+import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
+import { MetricType } from './telemetry';
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -204,7 +205,7 @@ export class RaccoonManager {
       } catch (e) { }
     }
     let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
-    es = builtinEngines.concat(es);
+    es = (<RaccoonClientConfig[]>raccoonConfig.value("engines")).concat(es);
     this._clients = {};
     for (let e of es) {
       if (e.robotname) {
@@ -438,7 +439,7 @@ export class RaccoonManager {
 
   public get robotNames(): string[] {
     let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
-    return builtinEngines.concat(es).map((v, _idx, _arr) => {
+    return (<RaccoonClientConfig[]>raccoonConfig.value("engines")).concat(es).map((v, _idx, _arr) => {
       return v.robotname;
     });
   }
@@ -617,7 +618,7 @@ export class RaccoonManager {
     if (!clientName) {
       return [];
     }
-    let cfg = builtinEngines.concat(es).filter((v, _idx, _arr) => v.robotname === clientName);
+    let cfg = (<RaccoonClientConfig[]>raccoonConfig.value("engines")).concat(es).filter((v, _idx, _arr) => v.robotname === clientName);
     if (cfg.length === 0) {
       return [];
     }

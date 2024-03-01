@@ -9,7 +9,8 @@ import { extensionDisplayName, outlog, raccoonManager, telemetryReporter } from 
 import { Choice, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
-import { MetricType, ModelCapacity } from './contants';
+import { ModelCapacity } from './config';
+import { MetricType } from './telemetry';
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);

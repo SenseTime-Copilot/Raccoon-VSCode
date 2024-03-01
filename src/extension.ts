@@ -11,9 +11,9 @@ import { TextDocumentShowOptions } from "vscode";
 import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
-import { MetricType, RaccoonConstants } from "./provider/contants";
+import { MetricType } from './provider/telemetry';
 import { HistoryCache } from "./utils/historyCache";
-import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType } from "./globalEnv";
+import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 
 class RaccoonUriHandler implements vscode.UriHandler {
@@ -63,7 +63,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerUriHandler(new RaccoonUriHandler()));
 
   registerCommand(context, "help", async () => {
-    vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(RaccoonConstants.docUrl));
+    vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(raccoonConfig.value("docs")));
   });
 
   registerCommand(context, "favorite.manage", async () => {
