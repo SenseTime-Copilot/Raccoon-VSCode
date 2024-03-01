@@ -4,7 +4,7 @@
     "signup": "https://raccoon.sensetime.com/register",
     "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
     "telemetryApi": "https://raccoon-api.sensetime.com/api/plugin/b/v1/m",
-    "managedByOrganization": true,
+    "managedByOrganization": false,
     "engines": [
         {
             "robotname": "Raccoon",
