@@ -147,7 +147,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
-      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, {scheme: "vscode-userdata"}, { scheme: "untitled" }, { scheme: "git" }, { scheme: "vscode-remote" }],
+      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, { scheme: "vscode-userdata" }, { scheme: "untitled" }, { scheme: "git" }, { scheme: "vscode-remote" }],
       inlineProvider
     )
   );
@@ -176,7 +176,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
-      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, {scheme: "vscode-userdata"}, { scheme: "untitled" }, { scheme: "git" }, { scheme: "vscode-remote" }],
+      [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, { scheme: "vscode-userdata" }, { scheme: "untitled" }, { scheme: "git" }, { scheme: "vscode-remote" }],
       new RaccoonAction(context))
   );
 

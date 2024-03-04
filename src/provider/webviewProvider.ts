@@ -1,5 +1,5 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
-import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig } from "../globalEnv";
+import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
@@ -269,7 +269,7 @@ export class RaccoonEditor extends Disposable {
                                 </vscode-text-field>
                               </div>`;
             forgetPwd = `<div tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs cursor-pointer">
-                              <span class="material-symbols-rounded cursor-pointer opacity-50" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;">help</span>
+                              <span class="material-symbols-rounded opacity-50" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;">help</span>
                             </div>`;
           } else {
             accountForm = `<div class="flex flex-row mx-4">
@@ -283,9 +283,11 @@ export class RaccoonEditor extends Disposable {
                               <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-account" required="required">
                               </vscode-text-field>
                             </div>`;
-            forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs float-right" href="${raccoonConfig.value("forgetPassword")}">
-                          ${l10n.t("Forgot Password")}?
-                        </vscode-link>`;
+            forgetPwd = `<div class="grow text-right">
+                          <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${raccoonConfig.value("forgetPassword")}">
+                            ${l10n.t("Forgot Password")}?
+                          </vscode-link>
+                        </div>`;
             tips = `<span class="self-center grow">
                       ${l10n.t("Do not have an account?")}
                       <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonConfig.value("signup")}">
@@ -569,7 +571,7 @@ export class RaccoonEditor extends Disposable {
                 let isMac = data.userAgent.includes("Mac OS X");
                 let timestamp = tm.toLocaleString();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
-                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="${raccoonConfig.value("docs")}">
+                let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.help">
                 <span class="material-symbols-rounded">book</span>
                 <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
@@ -1164,24 +1166,20 @@ export class RaccoonViewProvider implements WebviewViewProvider {
   private static editor?: RaccoonEditor;
   private static webviewView?: WebviewView;
   constructor(private context: ExtensionContext) {
-    context.subscriptions.push(
-      commands.registerCommand(`${extensionNameKebab}.settings`, async () => {
-        raccoonManager.update();
-        commands.executeCommand(`${extensionNameKebab}.view.focus`).then(() => {
-          return RaccoonViewProvider.editor?.updateSettingPage("toggle");
-        });
-      })
-    );
-    context.subscriptions.push(
-      commands.registerCommand(`${extensionNameKebab}.new-chat`, async (uri) => {
-        if (!uri) {
-          RaccoonViewProvider.editor?.clear();
-        } else {
-          let editor = RaccoonEditorProvider.getEditor(uri);
-          editor?.clear();
-        }
-      })
-    );
+    registerCommand(context, "settings", async () => {
+      raccoonManager.update();
+      commands.executeCommand(`${extensionNameKebab}.view.focus`).then(() => {
+        return RaccoonViewProvider.editor?.updateSettingPage("toggle");
+      });
+    });
+    registerCommand(context, "new-chat", async (uri) => {
+      if (!uri) {
+        RaccoonViewProvider.editor?.clear();
+      } else {
+        let editor = RaccoonEditorProvider.getEditor(uri);
+        editor?.clear();
+      }
+    });
   }
 
   public static showError(msg: string) {

@@ -1,3 +1,4 @@
+import { outlog } from "../globalEnv";
 import { ClientConfig } from "../raccoonClient/CodeClient";
 import { ExtensionContext, Uri, workspace } from 'vscode';
 
@@ -29,6 +30,7 @@ export class RaccoonConfig {
 
   private async init() {
     let configFile = Uri.joinPath(this.context.extensionUri, "config/value.json");
+    outlog.debug(`Read config from ${configFile.toString()}`);
     await workspace.fs.readFile(configFile).then((raw) => {
       this._value = JSON.parse(decoder.decode(raw));
     });

@@ -1,10 +1,9 @@
 {
-    "home": "https://raccoon.sensetime.com",
-    "docs": "https://raccoon.sensetime.com/code/docs",
+    "managedByOrganization": false,
     "signup": "https://raccoon.sensetime.com/register",
     "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
+    "docs": "https://raccoon.sensetime.com/code/docs",
     "telemetryApi": "https://raccoon-api.sensetime.com/api/plugin/b/v1/m",
-    "managedByOrganization": false,
     "engines": [
         {
             "robotname": "Raccoon",
