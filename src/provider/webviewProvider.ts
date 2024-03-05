@@ -785,7 +785,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               metrics_by_language[data.info.languageid || "Unknown"] = {
                 code_generate_num: 1
               };
-              dialog_window_usage = { metrics_by_language };
+              code_accept_usage = { metrics_by_language };
               break;
             }
             case "favorite": {
@@ -1021,9 +1021,6 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}`);
     this.sendMessage({ type: "clear" });
     this.showWelcome();
-
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { new_session_num: 1 } });
   }
 
   private async getWebviewHtml(webview: Webview) {
@@ -1187,6 +1184,8 @@ export class RaccoonViewProvider implements WebviewViewProvider {
         let editor = RaccoonEditorProvider.getEditor(uri);
         editor?.clear();
       }
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { new_session_num: 1 } });
     });
   }
 
