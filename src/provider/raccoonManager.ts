@@ -1,6 +1,6 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions } from "../raccoonClient/CodeClient";
-import { SenseNovaClient } from "../raccoonClient/sensenova-client";
+import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
@@ -209,7 +209,7 @@ export class RaccoonManager {
     this._clients = {};
     for (let e of es) {
       if (e.robotname) {
-        let client = new SenseNovaClient(e);
+        let client = new RaccoonClient(e);
         if (client) {
           client.onDidChangeAuthInfo(async (ai) => {
             await this.updateToken(e.robotname, ai);

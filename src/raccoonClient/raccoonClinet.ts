@@ -9,11 +9,6 @@ import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo,
 
 import sign = require('jwt-encode');
 
-export interface SenseNovaClientMeta {
-  clientId: string;
-  redirectUrl: string;
-}
-
 function generateSignature(ak: string, sk: string, date: Date) {
   let t = date.valueOf();
   let data = {
@@ -32,7 +27,7 @@ function encrypt(dataStr: string): string {
   return Buffer.concat([iv, ciphertext]).toString('base64');
 }
 
-export class SenseNovaClient implements CodeClient {
+export class RaccoonClient implements CodeClient {
   private onChangeAuthInfo?: (token?: AuthInfo) => void;
 
   constructor(private readonly clientConfig: ClientConfig) {
@@ -188,7 +183,7 @@ export class SenseNovaClient implements CodeClient {
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0) {
           let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
-          return {
+          let newAuth: AuthInfo = {
             account: {
               userId: auth.account.userId,
               username: jwtDecoded["name"],
@@ -198,30 +193,21 @@ export class SenseNovaClient implements CodeClient {
             weaverdKey: resp.data.data.access_token,
             refreshToken: resp.data.data.refresh_token,
           };
+          this.onChangeAuthInfo?.(newAuth);
+          return newAuth;
         }
-        return Promise.reject(new Error("Refresh authorization token failed"));
+        if (resp && resp.status === 401) {
+          this.onChangeAuthInfo?.();
+          throw new Error("Authentication expired");
+        }
+        return auth;
       }, (_err) => {
-        throw new Error("Authentication expired");
+        return auth;
       });
   }
 
-  async chat(url: string, auth: AuthInfo, options: ChatOptions): Promise<void> {
+  private async chatUsingFetch(url: string, auth: AuthInfo, options: ChatOptions) {
     let ts = new Date();
-    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
-      try {
-        let newToken = await this.refreshToken(auth);
-        auth = newToken;
-        if (this.onChangeAuthInfo) {
-          this.onChangeAuthInfo(newToken);
-        }
-      } catch (err: any) {
-        if (this.onChangeAuthInfo) {
-          this.onChangeAuthInfo();
-        }
-        return Promise.reject(err);
-      }
-    }
-
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
@@ -439,23 +425,21 @@ export class SenseNovaClient implements CodeClient {
     }
   }
 
-  async completion(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void> {
+  async chat(url: string, auth: AuthInfo, options: ChatOptions): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
-        let newToken = await this.refreshToken(auth);
-        auth = newToken;
-        if (this.onChangeAuthInfo) {
-          this.onChangeAuthInfo(newToken);
-        }
+        auth = await this.refreshToken(auth);
       } catch (err: any) {
-        if (this.onChangeAuthInfo) {
-          this.onChangeAuthInfo();
-        }
         return Promise.reject(err);
       }
     }
 
+    return this.chatUsingFetch(url, auth, options);
+  }
+
+  async completionUsingFetch(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void> {
+    let ts = new Date();
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
@@ -541,5 +525,17 @@ export class SenseNovaClient implements CodeClient {
       };
       options.onError?.(error, options.thisArg);
     }
+  }
+
+  async completion(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void> {
+    let ts = new Date();
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+      try {
+        auth = await this.refreshToken(auth);
+      } catch (err: any) {
+        return Promise.reject(err);
+      }
+    }
+    return this.completionUsingFetch(url, auth, options);
   }
 }

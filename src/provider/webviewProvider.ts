@@ -780,9 +780,17 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               };
               break;
             }
+            case "code-generated": {
+              let metrics_by_language: any = {};
+              metrics_by_language[data.info.languageid || "Unknown"] = {
+                code_generate_num: 1
+              };
+              dialog_window_usage = { metrics_by_language };
+              break;
+            }
             case "favorite": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.request?.languageid || "Unknown"] = {
+              metrics_by_language[data.info.languageid || "Unknown"] = {
                 code_collect_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -790,7 +798,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "copy-snippet": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.request?.languageid || "Unknown"] = {
+              metrics_by_language[data.info.languageid || "Unknown"] = {
                 code_copy_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -798,7 +806,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "insert-snippet": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.request?.languageid || "Unknown"] = {
+              metrics_by_language[data.info.languageid || "Unknown"] = {
                 code_insert_num: 1
               };
               code_accept_usage = { metrics_by_language };

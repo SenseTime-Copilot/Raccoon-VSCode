@@ -73,7 +73,7 @@ const vscode = acquireVsCodeApi();
     setTimeout(showTips, 8000);
   }
 
-  collectInfo = function (id, action) {
+  collectInfo = function (id, action, targetLanguageid) {
     var promptNode = document.getElementById(`prompt-${id}`);
     var valuesNode = document.getElementById(`values-${id}`);
     var responseNode = document.getElementById(`response-${id}`);
@@ -100,6 +100,7 @@ const vscode = acquireVsCodeApi();
       response: [response],
       error,
       action,
+      languageid: targetLanguageid,
       // eslint-disable-next-line @typescript-eslint/naming-convention
       generate_at: parseInt(id),
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -609,7 +610,18 @@ const vscode = acquireVsCodeApi();
           preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
           preCode.classList.forEach((cls, _idx, _arr) => {
             if (cls.startsWith('language-')) {
-              preCode.parentElement.dataset.lang = cls.slice(9);
+              let lang = cls.slice(9);
+              preCode.parentElement.dataset.lang = lang;
+              let info = {
+                action: "code-generated",
+                languageid: lang,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                generate_at: parseInt(message.id),
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                report_at: new Date().valueOf()
+              };
+              vscode.postMessage({ type: 'telemetry', info });
+              return;
             }
           });
 
@@ -1492,7 +1504,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       let id = targetButton?.dataset.id;
       var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "favorite") });
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "favorite", languageid) });
       vscode.postMessage({
         type: "addFavorite",
         id,
@@ -1541,7 +1553,8 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "copy-snippet") });
+      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "copy-snippet", languageid) });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
         targetButton.innerHTML = checkIcon;
 
@@ -1556,7 +1569,8 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("diff-element-gnc")) {
       e.preventDefault();
       let id = targetButton?.dataset.id;
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "diff-code") });
+      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "diff-code", languageid) });
       var valuesNode = document.getElementById(`values-${id}`);
       var lang;
       var origin;
@@ -1582,7 +1596,9 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("edit-element-gnc")) {
       e.preventDefault();
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "insert-snippet") });
+      let id = targetButton?.dataset.id;
+      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "insert-snippet", languageid) });
       vscode.postMessage({
         type: "editCode",
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
