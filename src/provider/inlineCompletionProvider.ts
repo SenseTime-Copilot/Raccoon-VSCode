@@ -63,14 +63,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     cfg.stop = ["\n"];
   }
 
-  let usage: any = {};
-  usage[document.languageId] = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    code_generate_num: 1
-  };
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
-
   await raccoonManager.completion(
     content,
     cfg,
@@ -108,6 +100,15 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
               new vscode.Position(position.line, position.character + afterCursor.length)),
             command
           });
+        }
+        if (items.length > 0) {
+          let usage: any = {};
+          usage[document.languageId] = {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            code_generate_num: items.length
+          };
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
         }
         updateStatusBarItem(
           statusBarItem,
