@@ -776,6 +776,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "regenerate": {
               dialog_window_usage = {
+                user_question_num: -1,
                 regenerate_answer_num: 1
               };
               break;
@@ -792,6 +793,14 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               let metrics_by_language: any = {};
               metrics_by_language[data.info.languageid || "Unknown"] = {
                 code_collect_num: 1
+              };
+              code_accept_usage = { metrics_by_language };
+              break;
+            }
+            case "diff-code": {
+              let metrics_by_language: any = {};
+              metrics_by_language[data.info.languageid || "Unknown"] = {
+                code_compare_num: 1
               };
               code_accept_usage = { metrics_by_language };
               break;
