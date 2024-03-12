@@ -500,6 +500,16 @@ export class RaccoonManager {
       return ca.authInfo?.account.username;
     }
   }
+  
+  public orgnizationName(clientName?: string): string | undefined {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (clientName) {
+      ca = this.getClient(clientName);
+    }
+    if (ca && ca.client) {
+      return ca.authInfo?.account.orgnization?.name;
+    }
+  }
 
   public avatar(clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();

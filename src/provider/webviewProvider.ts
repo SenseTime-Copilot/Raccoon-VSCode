@@ -243,6 +243,7 @@ export class RaccoonEditor extends Disposable {
     let loginForm = ``;
     let logout = ``;
     let accountInfo = ``;
+    let managedByOrganization = raccoonConfig.value("managedByOrganization");
     if (!raccoonManager.isClientLoggedin()) {
       await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
@@ -262,7 +263,7 @@ export class RaccoonEditor extends Disposable {
           let accountForm = ``;
           let forgetPwd = ``;
           let tips = ``;
-          if (raccoonConfig.value("managedByOrganization")) {
+          if (managedByOrganization) {
             accountForm = `<div class="flex flex-row mx-4">
                                 <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
                                 <vscode-text-field class="grow" type="email" autofocus id="login-account" required="required">
@@ -369,11 +370,15 @@ export class RaccoonEditor extends Disposable {
     }
 
     let trigger = (completionDelay === 3500) ? "opacity-60" : "";
+    let orgName = raccoonManager.orgnizationName();
 
     accountInfo = `
-    <div class="flex gap-2 items-center w-full" title="${userId || ""}">
+    <div class="flex gap-2 items-center w-full">
       ${avatarEle}
-      <span class="grow font-bold text-base" ${userId ? `title="${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
+      ${(managedByOrganization && orgName) ? `<div class="grow flex flex-col">
+        <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
+        <div class="text-[9px] py-px px-1 rounded-sm w-fit opacity-50" title="${l10n.t("Managed by {0}", orgName)}" style="background: var(--badge-background);">${orgName}</div>
+      </div>` : `<span class="grow font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>`}
       ${logout}
     </div>
     `;
@@ -752,7 +757,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
           switch (data.info.action) {
             case "like-cancelled": {
               dialog_window_usage = {
-                positive_feedback_num: -1
+                // positive_feedback_num: -1
               };
               break;
             }
@@ -764,7 +769,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "dislike-cancelled": {
               dialog_window_usage = {
-                negative_feedback_num: -1
+                // negative_feedback_num: -1
               };
               break;
             }
@@ -776,7 +781,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "regenerate": {
               dialog_window_usage = {
-                user_question_num: -1,
+                // user_question_num: -1,
                 regenerate_answer_num: 1
               };
               break;

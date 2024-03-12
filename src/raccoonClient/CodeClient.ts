@@ -22,9 +22,14 @@ export interface ClientConfig {
   key?: string | AccessKey | Password;
 }
 
+export interface Orgnization {
+  code: string;
+  name: string;
+}
+
 export interface AccountInfo {
   username: string;
-  userIdProvider?: string;
+  orgnization?: Orgnization;
   userId?: string;
   avatar?: string;
 }

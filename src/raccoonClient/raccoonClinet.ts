@@ -49,6 +49,14 @@ export class RaccoonClient implements CodeClient {
   }
 
   public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
+    return this._login(callbackUrl).then((v) => {
+      return this.syncUserInfo(v).then((info) => {
+        return { ...v, account: info };
+      }, () => v);
+    });
+  }
+
+  async _login(callbackUrl: string): Promise<AuthInfo> {
     let url = new URL(callbackUrl);
     let query = url.search?.slice(1);
     if (!query) {
@@ -63,8 +71,7 @@ export class RaccoonClient implements CodeClient {
           return {
             account: {
               userId: decoded.accessKeyId,
-              username: "User",
-              userIdProvider: "Raccoon"
+              username: "User"
             },
             weaverdKey: decoded.secretAccessKey,
           };
@@ -82,8 +89,7 @@ export class RaccoonClient implements CodeClient {
                 return {
                   account: {
                     userId: jwtDecoded["iss"],
-                    username: jwtDecoded["name"],
-                    userIdProvider: "Raccoon"
+                    username: jwtDecoded["name"]
                   },
                   expiration: jwtDecoded["exp"],
                   weaverdKey: resp.data.data.access_token,
@@ -105,8 +111,7 @@ export class RaccoonClient implements CodeClient {
                 return {
                   account: {
                     userId: jwtDecoded["iss"],
-                    username: jwtDecoded["name"],
-                    userIdProvider: "Raccoon"
+                    username: jwtDecoded["name"]
                   },
                   expiration: jwtDecoded["exp"],
                   weaverdKey: resp.data.data.access_token,
@@ -160,7 +165,10 @@ export class RaccoonClient implements CodeClient {
           return {
             userId: auth.account.userId,
             username: resp.data.data.name,
-            userIdProvider: "Raccoon"
+            orgnization: {
+              code: resp.data.data.orgs[0]?.code || "",
+              name: resp.data.data.orgs[0]?.name || ""
+            }
           };
         }
         return Promise.resolve(auth.account);
@@ -187,7 +195,7 @@ export class RaccoonClient implements CodeClient {
             account: {
               userId: auth.account.userId,
               username: jwtDecoded["name"],
-              userIdProvider: "Raccoon"
+              orgnization: auth.account.orgnization
             },
             expiration: jwtDecoded["exp"],
             weaverdKey: resp.data.data.access_token,
@@ -212,9 +220,11 @@ export class RaccoonClient implements CodeClient {
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
+      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
     }
 
     let config: any = {};
@@ -444,9 +454,11 @@ export class RaccoonClient implements CodeClient {
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
+      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
     }
 
     let config: any = {};

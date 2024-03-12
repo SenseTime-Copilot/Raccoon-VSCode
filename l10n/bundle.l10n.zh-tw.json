@@ -8,6 +8,7 @@
   "Cancel": "取消",
   "Login": "登錄",
   "Logout": "退出當前賬號",
+  "Managed by {0}": "由 {0} 管理",
   "Save": "保存",
   "Delete": "刪除",
   "Rename": "重命名",
