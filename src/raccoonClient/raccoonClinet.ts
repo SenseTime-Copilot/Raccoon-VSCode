@@ -161,13 +161,14 @@ export class RaccoonClient implements CodeClient {
         }
       })
       .then(async (resp) => {
-        if (resp && resp.status === 200 && resp.data.code === 0) {
+        if (resp && resp.status === 200 && resp.data.code === 0 && resp.data.data) {
+          let username = resp.data.data.orgs?.[0]?.user_name || resp.data.data.name;
           return {
             userId: auth.account.userId,
-            username: resp.data.data.name,
+            username,
             orgnization: {
-              code: resp.data.data.orgs[0]?.code || "",
-              name: resp.data.data.orgs[0]?.name || ""
+              code: resp.data.data.orgs?.[0]?.code || "",
+              name: resp.data.data.orgs?.[0]?.name || ""
             }
           };
         }

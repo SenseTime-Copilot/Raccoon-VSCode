@@ -375,7 +375,7 @@ export class RaccoonEditor extends Disposable {
     accountInfo = `
     <div class="flex gap-2 items-center w-full">
       ${avatarEle}
-      ${(managedByOrganization && orgName) ? `<div class="grow flex flex-col">
+      ${(orgName) ? `<div class="grow flex flex-col">
         <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
         <div class="text-[9px] py-px px-1 rounded-sm w-fit opacity-50" title="${l10n.t("Managed by {0}", orgName)}" style="background: var(--badge-background);">${orgName}</div>
       </div>` : `<span class="grow font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>`}
