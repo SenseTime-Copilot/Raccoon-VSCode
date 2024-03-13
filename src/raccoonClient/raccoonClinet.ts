@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Orgnization } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -162,14 +162,20 @@ export class RaccoonClient implements CodeClient {
       })
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0 && resp.data.data) {
-          let username = resp.data.data.orgs?.[0]?.user_name || resp.data.data.name;
+          let org = resp.data.data.orgs?.[0];
+          let username = org?.user_name || resp.data.data.name;
+          let orgnization: Orgnization | undefined;
+          if (org) {
+            orgnization = {
+              code: org.code,
+              name: org.name,
+              status: org.user_status
+            };
+          }
           return {
             userId: auth.account.userId,
             username,
-            orgnization: {
-              code: resp.data.data.orgs?.[0]?.code || "",
-              name: resp.data.data.orgs?.[0]?.name || ""
-            }
+            orgnization
           };
         }
         return Promise.resolve(auth.account);

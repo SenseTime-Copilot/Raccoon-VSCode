@@ -243,7 +243,7 @@ export class RaccoonEditor extends Disposable {
     let loginForm = ``;
     let logout = ``;
     let accountInfo = ``;
-    let managedByOrganization = raccoonConfig.value("managedByOrganization");
+    let emailLogin = raccoonConfig.value("emailLogin");
     if (!raccoonManager.isClientLoggedin()) {
       await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
@@ -263,7 +263,7 @@ export class RaccoonEditor extends Disposable {
           let accountForm = ``;
           let forgetPwd = ``;
           let tips = ``;
-          if (managedByOrganization) {
+          if (emailLogin) {
             accountForm = `<div class="flex flex-row mx-4">
                                 <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
                                 <vscode-text-field class="grow" type="email" autofocus id="login-account" required="required">
@@ -937,6 +937,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
         // eslint-disable-next-line @typescript-eslint/naming-convention
         telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { user_question_num: 1 } });
 
+        let errorFlag = false;
         let msgs = [...historyMsgs, { role: instruction.role, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
         if (streaming) {
           raccoonManager.chat(
@@ -956,12 +957,14 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
+                errorFlag = true;
               },
               onFinish(choices: Choice[], thisArg) {
                 let h = <RaccoonEditor>thisArg;
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
-
+                if (!errorFlag) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+                }
                 outlog.debug(JSON.stringify(choices));
                 delete h.stopList[id];
                 h.sendMessage({ type: 'stopResponse', id });
@@ -992,13 +995,15 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
+                errorFlag = true;
               },
               onFinish(choices, thisArg) {
                 let h = <RaccoonEditor>thisArg;
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
-
-                outlog.error(JSON.stringify(choices));
+                if (!errorFlag) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+                }
+                outlog.debug(JSON.stringify(choices));
                 let rts = new Date().toLocaleString();
                 h.sendMessage({ type: 'addResponse', id, value: choices[0].message?.content, timestamp: rts });
                 delete h.stopList[id];

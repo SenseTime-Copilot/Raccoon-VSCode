@@ -29,7 +29,8 @@ export class RaccoonTelemetry {
       },
       {
         headers: {
-          Authorization: `Bearer ${authInfo.weaverdKey}`
+          Authorization: `Bearer ${authInfo.weaverdKey}`,
+          "X-Org-Code": authInfo.account.orgnization?.code || ""
         }
       }
     );

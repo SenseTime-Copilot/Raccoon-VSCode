@@ -215,7 +215,8 @@ export class RaccoonManager {
             await this.updateToken(e.robotname, ai);
           });
           if (authinfos[e.robotname]) {
-            authinfos[e.robotname].account = await client.syncUserInfo(authinfos[e.robotname]);
+            let account = await client.syncUserInfo(authinfos[e.robotname]);
+            authinfos[e.robotname].account = account;
           }
           await this.appendClient(e.robotname, { client, options: e, authInfo: authinfos[e.robotname] }, e.username);
         }
@@ -224,8 +225,12 @@ export class RaccoonManager {
   }
 
   private async appendClient(name: string, c: ClientAndAuthInfo, username?: string) {
+    let managedByOrganization = raccoonConfig.value("managedByOrganization");
     this._clients[name] = c;
     if (c.authInfo) {
+      if (managedByOrganization && (!c.authInfo.account.orgnization || c.authInfo.account.orgnization.status === "disabled")) {
+        return this.updateToken(name);
+      }
       if (username) {
         c.authInfo.account.username = username;
       }
@@ -235,6 +240,9 @@ export class RaccoonManager {
     let url = await c.client.getAuthUrlLogin("");
     if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
       return c.client.login(url, "").then((ai) => {
+        if (managedByOrganization && !ai.account.orgnization) {
+          return this.updateToken(name);
+        }
         if (username) {
           ai.account.username = username;
         }
@@ -500,7 +508,7 @@ export class RaccoonManager {
       return ca.authInfo?.account.username;
     }
   }
-  
+
   public orgnizationName(clientName?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
@@ -537,7 +545,10 @@ export class RaccoonManager {
             return undefined;
           }
           return ca.client.login(url, verifier).then(async (token) => {
-            if (ca && token) {
+            let managedByOrganization = raccoonConfig.value("managedByOrganization");
+            if (managedByOrganization && !token.account.orgnization) {
+              this.updateToken(ca!.client.robotName);
+            } else if (ca && token) {
               this.updateToken(ca.client.robotName, token);
             }
             return undefined;
@@ -582,10 +593,19 @@ export class RaccoonManager {
       return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
+          let managedByOrganization = raccoonConfig.value("managedByOrganization");
+          if (managedByOrganization && !token.account.orgnization) {
+            this.updateToken(ca.client.robotName);
+            return new Error(`${l10n.t("You have not joined any team yet")}, ${l10n.t("Contact Administrator")}.`);
+          }
+          if (managedByOrganization && token.account.orgnization!.status === "disabled") {
+            this.updateToken(ca.client.robotName);
+            return new Error(`${l10n.t("Account disabled")}, ${l10n.t("Contact Administrator")}.`);
+          }
           this.updateToken(ca.client.robotName, token);
           return 'ok';
         } else {
-          return new Error("Wrong username or password");
+          return new Error(l10n.t("Incorrect username or password"));
         }
       }, (err) => {
         return new Error(err.response?.data?.details || err.message);

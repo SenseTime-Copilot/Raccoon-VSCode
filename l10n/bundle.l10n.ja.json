@@ -49,6 +49,8 @@
   "Forgot Password": "パスワードをわすれた",
   "Contact Administrator": "管理者に連絡する",
   "Do not have an account?": "アカウントはありませんか？",
+  "Incorrect username or password": "ユーザー名またはパスワードが間違っています",
+  "You have not joined any team yet": "あなたはまだどのチームにも参加していません",
   "Sign Up": "登録",
   "Login to <b>{0}</b>": "登録 <b>{0}</b>",
   "Coding with Raccoon": " Raccoon と一緒にコード作成",

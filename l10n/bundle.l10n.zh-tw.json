@@ -49,6 +49,8 @@
   "Forgot Password": "忘記密碼",
   "Contact Administrator": "請聯係管理員",
   "Do not have an account?": "沒有賬號?",
+  "Incorrect username or password": "賬號或密碼錯誤",
+  "You have not joined any team yet": "您還未加入任何團隊",
   "Sign Up": "註冊",
   "Login to <b>{0}</b>": "登錄 <b>{0}</b>",
   "Coding with Raccoon": "與 Raccoon 一起編程",

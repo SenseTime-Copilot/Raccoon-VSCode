@@ -25,6 +25,7 @@ export interface ClientConfig {
 export interface Orgnization {
   code: string;
   name: string;
+  status: string;
 }
 
 export interface AccountInfo {

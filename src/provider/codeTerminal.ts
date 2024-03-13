@@ -234,6 +234,7 @@ export class RaccoonTerminal {
 
           // eslint-disable-next-line @typescript-eslint/naming-convention
           telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { user_question_num: 1 } });
+          let errorFlag = false;
 
           raccoonManager.chat(
             [...hlist, { role: Role.user, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
@@ -251,6 +252,7 @@ export class RaccoonTerminal {
                 h.cacheOutput = "";
                 writeEmitter.fire(`\x1b[1;31merror: ${err.message?.content}\x1b[0m`);
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
+                errorFlag = true;
               },
               onFinish(choices: Choice[], thisArg?: any) {
                 let h = <RaccoonTerminal>thisArg;
@@ -259,8 +261,10 @@ export class RaccoonTerminal {
                 h.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
 
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { model_answer_num: 1 } });
+                if (!errorFlag) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { model_answer_num: 1 } });
+                }
               },
               onUpdate(choice: Choice, thisArg?: any) {
                 let h = <RaccoonTerminal>thisArg;
