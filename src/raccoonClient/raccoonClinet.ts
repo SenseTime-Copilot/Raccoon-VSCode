@@ -228,6 +228,9 @@ export class RaccoonClient implements CodeClient {
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
       headers["X-Org-Code"] = auth.account.orgnization?.code || "";
+    } else if(typeof this.clientConfig.key === "string") {
+      headers["Authorization"] = `Bearer ${this.clientConfig.key}`;
+      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);

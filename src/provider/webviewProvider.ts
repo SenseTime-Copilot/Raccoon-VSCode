@@ -606,11 +606,11 @@ export class RaccoonEditor extends Disposable {
         }
         case 'stopGenerate': {
           if (data.id) {
-            this.stopList[data.id].abort();
+            this.stopList[data.id]?.abort();
             this.sendMessage({ type: 'stopResponse', id: data.id, byUser: true });
           } else {
             for (let id in this.stopList) {
-              this.stopList[id].abort();
+              this.stopList[id]?.abort();
               this.sendMessage({ type: 'stopResponse', id, byUser: true });
             }
           }
