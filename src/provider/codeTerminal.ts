@@ -101,8 +101,9 @@ export class RaccoonTerminal {
         onDidChangeName: changeNameEmitter.event,
         open: () => { welcome(); },
         close: () => { },
-        handleInput: (input: string) => {
-          let username = raccoonManager.username() || "You";
+        handleInput: async (input: string) => {
+          let userinfo = await raccoonManager.userInfo();
+          let username = userinfo?.username || "You";
           let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
           let question = '';
           if (isCtrlC(input)) {
@@ -287,8 +288,9 @@ export class RaccoonTerminal {
     });
     terminal.show();
 
-    function welcome() {
-      let un = raccoonManager.username();
+    async function welcome() {
+      let userinfo = await raccoonManager.userInfo();
+      let un = userinfo?.username || "You";
       let ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
       ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
       let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);

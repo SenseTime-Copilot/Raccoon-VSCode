@@ -612,18 +612,19 @@ const vscode = acquireVsCodeApi();
             if (cls.startsWith('language-')) {
               let lang = cls.slice(9);
               preCode.parentElement.dataset.lang = lang;
-              let info = {
-                action: "code-generated",
-                languageid: lang,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                generate_at: parseInt(message.id),
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                report_at: new Date().valueOf()
-              };
-              vscode.postMessage({ type: 'telemetry', info });
               return;
             }
           });
+
+          let info = {
+            action: "code-generated",
+            languageid: preCode.parentElement.dataset.lang,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            generate_at: parseInt(message.id),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            report_at: new Date().valueOf()
+          };
+          vscode.postMessage({ type: 'telemetry', info });
 
           if (index !== preCodeList.length - 1) {
             preCode.parentElement.classList.add("mb-8");
@@ -994,6 +995,12 @@ const vscode = acquireVsCodeApi();
       vscode.postMessage({ type: "responseMode", value: e.target._value });
     } else if (e.target.id === "engineDropdown") {
       vscode.postMessage({ type: "activeEngine", value: e.target._value });
+    } else if (e.target.id === "knowledgeBaseRef") {
+      vscode.postMessage({ type: "knowledgeBaseRef", value: e.target._checked });
+    } else if (e.target.id === "workspaceRef") {
+      vscode.postMessage({ type: "workspaceRef", value: e.target._checked });
+    } else if (e.target.id === "webRef") {
+      vscode.postMessage({ type: "webRef", value: e.target._checked });
     } else if (e.target.id === "privacy") {
       vscode.postMessage({ type: "privacy", value: e.target._checked });
     } else {
@@ -1387,6 +1394,11 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
+    if (e.target.id === "switch-org") {
+      vscode.postMessage({ type: "switch-org" });
+      return;
+    }
+
     if (e.target.id === "logout") {
       vscode.postMessage({ type: "logout" });
       return;
@@ -1504,7 +1516,6 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       let id = targetButton?.dataset.id;
       var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "favorite", languageid) });
       vscode.postMessage({
         type: "addFavorite",
         id,

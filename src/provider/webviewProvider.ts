@@ -1,10 +1,9 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, SnippetString, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit, QuickPickItem } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
 import { Choice, Message, Role } from '../raccoonClient/CodeClient';
-import { decorateCodeWithRaccoonLabel } from '../utils/decorateCode';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
@@ -105,7 +104,9 @@ export class RaccoonEditor extends Disposable {
         this.updateSettingPage("full");
         this.showWelcome(true);
       } else if (e.scope.includes("config")) {
-        this.updateSettingPage();
+        if (!window.state.focused) {
+          this.updateSettingPage();
+        }
       }
     });
     context.subscriptions.push(
@@ -183,10 +184,12 @@ export class RaccoonEditor extends Disposable {
     if (!quiet) {
       this.sendMessage({ type: 'updateSettingPage', action: "close" });
     }
+    let userinfo = await raccoonManager.userInfo();
+    let org = raccoonManager.activeOrgnization();
     let ts = new Date();
     let timestamp = ts.toLocaleString();
     let detail = '';
-    let name = raccoonManager.username();
+    let name = org?.username || userinfo?.username;
     let category = "welcome";
     let username = '';
     let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
@@ -240,6 +243,7 @@ export class RaccoonEditor extends Disposable {
     let userId: string | undefined = undefined;
     let username: string | undefined = undefined;
     let avatarEle = `<span class="material-symbols-rounded" style="font-size: 40px;">person_pin</span>`;
+    let pro = false;
     let loginForm = ``;
     let logout = ``;
     let accountInfo = ``;
@@ -343,9 +347,11 @@ export class RaccoonEditor extends Disposable {
         }
       }, () => { });
     } else {
-      userId = raccoonManager.userId();
-      username = raccoonManager.username();
-      let avatar = raccoonManager.avatar();
+      let userinfo = await raccoonManager.userInfo(true);
+      userId = userinfo?.userId;
+      username = userinfo?.username;
+      let avatar = userinfo?.avatar;
+      pro = userinfo?.pro || false;
       if (avatar) {
         avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
       }
@@ -370,15 +376,34 @@ export class RaccoonEditor extends Disposable {
     }
 
     let trigger = (completionDelay === 3500) ? "opacity-60" : "";
-    let orgName = raccoonManager.orgnizationName();
+    let activeOrg = raccoonManager.activeOrgnization();
 
     accountInfo = `
     <div class="flex gap-2 items-center w-full">
       ${avatarEle}
-      ${(orgName) ? `<div class="grow flex flex-col">
-        <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
-        <div class="text-[9px] py-px px-1 rounded-sm w-fit opacity-50" title="${l10n.t("Managed by {0}", orgName)}" style="background: var(--badge-background);">${orgName}</div>
-      </div>` : `<span class="grow font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>`}
+      ${(activeOrg) ?
+        `<div class="grow flex flex-col">
+        <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
+        <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
+          <div class="cursor-pointer" title="${l10n.t("Switch Orgnization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
+          <div title="${l10n.t("Managed by {0}", activeOrg.name)}" style="color: var(--badge-foreground);background: var(--badge-background);">
+            ${activeOrg.name}
+          </div>
+        </div>
+      </div>` :
+        `<div class="grow flex flex-col">
+        <div class="flex">
+          <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
+          ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">verified</span>` : ""}
+        </div>
+        <div class="${username ? "flex" : "hidden"} w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
+          <div class="cursor-pointer" title="${l10n.t("Switch Orgnization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
+          <div title="${l10n.t("Individual")}">
+            ${l10n.t("Individual")}
+          </div>
+        </div>
+      </div>`
+      }
       ${logout}
     </div>
     `;
@@ -438,13 +463,21 @@ export class RaccoonEditor extends Disposable {
       <div>
       <vscode-radio-group id="responseModeRadio" class="flex flex-wrap px-2">
         <label slot="label" class="-ml-2">${l10n.t("Show Response")}</label>
-        <vscode-radio ${streamResponse ? "checked" : ""} class="w-32" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
+        <vscode-radio ${streamResponse ? "checked" : ""} class="w-40" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
           ${l10n.t("Streaming")}
         </vscode-radio>
-        <vscode-radio ${streamResponse ? "" : "checked"} class="w-32" value="Monolithic" title="${l10n.t("Wait entire result returned, and display at once")}">
+        <vscode-radio ${streamResponse ? "" : "checked"} class="w-40" value="Monolithic" title="${l10n.t("Wait entire result returned, and display at once")}">
           ${l10n.t("Monolithic")}
         </vscode-radio>
       </vscode-radio-group>
+      <div>
+        <label slot="label">${l10n.t("Reference Source")}</label>
+        <div class="flex flex-wrap ml-2">
+          <vscode-checkbox class="w-40" id="knowledgeBaseRef" ${raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+          <vscode-checkbox class="w-40" id="workspaceRef" ${raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+          <vscode-checkbox class="w-40 hidden" id="webRef" ${raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
+        </div>
+      </div>
       </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -463,7 +496,7 @@ export class RaccoonEditor extends Disposable {
   </div>
   `;
     let settingPage = `
-    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-sm">
+    <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-md">
       <div class="immutable fixed top-3 right-4">
         <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
       </div>
@@ -636,11 +669,10 @@ export class RaccoonEditor extends Disposable {
                   found = true;
                   let content: string = data.value;
                   let start = editor.selection.start.line;
-                  editor.insertSnippet(new SnippetString(content.trimEnd() + "\n")).then(async (_v) => {
-                    await new Promise((f) => setTimeout(f, 200));
-                    let end = editor.selection.anchor.line;
-                    decorateCodeWithRaccoonLabel(editor, start, end);
-                  }, () => { });
+                  let editAction = (edit: TextEditorEdit) => {
+                    edit.insert(editor.selection.anchor, content.trimEnd() + "\n");
+                  };
+                  editor.edit(editAction);
                 }
               }
             }
@@ -652,6 +684,39 @@ export class RaccoonEditor extends Disposable {
         }
         case 'activeEngine': {
           raccoonManager.setActiveClient(data.value);
+          break;
+        }
+        case 'switch-org': {
+          interface OrgInfo extends QuickPickItem {
+            id: string
+          };
+          let userinfo = await raccoonManager.userInfo(true);
+          let ao = raccoonManager.activeOrgnization();
+          let username = userinfo?.username || "";
+          let orgs: OrgInfo[] = raccoonManager.orgnizationList()
+            .filter((org, _idx, _arr) => org.status === "normal")
+            .map((value, _idx, _arr) => {
+              let icon = "$(blank)";
+              let name = value.username || username;
+              if (value.code === ao?.code) {
+                icon = `$(check)`;
+              }
+              return {
+                label: `${icon} ${value.name}`,
+                description: `@${name}`,
+                id: value.code
+              }
+            });
+          let individualItem: OrgInfo = {
+            label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
+            description: `@${username}`,
+            id: ""
+          }
+          window.showQuickPick<OrgInfo>([individualItem, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Orgnization") }).then((select) => {
+            if (select) {
+              raccoonManager.setActiveOrgnization(select.id);
+            }
+          })
           break;
         }
         case 'logout': {
@@ -710,6 +775,18 @@ export class RaccoonEditor extends Disposable {
                 raccoonManager.clear();
               }
             });
+          break;
+        }
+        case 'knowledgeBaseRef': {
+          raccoonManager.knowledgeBaseRef = !!data.value;
+          break;
+        }
+        case 'workspaceRef': {
+          raccoonManager.workspaceRef = !!data.value;
+          break;
+        }
+        case 'webRef': {
+          raccoonManager.webRef = !!data.value;
           break;
         }
         case 'privacy': {
@@ -794,14 +871,6 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               code_accept_usage = { metrics_by_language };
               break;
             }
-            case "favorite": {
-              let metrics_by_language: any = {};
-              metrics_by_language[data.info.languageid || "Unknown"] = {
-                code_collect_num: 1
-              };
-              code_accept_usage = { metrics_by_language };
-              break;
-            }
             case "diff-code": {
               let metrics_by_language: any = {};
               metrics_by_language[data.info.languageid || "Unknown"] = {
@@ -872,7 +941,8 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     let reqTimestamp = ts.toLocaleString();
 
     let loggedin = raccoonManager.isClientLoggedin();
-    let username = raccoonManager.username();
+    let userinfo = await raccoonManager.userInfo();
+    let username = userinfo?.username;
     if (!loggedin || !username) {
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
@@ -889,7 +959,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
     let maxTokens = raccoonManager.maxInputTokenNum(ModelCapacity.assistant);
 
-    let avatar = raccoonManager.avatar();
+    let avatar = userinfo?.avatar;
     let robot = raccoonManager.getActiveClientRobotName();
 
     if (promptHtml.status === RenderStatus.editRequired) {

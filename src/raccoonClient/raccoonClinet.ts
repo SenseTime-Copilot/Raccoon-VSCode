@@ -71,7 +71,8 @@ export class RaccoonClient implements CodeClient {
           return {
             account: {
               userId: decoded.accessKeyId,
-              username: "User"
+              username: "User",
+              pro: false
             },
             weaverdKey: decoded.secretAccessKey,
           };
@@ -89,7 +90,8 @@ export class RaccoonClient implements CodeClient {
                 return {
                   account: {
                     userId: jwtDecoded["iss"],
-                    username: jwtDecoded["name"]
+                    username: jwtDecoded["name"],
+                    pro: false
                   },
                   expiration: jwtDecoded["exp"],
                   weaverdKey: resp.data.data.access_token,
@@ -111,7 +113,8 @@ export class RaccoonClient implements CodeClient {
                 return {
                   account: {
                     userId: jwtDecoded["iss"],
-                    username: jwtDecoded["name"]
+                    username: jwtDecoded["name"],
+                    pro: false
                   },
                   expiration: jwtDecoded["exp"],
                   weaverdKey: resp.data.data.access_token,
@@ -162,21 +165,27 @@ export class RaccoonClient implements CodeClient {
       })
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0 && resp.data.data) {
-          let org = resp.data.data.orgs?.[0];
-          let username = org?.user_name || resp.data.data.name;
-          let orgnization: Orgnization | undefined;
-          if (org) {
-            orgnization = {
-              code: org.code,
-              name: org.name,
-              status: org.user_status
-            };
+          let orgs = resp.data.data.orgs;
+          let username = resp.data.data.name;
+          let pro = resp.data.data.pro_code_enabled;
+          let orgnizations: Orgnization[] = [];
+          if (orgs) {
+            for (let org of orgs) {
+              orgnizations.push({
+                code: org.code,
+                name: org.name,
+                username: org.user_name || username,
+                status: org.user_status
+              });
+            }
           }
-          return {
+          let info: AccountInfo = {
             userId: auth.account.userId,
             username,
-            orgnization
+            pro,
+            orgnizations
           };
+          return info;
         }
         return Promise.resolve(auth.account);
       }, (_err) => {
@@ -202,7 +211,8 @@ export class RaccoonClient implements CodeClient {
             account: {
               userId: auth.account.userId,
               username: jwtDecoded["name"],
-              orgnization: auth.account.orgnization
+              pro: auth.account.pro,
+              orgnizations: auth.account.orgnizations
             },
             expiration: jwtDecoded["exp"],
             weaverdKey: resp.data.data.access_token,
@@ -221,20 +231,20 @@ export class RaccoonClient implements CodeClient {
       });
   }
 
-  private async chatUsingFetch(url: string, auth: AuthInfo, options: ChatOptions) {
+  private async chatUsingFetch(url: string, auth: AuthInfo, options: ChatOptions, orgCode?: string) {
     let ts = new Date();
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
-    } else if(typeof this.clientConfig.key === "string") {
+      headers["X-Org-Code"] = orgCode || "";
+    } else if (typeof this.clientConfig.key === "string") {
       headers["Authorization"] = `Bearer ${this.clientConfig.key}`;
-      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
+      headers["X-Org-Code"] = orgCode || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
-      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
+      headers["X-Org-Code"] = orgCode || "";
     }
 
     let config: any = {};
@@ -246,6 +256,7 @@ export class RaccoonClient implements CodeClient {
     config.n = options.config.n ?? 1;
     config.tools = options.config.tools;
     config.tool_choice = options.config.toolChoice;
+    config.know_ids = options.config.knowledgeBases;
 
     config.stream = !!options.config.stream;
     config.max_new_tokens = options.config.maxNewTokenNum;
@@ -445,7 +456,7 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  async chat(url: string, auth: AuthInfo, options: ChatOptions): Promise<void> {
+  async chat(url: string, auth: AuthInfo, options: ChatOptions, orgCode?: string): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -455,20 +466,20 @@ export class RaccoonClient implements CodeClient {
       }
     }
 
-    return this.chatUsingFetch(url, auth, options);
+    return this.chatUsingFetch(url, auth, options, orgCode);
   }
 
-  async completionUsingFetch(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void> {
+  async completionUsingFetch(url: string, auth: AuthInfo, options: CompletionOptions, orgCode?: string): Promise<void> {
     let ts = new Date();
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
+      headers["X-Org-Code"] = orgCode || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
-      headers["X-Org-Code"] = auth.account.orgnization?.code || "";
+      headers["X-Org-Code"] = orgCode || "";
     }
 
     let config: any = {};
@@ -549,7 +560,7 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  async completion(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void> {
+  async completion(url: string, auth: AuthInfo, options: CompletionOptions, orgCode?: string): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -558,6 +569,6 @@ export class RaccoonClient implements CodeClient {
         return Promise.reject(err);
       }
     }
-    return this.completionUsingFetch(url, auth, options);
+    return this.completionUsingFetch(url, auth, options, orgCode);
   }
 }

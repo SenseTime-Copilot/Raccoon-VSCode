@@ -25,12 +25,14 @@ export interface ClientConfig {
 export interface Orgnization {
   code: string;
   name: string;
+  username: string;
   status: string;
 }
 
 export interface AccountInfo {
   username: string;
-  orgnization?: Orgnization;
+  pro: boolean;
+  orgnizations?: Orgnization[];
   userId?: string;
   avatar?: string;
 }
@@ -102,6 +104,7 @@ export interface RequestParam {
   stream?: boolean | null;
   stop?: StopToken;
   maxNewTokenNum?: number;
+  knowledgeBases?: string[];
 }
 
 export enum FinishReason {
@@ -171,7 +174,7 @@ export interface CodeClient {
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 
-  chat(url: string, auth: AuthInfo, options: ChatOptions): Promise<void>;
+  chat(url: string, auth: AuthInfo, options: ChatOptions, orgCode?: string): Promise<void>;
 
-  completion(url: string, auth: AuthInfo, options: CompletionOptions): Promise<void>;
+  completion(url: string, auth: AuthInfo, options: CompletionOptions, orgCode?: string): Promise<void>;
 }

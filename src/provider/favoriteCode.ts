@@ -1,6 +1,7 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
 import { supportedLanguages } from "../utils/getSupportedLanguages";
-import { favoriteCodeEditorViewType, extensionNameKebab } from "../globalEnv";
+import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter } from "../globalEnv";
+import { MetricType } from "./telemetry";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -203,6 +204,15 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       switch (msg.type) {
         case 'save': {
           this.appendSnippetItem(msg);
+          let code_accept_usage: any;
+          let metrics_by_language: any = {};
+          metrics_by_language[msg.languageid || "Unknown"] = {
+            code_collect_num: 1
+          };
+          code_accept_usage = { metrics_by_language };
+          telemetryReporter.logUsage(MetricType.dialog, {
+            code_accept_usage
+          });
           panel.dispose();
           break;
         }

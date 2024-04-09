@@ -16,7 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.68.0",
+    "version": "0.70.0",
     "preview": true,
     "engines": {
         "vscode": "^1.82.0"
@@ -50,155 +50,6 @@
         "configuration": [
             {
                 "properties": {
-                    "Raccoon.Engines": {
-                        "type": "array",
-                        "description": "%raccoon.config.engines.description%",
-                        "items": {
-                            "type": "object",
-                            "description": "%raccoon.config.engines.engine.description%",
-                            "properties": {
-                                "robotname": {
-                                    "type": "string",
-                                    "description": "%raccoon.config.engines.engine.label%",
-                                    "pattern": "^(?!(Raccoon)$).*$",
-                                    "minLength": 1,
-                                    "maxLength": 32
-                                },
-                                "username": {
-                                    "type": "string",
-                                    "description": "%raccoon.config.engines.engine.username%",
-                                    "minLength": 1,
-                                    "maxLength": 32
-                                },
-                                "authUrl": {
-                                    "type": "string",
-                                    "description": "%raccoon.config.engines.engine.authurl%",
-                                    "format": "uri"
-                                },
-                                "key": {
-                                    "description": "%raccoon.config.engines.engine.key%",
-                                    "oneOf": [
-                                        {
-                                            "type": "string"
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "accessKeyId": {
-                                                    "type": "string",
-                                                    "description": "%raccoon.config.engines.engine.key.ak%"
-                                                },
-                                                "secretAccessKey": {
-                                                    "type": "string",
-                                                    "description": "%raccoon.config.engines.engine.key.sk%"
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "completion": {
-                                    "type": "object",
-                                    "description": "%raccoon.config.engines.engine.completion%",
-                                    "properties": {
-                                        "url": {
-                                            "type": "string",
-                                            "description": "%raccoon.config.engines.engine.url%",
-                                            "format": "uri"
-                                        },
-                                        "template": {
-                                            "type": "string",
-                                            "description": "%raccoon.config.engines.engine.option.template%"
-                                        },
-                                        "parameters": {
-                                            "type": "object",
-                                            "markdownDescription": "%raccoon.config.engines.engine.option.parameters%",
-                                            "properties": {
-                                                "model": {
-                                                    "type": "string"
-                                                },
-                                                "stop": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "temperature": {
-                                                    "type": "number"
-                                                }
-                                            }
-                                        },
-                                        "totalTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%raccoon.config.engines.engine.option.total_token_num%"
-                                        },
-                                        "maxInputTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%raccoon.config.engines.engine.option.max_input_token_num%"
-                                        }
-                                    },
-                                    "required": [
-                                        "url",
-                                        "template"
-                                    ],
-                                    "additionalProperties": false
-                                },
-                                "assistant": {
-                                    "type": "object",
-                                    "description": "%raccoon.config.engines.engine.assistant%",
-                                    "properties": {
-                                        "url": {
-                                            "type": "string",
-                                            "description": "%raccoon.config.engines.engine.url%",
-                                            "format": "uri"
-                                        },
-                                        "template": {
-                                            "type": "string",
-                                            "description": "%raccoon.config.engines.engine.option.template%"
-                                        },
-                                        "parameters": {
-                                            "type": "object",
-                                            "markdownDescription": "%raccoon.config.engines.engine.option.parameters%",
-                                            "properties": {
-                                                "model": {
-                                                    "type": "string"
-                                                },
-                                                "stop": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "temperature": {
-                                                    "type": "number"
-                                                }
-                                            }
-                                        },
-                                        "totalTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%raccoon.config.engines.engine.option.total_token_num%"
-                                        },
-                                        "maxInputTokenNum": {
-                                            "type": "number",
-                                            "minimum": 1,
-                                            "description": "%raccoon.config.engines.engine.option.max_input_token_num%"
-                                        }
-                                    },
-                                    "required": [
-                                        "url",
-                                        "template"
-                                    ],
-                                    "additionalProperties": false
-                                }
-                            },
-                            "required": [
-                                "robotname"
-                            ],
-                            "additionalProperties": false
-                        }
-                    },
                     "Raccoon.Prompt": {
                         "type": "object",
                         "markdownDescription": "%raccoon.config.prompt%",
@@ -263,9 +114,6 @@
                                 }
                             ]
                         }
-                    },
-                    "Raccoon.Dev": {
-                        "type": "object"
                     }
                 }
             }

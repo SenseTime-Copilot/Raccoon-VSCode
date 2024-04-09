@@ -30,7 +30,7 @@ export class RaccoonTelemetry {
       {
         headers: {
           Authorization: `Bearer ${authInfo.weaverdKey}`,
-          "X-Org-Code": authInfo.account.orgnization?.code || ""
+          "X-Org-Code": authInfo.account.orgnizations?.[0].code || ""
         }
       }
     );

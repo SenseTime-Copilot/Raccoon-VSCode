@@ -9,7 +9,7 @@
             "robotname": "Raccoon",
             "authUrl": "https://raccoon-api.sensetime.com/api/plugin/auth/v1",
             "completion": {
-                "url": "https://raccoon-api.sensetime.com/api/plugin/nova/v1/proxy/v1/llm/completions",
+                "url": "https://raccoon-api.sensetime.com/api/plugin/llm/v1/completions",
                 "template": "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
                 "parameters": {
                     "model": "SenseChat-CodeCompletion-Lite",
@@ -22,7 +22,8 @@
                 "totalTokenNum": 16384
             },
             "assistant": {
-                "url": "https://raccoon-api.sensetime.com/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
+                "url": "https://raccoon-api.sensetime.com/api/plugin/llm/v1/chat-completions",
+                "knowledgeListApi": "https://raccoon-api.sensetime.com/api/plugin/knowledge_base/v1/knowledge_bases",
                 "template": "[prefix]",
                 "parameters": {
                     "model": "SenseChat-Code",

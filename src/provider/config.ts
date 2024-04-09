@@ -11,6 +11,7 @@ export enum ModelCapacity {
 
 export interface ClientOption {
   url: string;
+  knowledgeListApi?: string;
   template: string;
   parameters: any;
   maxInputTokenNum: number;

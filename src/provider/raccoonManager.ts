@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Orgnization, AccountInfo } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -10,6 +10,7 @@ import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
 import { MetricType } from './telemetry';
+import axios from "axios";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -27,6 +28,7 @@ interface ClientAndAuthInfo {
 }
 
 type ChangeScope = "prompt" | "engines" | "active" | "authorization" | "config";
+const Individual = "Individual";
 
 export interface StatusChangeEvent {
   scope: ChangeScope[];
@@ -204,8 +206,7 @@ export class RaccoonManager {
         authinfos = JSON.parse(tks);
       } catch (e) { }
     }
-    let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
-    es = (<RaccoonClientConfig[]>raccoonConfig.value("engines")).concat(es);
+    let es = (<RaccoonClientConfig[]>raccoonConfig.value("engines"));
     this._clients = {};
     for (let e of es) {
       if (e.robotname) {
@@ -228,7 +229,7 @@ export class RaccoonManager {
     let managedByOrganization = raccoonConfig.value("managedByOrganization");
     this._clients[name] = c;
     if (c.authInfo) {
-      if (managedByOrganization && (!c.authInfo.account.orgnization || c.authInfo.account.orgnization.status === "disabled")) {
+      if (managedByOrganization && (!c.authInfo.account.orgnizations || c.authInfo.account.orgnizations?.[0].status === "disabled")) {
         return this.updateToken(name);
       }
       if (username) {
@@ -240,7 +241,7 @@ export class RaccoonManager {
     let url = await c.client.getAuthUrlLogin("");
     if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
       return c.client.login(url, "").then((ai) => {
-        if (managedByOrganization && !ai.account.orgnization) {
+        if (managedByOrganization && !ai.account.orgnizations) {
           return this.updateToken(name);
         }
         if (username) {
@@ -329,10 +330,6 @@ export class RaccoonManager {
 
   public update(): void {
     this.configuration = workspace.getConfiguration(`${extensionNameCamel}`, undefined);
-  }
-
-  public get devConfig(): any {
-    return this.configuration.get("Dev");
   }
 
   private getClient(client?: string): ClientAndAuthInfo | undefined {
@@ -446,8 +443,7 @@ export class RaccoonManager {
   }
 
   public get robotNames(): string[] {
-    let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
-    return (<RaccoonClientConfig[]>raccoonConfig.value("engines")).concat(es).map((v, _idx, _arr) => {
+    return (<RaccoonClientConfig[]>raccoonConfig.value("engines")).map((v, _idx, _arr) => {
       return v.robotname;
     });
   }
@@ -489,44 +485,91 @@ export class RaccoonManager {
     }
   }
 
-  public userId(clientName?: string): string | undefined {
+  public async userInfo(update: boolean = false, clientName?: string): Promise<AccountInfo | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca && ca.authInfo) {
-      return ca.authInfo.account.userId;
+      if (update) {
+        return ca.client.syncUserInfo(ca.authInfo).then((account) => {
+          if (ca && ca.authInfo) {
+            let ai = { ...ca.authInfo, account };
+            this.updateToken(ca.client.robotName, ai);
+            return account;
+          }
+        });
+      }
+      return Promise.resolve(ca.authInfo.account);
     }
+    return Promise.resolve(undefined);
   }
 
-  public username(clientName?: string): string | undefined {
+  public orgnizationList(clientName?: string): Orgnization[] {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca && ca.client) {
-      return ca.authInfo?.account.username;
+      return ca.authInfo?.account.orgnizations || [];
     }
+    return [];
   }
 
-  public orgnizationName(clientName?: string): string | undefined {
+  public async setActiveOrgnization(orgCode?: string, clientName?: string): Promise<void> {
+    if (!orgCode) {
+      orgCode = Individual;
+    }
+    let ao = this.context.globalState.get<string>("ActiveOrgnization", Individual);
+    if (orgCode === ao) {
+      return Promise.resolve();
+    }
+    return this.context.globalState.update("ActiveOrgnization", orgCode).then(() => {
+      this.notifyStateChange({ scope: ["active"] });
+    });
+  }
+
+  public activeOrgnization(clientName?: string): Orgnization | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
     if (ca && ca.client) {
-      return ca.authInfo?.account.orgnization?.name;
+      let orgs = ca.authInfo?.account.orgnizations;
+      let ao = this.context.globalState.get<string>("ActiveOrgnization", Individual);
+      if (ao === Individual) {
+        return undefined;
+      }
+      if (ao && orgs) {
+        for (let org of orgs) {
+          if (org.code === ao) {
+            return org;
+          }
+        }
+      }
     }
   }
 
-  public avatar(clientName?: string): string | undefined {
+  public async listKnowledgeBase(capacity: ModelCapacity, clientName?: string): Promise<string[]> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (clientName) {
       ca = this.getClient(clientName);
     }
-    if (ca) {
-      return ca.authInfo?.account.avatar;
+    if (ca && ca.options[capacity]?.knowledgeListApi) {
+      let listUrl = ca.options[capacity]?.knowledgeListApi;
+      if (listUrl) {
+        return axios.get(listUrl, {
+          headers: {
+            Authorization: `Bearer ${ca.authInfo?.weaverdKey}`
+          }
+        }).then((response) => {
+          return response.data?.data?.knowledge_bases || [];
+        }).catch((e) => {
+          return [];
+        });
+      }
     }
+    return Promise.resolve([]);
   }
 
   public async getAuthUrlLogin(clientName?: string): Promise<string | undefined> {
@@ -546,7 +589,7 @@ export class RaccoonManager {
           }
           return ca.client.login(url, verifier).then(async (token) => {
             let managedByOrganization = raccoonConfig.value("managedByOrganization");
-            if (managedByOrganization && !token.account.orgnization) {
+            if (managedByOrganization && !token.account.orgnizations) {
               this.updateToken(ca!.client.robotName);
             } else if (ca && token) {
               this.updateToken(ca.client.robotName, token);
@@ -594,11 +637,11 @@ export class RaccoonManager {
         progress.report({ increment: 100 });
         if (ca && token) {
           let managedByOrganization = raccoonConfig.value("managedByOrganization");
-          if (managedByOrganization && !token.account.orgnization) {
+          if (managedByOrganization && !token.account.orgnizations) {
             this.updateToken(ca.client.robotName);
             return new Error(`${l10n.t("You have not joined any team yet")}, ${l10n.t("Contact Administrator")}.`);
           }
-          if (managedByOrganization && token.account.orgnization!.status === "disabled") {
+          if (managedByOrganization && token.account.orgnizations![0].status === "disabled") {
             this.updateToken(ca.client.robotName);
             return new Error(`${l10n.t("Account disabled")}, ${l10n.t("Contact Administrator")}.`);
           }
@@ -641,14 +684,13 @@ export class RaccoonManager {
   }
 
   public getModelCapacites(clientName?: string): ModelCapacity[] {
-    let es = this.configuration.get<RaccoonClientConfig[]>("Engines", []);
     if (!clientName) {
       clientName = this.getActiveClientRobotName();
     }
     if (!clientName) {
       return [];
     }
-    let cfg = (<RaccoonClientConfig[]>raccoonConfig.value("engines")).concat(es).filter((v, _idx, _arr) => v.robotname === clientName);
+    let cfg = (<RaccoonClientConfig[]>raccoonConfig.value("engines")).filter((v, _idx, _arr) => v.robotname === clientName);
     if (cfg.length === 0) {
       return [];
     }
@@ -668,9 +710,14 @@ export class RaccoonManager {
     }
     let opts = ca?.options[ModelCapacity.assistant];
     if (ca && ca.authInfo && opts) {
+      let knowledgeBases: string[] = [];
+      if (this.knowledgeBaseRef) {
+        knowledgeBases = await this.listKnowledgeBase(ModelCapacity.assistant, clientName);
+      }
       let config: RequestParam = {
         ...opts.parameters,
-        ...param
+        ...param,
+        knowledgeBases
       };
       let useridInfo;
       if (ca.authInfo.account.userId) {
@@ -805,6 +852,36 @@ export class RaccoonManager {
 
   public set completionDelay(v: number) {
     this.context.globalState.update("CompletionDelay", v).then(() => {
+      this.notifyStateChange({ scope: ["config"] });
+    });
+  }
+
+  public get knowledgeBaseRef(): boolean {
+    return this.context.globalState.get("KnowledgeBaseRef", false);
+  }
+
+  public set knowledgeBaseRef(accept: boolean) {
+    this.context.globalState.update("KnowledgeBaseRef", accept).then(() => {
+      this.notifyStateChange({ scope: ["config"] });
+    });
+  }
+
+  public get workspaceRef(): boolean {
+    return this.context.globalState.get("workspaceRef", false);
+  }
+
+  public set workspaceRef(accept: boolean) {
+    this.context.globalState.update("workspaceRef", accept).then(() => {
+      this.notifyStateChange({ scope: ["config"] });
+    });
+  }
+
+  public get webRef(): boolean {
+    return this.context.globalState.get("webRef", false);
+  }
+
+  public set webRef(accept: boolean) {
+    this.context.globalState.update("webRef", accept).then(() => {
       this.notifyStateChange({ scope: ["config"] });
     });
   }
