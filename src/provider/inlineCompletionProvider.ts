@@ -2,10 +2,9 @@ import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab } from "../globalEnv";
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
-import { Choice } from "../raccoonClient/CodeClient";
+import { Choice, MetricType } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ModelCapacity } from "./config";
-import { MetricType } from './telemetry';
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   if (doc) {
@@ -71,14 +70,13 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
         updateStatusBarItem(
           statusBarItem,
           {
-            text: "$(circle-slash)",
+            text: "$(warning)",
             tooltip: vscode.l10n.t(err.message?.content || "Unknown error")
           }
         );
       },
       onFinish(choices: Choice[]) {
         for (let i = 0; i < choices.length; i++) {
-          outlog.debug(JSON.stringify(choices[i]));
           let message = choices[i].message?.content;
           if (!message) {
             continue;

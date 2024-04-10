@@ -1,7 +1,7 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
 import { supportedLanguages } from "../utils/getSupportedLanguages";
 import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter } from "../globalEnv";
-import { MetricType } from "./telemetry";
+import { MetricType } from "../raccoonClient/CodeClient";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

@@ -17,7 +17,7 @@ export interface Password {
 
 export interface ClientConfig {
   robotname: string;
-  authUrl?: string;
+  apiBaseUrl: string;
   username?: string;
   key?: string | AccessKey | Password;
 }
@@ -93,6 +93,11 @@ export type ToolCall = FunctionCall;
 
 export type StopToken = Array<string> | undefined;
 
+export interface KnowledgeBase {
+  code: string;
+  name: string;
+}
+
 export interface RequestParam {
   model: string;
   tools?: Array<Tool>;
@@ -104,7 +109,7 @@ export interface RequestParam {
   stream?: boolean | null;
   stop?: StopToken;
   maxNewTokenNum?: number;
-  knowledgeBases?: string[];
+  knowledgeBases?: KnowledgeBase[];
 }
 
 export enum FinishReason {
@@ -158,7 +163,15 @@ export interface CompletionOptions {
   onController?: (controller: AbortController, thisArg?: any) => void;
 }
 
+export enum MetricType {
+  codeCompletion = "code_completion",
+  dialog = "dialog",
+  commitMessage = "commit_message"
+}
+
 export interface CodeClient {
+
+  setLogger(log?: (message: string, ...args: any[]) => void): void;
 
   get robotName(): string;
 
@@ -174,7 +187,11 @@ export interface CodeClient {
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 
-  chat(url: string, auth: AuthInfo, options: ChatOptions, orgCode?: string): Promise<void>;
+  chat(auth: AuthInfo, options: ChatOptions, org?: Orgnization): Promise<void>;
 
-  completion(url: string, auth: AuthInfo, options: CompletionOptions, orgCode?: string): Promise<void>;
+  completion(auth: AuthInfo, options: CompletionOptions, org?: Orgnization): Promise<void>;
+
+  listKnowledgeBase(authInfo: AuthInfo, org?: Orgnization): Promise<KnowledgeBase[]>;
+
+  sendTelemetry(authInfo: AuthInfo, org: Orgnization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
 }

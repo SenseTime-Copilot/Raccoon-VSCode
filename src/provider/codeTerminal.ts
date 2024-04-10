@@ -10,7 +10,7 @@ import { Choice, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
 import { ModelCapacity } from './config';
-import { MetricType } from './telemetry';
+import { MetricType } from "../raccoonClient/CodeClient";
 
 function isNonPrintableCharacter(char: string): boolean {
   const charCode = char.charCodeAt(0);
@@ -269,7 +269,6 @@ export class RaccoonTerminal {
               },
               onUpdate(choice: Choice, thisArg?: any) {
                 let h = <RaccoonTerminal>thisArg;
-                outlog.debug(JSON.stringify(choice));
                 let chunk = choice.message?.content;
                 if (chunk) {
                   h.cacheOutput += chunk;

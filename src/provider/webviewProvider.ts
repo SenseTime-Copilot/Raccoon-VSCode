@@ -3,13 +3,12 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensio
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
-import { Choice, Message, Role } from '../raccoonClient/CodeClient';
+import { Choice, Message, MetricType, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { FavoriteCodeEditor } from './favoriteCode';
 import { ModelCapacity } from './config';
-import { MetricType } from './telemetry';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
 function makeGuide(isMac: boolean) {
@@ -386,7 +385,7 @@ export class RaccoonEditor extends Disposable {
         <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
         <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
           <div class="cursor-pointer" title="${l10n.t("Switch Orgnization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-          <div title="${l10n.t("Managed by {0}", activeOrg.name)}" style="color: var(--badge-foreground);background: var(--badge-background);">
+          <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}" style="color: var(--badge-foreground);background: var(--badge-background);">
             ${activeOrg.name}
           </div>
         </div>
@@ -398,7 +397,7 @@ export class RaccoonEditor extends Disposable {
         </div>
         <div class="${username ? "flex" : "hidden"} w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
           <div class="cursor-pointer" title="${l10n.t("Switch Orgnization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-          <div title="${l10n.t("Individual")}">
+          <div class="cursor-pointer" id="switch-org" title="${l10n.t("Individual")}">
             ${l10n.t("Individual")}
           </div>
         </div>
@@ -460,7 +459,6 @@ export class RaccoonEditor extends Disposable {
     </vscode-link>
     </div>
     <div class="ml-4">
-      <div>
       <vscode-radio-group id="responseModeRadio" class="flex flex-wrap px-2">
         <label slot="label" class="-ml-2">${l10n.t("Show Response")}</label>
         <vscode-radio ${streamResponse ? "checked" : ""} class="w-40" value="Streaming" title="${l10n.t("Display the response streamingly, you can stop it at any time")}">
@@ -470,14 +468,17 @@ export class RaccoonEditor extends Disposable {
           ${l10n.t("Monolithic")}
         </vscode-radio>
       </vscode-radio-group>
-      <div>
-        <label slot="label">${l10n.t("Reference Source")}</label>
-        <div class="flex flex-wrap ml-2">
-          <vscode-checkbox class="w-40" id="knowledgeBaseRef" ${raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
-          <vscode-checkbox class="w-40" id="workspaceRef" ${raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
-          <vscode-checkbox class="w-40 hidden" id="webRef" ${raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
-        </div>
-      </div>
+    </div>
+    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <div class="flex gap-2 items-center">
+      <b>${l10n.t("Retrieval Argumention")}</b>
+    </div>
+    <div class="ml-4 my-1">
+      <label class="my-1" slot="label">${l10n.t("Reference Source")}</label>
+      <div class="flex flex-wrap ml-2 my-1">
+        <vscode-checkbox class="w-40" id="knowledgeBaseRef" ${raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+        <vscode-checkbox class="w-40" id="workspaceRef" ${raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox class="w-40 hidden" id="webRef" ${raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -1035,12 +1036,10 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
-                outlog.debug(JSON.stringify(choices));
                 delete h.stopList[id];
                 h.sendMessage({ type: 'stopResponse', id });
               },
               onUpdate(choice: Choice, thisArg) {
-                outlog.debug(JSON.stringify(choice));
                 let rts = new Date().toLocaleString();
                 thisArg.sendMessage({ type: 'addResponse', id, value: choice.message?.content || "", timestamp: rts });
               }
@@ -1073,7 +1072,6 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
-                outlog.debug(JSON.stringify(choices));
                 let rts = new Date().toLocaleString();
                 h.sendMessage({ type: 'addResponse', id, value: choices[0].message?.content, timestamp: rts });
                 delete h.stopList[id];

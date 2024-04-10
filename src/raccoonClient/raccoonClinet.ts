@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Orgnization } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Orgnization, MetricType, KnowledgeBase } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -29,8 +29,13 @@ function encrypt(dataStr: string): string {
 
 export class RaccoonClient implements CodeClient {
   private onChangeAuthInfo?: (token?: AuthInfo) => void;
+  private log?: (message: string, ...args: any[]) => void;
 
   constructor(private readonly clientConfig: ClientConfig) {
+  }
+
+  setLogger(log?: (message: string, ...args: any[]) => void) {
+    this.log = log;
   }
 
   public get robotName(): string {
@@ -81,7 +86,7 @@ export class RaccoonClient implements CodeClient {
             let code = decoded["code"];
             let phone = encrypt(decoded["account"]);
             let password = encrypt(decoded["password"]);
-            return axios.post(this.clientConfig.authUrl + "/login_with_password", {
+            return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_password", {
               // eslint-disable-next-line @typescript-eslint/naming-convention
               nation_code: code, phone, password
             }).then(resp => {
@@ -105,7 +110,7 @@ export class RaccoonClient implements CodeClient {
           } else if (decoded["account"] && decoded["password"]) {
             let email = decoded["account"];
             let password = encrypt(decoded["password"]);
-            return axios.post(this.clientConfig.authUrl + "/login_with_email_password", {
+            return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_email_password", {
               email, password
             }).then(resp => {
               if (resp.status === 200 && resp.data.code === 0) {
@@ -148,14 +153,14 @@ export class RaccoonClient implements CodeClient {
       //headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      return axios.post(`${this.clientConfig.authUrl}/logout`, {}, { headers }).then(() => {
+      return axios.post(`${this.clientConfig.apiBaseUrl}/auth/v1/logout`, {}, { headers }).then(() => {
         return undefined;
       });
     }
   }
 
   public async syncUserInfo(auth: AuthInfo): Promise<AccountInfo> {
-    let url = `${this.clientConfig.authUrl}/user_info`;
+    let url = `${this.clientConfig.apiBaseUrl}/auth/v1/user_info`;
     return axios.get(url,
       {
         headers: {
@@ -198,7 +203,7 @@ export class RaccoonClient implements CodeClient {
   }
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    let url = `${this.clientConfig.authUrl}/refresh`;
+    let url = `${this.clientConfig.apiBaseUrl}/auth/v1/refresh`;
     return axios.post(url,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -231,20 +236,23 @@ export class RaccoonClient implements CodeClient {
       });
   }
 
-  private async chatUsingFetch(url: string, auth: AuthInfo, options: ChatOptions, orgCode?: string) {
+  private async chatUsingFetch(auth: AuthInfo, options: ChatOptions, org?: Orgnization) {
     let ts = new Date();
+    let url = `${this.clientConfig.apiBaseUrl}/llm/v1/chat-completions`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
+    headers["x-raccoon-user-id"] = auth.account.userId || "";
+    if (org) {
+      headers["x-org-code"] = org.code;
+      url = `${this.clientConfig.apiBaseUrl}/org/llm/v1/chat-completions`;
+    }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      headers["X-Org-Code"] = orgCode || "";
     } else if (typeof this.clientConfig.key === "string") {
       headers["Authorization"] = `Bearer ${this.clientConfig.key}`;
-      headers["X-Org-Code"] = orgCode || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
-      headers["X-Org-Code"] = orgCode || "";
     }
 
     let config: any = {};
@@ -256,7 +264,7 @@ export class RaccoonClient implements CodeClient {
     config.n = options.config.n ?? 1;
     config.tools = options.config.tools;
     config.tool_choice = options.config.toolChoice;
-    config.know_ids = options.config.knowledgeBases;
+    config.know_ids = options.config.knowledgeBases?.map((kb, _idx, _arr) => kb.code);
 
     config.stream = !!options.config.stream;
     config.max_new_tokens = options.config.maxNewTokenNum;
@@ -290,6 +298,10 @@ export class RaccoonClient implements CodeClient {
         60000,
       );
 
+      let log = this.log;
+
+      log?.(JSON.stringify(requestPayload, undefined, 2));
+
       if (config.stream) {
         let finished = false;
         const finish = () => {
@@ -305,7 +317,6 @@ export class RaccoonClient implements CodeClient {
           ...chatPayload,
           async onopen(res) {
             clearTimeout(requestTimeoutId);
-
             if (
               !res.ok ||
               !res.headers
@@ -338,10 +349,12 @@ export class RaccoonClient implements CodeClient {
                   content: responseTexts.join("\n\n")
                 }
               };
+              log?.(JSON.stringify(error, undefined, 2));
               options.onError?.(error, options.thisArg);
             }
           },
           onmessage(msg) {
+            log?.(msg.data);
             if (msg.data === "[DONE]" || finished) {
               return finish();
             }
@@ -403,6 +416,7 @@ export class RaccoonClient implements CodeClient {
                 content: e.statusText
               }
             };
+            log?.(JSON.stringify(error, undefined, 2));
             options.onError?.(error, options.thisArg);
           },
           openWhenHidden: true,
@@ -428,6 +442,7 @@ export class RaccoonClient implements CodeClient {
               content: responseTexts.join("\n\n")
             }
           };
+          log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
         } else {
           let choices = resJson.data.choices;
@@ -441,6 +456,7 @@ export class RaccoonClient implements CodeClient {
               }
             });
           }
+          log?.(JSON.stringify(c, undefined, 2));
           options.onFinish?.(c, options.thisArg);
         }
       }
@@ -452,11 +468,12 @@ export class RaccoonClient implements CodeClient {
           content: (e as Error).message
         }
       };
+      this.log?.(JSON.stringify(error, undefined, 2));
       options.onError?.(error, options.thisArg);
     }
   }
 
-  async chat(url: string, auth: AuthInfo, options: ChatOptions, orgCode?: string): Promise<void> {
+  async chat(auth: AuthInfo, options: ChatOptions, org?: Orgnization): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -466,20 +483,24 @@ export class RaccoonClient implements CodeClient {
       }
     }
 
-    return this.chatUsingFetch(url, auth, options, orgCode);
+    return this.chatUsingFetch(auth, options, org);
   }
 
-  async completionUsingFetch(url: string, auth: AuthInfo, options: CompletionOptions, orgCode?: string): Promise<void> {
+  async completionUsingFetch(auth: AuthInfo, options: CompletionOptions, org?: Orgnization): Promise<void> {
     let ts = new Date();
     let headers = options.headers || {};
+    let url = `${this.clientConfig.apiBaseUrl}/llm/v1/completions`;
     headers["Content-Type"] = "application/json";
+    headers["x-raccoon-user-id"] = auth.account.userId || "";
+    if (org) {
+      headers["x-org-code"] = org.code;
+      url = `${this.clientConfig.apiBaseUrl}/org/llm/v1/completions`;
+    }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      headers["X-Org-Code"] = orgCode || "";
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
-      headers["X-Org-Code"] = orgCode || "";
     }
 
     let config: any = {};
@@ -518,6 +539,7 @@ export class RaccoonClient implements CodeClient {
         60000,
       );
       {
+        this.log?.(JSON.stringify(requestPayload, undefined, 2));
         const res = await fetch(chatPath, chatPayload);
         clearTimeout(requestTimeoutId);
         const resJson = await res.json();
@@ -532,6 +554,7 @@ export class RaccoonClient implements CodeClient {
               content: JSON.stringify(resJson)
             }
           };
+          this.log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
         } else {
           let choices = resJson.data.choices;
@@ -545,6 +568,7 @@ export class RaccoonClient implements CodeClient {
               }
             });
           }
+          this.log?.(JSON.stringify(c, undefined, 2));
           options.onFinish?.(c, options.thisArg);
         }
       }
@@ -556,11 +580,12 @@ export class RaccoonClient implements CodeClient {
           content: (e as Error).message
         }
       };
+      this.log?.(JSON.stringify(error, undefined, 2));
       options.onError?.(error, options.thisArg);
     }
   }
 
-  async completion(url: string, auth: AuthInfo, options: CompletionOptions, orgCode?: string): Promise<void> {
+  async completion(auth: AuthInfo, options: CompletionOptions, org?: Orgnization): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -569,6 +594,40 @@ export class RaccoonClient implements CodeClient {
         return Promise.reject(err);
       }
     }
-    return this.completionUsingFetch(url, auth, options, orgCode);
+    return this.completionUsingFetch(auth, options, org);
+  }
+
+  public async listKnowledgeBase(authInfo: AuthInfo, org?: Orgnization): Promise<KnowledgeBase[]> {
+    let listUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
+    return axios.get(listUrl, {
+      headers: {
+        Authorization: `Bearer ${authInfo.weaverdKey}`,
+        "x-org-code": org?.code
+      }
+    }).then((response) => {
+      return response.data?.data?.knowledge_bases || [];
+    }).catch((e) => {
+      return [];
+    });
+  }
+
+  public async sendTelemetry(authInfo: AuthInfo, org: Orgnization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
+    let telementryUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/b/v1/m`;
+    let metricInfo: any = {};
+    metricInfo[metricType] = metric;
+    metricInfo['metric_type'] = metricType.replace("_", "-");
+    axios.post(telementryUrl,
+      {
+        common_header: common,
+        metrics: [metricInfo],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${authInfo.weaverdKey}`,
+          "x-org-code": org?.code
+        }
+      }
+    );
+    /* eslint-enable */
   }
 }

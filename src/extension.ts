@@ -11,10 +11,10 @@ import { TextDocumentShowOptions } from "vscode";
 import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
-import { MetricType } from './provider/telemetry';
 import { HistoryCache } from "./utils/historyCache";
 import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
+import { MetricType } from "./raccoonClient/CodeClient";
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {

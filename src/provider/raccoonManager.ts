@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Orgnization, AccountInfo } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Orgnization, AccountInfo, KnowledgeBase, MetricType } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -9,8 +9,6 @@ import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
-import { MetricType } from './telemetry';
-import axios from "axios";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -73,7 +71,6 @@ export class RaccoonManager {
             window.showErrorMessage(e.message?.content || "", l10n.t("Close"));
           },
           onUpdate: (choice: Choice) => {
-            outlog.debug(JSON.stringify(choice));
             let cmtmsg = choice.message?.content;
             if (cmtmsg && targetRepo) {
               targetRepo.inputBox.value += cmtmsg;
@@ -141,8 +138,6 @@ export class RaccoonManager {
     this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
     let ret = context.globalState.get<boolean>(flag);
     if (!ret) {
-      //outlog.debug('Clear settings');
-      //this.resetAllCacheData();
       context.globalState.update(flag, true);
     }
     context.subscriptions.push(
@@ -211,27 +206,22 @@ export class RaccoonManager {
     for (let e of es) {
       if (e.robotname) {
         let client = new RaccoonClient(e);
-        if (client) {
-          client.onDidChangeAuthInfo(async (ai) => {
-            await this.updateToken(e.robotname, ai);
-          });
-          if (authinfos[e.robotname]) {
-            let account = await client.syncUserInfo(authinfos[e.robotname]);
-            authinfos[e.robotname].account = account;
-          }
-          await this.appendClient(e.robotname, { client, options: e, authInfo: authinfos[e.robotname] }, e.username);
+        client.setLogger(outlog.debug);
+        client.onDidChangeAuthInfo(async (ai) => {
+          await this.updateToken(e.robotname, ai);
+        });
+        if (authinfos[e.robotname]) {
+          let account = await client.syncUserInfo(authinfos[e.robotname]);
+          authinfos[e.robotname].account = account;
         }
+        await this.appendClient(e.robotname, { client, options: e, authInfo: authinfos[e.robotname] }, e.username);
       }
     }
   }
 
   private async appendClient(name: string, c: ClientAndAuthInfo, username?: string) {
-    let managedByOrganization = raccoonConfig.value("managedByOrganization");
     this._clients[name] = c;
     if (c.authInfo) {
-      if (managedByOrganization && (!c.authInfo.account.orgnizations || c.authInfo.account.orgnizations?.[0].status === "disabled")) {
-        return this.updateToken(name);
-      }
       if (username) {
         c.authInfo.account.username = username;
       }
@@ -241,9 +231,6 @@ export class RaccoonManager {
     let url = await c.client.getAuthUrlLogin("");
     if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
       return c.client.login(url, "").then((ai) => {
-        if (managedByOrganization && !ai.account.orgnizations) {
-          return this.updateToken(name);
-        }
         if (username) {
           ai.account.username = username;
         }
@@ -372,11 +359,8 @@ export class RaccoonManager {
     }
   }
 
-  public isClientLoggedin(clientName?: string) {
+  public isClientLoggedin() {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     return (ca && ca.authInfo);
   }
 
@@ -448,11 +432,8 @@ export class RaccoonManager {
     });
   }
 
-  public buildFillPrompt(capacity: ModelCapacity, language: string, prefix: string, suffix?: string, clientName?: string): string | undefined {
+  public buildFillPrompt(capacity: ModelCapacity, language: string, prefix: string, suffix?: string): string | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca) {
       if (ca.options[capacity]?.template) {
         let _prefix = prefix.replace(/\r\n/g, '\n');
@@ -485,11 +466,8 @@ export class RaccoonManager {
     }
   }
 
-  public async userInfo(update: boolean = false, clientName?: string): Promise<AccountInfo | undefined> {
+  public async userInfo(update: boolean = false): Promise<AccountInfo | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca && ca.authInfo) {
       if (update) {
         return ca.client.syncUserInfo(ca.authInfo).then((account) => {
@@ -505,18 +483,15 @@ export class RaccoonManager {
     return Promise.resolve(undefined);
   }
 
-  public orgnizationList(clientName?: string): Orgnization[] {
+  public orgnizationList(): Orgnization[] {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca && ca.client) {
       return ca.authInfo?.account.orgnizations || [];
     }
     return [];
   }
 
-  public async setActiveOrgnization(orgCode?: string, clientName?: string): Promise<void> {
+  public async setActiveOrgnization(orgCode?: string): Promise<void> {
     if (!orgCode) {
       orgCode = Individual;
     }
@@ -529,11 +504,8 @@ export class RaccoonManager {
     });
   }
 
-  public activeOrgnization(clientName?: string): Orgnization | undefined {
+  public activeOrgnization(): Orgnization | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca && ca.client) {
       let orgs = ca.authInfo?.account.orgnizations;
       let ao = this.context.globalState.get<string>("ActiveOrgnization", Individual);
@@ -550,33 +522,17 @@ export class RaccoonManager {
     }
   }
 
-  public async listKnowledgeBase(capacity: ModelCapacity, clientName?: string): Promise<string[]> {
+  public async listKnowledgeBase(): Promise<KnowledgeBase[]> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
-    if (ca && ca.options[capacity]?.knowledgeListApi) {
-      let listUrl = ca.options[capacity]?.knowledgeListApi;
-      if (listUrl) {
-        return axios.get(listUrl, {
-          headers: {
-            Authorization: `Bearer ${ca.authInfo?.weaverdKey}`
-          }
-        }).then((response) => {
-          return response.data?.data?.knowledge_bases || [];
-        }).catch((e) => {
-          return [];
-        });
-      }
+    let org: Orgnization | undefined = this.activeOrgnization();
+    if (ca && ca.authInfo) {
+      return ca.client.listKnowledgeBase(ca.authInfo, org);
     }
     return Promise.resolve([]);
   }
 
-  public async getAuthUrlLogin(clientName?: string): Promise<string | undefined> {
+  public async getAuthUrlLogin(): Promise<string | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca) {
       let authMethods = ca.client.authMethods;
       let verifier = this.seed;
@@ -588,10 +544,7 @@ export class RaccoonManager {
             return undefined;
           }
           return ca.client.login(url, verifier).then(async (token) => {
-            let managedByOrganization = raccoonConfig.value("managedByOrganization");
-            if (managedByOrganization && !token.account.orgnizations) {
-              this.updateToken(ca!.client.robotName);
-            } else if (ca && token) {
+            if (ca && token) {
               this.updateToken(ca.client.robotName, token);
             }
             return undefined;
@@ -618,11 +571,8 @@ export class RaccoonManager {
     }
   }
 
-  public getTokenFromLoginResult(callbackUrl: string, clientName?: string): Thenable<'ok' | Error> {
+  public getTokenFromLoginResult(callbackUrl: string): Thenable<'ok' | Error> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
 
     return window.withProgress({
       location: { viewId: `${extensionNameKebab}.view` }
@@ -636,15 +586,6 @@ export class RaccoonManager {
       return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
-          let managedByOrganization = raccoonConfig.value("managedByOrganization");
-          if (managedByOrganization && !token.account.orgnizations) {
-            this.updateToken(ca.client.robotName);
-            return new Error(`${l10n.t("You have not joined any team yet")}, ${l10n.t("Contact Administrator")}.`);
-          }
-          if (managedByOrganization && token.account.orgnizations![0].status === "disabled") {
-            this.updateToken(ca.client.robotName);
-            return new Error(`${l10n.t("Account disabled")}, ${l10n.t("Contact Administrator")}.`);
-          }
           this.updateToken(ca.client.robotName, token);
           return 'ok';
         } else {
@@ -656,14 +597,11 @@ export class RaccoonManager {
     });
   }
 
-  public async logout(clientName?: string) {
+  public async logout() {
     return window.withProgress({
       location: { viewId: `${extensionNameKebab}.view` }
     }, async (progress, _cancel) => {
       let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-      if (clientName) {
-        ca = this.getClient(clientName);
-      }
       if (ca && ca.authInfo) {
         await ca.client.logout(ca.authInfo).then((logoutUrl) => {
           progress.report({ increment: 100 });
@@ -683,10 +621,8 @@ export class RaccoonManager {
     });
   }
 
-  public getModelCapacites(clientName?: string): ModelCapacity[] {
-    if (!clientName) {
-      clientName = this.getActiveClientRobotName();
-    }
+  public getModelCapacites(): ModelCapacity[] {
+    let clientName = this.getActiveClientRobotName();
     if (!clientName) {
       return [];
     }
@@ -703,37 +639,27 @@ export class RaccoonManager {
     return mc;
   }
 
-  public async chat(messages: Message[], param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>, clientName?: string): Promise<void> {
+  public async chat(messages: Message[], param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     let opts = ca?.options[ModelCapacity.assistant];
     if (ca && ca.authInfo && opts) {
-      let knowledgeBases: string[] = [];
+      let knowledgeBases: KnowledgeBase[] = [];
       if (this.knowledgeBaseRef) {
-        knowledgeBases = await this.listKnowledgeBase(ModelCapacity.assistant, clientName);
+        knowledgeBases = await this.listKnowledgeBase();
       }
       let config: RequestParam = {
         ...opts.parameters,
         ...param,
         knowledgeBases
       };
-      let useridInfo;
-      if (ca.authInfo.account.userId) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        useridInfo = { "x-raccoon-user-id": ca.authInfo.account.userId };
-      }
+      let org = this.activeOrgnization();
       let options: ChatOptions = {
         messages,
         config,
-        headers: { ...headers, ...useridInfo },
+        headers,
         ...callbacks
       };
-      outlog.debug("Request URL : " + opts.url);
-      outlog.debug("Options:\n" + JSON.stringify(config, undefined, 2));
-      outlog.debug("Message:\n" + JSON.stringify(messages, undefined, 2));
-      return ca.client.chat(opts.url, ca.authInfo, options).catch(e => {
+      return ca.client.chat(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
           this.updateToken(ca!.client.robotName);
         }
@@ -746,32 +672,27 @@ export class RaccoonManager {
     }
   }
 
-  public async completion(prompt: string, param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>, clientName?: string): Promise<void> {
+  public async completion(prompt: string, param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     let opts = ca?.options[ModelCapacity.completion];
     if (ca && ca.authInfo && opts) {
+      let knowledgeBases: KnowledgeBase[] = [];
+      if (this.knowledgeBaseRef) {
+        knowledgeBases = await this.listKnowledgeBase();
+      }
       let config: RequestParam = {
         ...opts.parameters,
-        ...param
+        ...param,
+        knowledgeBases
       };
-      let useridInfo;
-      if (ca.authInfo.account.userId) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        useridInfo = { "x-raccoon-user-id": ca.authInfo.account.userId };
-      }
+      let org = this.activeOrgnization();
       let options: CompletionOptions = {
         prompt,
         config,
-        headers: { ...headers, ...useridInfo },
+        headers,
         ...callbacks
       };
-      outlog.debug("Request URL : " + opts.url);
-      outlog.debug("Options:\n" + JSON.stringify(config, undefined, 2));
-      outlog.debug("Prompt:\n" + prompt);
-      return ca.client.completion(opts.url, ca.authInfo, options).catch(e => {
+      return ca.client.completion(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
           this.updateToken(ca!.client.robotName);
         }
@@ -782,6 +703,15 @@ export class RaccoonManager {
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
+  }
+
+  public sendTelemetry(metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void> {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let org: Orgnization | undefined = this.activeOrgnization();
+    if (!ca || !ca.authInfo) {
+      return Promise.resolve();
+    }
+    return ca.client.sendTelemetry(ca.authInfo, org, metricType, common, metric);
   }
 
   public get autoComplete(): boolean {
@@ -824,22 +754,16 @@ export class RaccoonManager {
     });
   }
 
-  public maxInputTokenNum(capacity: ModelCapacity, clientName?: string): number {
+  public maxInputTokenNum(capacity: ModelCapacity): number {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca) {
       return ca.options[capacity]?.maxInputTokenNum || 0;
     }
     return 0;
   }
 
-  public totalTokenNum(capacity: ModelCapacity, clientName?: string): number {
+  public totalTokenNum(capacity: ModelCapacity): number {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (clientName) {
-      ca = this.getClient(clientName);
-    }
     if (ca) {
       return ca.options[capacity]?.totalTokenNum || 0;
     }
@@ -847,7 +771,7 @@ export class RaccoonManager {
   }
 
   public get completionDelay(): number {
-    return this.context.globalState.get("CompletionDelay", 1000);
+    return this.context.globalState.get("CompletionDelay", 0);
   }
 
   public set completionDelay(v: number) {

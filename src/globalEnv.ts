@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { RaccoonManager } from "./provider/raccoonManager";
 import { RaccoonConfig } from "./provider/config";
-import { MetricType, RaccoonTelemetry } from './provider/telemetry';
+import { MetricType } from "./raccoonClient/CodeClient";
 
 export let extensionDisplayName: string;
 export let extensionNameKebab: string;
@@ -50,8 +50,6 @@ export async function initEnv(context: vscode.ExtensionContext) {
   raccoonManager = RaccoonManager.getInstance(context);
   raccoonManager.update();
 
-  let raccoonTelemetry: RaccoonTelemetry = new RaccoonTelemetry();
-
   const sender: vscode.TelemetrySender = {
     flush() {
     },
@@ -59,13 +57,16 @@ export async function initEnv(context: vscode.ExtensionContext) {
     },
     async sendEventData(eventName, data) {
       let event = eventName;
-      let authInfo = raccoonManager.getActiveClientAuth();
-      if (data && eventName && authInfo) {
+      if (data && eventName) {
         if (eventName.startsWith(context.extension.id + "/")) {
           // eslint-disable-next-line no-unused-vars
           event = eventName.slice(context.extension.id.length + 1);
         }
-        raccoonTelemetry?.sendTelemetry(authInfo, <MetricType>event, data);
+        let common = {
+          client_agent: vscode.env.appName,
+          machine_id: vscode.env.machineId
+        }
+        raccoonManager.sendTelemetry(<MetricType>event, common, data);
       }
     },
   };
