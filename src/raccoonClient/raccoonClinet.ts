@@ -315,7 +315,7 @@ export class RaccoonClient implements CodeClient {
 
         fetchEventSource(chatPath, {
           ...chatPayload,
-          async onopen(res) {
+          async onopen(res: any) {
             clearTimeout(requestTimeoutId);
             if (
               !res.ok ||
@@ -353,7 +353,7 @@ export class RaccoonClient implements CodeClient {
               options.onError?.(error, options.thisArg);
             }
           },
-          onmessage(msg) {
+          onmessage(msg: any) {
             log?.(msg.data);
             if (msg.data === "[DONE]" || finished) {
               return finish();
@@ -498,6 +498,8 @@ export class RaccoonClient implements CodeClient {
     }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+    } else if (typeof this.clientConfig.key === "string") {
+      headers["Authorization"] = `Bearer ${this.clientConfig.key}`;
     } else {
       let aksk = this.clientConfig.key as AccessKey;
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
@@ -599,6 +601,9 @@ export class RaccoonClient implements CodeClient {
 
   public async listKnowledgeBase(authInfo: AuthInfo, org?: Orgnization): Promise<KnowledgeBase[]> {
     let listUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
+    if (!authInfo.account.pro && !org) {
+      return [];
+    }
     return axios.get(listUrl, {
       headers: {
         Authorization: `Bearer ${authInfo.weaverdKey}`,

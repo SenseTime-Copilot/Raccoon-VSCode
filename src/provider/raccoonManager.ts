@@ -526,7 +526,16 @@ export class RaccoonManager {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     let org: Orgnization | undefined = this.activeOrgnization();
     if (ca && ca.authInfo) {
-      return ca.client.listKnowledgeBase(ca.authInfo, org);
+      let ts = this.context.globalState.get<number>("KnowledgeBasesUpdateAt") || 0;
+      let cur_ts = new Date().valueOf();
+      if ((cur_ts - ts) > (3600 * 1000)) {
+        let kb = ca.client.listKnowledgeBase(ca.authInfo, org);
+        this.context.globalState.update("KnowledgeBases", kb);
+        this.context.globalState.update("KnowledgeBasesUpdateAt", cur_ts);
+        return kb;
+      } else {
+        return this.context.globalState.get<KnowledgeBase[]>("KnowledgeBases") || [];
+      }
     }
     return Promise.resolve([]);
   }

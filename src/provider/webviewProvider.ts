@@ -376,6 +376,7 @@ export class RaccoonEditor extends Disposable {
 
     let trigger = (completionDelay === 3500) ? "opacity-60" : "";
     let activeOrg = raccoonManager.activeOrgnization();
+    let KnowledgeBaseEnable = pro || activeOrg;
 
     accountInfo = `
     <div class="flex gap-2 items-center w-full">
@@ -470,15 +471,16 @@ export class RaccoonEditor extends Disposable {
       </vscode-radio-group>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-    <div class="flex gap-2 items-center">
+    <div class="flex gap-2 items-center ${KnowledgeBaseEnable ? "" : "opacity-50"}">
       <b>${l10n.t("Retrieval Argumention")}</b>
+      <vscode-badge ${activeOrg ? "hidden" : ""}>Pro</vscode-badge>
     </div>
     <div class="ml-4 my-1">
-      <label class="my-1" slot="label">${l10n.t("Reference Source")}</label>
+      <label class="my-1 ${KnowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
-        <vscode-checkbox class="w-40" id="knowledgeBaseRef" ${raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
-        <vscode-checkbox class="w-40" id="workspaceRef" ${raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
-        <vscode-checkbox class="w-40 hidden" id="webRef" ${raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
+        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40" id="knowledgeBaseRef" ${KnowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${KnowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${KnowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -1014,7 +1016,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
           raccoonManager.chat(
             msgs,
             {
-              stream: streaming,
+              stream: true,
               n: 1
             },
             {
@@ -1050,7 +1052,6 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
           await raccoonManager.chat(
             msgs,
             {
-              stream: streaming,
               n: 1
             },
             {
