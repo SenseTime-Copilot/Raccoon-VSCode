@@ -300,6 +300,8 @@ export class RaccoonClient implements CodeClient {
 
       let log = this.log;
 
+      log?.(chatPath);
+      log?.(JSON.stringify(headers, undefined, 2));
       log?.(JSON.stringify(requestPayload, undefined, 2));
 
       if (config.stream) {
@@ -315,8 +317,15 @@ export class RaccoonClient implements CodeClient {
 
         fetchEventSource(chatPath, {
           ...chatPayload,
-          async onopen(res: any) {
+          async onopen(res: Response) {
             clearTimeout(requestTimeoutId);
+            if (log) {
+              let hh: any = {};
+              res.headers.forEach((v, k, h) => {
+                hh[k] = v;
+              });
+              log(JSON.stringify(hh, undefined, 2));
+            }
             if (
               !res.ok ||
               !res.headers
@@ -422,8 +431,16 @@ export class RaccoonClient implements CodeClient {
           openWhenHidden: true,
         });
       } else {
-        const res = await fetch(chatPath, chatPayload);
+        const res: Response = await fetch(chatPath, chatPayload);
         clearTimeout(requestTimeoutId);
+
+        if (log) {
+          let hh: any = {};
+          res.headers.forEach((v, k, h) => {
+            hh[k] = v;
+          });
+          log(JSON.stringify(hh, undefined, 2));
+        }
 
         const resJson = await res.json();
         if (!res.ok) {
@@ -541,6 +558,8 @@ export class RaccoonClient implements CodeClient {
         60000,
       );
       {
+        this.log?.(chatPath);
+        this.log?.(JSON.stringify(headers, undefined, 2));
         this.log?.(JSON.stringify(requestPayload, undefined, 2));
         const res = await fetch(chatPath, chatPayload);
         clearTimeout(requestTimeoutId);
