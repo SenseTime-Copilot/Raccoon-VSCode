@@ -9,7 +9,7 @@ import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
-import { RaccoonAgent, builtinAgents } from "./agentTemplates";
+import { RaccoonAgent, builtinAgents } from "./agentManager";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -26,7 +26,7 @@ interface ClientAndAuthInfo {
   authInfo?: AuthInfo;
 }
 
-type ChangeScope = "prompt" | "engines" | "active" | "authorization" | "config";
+type ChangeScope = "agent" | "prompt" | "engines" | "active" | "authorization" | "config";
 const Individual = "Individual";
 
 export interface StatusChangeEvent {
@@ -145,6 +145,9 @@ export class RaccoonManager {
       workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration(extensionNameCamel)) {
           this.update();
+          if (e.affectsConfiguration(`${extensionNameCamel}.Agent`)) {
+            this.notifyStateChange({ scope: ["agent"] });
+          }
           if (e.affectsConfiguration(`${extensionNameCamel}.Prompt`)) {
             this.notifyStateChange({ scope: ["prompt"] });
           }
@@ -313,7 +316,7 @@ export class RaccoonManager {
     await this.configuration.update("Prompt", undefined, true);
 
     await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
-    this.notifyStateChange({ scope: ["authorization", "active", "engines", "prompt", "config"] });
+    this.notifyStateChange({ scope: ["authorization", "active", "engines", "agent", "prompt", "config"] });
   }
 
   public update(): void {
@@ -538,13 +541,13 @@ export class RaccoonManager {
     }
   }
 
-  public async listKnowledgeBase(): Promise<KnowledgeBase[]> {
+  public async listKnowledgeBase(update?: boolean): Promise<KnowledgeBase[]> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     let org: Organization | undefined = this.activeOrganization();
     if (ca && ca.authInfo) {
       let ts = this.context.globalState.get<number>("KnowledgeBasesUpdateAt") || 0;
       let cur_ts = new Date().valueOf();
-      if ((cur_ts - ts) > (3600 * 1000)) {
+      if (update || ((cur_ts - ts) > (3600 * 1000))) {
         let kb = await ca.client.listKnowledgeBase(ca.authInfo, org);
         this.context.globalState.update("KnowledgeBases", kb);
         this.context.globalState.update("KnowledgeBasesUpdateAt", cur_ts);
@@ -686,6 +689,8 @@ export class RaccoonManager {
             raccoonManager.setActiveOrganization(select.id);
           }
         })
+      }).then(() => {
+        this.listKnowledgeBase(true);
       })
     });
   }
@@ -853,8 +858,8 @@ export class RaccoonManager {
     return this.context.globalState.get("KnowledgeBaseRef", false);
   }
 
-  public set knowledgeBaseRef(accept: boolean) {
-    this.context.globalState.update("KnowledgeBaseRef", accept).then(() => {
+  public set knowledgeBaseRef(value: boolean) {
+    this.context.globalState.update("KnowledgeBaseRef", value).then(() => {
       this.notifyStateChange({ scope: ["config"] });
     });
   }
@@ -863,8 +868,8 @@ export class RaccoonManager {
     return this.context.globalState.get("workspaceRef", false);
   }
 
-  public set workspaceRef(accept: boolean) {
-    this.context.globalState.update("workspaceRef", accept).then(() => {
+  public set workspaceRef(value: boolean) {
+    this.context.globalState.update("workspaceRef", value).then(() => {
       this.notifyStateChange({ scope: ["config"] });
     });
   }
@@ -873,8 +878,8 @@ export class RaccoonManager {
     return this.context.globalState.get("webRef", false);
   }
 
-  public set webRef(accept: boolean) {
-    this.context.globalState.update("webRef", accept).then(() => {
+  public set webRef(value: boolean) {
+    this.context.globalState.update("webRef", value).then(() => {
       this.notifyStateChange({ scope: ["config"] });
     });
   }

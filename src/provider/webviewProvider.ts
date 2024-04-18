@@ -95,6 +95,8 @@ export class RaccoonEditor extends Disposable {
     raccoonManager.onDidChangeStatus(async (e) => {
       if (e.scope.includes("authorization") && !e.quiet) {
         this.showWelcome();
+      } else if (e.scope.includes("agent")) {
+        this.sendMessage({ type: 'agentList', value: raccoonManager.agent });
       } else if (e.scope.includes("prompt")) {
         this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
       } else if (e.scope.includes("engines")) {
@@ -760,7 +762,12 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'knowledgeBaseRef': {
-          raccoonManager.knowledgeBaseRef = !!data.value;
+          if (!!data.value) {
+            await raccoonManager.listKnowledgeBase(true);
+            raccoonManager.knowledgeBaseRef = true;
+          } else {
+            raccoonManager.knowledgeBaseRef = false;
+          }
           break;
         }
         case 'workspaceRef': {
@@ -1196,6 +1203,10 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                           data-tip4="${l10n.t("Type ? to tigger search")}"
                           data-tip5="${l10n.t("Clear button can be found on the top of this view")}"
                     >
+                      <div id="backdrop">
+                        <div id="highlight-anchor">
+                        </div>
+                      </div>
                       <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                     </label>
                     <button id="send-button" title="${l10n.t("Send")} [Enter]">

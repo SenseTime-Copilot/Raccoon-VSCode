@@ -15,7 +15,7 @@ import { HistoryCache } from "./utils/historyCache";
 import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig, agentEditorViewType } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 import { MetricType } from "./raccoonClient/CodeClient";
-import { AgentEditor } from "./provider/agentTemplates";
+import { AgentEditor } from "./provider/agentManager";
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {

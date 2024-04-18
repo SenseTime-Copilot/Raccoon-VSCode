@@ -95,24 +95,22 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     }
   }
 
-  private getAgentItems(label: string): RaccoonAgent {
+  private getAgentItems(id: string): RaccoonAgent {
     let ps = raccoonManager.agent;
-    let t = ps.filter((p) => (p.label === label));
+    let t = ps.filter((p) => (p.id === id));
     return t[0];
   }
 
-  private async appendAgent(label: string, systemPrompt: string, overwrite?: boolean): Promise<void> {
+  private async appendAgent(id: string, systemPrompt: string, overwrite?: boolean): Promise<void> {
     let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let customAgents: { [key: string]: string | any } = {};
     let writeable = true;
     if (cfg) {
       customAgents = cfg.get("Agent", {});
       if (!overwrite) {
-        for (let labelName in customAgents) {
-          if (typeof customAgents[labelName] === 'object') {
-            if (labelName === label) {
-              writeable = false;
-            }
+        for (let _id in customAgents) {
+          if (_id === id) {
+            writeable = false;
           }
         }
       }
@@ -128,17 +126,17 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       return Promise.reject();
     }
     let savep: any = { systemPrompt };
-    return cfg.update("Agent", { ...customAgents, [label]: savep }, true);
+    return cfg.update("Agent", { ...customAgents, [id]: savep }, true);
   }
 
-  private async removeAgentItem(label: string) {
+  private async removeAgentItem(id: string) {
     let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let customPrompts: { [key: string]: string | any } = {};
     if (cfg) {
       customPrompts = cfg.get("Agent", {});
-      for (let labelName in customPrompts) {
-        if (labelName === label) {
-          customPrompts[labelName] = undefined;
+      for (let _id in customPrompts) {
+        if (_id === id) {
+          customPrompts[_id] = undefined;
           cfg.update("Agent", customPrompts, true);
           return;
         }
@@ -170,11 +168,11 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       return this.AgentEditorPage(webviewPanel);
     } else {
       let msg = JSON.parse(document.uri.fragment);
-      this.AgentEditorPage(webviewPanel, msg.label, msg.systemPrompt);
+      this.AgentEditorPage(webviewPanel, msg);
     }
   }
 
-  async AgentEditorPage(panel: WebviewPanel, label?: string, systemPrompt?: string) {
+  async AgentEditorPage(panel: WebviewPanel, agent?: RaccoonAgent) {
     let webview = panel.webview;
     webview.options = {
       enableScripts: true
@@ -182,9 +180,9 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
         case 'save': {
-          this.appendAgent(msg.label, msg.prompt, msg.force).then(() => {
-            if (label && label !== msg.label) {
-              this.removeAgentItem(label);
+          this.appendAgent(msg.id, msg.prompt, msg.force).then(() => {
+            if (agent?.id && agent.id !== msg.id) {
+              this.removeAgentItem(agent.id);
             }
             panel.dispose();
           }, () => { });
@@ -216,13 +214,13 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     };
     const vscode = acquireVsCodeApi();
     function save(old) {
-      var label = document.getElementById("label").value;
+      var id = document.getElementById("id").value;
       var prompt = document.getElementById("prompt").value;
       vscode.postMessage(
         {
           "type": "save",
-          "force": label === old,
-          "label": label,
+          "force": id === old,
+          "id": id,
           "prompt": prompt
         }
       )
@@ -236,17 +234,17 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     }
     window.onload = (event) => {
       var prompt = document.getElementById("prompt");
-      prompt.value = ${systemPrompt || ""};
-      var labelNode = document.getElementById("label");
+      prompt.value = "${agent?.systemPrompt || ""}";
+      var idNode = document.getElementById("id");
       var saveNode = document.getElementById("save");
-      labelNode.addEventListener("input", (_e)=>{
-        if (labelNode.value && /^[a-zA-Z]\\w{0,15}$/.test(labelNode.value)){
+      idNode.addEventListener("input", (_e)=>{
+        if (idNode.value && /^[a-zA-Z]\\w{0,15}$/.test(idNode.value)){
           saveNode.disabled = false;
         } else {
           saveNode.disabled = true;
         }
       });
-      labelNode.focus();
+      idNode.focus();
     };
     </script>
     </head>
@@ -255,24 +253,21 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       <h2>${l10n.t("Custom Agent")}</h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem; flex-flow: wrap">
-          <vscode-text-field id="label" tabindex="1" placeholder="${l10n.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${label && `value="${label}"`}>${l10n.t("Label")}
-            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Display label")}">
-              <span class="material-symbols-rounded">smart_button</span>
+          <vscode-text-field id="id" tabindex="1" placeholder="ID" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent?.id && `value="${agent?.id}"`}>${l10n.t("ID")}
+            <vscode-link slot="start" tabindex="-1" href="#">
+              <span>@</span>
             </vscode-link>
           </vscode-text-field>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
             <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Custom Prompt")}</label>
-            <div class="flex gap-1 p-1" style="border-radius: 6px 6px 0 0;background-color: var(--input-background);border-bottom: 1px dashed var(--vscode-dropdown-border);height: 33px;z-index: 1;width: calc(100% - 2px);margin: 0 1px;">
-            </div>
-            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 43px 9px 9px 9px;margin-top: -34px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);">
-            </textarea>
+            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 9px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
           </div>
         </div>
         <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
           <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(label && label.length > 0) ? '' : 'disabled'} onclick="save('${label}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(agent && agent.id.length > 0) ? '' : 'disabled'} onclick="save('${agent?.id}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
         </div>
       </div>
       </div>
@@ -288,18 +283,18 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
         case 'add': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/new.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${l10n.t("New")}]` }))}`), agentEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/new.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Agent")} [${l10n.t("New")}]` }))}`), agentEditorViewType);
           break;
         }
         case 'edit': {
-          let agent = this.getAgentItems(msg.label);
+          let agent = this.getAgentItems(msg.id);
           if (agent) {
-            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/edit.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${agent.label}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
+            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Agent")} [${agent.id}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
           }
           break;
         }
         case 'delete': {
-          this.removeAgentItem(msg.label);
+          this.removeAgentItem(msg.id);
           break;
         }
       }
@@ -320,25 +315,25 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       <div style="font-family: var(--vscode-editor-font-family);">No Custom Agent</div>
     </div>`;
     let table = `
-    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="1fr 2fr calc(20ch + 24px) 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
+    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="1fr 4fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("Label")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Custom Prompt")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Action")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="1">ID</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Label")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
     for (let s of agents) {
       emptyPlaceholder = '';
       table += `
       <vscode-data-grid-row id="${s.label}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
-        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="${s.label}" onclick="editAgent('${s.label}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="2" style="align-self: center; overflow-x: auto; white-space: pre;">${s.systemPrompt || ""}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center;">
+        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="${s.id}" onclick="editAgent('${s.id}')"><vscode-link>${s.id}</vscode-link></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="2" style="align-self: center;" title="${s.label}" onclick="editAgent('${s.id}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="align-self: center;">
           <vscode-link>
-            <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.label}')">edit</span>
+            <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')">edit</span>
           </vscode-link>
           <vscode-link>
-            <span class="material-symbols-rounded delete-agent" onclick="deleteByLabel('${s.label}')">delete</span>
+            <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')">delete</span>
           </vscode-link>
         </vscode-data-grid-cell>
       </vscode-data-grid-row>
@@ -371,19 +366,19 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
         }
       )
     }
-    function editAgent(label) {
+    function editAgent(id) {
       vscode.postMessage(
         {
           "type": "edit",
-          "label": label
+          "id": id
         }
       )
     }
-    function deleteByLabel(label) {
+    function deleteById(id) {
       vscode.postMessage(
         {
           "type": "delete",
-          "label": label
+          "id": id
         }
       )
     }

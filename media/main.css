@@ -465,6 +465,28 @@ textarea::placeholder {
     opacity: 0.5;
 }
 
+#question-sizer #highlight-anchor {
+    color: transparent;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+#question-sizer mark {
+    color: transparent;
+    background: transparent;
+    border-bottom: 1px solid var(--progress-background);
+}
+
+#question-sizer #backdrop {
+    position: absolute;
+    padding: 0.25em;
+    background-color: transparent;
+    z-index: 1;
+    overflow: auto;
+    pointer-events: none;
+    transition: transform 1s;
+}
+
 #question button,
 #question button:disabled:hover {
     color: var(--input-placeholder-foreground);

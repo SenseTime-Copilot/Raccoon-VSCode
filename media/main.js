@@ -946,6 +946,7 @@ const vscode = acquireVsCodeApi();
       document.getElementById("ask-list").classList.add("hidden");
       document.getElementById("search-list").classList.add("hidden");
       document.getElementById("question-input").value = "";
+      document.getElementById("highlight-anchor").innerHTML = "";
       document.getElementById("question-sizer").dataset.value = "";
       document.getElementById("question").classList.remove("history");
     }
@@ -955,6 +956,7 @@ const vscode = acquireVsCodeApi();
     var q = document.getElementById('question-input');
     if (q.value) {
       document.getElementById("question").classList.add("prompt-ready");
+      document.getElementById("highlight-anchor").innerHTML = q.value.replace(/\n$/g, '\n\n').replace(/(@\S+)/g, '<mark>$1</mark>');
     } else {
       document.getElementById("question").classList.remove("prompt-ready");
     }
