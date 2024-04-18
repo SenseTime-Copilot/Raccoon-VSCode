@@ -136,7 +136,7 @@ export class RaccoonManager {
   }
 
   private constructor(private readonly context: ExtensionContext) {
-    this.flag = `${context.extension.id}-${context.extension.packageJSON.version}-ppppp`;
+    this.flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
     outlog.debug(`------------------- ${this.flag} -------------------`);
 
     this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
