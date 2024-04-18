@@ -10,7 +10,6 @@
             "completion": {
                 "template": "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
                 "parameters": {
-                    "model": "SenseChat-CodeCompletion-Lite",
                     "stop": [
                         "<EOT>"
                     ],
@@ -22,7 +21,6 @@
             "assistant": {
                 "template": "[prefix]",
                 "parameters": {
-                    "model": "SenseChat-Code",
                     "stop": [
                         "<|endofmessage|>"
                     ],
