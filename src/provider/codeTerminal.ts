@@ -245,6 +245,14 @@ export class RaccoonTerminal {
             },
             {
               thisArg: this,
+              onHeader: (headers: Headers) => {
+                let fs = headers.get("x-raccoon-know-files");
+                if (fs) {
+                  writeEmitter.fire(`---------------------------------\r\n`);
+                  writeEmitter.fire(fs.split(",").join("\r\n"));
+                  writeEmitter.fire(`\r\n---------------------------------\r\n`);
+                }
+              },
               onError: (err: Choice, thisArg?: any) => {
                 let h = <RaccoonTerminal>thisArg;
                 outlog.error(JSON.stringify(err));

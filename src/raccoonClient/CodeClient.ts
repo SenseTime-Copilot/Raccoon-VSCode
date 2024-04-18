@@ -146,6 +146,7 @@ export interface ChatOptions {
   headers?: Record<string, string>;
 
   thisArg?: any;
+  onHeader?: (headers: Headers) => void;
   onUpdate?: (choice: Choice, thisArg?: any) => void;
   onFinish?: (choices: Choice[], thisArg?: any) => void;
   onError?: (choice: Choice, thisArg?: any) => void;

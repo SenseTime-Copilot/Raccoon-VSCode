@@ -12,7 +12,7 @@ import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
 import { RaccoonAgent, builtinAgents } from "./agentManager";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
-export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
+export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onHeader" | "onError" | "onFinish" | "onUpdate" | "onController">;
 
 export enum CompletionPreferenceType {
   singleLine = "Single Line",
@@ -67,6 +67,9 @@ export class RaccoonManager {
           n: 1
         },
         {
+          onHeader: (headers: Headers) => {
+
+          },
           onError: (e: Choice) => {
             outlog.error(JSON.stringify(e));
             window.showErrorMessage(e.message?.content || "", l10n.t("Close"));

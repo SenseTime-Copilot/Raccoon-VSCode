@@ -571,6 +571,7 @@ const vscode = acquireVsCodeApi();
                                       </span>
                                     </span>
                                   </h2>
+                                  <div id="reference-${id}" class="reference flex gap-2 items-center"></div>
                                   <div id="response-${id}" class="response ${promptInfo.prompt?.code ? 'with-code' : ''} empty flex flex-col gap-1 markdown-body"></div>
                                   ${progress}
                                   <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
@@ -805,6 +806,16 @@ const vscode = acquireVsCodeApi();
                                         </div>
                                     </div>`;
         list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+        break;
+      }
+      case "addReference": {
+        if (!list.innerHTML) {
+          return;
+        }
+        const reference = document.getElementById(`reference-${message.id}`);
+        if (reference) {
+          reference.innerHTML = message.files.map((v) => `<vscode-tag class="opacity-50">${v}</vscode-tag>`).join("");
+        }
         break;
       }
       case "addError":

@@ -330,6 +330,9 @@ export class RaccoonClient implements CodeClient {
               });
               log(JSON.stringify(hh, undefined, 2));
             }
+            if (res.status === 200 && options.onHeader) {
+              options.onHeader(res.headers);
+            }
             if (
               !res.ok ||
               !res.headers

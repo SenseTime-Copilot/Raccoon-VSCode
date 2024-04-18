@@ -1007,6 +1007,12 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             },
             {
               thisArg: this,
+              onHeader: (headers: Headers) => {
+                let fs = headers.get("x-raccoon-know-files");
+                if (fs) {
+                  this.sendMessage({ type: 'addReference', files: fs.split(","), id });
+                }
+              },
               onController(controller, thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 h.stopList[id] = controller;
@@ -1042,6 +1048,12 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             },
             {
               thisArg: this,
+              onHeader: (headers: Headers) => {
+                let fs = headers.get("x-raccoon-know-files");
+                if (fs) {
+                  this.sendMessage({ type: 'addReference', files: fs.split(","), id });
+                }
+              },
               onController(controller, thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 h.stopList[id] = controller;
