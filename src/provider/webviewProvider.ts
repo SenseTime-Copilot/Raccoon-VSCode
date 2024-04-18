@@ -348,7 +348,7 @@ export class RaccoonEditor extends Disposable {
         }
       }, () => { });
     } else {
-      let userinfo = await raccoonManager.userInfo();
+      let userinfo = await raccoonManager.userInfo(true, 3000);
       userId = userinfo?.userId;
       username = userinfo?.username;
       let avatar = userinfo?.avatar;

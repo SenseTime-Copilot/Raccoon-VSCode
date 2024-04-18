@@ -814,7 +814,7 @@ const vscode = acquireVsCodeApi();
         }
         const reference = document.getElementById(`reference-${message.id}`);
         if (reference) {
-          reference.innerHTML = message.files.map((v) => `<vscode-tag class="opacity-50">${v}</vscode-tag>`).join("");
+          reference.innerHTML = message.files.map((v) => `<vscode-tag class="opacity-50 max-w-full break-all">${decodeURIComponent(v)}</vscode-tag>`).join("");
         }
         break;
       }
