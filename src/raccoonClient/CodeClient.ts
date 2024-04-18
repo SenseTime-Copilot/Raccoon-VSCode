@@ -22,7 +22,7 @@ export interface ClientConfig {
   key?: string | AccessKey | Password;
 }
 
-export interface Orgnization {
+export interface Organization {
   code: string;
   name: string;
   username: string;
@@ -32,7 +32,7 @@ export interface Orgnization {
 export interface AccountInfo {
   username: string;
   pro: boolean;
-  orgnizations?: Orgnization[];
+  organizations?: Organization[];
   userId?: string;
   avatar?: string;
 }
@@ -183,15 +183,15 @@ export interface CodeClient {
 
   logout(auth: AuthInfo): Promise<string | undefined>;
 
-  syncUserInfo(auth: AuthInfo): Promise<AccountInfo>;
+  syncUserInfo(auth: AuthInfo, timeout_ms?: number): Promise<AccountInfo>;
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 
-  chat(auth: AuthInfo, options: ChatOptions, org?: Orgnization): Promise<void>;
+  chat(auth: AuthInfo, options: ChatOptions, org?: Organization): Promise<void>;
 
-  completion(auth: AuthInfo, options: CompletionOptions, org?: Orgnization): Promise<void>;
+  completion(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void>;
 
-  listKnowledgeBase(authInfo: AuthInfo, org?: Orgnization): Promise<KnowledgeBase[]>;
+  listKnowledgeBase(authInfo: AuthInfo, org?: Organization): Promise<KnowledgeBase[]>;
 
-  sendTelemetry(authInfo: AuthInfo, org: Orgnization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
+  sendTelemetry(authInfo: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
 }

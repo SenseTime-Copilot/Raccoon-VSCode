@@ -12,9 +12,10 @@ import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
 import { HistoryCache } from "./utils/historyCache";
-import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig } from "./globalEnv";
+import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig, agentEditorViewType } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 import { MetricType } from "./raccoonClient/CodeClient";
+import { AgentEditor } from "./provider/agentTemplates";
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -32,6 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await initEnv(context);
 
   FavoriteCodeEditor.register(context);
+  AgentEditor.register(context);
   PromptEditor.register(context);
 
   await raccoonManager.initialClients();
@@ -68,6 +70,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   registerCommand(context, "favorite.manage", async () => {
     vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Favorite Snippet") }))}`), favoriteCodeEditorViewType);
+  });
+
+  registerCommand(context, "agent.manage", async () => {
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.agent/all.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Custom Agent") }))}`), agentEditorViewType);
   });
 
   registerCommand(context, "prompt.manage", async () => {

@@ -1,5 +1,5 @@
-import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Orgnization, AccountInfo, KnowledgeBase, MetricType } from "../raccoonClient/CodeClient";
+import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -9,6 +9,7 @@ import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
+import { RaccoonAgent, builtinAgents } from "./agentTemplates";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -364,6 +365,21 @@ export class RaccoonManager {
     return (ca && ca.authInfo);
   }
 
+  public get agent(): RaccoonAgent[] {
+    let customAgents: { [key: string]: { systemPrompt: string, label: string, icon: string, knowledges: KnowledgeBase[] } } = this.configuration.get("Agent", {});
+    let agants: RaccoonAgent[] = [...builtinAgents];
+    for (let id in customAgents) {
+      agants.push({
+        id,
+        label: customAgents[id].label,
+        icon: customAgents[id].icon,
+        systemPrompt: customAgents[id].systemPrompt,
+        knowledges: customAgents[id].knowledges
+      });
+    }
+    return agants;
+  }
+
   public get prompt(): RaccoonPrompt[] {
     let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
     let prompts: RaccoonPrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
@@ -466,11 +482,11 @@ export class RaccoonManager {
     }
   }
 
-  public async userInfo(update: boolean = false): Promise<AccountInfo | undefined> {
+  public async userInfo(update: boolean = false, timeout_ms?: number): Promise<AccountInfo | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.authInfo) {
       if (update) {
-        return ca.client.syncUserInfo(ca.authInfo).then((account) => {
+        return ca.client.syncUserInfo(ca.authInfo, timeout_ms).then((account) => {
           if (ca && ca.authInfo) {
             let ai = { ...ca.authInfo, account };
             this.updateToken(ca.client.robotName, ai);
@@ -483,32 +499,32 @@ export class RaccoonManager {
     return Promise.resolve(undefined);
   }
 
-  public orgnizationList(): Orgnization[] {
+  public organizationList(): Organization[] {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.client) {
-      return ca.authInfo?.account.orgnizations || [];
+      return ca.authInfo?.account.organizations || [];
     }
     return [];
   }
 
-  public async setActiveOrgnization(orgCode?: string): Promise<void> {
+  public async setActiveOrganization(orgCode?: string): Promise<void> {
     if (!orgCode) {
       orgCode = Individual;
     }
-    let ao = this.context.globalState.get<string>("ActiveOrgnization", Individual);
+    let ao = this.context.globalState.get<string>("ActiveOrganization", Individual);
     if (orgCode === ao) {
       return Promise.resolve();
     }
-    return this.context.globalState.update("ActiveOrgnization", orgCode).then(() => {
+    return this.context.globalState.update("ActiveOrganization", orgCode).then(() => {
       this.notifyStateChange({ scope: ["active"] });
     });
   }
 
-  public activeOrgnization(): Orgnization | undefined {
+  public activeOrganization(): Organization | undefined {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.client) {
-      let orgs = ca.authInfo?.account.orgnizations;
-      let ao = this.context.globalState.get<string>("ActiveOrgnization", Individual);
+      let orgs = ca.authInfo?.account.organizations;
+      let ao = this.context.globalState.get<string>("ActiveOrganization", Individual);
       if (ao === Individual) {
         return undefined;
       }
@@ -524,7 +540,7 @@ export class RaccoonManager {
 
   public async listKnowledgeBase(): Promise<KnowledgeBase[]> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    let org: Orgnization | undefined = this.activeOrgnization();
+    let org: Organization | undefined = this.activeOrganization();
     if (ca && ca.authInfo) {
       let ts = this.context.globalState.get<number>("KnowledgeBasesUpdateAt") || 0;
       let cur_ts = new Date().valueOf();
@@ -630,6 +646,50 @@ export class RaccoonManager {
     });
   }
 
+  public async switchOrganization() {
+    interface OrgInfo extends QuickPickItem {
+      id: string
+    };
+    return window.withProgress({
+      location: { viewId: `${extensionNameKebab}.view` }
+    }, async (progress, _cancel) => {
+      await this.userInfo(true, 3000).then((ac) => {
+        let ao = this.activeOrganization();
+        let username = ac?.username || "";
+        let orgs: OrgInfo[] = this.organizationList()
+          .filter((org, _idx, _arr) => org.status === "normal")
+          .map((value, _idx, _arr) => {
+            let icon = "$(blank)";
+            let name = value.username || username;
+            if (value.code === ao?.code) {
+              icon = `$(check)`;
+            }
+            return {
+              label: `${icon} ${value.name}`,
+              description: `@${name}`,
+              id: value.code
+            }
+          });
+        let individualItem: OrgInfo = {
+          label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
+          description: `@${username}`,
+          id: ""
+        };
+        let separator: OrgInfo = {
+          id: "",
+          label: "",
+          kind: QuickPickItemKind.Separator
+        }
+        progress.report({ increment: 100 });
+        window.showQuickPick<OrgInfo>([individualItem, separator, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
+          if (select) {
+            raccoonManager.setActiveOrganization(select.id);
+          }
+        })
+      })
+    });
+  }
+
   public getModelCapacites(): ModelCapacity[] {
     let clientName = this.getActiveClientRobotName();
     if (!clientName) {
@@ -661,7 +721,7 @@ export class RaccoonManager {
         ...param,
         knowledgeBases
       };
-      let org = this.activeOrgnization();
+      let org = this.activeOrganization();
       let options: ChatOptions = {
         messages,
         config,
@@ -694,7 +754,7 @@ export class RaccoonManager {
         ...param,
         knowledgeBases
       };
-      let org = this.activeOrgnization();
+      let org = this.activeOrganization();
       let options: CompletionOptions = {
         prompt,
         config,
@@ -716,7 +776,7 @@ export class RaccoonManager {
 
   public sendTelemetry(metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    let org: Orgnization | undefined = this.activeOrgnization();
+    let org: Organization | undefined = this.activeOrganization();
     if (!ca || !ca.authInfo) {
       return Promise.resolve();
     }

@@ -9,6 +9,7 @@ export let extensionNameCamel: string;
 export let raccoonEditorProviderViewType: string;
 export let favoriteCodeEditorViewType: string;
 export let promptEditorViewType: string;
+export let agentEditorViewType: string;
 export let raccoonSearchEditorProviderViewType: string;
 export let codeNotebookType: string;
 export let diffContentProviderScheme: string;
@@ -30,6 +31,7 @@ export async function initEnv(context: vscode.ExtensionContext) {
   raccoonEditorProviderViewType = `${extensionNameKebab}.editor`;
   favoriteCodeEditorViewType = `${extensionNameKebab}.favorites`;
   promptEditorViewType = `${extensionNameKebab}.promptManager`;
+  agentEditorViewType = `${extensionNameKebab}.agentManager`;
   raccoonSearchEditorProviderViewType = `${extensionNameKebab}.search`;
   codeNotebookType = extensionNameKebab;
   diffContentProviderScheme = `${extensionNameKebab}-diff`;
@@ -66,7 +68,11 @@ export async function initEnv(context: vscode.ExtensionContext) {
           client_agent: vscode.env.appName,
           machine_id: vscode.env.machineId
         }
-        raccoonManager.sendTelemetry(<MetricType>event, common, data);
+        try {
+          raccoonManager.sendTelemetry(<MetricType>event, common, data);
+        } catch (e) {
+          console.error(e);
+        }
       }
     },
   };

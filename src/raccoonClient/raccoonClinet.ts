@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Orgnization, MetricType, KnowledgeBase } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -159,24 +159,25 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  public async syncUserInfo(auth: AuthInfo): Promise<AccountInfo> {
+  public async syncUserInfo(auth: AuthInfo, timeout_ms?: number): Promise<AccountInfo> {
     let url = `${this.clientConfig.apiBaseUrl}/auth/v1/user_info`;
     return axios.get(url,
       {
         headers: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           Authorization: `Bearer ${auth.weaverdKey}`
-        }
+        },
+        timeout: timeout_ms
       })
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0 && resp.data.data) {
           let orgs = resp.data.data.orgs;
           let username = resp.data.data.name;
           let pro = resp.data.data.pro_code_enabled;
-          let orgnizations: Orgnization[] = [];
+          let organizations: Organization[] = [];
           if (orgs) {
             for (let org of orgs) {
-              orgnizations.push({
+              organizations.push({
                 code: org.code,
                 name: org.name,
                 username: org.user_name || username,
@@ -188,7 +189,7 @@ export class RaccoonClient implements CodeClient {
             userId: auth.account.userId,
             username,
             pro,
-            orgnizations
+            organizations
           };
           return info;
         }
@@ -208,6 +209,9 @@ export class RaccoonClient implements CodeClient {
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         refresh_token: auth.refreshToken
+      },
+      {
+        timeout: 2000
       })
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0) {
@@ -217,7 +221,7 @@ export class RaccoonClient implements CodeClient {
               userId: auth.account.userId,
               username: jwtDecoded["name"],
               pro: auth.account.pro,
-              orgnizations: auth.account.orgnizations
+              organizations: auth.account.organizations
             },
             expiration: jwtDecoded["exp"],
             weaverdKey: resp.data.data.access_token,
@@ -236,7 +240,7 @@ export class RaccoonClient implements CodeClient {
       });
   }
 
-  private async chatUsingFetch(auth: AuthInfo, options: ChatOptions, org?: Orgnization) {
+  private async chatUsingFetch(auth: AuthInfo, options: ChatOptions, org?: Organization) {
     let ts = new Date();
     let url = `${this.clientConfig.apiBaseUrl}/llm/v1/chat-completions`;
     let headers = options.headers || {};
@@ -360,6 +364,7 @@ export class RaccoonClient implements CodeClient {
               };
               log?.(JSON.stringify(error, undefined, 2));
               options.onError?.(error, options.thisArg);
+              controller.abort();
             }
           },
           onmessage(msg: any) {
@@ -417,16 +422,20 @@ export class RaccoonClient implements CodeClient {
           onclose() {
             finish();
           },
-          onerror(e: Response) {
+          onerror(e: any) {
+            if (controller.signal.aborted) {
+              return;
+            }
             let error: Choice = {
               index: e.status,
               message: {
                 role: Role.assistant,
-                content: e.statusText
+                content: e.cause.message
               }
             };
             log?.(JSON.stringify(error, undefined, 2));
             options.onError?.(error, options.thisArg);
+            controller.abort();
           },
           openWhenHidden: true,
         });
@@ -490,7 +499,7 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  async chat(auth: AuthInfo, options: ChatOptions, org?: Orgnization): Promise<void> {
+  async chat(auth: AuthInfo, options: ChatOptions, org?: Organization): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -503,7 +512,7 @@ export class RaccoonClient implements CodeClient {
     return this.chatUsingFetch(auth, options, org);
   }
 
-  async completionUsingFetch(auth: AuthInfo, options: CompletionOptions, org?: Orgnization): Promise<void> {
+  async completionUsingFetch(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void> {
     let ts = new Date();
     let headers = options.headers || {};
     let url = `${this.clientConfig.apiBaseUrl}/llm/v1/completions`;
@@ -606,7 +615,7 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  async completion(auth: AuthInfo, options: CompletionOptions, org?: Orgnization): Promise<void> {
+  async completion(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void> {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -618,7 +627,7 @@ export class RaccoonClient implements CodeClient {
     return this.completionUsingFetch(auth, options, org);
   }
 
-  public async listKnowledgeBase(authInfo: AuthInfo, org?: Orgnization): Promise<KnowledgeBase[]> {
+  public async listKnowledgeBase(authInfo: AuthInfo, org?: Organization): Promise<KnowledgeBase[]> {
     let listUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
     if (!authInfo.account.pro && !org) {
       return [];
@@ -627,7 +636,8 @@ export class RaccoonClient implements CodeClient {
       headers: {
         Authorization: `Bearer ${authInfo.weaverdKey}`,
         "x-org-code": org?.code
-      }
+      },
+      timeout: 2000
     }).then((response) => {
       return response.data?.data?.knowledge_bases || [];
     }).catch((e) => {
@@ -635,7 +645,7 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  public async sendTelemetry(authInfo: AuthInfo, org: Orgnization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
+  public async sendTelemetry(authInfo: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
     let telementryUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/b/v1/m`;
     let metricInfo: any = {};
     metricInfo[metricType] = metric;
@@ -649,7 +659,8 @@ export class RaccoonClient implements CodeClient {
         headers: {
           Authorization: `Bearer ${authInfo.weaverdKey}`,
           "x-org-code": org?.code
-        }
+        },
+        timeout: 2000
       }
     );
     /* eslint-enable */

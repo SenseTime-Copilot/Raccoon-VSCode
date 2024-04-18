@@ -35,6 +35,7 @@ const vscode = acquireVsCodeApi();
   const foldIcon = '<span class="material-symbols-rounded">compress</span>';
 
   var isComposing = false;
+  var agents = undefined;
   var prompts = undefined;
   var history = [];
   var tipN = 0;
@@ -414,12 +415,35 @@ const vscode = acquireVsCodeApi();
         }
         break;
       }
+      case "agentList": {
+        agents = message.value;
+        var shortcuts = '';
+        for (var p of agents) {
+          shortcuts += `<button class="flex flex-row-reverse gap-2 items-center" data-shortcut='@${p.id}'
+                                  onclick='vscode.postMessage({type: "addAgent", id: "${p.id}"});'
+                          >
+                            <span class="material-symbols-rounded">${p.icon || "badge"}</span>
+                            ${p.label}
+                            <span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.id}></span>
+                          </button>
+                      `;
+        }
+        document.getElementById("agent-list").innerHTML = shortcuts;
+        _toggleAgentList();
+        break;
+      }
+      case "addAgent": {
+        document.getElementById("question-input").value = "@" + message.value + " ";
+        document.getElementById("question-sizer").dataset.value = "@" + message.value + " ";
+        _toggleAgentList();
+        break;
+      }
       case "promptList": {
         prompts = message.value;
         var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
-          shortcuts += `  <button class="flex gap-2 items-center"
+          shortcuts += `  <button class="flex flex-row-reverse gap-2 items-center"
                                  ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}
                                         onclick='vscode.postMessage({
                                             type: "sendQuestion",
@@ -428,7 +452,7 @@ const vscode = acquireVsCodeApi();
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
                             ${p.label}${p.inputRequired ? "..." : ""}
-                            ${p.shortcut ? `<span class="shortcut grow text-right" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
+                            ${p.shortcut ? `<span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
                           </button>
                       `;
         }
@@ -825,6 +849,7 @@ const vscode = acquireVsCodeApi();
   });
 
   vscode.postMessage({ type: "welcome" });
+  vscode.postMessage({ type: "listAgent" });
   vscode.postMessage({ type: "listPrompt" });
 
   const sendQuestion = (question, replace) => {
@@ -917,11 +942,48 @@ const vscode = acquireVsCodeApi();
     }
     if (status === "start") {
       document.getElementById('settings')?.remove();
+      document.getElementById("agent-list").classList.add("hidden");
       document.getElementById("ask-list").classList.add("hidden");
       document.getElementById("search-list").classList.add("hidden");
       document.getElementById("question-input").value = "";
       document.getElementById("question-sizer").dataset.value = "";
       document.getElementById("question").classList.remove("history");
+    }
+  }
+
+  function _toggleAgentList() {
+    var q = document.getElementById('question-input');
+    if (q.value) {
+      document.getElementById("question").classList.add("prompt-ready");
+    } else {
+      document.getElementById("question").classList.remove("prompt-ready");
+    }
+    var list = document.getElementById("agent-list");
+    if (q.value.startsWith('@')) {
+      let allAction = list.querySelectorAll("button");
+      allAction.forEach((btn, _index) => {
+        btn.classList.add('hidden');
+      });
+      var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
+        return q.value === '@' || sc.dataset.shortcut?.startsWith(q.value);
+      });
+      if (btns.length > 0) {
+        list.classList.remove("hidden");
+        btns.forEach((btn, _index) => {
+          var sc = btn.querySelector('.shortcut');
+          if (sc) {
+            sc.textContent = q.value.slice(1);
+            sc.dataset.suffix = btn.dataset.shortcut.slice(q.value.length);
+          }
+          btn.classList.remove('hidden');
+          btn.classList.remove('selected');
+        });
+        btns[0].classList.add('selected');
+      } else {
+        list.classList.add("hidden");
+      }
+    } else {
+      list.classList.add("hidden");
     }
   }
 
@@ -978,6 +1040,7 @@ const vscode = acquireVsCodeApi();
   }
 
   function toggleSubMenuList() {
+    _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
   }
@@ -1062,6 +1125,7 @@ const vscode = acquireVsCodeApi();
   });
 
   document.addEventListener("keydown", (e) => {
+    var agents = document.getElementById("agent-list");
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
     var settings = document.getElementById("settings");
@@ -1159,6 +1223,48 @@ const vscode = acquireVsCodeApi();
       if (curIdx >= 0) {
         return;
       }
+    } else if (!agents.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
+      var btns = Array.from(agents.querySelectorAll("button")).filter((b, _i, _a) => {
+        return !b.classList.contains('hidden');
+      });
+      if (e.key === "Enter") {
+        e.preventDefault();
+        for (let i = 0; i < btns.length; i++) {
+          if (!agents.classList.contains("pin") && btns[i].classList.contains('selected')) {
+            btns[i].click();
+            break;
+          }
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        for (let i = 0; i < btns.length; i++) {
+          if (btns[i].classList.contains('selected')) {
+            btns[i].classList.remove('selected');
+            if (i < btns.length - 1) {
+              btns[i + 1].classList.add('selected');
+            } else {
+              btns[0].classList.add('selected');
+            }
+            break;
+          }
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        for (let i = 0; i < btns.length; i++) {
+          if (btns[i].classList.contains('selected')) {
+            btns[i].classList.remove('selected');
+            if (i > 0) {
+              btns[i - 1].classList.add('selected');
+            } else {
+              btns[btns.length - 1].classList.add('selected');
+            }
+            break;
+          }
+        };
+      } else {
+        document.getElementById("question-input").focus();
+      }
+      return;
     }
     if (e.target.id === "question-input") {
       if (e.key === "PageUp" || e.key === "PageDown") {

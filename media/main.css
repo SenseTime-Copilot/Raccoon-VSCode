@@ -79,7 +79,7 @@ input.slider[type='range'] {
 }
 
 input.slider::-webkit-slider-runnable-track {
-    background-color:var(--vscode-input-background);
+    background-color: var(--vscode-input-background);
     border: calc(var(--border-width) * 1px) solid var(--dropdown-border);
     border-radius: 999px;
     cursor: pointer;
@@ -533,9 +533,18 @@ textarea::placeholder {
     content: "\00a0" attr(data-tip);
 }
 
+#question-sizer[data-value="@"]:before {
+    content: attr(data-agent-hint);
+    margin-left: 2.5ch;
+}
+
 #question-sizer[data-value="/"]:before {
     content: attr(data-hint);
     margin-left: 1.5ch;
+}
+
+#agent-list+#question>#question-sizer[data-value="@"]:before {
+    content: none;
 }
 
 #ask-list.pin+#question>#question-sizer[data-value="/"]:before {
@@ -597,6 +606,7 @@ button.disabled,
 }
 
 #search-list,
+#agent-list,
 #ask-list {
     position: fixed;
     bottom: 43px;
@@ -671,8 +681,9 @@ button.disabled,
     border-bottom: 1px solid var(--panel-view-border);
 }
 
+#agent-list button,
 #ask-list button {
-    padding: 0.25rem 1rem;
+    padding: 0.25rem 0.75rem;
     width: 100%;
     background: none !important;
     text-align: left;
@@ -680,14 +691,22 @@ button.disabled,
 }
 
 
+#agent-list button:hover .shortcut,
 #ask-list button:hover .shortcut {
     color: var(--foreground);
 }
 
-span.shortcut:before {
+#agent-list span.shortcut:before {
+    content: '@';
+}
+
+#ask-list span.shortcut:before {
     content: '/';
+}
+
+span.shortcut:before {
     opacity: 80%;
-    color: var(--input-placeholder-foreground);
+    color: var(--foreground);
     text-shadow: none;
     margin-right: 1px;
 }
@@ -695,7 +714,7 @@ span.shortcut:before {
 span.shortcut:after {
     content: attr(data-suffix);
     opacity: 80%;
-    color: var(--input-placeholder-foreground);
+    color: var(--foreground);
     text-shadow: none;
 }
 
@@ -706,6 +725,8 @@ span.shortcut:after {
 }
 
 @media (max-width: calc(320px + 0.5rem)) {
+
+    #agent-list.pin button,
     #ask-list.pin button {
         flex-grow: 1;
     }
@@ -716,6 +737,9 @@ span.shortcut:after {
     background: none !important;
 }
 
+#agent-list button.selected,
+#agent-list button:hover,
+#agent-list button:focus,
 #ask-list button.selected,
 #ask-list.pin button:hover,
 #ask-list button:hover,
@@ -724,6 +748,9 @@ span.shortcut:after {
     background: var(--button-icon-hover-background) !important;
 }
 
+.vscode-high-contrast #agent-list button.selected,
+.vscode-high-contrast #agent-list button:hover,
+.vscode-high-contrast #agent-list button:focus,
 .vscode-high-contrast #ask-list button.selected,
 .vscode-high-contrast #ask-list button:hover,
 .vscode-high-contrast #ask-list button:focus {

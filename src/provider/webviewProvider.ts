@@ -184,7 +184,7 @@ export class RaccoonEditor extends Disposable {
       this.sendMessage({ type: 'updateSettingPage', action: "close" });
     }
     let userinfo = await raccoonManager.userInfo();
-    let org = raccoonManager.activeOrgnization();
+    let org = raccoonManager.activeOrganization();
     let ts = new Date();
     let timestamp = ts.toLocaleString();
     let detail = '';
@@ -346,7 +346,7 @@ export class RaccoonEditor extends Disposable {
         }
       }, () => { });
     } else {
-      let userinfo = await raccoonManager.userInfo(true);
+      let userinfo = await raccoonManager.userInfo();
       userId = userinfo?.userId;
       username = userinfo?.username;
       let avatar = userinfo?.avatar;
@@ -375,7 +375,7 @@ export class RaccoonEditor extends Disposable {
     }
 
     let trigger = (completionDelay === 3500) ? "opacity-60" : "";
-    let activeOrg = raccoonManager.activeOrgnization();
+    let activeOrg = raccoonManager.activeOrganization();
     let KnowledgeBaseEnable = pro || activeOrg;
 
     accountInfo = `
@@ -385,7 +385,7 @@ export class RaccoonEditor extends Disposable {
         `<div class="grow flex flex-col">
         <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
         <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
-          <div class="cursor-pointer" title="${l10n.t("Switch Orgnization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
+          <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
           <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}" style="color: var(--badge-foreground);background: var(--badge-background);">
             ${activeOrg.name}
           </div>
@@ -394,10 +394,10 @@ export class RaccoonEditor extends Disposable {
         `<div class="grow flex flex-col">
         <div class="flex">
           <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
-          ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">verified</span>` : ""}
+          ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
         </div>
         <div class="${username ? "flex" : "hidden"} w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
-          <div class="cursor-pointer" title="${l10n.t("Switch Orgnization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
+          <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
           <div class="cursor-pointer" id="switch-org" title="${l10n.t("Individual")}">
             ${l10n.t("Individual")}
           </div>
@@ -473,7 +473,7 @@ export class RaccoonEditor extends Disposable {
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
     <div class="flex gap-2 items-center ${KnowledgeBaseEnable ? "" : "opacity-50"}">
       <b>${l10n.t("Retrieval Argumention")}</b>
-      <vscode-badge ${activeOrg ? "hidden" : ""}>Pro</vscode-badge>
+      <vscode-badge class="${activeOrg ? "hidden" : "opacity-50"}">Pro</vscode-badge>
     </div>
     <div class="ml-4 my-1">
       <label class="my-1 ${KnowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
@@ -542,6 +542,10 @@ export class RaccoonEditor extends Disposable {
           await this.showWelcome();
           break;
         }
+        case 'listAgent': {
+          this.sendMessage({ type: 'agentList', value: raccoonManager.agent });
+          break;
+        }
         case 'listPrompt': {
           this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
           break;
@@ -596,6 +600,10 @@ export class RaccoonEditor extends Disposable {
           } else if (data.action === 'error') {
             this.cache.appendCacheItem({ id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.error, value: data.value });
           }
+          break;
+        }
+        case 'addAgent': {
+          this.sendMessage({ type: 'addAgent', value: data.id });
           break;
         }
         case 'sendQuestion': {
@@ -690,36 +698,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'switch-org': {
-          interface OrgInfo extends QuickPickItem {
-            id: string
-          };
-          let userinfo = await raccoonManager.userInfo(true);
-          let ao = raccoonManager.activeOrgnization();
-          let username = userinfo?.username || "";
-          let orgs: OrgInfo[] = raccoonManager.orgnizationList()
-            .filter((org, _idx, _arr) => org.status === "normal")
-            .map((value, _idx, _arr) => {
-              let icon = "$(blank)";
-              let name = value.username || username;
-              if (value.code === ao?.code) {
-                icon = `$(check)`;
-              }
-              return {
-                label: `${icon} ${value.name}`,
-                description: `@${name}`,
-                id: value.code
-              }
-            });
-          let individualItem: OrgInfo = {
-            label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
-            description: `@${username}`,
-            id: ""
-          }
-          window.showQuickPick<OrgInfo>([individualItem, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Orgnization") }).then((select) => {
-            if (select) {
-              raccoonManager.setActiveOrgnization(select.id);
-            }
-          })
+          raccoonManager.switchOrganization();
           break;
         }
         case 'logout': {
@@ -1179,6 +1158,8 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                       MDN Web Docs [Web]
                     </vscode-checkbox>
                   </div>
+                  <div id="agent-list" class="flex flex-col hidden">
+                  </div>
                   <div id="ask-list" class="flex flex-col hidden">
                   </div>
                   <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
@@ -1207,6 +1188,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                           data-placeholder="${l10n.t("Ask Raccoon a question") + ", " + l10n.t("or type '/' for prompts")}"
                           data-placeholder-short="${l10n.t("Ask Raccoon a question")}"
                           data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
+                          data-agent-hint="${l10n.t("Pick one agent")} [Enter]"
                           data-tip="${l10n.t("Ask Raccoon a question") + ", " + l10n.t("or type '/' for prompts")}"
                           data-tip1="${l10n.t("Type [Shift + Enter] to start a new line")}"
                           data-tip2="${l10n.t("Press [Esc] to stop responding")}"
