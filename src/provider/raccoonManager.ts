@@ -142,6 +142,7 @@ export class RaccoonManager {
     this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
     let ret = context.globalState.get<boolean>(flag);
     if (!ret) {
+      this.clearStatusData();
       context.globalState.update(flag, true);
     }
     context.subscriptions.push(
@@ -316,6 +317,7 @@ export class RaccoonManager {
     this.context.globalState.keys().forEach(async (v, _idx, _arr) => {
       await this.context.globalState.update(v, undefined);
     });
+    await this.configuration.update("Agent", undefined, true);
     await this.configuration.update("Prompt", undefined, true);
 
     await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
