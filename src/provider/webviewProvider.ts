@@ -479,7 +479,7 @@ export class RaccoonEditor extends Disposable {
       <label class="my-1 ${KnowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
         <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40" id="knowledgeBaseRef" ${KnowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
-        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${KnowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="workspaceRef" ${KnowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
         <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${KnowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
     </div>
