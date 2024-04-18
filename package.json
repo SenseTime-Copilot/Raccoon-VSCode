@@ -151,7 +151,7 @@
                 {
                     "command": "raccoon.commit-msg",
                     "group": "navigation@1000",
-                    "when": "view == workbench.scm && config.git.enabled && !git.missing && scmProvider == git && gitOpenRepositoryCount != 0"
+                    "when": "view == workbench.scm && config.git.enabled && !git.missing && gitOpenRepositoryCount != 0"
                 }
             ],
             "raccoon-submenu": [
