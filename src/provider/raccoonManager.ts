@@ -36,6 +36,7 @@ export interface StatusChangeEvent {
 
 export class RaccoonManager {
   protected static instance: RaccoonManager | undefined = undefined;
+  private flag: string;
 
   private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
@@ -135,16 +136,10 @@ export class RaccoonManager {
   }
 
   private constructor(private readonly context: ExtensionContext) {
-    let flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
-
-    outlog.debug(`------------------- ${flag} -------------------`);
+    this.flag = `${context.extension.id}-${context.extension.packageJSON.version}-ppppp`;
+    outlog.debug(`------------------- ${this.flag} -------------------`);
 
     this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
-    let ret = context.globalState.get<boolean>(flag);
-    if (!ret) {
-      this.clearStatusData();
-      context.globalState.update(flag, true);
-    }
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration(extensionNameCamel)) {
@@ -202,6 +197,11 @@ export class RaccoonManager {
   }
 
   public async initialClients(): Promise<void> {
+    let ret = this.context.globalState.get<boolean>(this.flag);
+    if (!ret) {
+      await this.resetAllCacheData();
+      await this.context.globalState.update(this.flag, true);
+    }
     let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
     let authinfos: any = {};
     if (tks) {
@@ -294,16 +294,16 @@ export class RaccoonManager {
         );
       }
     }
-    Promise.all(logoutAct).then(async () => {
-      await this.clearStatusData();
-    }, async () => {
-      await this.clearStatusData();
+    Promise.all(logoutAct).then(() => {
+      this.clearStatusData();
+    }, () => {
+      this.clearStatusData();
     });
   }
 
   private async clearStatusData(): Promise<void> {
-    return this.resetAllCacheData().then(() => {
-      return this.initialClients();
+    await this.resetAllCacheData().then(async () => {
+      await this.initialClients();
     });
   }
 
