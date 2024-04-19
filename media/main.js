@@ -418,7 +418,7 @@ const vscode = acquireVsCodeApi();
       case "agentList": {
         agents = message.value;
         var shortcuts = '';
-        for (var p of agents) {
+        agents.forEach((p, _id, _m) => {
           shortcuts += `<button class="flex flex-row-reverse gap-2 items-center" data-shortcut='@${p.id}'
                                   onclick='vscode.postMessage({type: "addAgent", id: "${p.id}"});'
                           >
@@ -427,7 +427,7 @@ const vscode = acquireVsCodeApi();
                             <span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.id}></span>
                           </button>
                       `;
-        }
+        });
         document.getElementById("agent-list").innerHTML = shortcuts;
         _toggleAgentList();
         break;

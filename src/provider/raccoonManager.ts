@@ -373,19 +373,46 @@ export class RaccoonManager {
     return (ca && ca.authInfo);
   }
 
-  public get agent(): RaccoonAgent[] {
-    let customAgents: { [key: string]: { systemPrompt: string, label: string, icon: string, knowledges: KnowledgeBase[] } } = this.configuration.get("Agent", {});
-    let agants: RaccoonAgent[] = [...builtinAgents];
-    for (let id in customAgents) {
-      agants.push({
-        id,
-        label: customAgents[id].label,
-        icon: customAgents[id].icon,
-        systemPrompt: customAgents[id].systemPrompt,
-        knowledges: customAgents[id].knowledges
-      });
+  public get agent(): Map<string, RaccoonAgent> {
+    let agants: Map<string, RaccoonAgent> = new Map();
+    for (let agent of builtinAgents) {
+      agants.set(agent.id, agent);
     }
+    let customAgents: Map<string, RaccoonAgent> = new Map(Object.entries(this.configuration.get("Agent") || {}));
+    customAgents?.forEach((value, key, map) => {
+      agants.set(key, value);
+    });
     return agants;
+  }
+
+  public async appendAgent(agent: RaccoonAgent, overwrite?: boolean): Promise<void> {
+    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let writeable = true;
+    if (!overwrite && this.agent.get(agent.id)) {
+      writeable = false;
+    }
+    if (!writeable) {
+      await window.showWarningMessage(l10n.t("The agent already exists, overwrite it?"), l10n.t("Cancel"), l10n.t("Overwrite")).then(res => {
+        if (res === l10n.t("Overwrite")) {
+          writeable = true;
+        }
+      }, () => { });
+    }
+    if (!writeable) {
+      return Promise.reject();
+    }
+    let customAgents: Map<string, RaccoonAgent> = new Map(Object.entries(this.configuration.get("Agent") || {}));
+    customAgents.set(agent.id, agent);
+    return cfg.update("Agent", Object.fromEntries(customAgents), true);
+  }
+
+  public async removeAgent(id: string) {
+    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let customAgents: Map<string, RaccoonAgent> = new Map(Object.entries(this.configuration.get("Agent") || {}));
+    if (customAgents) {
+      customAgents.delete(id);
+      cfg.update("Agent", Object.fromEntries(customAgents), true);
+    }
   }
 
   public get prompt(): RaccoonPrompt[] {

@@ -55,7 +55,7 @@
                         "type": "object",
                         "markdownDescription": "%raccoon.config.agent%",
                         "additionalProperties": {
-                            "type": "string",
+                            "type": "object",
                             "description": "%raccoon.config.agent.item%"
                         }
                     },
@@ -163,6 +163,11 @@
                 {
                     "command": "raccoon.terminal",
                     "group": "navigation@3",
+                    "when": "view == raccoon.view"
+                },
+                {
+                    "command": "raccoon.agent.manage",
+                    "group": "cache@1",
                     "when": "view == raccoon.view"
                 },
                 {
