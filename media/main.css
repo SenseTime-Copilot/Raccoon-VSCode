@@ -481,7 +481,7 @@ textarea::placeholder {
     position: absolute;
     padding: 0.25em;
     background-color: transparent;
-    z-index: 1;
+    z-index: 0;
     overflow: auto;
     pointer-events: none;
     transition: transform 1s;

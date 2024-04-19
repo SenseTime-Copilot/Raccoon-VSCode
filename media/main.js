@@ -1318,6 +1318,7 @@ const vscode = acquireVsCodeApi();
           historyIdx = -1;
           e.target.value = "";
           document.getElementById("question").classList.remove("prompt-ready");
+          document.getElementById("highlight-anchor").innerHTML = "";
           document.getElementById("question").classList.remove("history");
           document.getElementById("question").classList.remove("search");
         }
