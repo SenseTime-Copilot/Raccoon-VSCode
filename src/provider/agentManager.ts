@@ -196,14 +196,21 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       var shortcutNode = document.getElementById("shortcut");
       var saveNode = document.getElementById("save");
       labelNode.addEventListener("input", (_e)=>{
-        if (labelNode.value && shortcutNode.value && prompt.value {
+        if (labelNode.value && shortcutNode.value && prompt.value) {
           saveNode.disabled = false;
         } else {
           saveNode.disabled = true;
         }
       });
       shortcutNode.addEventListener("input", (_e)=>{
-        if (labelNode.value && shortcutNode.value && prompt.value){
+        if (labelNode.value && shortcutNode.value && prompt.value) {
+          saveNode.disabled = false;
+        } else {
+          saveNode.disabled = true;
+        }
+      });
+      prompt.addEventListener("input", (_e)=>{
+        if (labelNode.value && shortcutNode.value && prompt.value) {
           saveNode.disabled = false;
         } else {
           saveNode.disabled = true;

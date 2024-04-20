@@ -96,7 +96,8 @@ export class RaccoonEditor extends Disposable {
       if (e.scope.includes("authorization") && !e.quiet) {
         this.showWelcome();
       } else if (e.scope.includes("agent")) {
-        this.sendMessage({ type: 'agentList', value: raccoonManager.agent });
+        let value = Array.from(raccoonManager.agent.values());
+        this.sendMessage({ type: 'agentList', value });
       } else if (e.scope.includes("prompt")) {
         this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
       } else if (e.scope.includes("engines")) {
@@ -545,7 +546,8 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'listAgent': {
-          this.sendMessage({ type: 'agentList', value: raccoonManager.agent });
+          let value = Array.from(raccoonManager.agent.values());
+          this.sendMessage({ type: 'agentList', value });
           break;
         }
         case 'listPrompt': {
@@ -680,10 +682,11 @@ export class RaccoonEditor extends Disposable {
               for (let t of tg.tabs) {
                 if (t.isActive && (t.input instanceof TabInputText || t.input instanceof TabInputNotebook) && t.input.uri.toString() === docUri.toString()) {
                   found = true;
-                  let content: string = data.value;
-                  let start = editor.selection.start.line;
                   let editAction = (edit: TextEditorEdit) => {
-                    edit.insert(editor.selection.anchor, content.trimEnd() + "\n");
+                    if (editor.selection) {
+                      edit.delete(editor.selection);
+                    }
+                    edit.insert(editor.selection.anchor, data.value.trimEnd() + "\n");
                   };
                   editor.edit(editAction);
                 }
