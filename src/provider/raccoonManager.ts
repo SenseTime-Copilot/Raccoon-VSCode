@@ -199,7 +199,7 @@ export class RaccoonManager {
   public async initialClients(): Promise<void> {
     let ret = this.context.globalState.get<boolean>(this.flag);
     if (!ret) {
-      await this.resetAllCacheData();
+      // await this.resetAllCacheData();
       await this.context.globalState.update(this.flag, true);
     }
     let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
