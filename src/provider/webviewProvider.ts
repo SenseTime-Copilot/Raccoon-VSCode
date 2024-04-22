@@ -106,9 +106,7 @@ export class RaccoonEditor extends Disposable {
         this.updateSettingPage("full");
         this.showWelcome(true);
       } else if (e.scope.includes("config")) {
-        if (!window.state.focused) {
-          this.updateSettingPage();
-        }
+        this.updateSettingPage();
       }
     });
     context.subscriptions.push(
