@@ -16,7 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.70.3",
+    "version": "0.70.5",
     "preview": true,
     "engines": {
         "vscode": "^1.82.0"
@@ -163,11 +163,6 @@
                 {
                     "command": "raccoon.terminal",
                     "group": "navigation@3",
-                    "when": "view == raccoon.view"
-                },
-                {
-                    "command": "raccoon.agent.manage",
-                    "group": "cache@1",
                     "when": "view == raccoon.view"
                 },
                 {

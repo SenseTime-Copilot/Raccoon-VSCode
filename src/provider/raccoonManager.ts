@@ -65,6 +65,7 @@ export class RaccoonManager {
         [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
         {
           stream: true,
+          maxNewTokenNum: 128,
           n: 1
         },
         {
@@ -758,6 +759,9 @@ export class RaccoonManager {
         ...param,
         knowledgeBases
       };
+      if (!config.maxNewTokenNum && ca.authInfo.account.pro) {
+        config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.completion) - this.maxInputTokenNum(ModelCapacity.completion));
+      }
       let org = this.activeOrganization();
       let options: ChatOptions = {
         messages,
