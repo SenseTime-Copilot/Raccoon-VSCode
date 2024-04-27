@@ -115,7 +115,8 @@ export interface RequestParam {
 export enum FinishReason {
   stop = 'stop',
   length = 'length',
-  eos = 'eos',
+  sensitive = 'sensitive',
+  context = 'context',
   toolCalls = 'tool_calls'
 }
 

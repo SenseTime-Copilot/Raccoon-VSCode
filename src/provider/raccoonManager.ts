@@ -759,10 +759,10 @@ export class RaccoonManager {
         ...param,
         knowledgeBases
       };
-      if (!config.maxNewTokenNum && ca.authInfo.account.pro) {
+      let org = this.activeOrganization();
+      if (!config.maxNewTokenNum && (org || ca.authInfo.account.pro)) {
         config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.completion) - this.maxInputTokenNum(ModelCapacity.completion));
       }
-      let org = this.activeOrganization();
       let options: ChatOptions = {
         messages,
         config,

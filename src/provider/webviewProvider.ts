@@ -3,13 +3,20 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensio
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
-import { Choice, Message, MetricType, Role } from '../raccoonClient/CodeClient';
+import { Choice, FinishReason, Message, MetricType, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { FavoriteCodeEditor } from './favoriteCode';
 import { ModelCapacity } from './config';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
+
+interface telemetryInfo {
+  id: number;
+  ts: number;
+  action: string;
+  languageid: string;
+}
 
 function makeGuide(isMac: boolean) {
   return `
@@ -170,6 +177,18 @@ export class RaccoonEditor extends Disposable {
     telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { new_session_num: 1 } });
   }
 
+  private buildOrgHint(): string {
+    let orgs = raccoonManager.organizationList();
+    if (orgs.length === 0) {
+      return "";
+    }
+    return `<a id="switch-org" class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+            <span class='material-symbols-rounded pointer-events-none'>switch_account</span>
+            <div class='inline-block leading-loose pointer-events-none'>${l10n.t("Switch Organization")}</div>
+            <span class="material-symbols-rounded grow text-right pointer-events-none">keyboard_double_arrow_right</span>
+          </a>`;
+  }
+
   private buildLoginHint() {
     let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
     return `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.settings">
@@ -195,6 +214,10 @@ export class RaccoonEditor extends Disposable {
     let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
     if (name) {
       username = ` @${name}`;
+      if (org) {
+        username += ` (${org.name})`;
+      }
+      detail += this.buildOrgHint();
     } else {
       detail += this.buildLoginHint();
     }
@@ -347,7 +370,7 @@ export class RaccoonEditor extends Disposable {
         }
       }, () => { });
     } else {
-      let userinfo = await raccoonManager.userInfo(true, 3000);
+      let userinfo = await raccoonManager.userInfo();
       userId = userinfo?.userId;
       username = userinfo?.username;
       let avatar = userinfo?.avatar;
@@ -387,7 +410,7 @@ export class RaccoonEditor extends Disposable {
         <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
         <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
           <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-          <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}" style="color: var(--badge-foreground);background: var(--badge-background);">
+          <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}">
             ${activeOrg.name}
           </div>
         </div>
@@ -594,14 +617,8 @@ export class RaccoonEditor extends Disposable {
           }
           break;
         }
-        case 'flushLog': {
-          if (data.action === 'delete') {
-            this.cache.removeCacheItem(data.id);
-          } else if (data.action === 'answer') {
-            this.cache.appendCacheItem({ id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.answer, value: data.value });
-          } else if (data.action === 'error') {
-            this.cache.appendCacheItem({ id: data.id, name: data.name, timestamp: data.ts, type: CacheItemType.error, value: data.value });
-          }
+        case 'deleteQA': {
+          this.cache.removeCacheItem(data.id);
           break;
         }
         case 'addAgent': {
@@ -647,7 +664,8 @@ export class RaccoonEditor extends Disposable {
             }
           }
           let promptInfo = new PromptInfo(prompt);
-          this.sendApiRequest(promptInfo, data.values, data.history);
+          let history = await this.cache.getCacheItems();
+          this.sendApiRequest(promptInfo, data.values, history);
           break;
         }
         case 'stopGenerate': {
@@ -663,8 +681,9 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'diff': {
-          if (data.languageid && data.origin && data.value) {
-            diffCode(data.languageid, data.origin, data.value);
+          let selection = editor?.document.getText(editor?.selection);
+          if (data.languageid && selection && data.value) {
+            diffCode(data.languageid, selection, data.value);
           } else {
             this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-diff-content', value: l10n.t("No diff content"), id: new Date().valueOf() });
           }
@@ -787,27 +806,31 @@ export class RaccoonEditor extends Disposable {
           commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
           break;
         }
-        case 'telemetry': {
-          if (data.info.action === 'bug-report') {
-            let issueTitle;
-            let issueBody;
-            if (data.info.request && data.info.response) {
-              issueTitle = '[Feedback]';
-              let renderRequestBody = data.info.request.prompt;
-              if (renderRequestBody) {
-                renderRequestBody = renderRequestBody.replace(/\{\{code\}\}/g, data.info.request.code ? `\`\`\`${data.info.request.languageid || ""}\n${data.info.request.code}\n\`\`\`` : "");
-                issueTitle = '[Need Improvement]';
-                issueBody = `## Your question\n\n
+        case 'bug-report': {
+          let issueTitle;
+          let issueBody;
+          let hinfos = await this.cache.getCacheItemWithId(data.id);
+          if (hinfos.length >= 2) {
+            let qinfo = hinfos.filter((v, _idx, _arr) => { return v.type === CacheItemType.question });
+            let ainfo = hinfos.filter((v, _idx, _arr) => { return v.type === CacheItemType.answer });
+            let einfo = hinfos.filter((v, _idx, _arr) => { return v.type === CacheItemType.error });
+            issueTitle = '[Feedback]';
+            let renderRequestBody = qinfo[0]?.value;
+            if (renderRequestBody) {
+              issueTitle = '[Need Improvement]';
+              issueBody = `## Your question\n\n
 ${renderRequestBody}
-${data.info.response[0] ? `\n\n## Raccoon's answer\n\n${data.info.response[0]}\n\n` : ""}
-${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
+${ainfo[0]?.value ? `\n\n## Raccoon's answer\n\n${ainfo[0].value}\n\n` : ""}
+${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 ## Your expection
 `;
-              }
             }
-            commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id, issueTitle, issueBody });
-            break;
           }
+          commands.executeCommand("workbench.action.openIssueReporter", { extensionId: this.context.extension.id, issueTitle, issueBody });
+          break;
+        }
+        case 'telemetry': {
+          let tinfo = data as telemetryInfo;
           if (!env.isTelemetryEnabled) {
             window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
               if (v === "OK") {
@@ -821,7 +844,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
           let code_accept_usage: any;
           let dialog_window_usage: any;
 
-          switch (data.info.action) {
+          switch (tinfo.action) {
             case "like-cancelled": {
               dialog_window_usage = {
                 // positive_feedback_num: -1
@@ -855,7 +878,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "code-generated": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.languageid || "Unknown"] = {
+              metrics_by_language[tinfo.languageid || "Unknown"] = {
                 code_generate_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -863,7 +886,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "diff-code": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.languageid || "Unknown"] = {
+              metrics_by_language[tinfo.languageid || "Unknown"] = {
                 code_compare_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -871,7 +894,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "copy-snippet": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.languageid || "Unknown"] = {
+              metrics_by_language[tinfo.languageid || "Unknown"] = {
                 code_copy_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -879,7 +902,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
             }
             case "insert-snippet": {
               let metrics_by_language: any = {};
-              metrics_by_language[data.info.languageid || "Unknown"] = {
+              metrics_by_language[tinfo.languageid || "Unknown"] = {
                 code_insert_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -925,9 +948,10 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     return false;
   }
 
-  public async sendApiRequest(prompt: PromptInfo, values?: any, history?: any[]) {
+  public async sendApiRequest(prompt: PromptInfo, values?: any, history?: CacheItem[]) {
     let ts = new Date();
     let id = ts.valueOf();
+    let response = "";
     let reqTimestamp = ts.toLocaleString();
 
     let loggedin = raccoonManager.isClientLoggedin();
@@ -970,23 +994,18 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
         if (history) {
           let hs = Array.from(history).reverse();
           for (let h of hs) {
-            let aLen = (h.answer.length) * 2 + 12;
+            let role = Role.user;
+            if (h.type !== CacheItemType.question) {
+              role = Role.assistant;
+            }
+            let aLen = (h.value.length) * 2 + 12;
             if ((el + aLen) > maxTokens) {
               break;
             }
             el += aLen;
             historyMsgs.push({
-              role: Role.assistant,
-              content: h.answer
-            });
-            let qLen = (h.answer.length) * 2 + 12;
-            if ((el + qLen) > maxTokens) {
-              break;
-            }
-            el += qLen;
-            historyMsgs.push({
-              role: Role.user,
-              content: h.question
+              role,
+              content: h.value
             });
           }
         }
@@ -1022,12 +1041,15 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
+                h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
                 errorFlag = true;
               },
               onFinish(choices: Choice[], thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 if (!errorFlag) {
+                  let rts = new Date().toLocaleString();
+                  h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
@@ -1036,7 +1058,16 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
               },
               onUpdate(choice: Choice, thisArg) {
                 let rts = new Date().toLocaleString();
-                thisArg.sendMessage({ type: 'addResponse', id, value: choice.message?.content || "", timestamp: rts });
+                if (choice.finishReason === FinishReason.sensitive) {
+                  thisArg.sendMessage({ type: 'addError', error: l10n.t("Potentially Sensitive Content Encountered"), id, timestamp: rts });
+                  return;
+                } else if (choice.finishReason === FinishReason.length) {
+                } else if (choice.finishReason === FinishReason.context) {
+                  thisArg.sendMessage({ type: 'addError', error: l10n.t("Context Too long"), id, timestamp: rts });
+                  return;
+                }
+                response += choice.message?.content || "";
+                thisArg.sendMessage({ type: 'updateResponse', id, value: response, timestamp: rts });
               }
             },
             buildHeader(this.context.extension, prompt.type, `${id}`)
@@ -1064,16 +1095,18 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
+                h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
                 errorFlag = true;
               },
               onFinish(choices, thisArg) {
                 let h = <RaccoonEditor>thisArg;
+                let rts = new Date().toLocaleString();
                 if (!errorFlag) {
+                  h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content || "" });
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
-                let rts = new Date().toLocaleString();
-                h.sendMessage({ type: 'addResponse', id, value: choices[0].message?.content, timestamp: rts });
+                h.sendMessage({ type: 'updateResponse', id, value: choices[0].message?.content, timestamp: rts });
                 delete h.stopList[id];
                 h.sendMessage({ type: 'stopResponse', id });
               }
@@ -1101,13 +1134,15 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
     }
   }
 
-  public async clear() {
+  public async clear(showWelcome?: boolean) {
     for (let id in this.stopList) {
       this.stopList[id].abort();
     }
     this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}`);
     this.sendMessage({ type: "clear" });
-    this.showWelcome();
+    if (showWelcome) {
+      this.showWelcome();
+    }
   }
 
   private async getWebviewHtml(webview: Webview) {
@@ -1194,7 +1229,7 @@ ${data.info.error ? `\n\n## Raccoon's error\n\n${data.info.error}\n\n` : ""}
                       <div class="search-hint items-center">
                         <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Search")}
                       </div>
-                      <div class="history-hint  items-center" style="margin-left: 1rem;">
+                      <div class="history-hint items-center" style="margin-left: 1rem;">
                       <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Send")}
                       </div>
                       <div class="history-hint items-center">
@@ -1273,10 +1308,10 @@ export class RaccoonViewProvider implements WebviewViewProvider {
     });
     registerCommand(context, "new-chat", async (uri) => {
       if (!uri) {
-        RaccoonViewProvider.editor?.clear();
+        RaccoonViewProvider.editor?.clear(true);
       } else {
         let editor = RaccoonEditorProvider.getEditor(uri);
-        editor?.clear();
+        editor?.clear(true);
       }
       // eslint-disable-next-line @typescript-eslint/naming-convention
       telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { new_session_num: 1 } });

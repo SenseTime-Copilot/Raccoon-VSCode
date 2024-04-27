@@ -780,7 +780,7 @@ span.shortcut:after {
 }
 
 .question-element-gnc {
-    background: var(--vscode-sideBar-background);
+    background: var(--vscode-chat-requestBackground);
 }
 
 .response pre {
@@ -901,7 +901,7 @@ span.shortcut:after {
     float: left;
     margin: -1.25rem 0 0 -0.75rem;
     width: calc(100% + 1.5rem);
-    border-bottom: 0.5rem dotted var(--panel-view-background);
+    border-bottom: 0.5rem dotted var(--vscode-chat-requestBackground);
 }
 
 .answer-element-gnc.responsing .markdown-body pre code::-webkit-scrollbar {
@@ -1103,11 +1103,6 @@ button.stopGenerate:hover,
 
 .vscode-high-contrast .answer-element-gnc {
     background-color: var(--vscode-minimapSlider-background);
-}
-
-.whitespace-pre {
-    padding: 20px 10px 10px 10px;
-    background-color: var(--vscode-editor-rangeHighlightBackground);
 }
 
 .markdown-body .reflink {

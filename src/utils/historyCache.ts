@@ -216,6 +216,53 @@ export class HistoryCache {
       });
   }
 
+  async getCacheItems(): Promise<Array<CacheItem>> {
+    let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'history');
+    let cacheUri = Uri.joinPath(cacheDir, this.id + ".json");
+    return workspace.fs.readFile(cacheUri).then(content => {
+      try {
+        let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
+        let answerReady = false;
+        return h.filter((v, idx, arr) => {
+          if ((idx) >= arr.length) {
+            answerReady = false;
+            return false;
+          } else if (v.type === CacheItemType.question && (idx + 1) < arr.length && arr[idx + 1].type === CacheItemType.answer) {
+            answerReady = true;
+            return true;
+          } else if (answerReady && v.type === CacheItemType.answer) {
+            answerReady = false;
+            return true;
+          } else {
+            answerReady = false;
+            return false;
+          }
+        });
+      } catch {
+        return [];
+      }
+    }, () => {
+      return [];
+    });
+  }
+
+  async getCacheItemWithId(id: number): Promise<Array<CacheItem>> {
+    let cacheDir = Uri.joinPath(this.context.globalStorageUri, 'history');
+    let cacheUri = Uri.joinPath(cacheDir, this.id + ".json");
+    return workspace.fs.readFile(cacheUri).then(content => {
+      try {
+        let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
+        return h.filter((v, idx, arr) => {
+          return v.id === id;
+        });
+      } catch {
+        return [];
+      }
+    }, () => {
+      return [];
+    });
+  }
+
   static async getCacheItems(context: ExtensionContext, id: string): Promise<Array<CacheItem>> {
     let cacheDir = Uri.joinPath(context.globalStorageUri, 'history');
     let cacheUri = Uri.joinPath(cacheDir, id + ".json");

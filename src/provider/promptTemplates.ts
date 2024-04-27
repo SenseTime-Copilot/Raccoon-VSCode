@@ -74,7 +74,7 @@ export class PromptInfo {
 
     let args = this._prompt.args;
     let prompthtml = prompt.message.content;
-    prompthtml = prompthtml.replace(/</g, "&lt;");
+    prompthtml = prompthtml.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     let argData = '';
     if (args && Object.keys(args).length > 0) {
       renderHtml.status = RenderStatus.editRequired;
@@ -82,7 +82,7 @@ export class PromptInfo {
         let arg = args[argName];
         switch (arg.type) {
           case "enum": {
-            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}" onChange="document.getElementById('values-${id}').dataset.${argName} = this.options[this.selectedIndex].text;">`;
+            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}">`;
             for (let v of arg.options) {
               renderElem += `<option value="${v}">${v}</option>`;
             }
@@ -149,7 +149,7 @@ export class PromptInfo {
         btn2 = '<button class="fold-btn expend-code rounded hidden"><span class="material-symbols-rounded">compress</span></button>';
       }
       let btns = `${btnView}${btn1}${btn2}`;
-      let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;");
+      let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
       codeHtml = `<pre ${langdata} class="${classList}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
     prompthtml = prompthtml.replace(/\{\{code\}\}/g, codeHtml);
@@ -160,10 +160,10 @@ export class PromptInfo {
 
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}></div></div>`;
     } else {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"><div class="languageid-value">${prompt.languageid || ""}</div><div class="code-value">${prompt.code || ""}</div></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"></div></div>`;
     }
 
     return renderHtml;

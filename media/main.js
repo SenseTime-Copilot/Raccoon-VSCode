@@ -38,6 +38,10 @@ const vscode = acquireVsCodeApi();
   var agents = undefined;
   var prompts = undefined;
   var history = [];
+  var contents = new Map();
+  var lasttimestamps = new Map();
+  var timestamps = new Map();
+  var renderers = new Map();
   var tipN = 0;
 
   document.oncontextmenu = () => {
@@ -74,46 +78,11 @@ const vscode = acquireVsCodeApi();
     setTimeout(showTips, 8000);
   }
 
-  collectInfo = function (id, action, targetLanguageid) {
-    var promptNode = document.getElementById(`prompt-${id}`);
-    var valuesNode = document.getElementById(`values-${id}`);
-    var responseNode = document.getElementById(`response-${id}`);
-    var response = responseNode?.dataset?.response;
-    var error = responseNode?.dataset?.error;
-    var languageid;
-    var code;
-    if (valuesNode) {
-      var v1 = valuesNode.getElementsByClassName("languageid-value");
-      if (v1[0]) {
-        languageid = v1[0].textContent;
-      }
-      var v2 = valuesNode.getElementsByClassName("code-value");
-      if (v2[0]) {
-        code = v2[0].textContent;
-      }
-    }
-    return {
-      request: {
-        languageid,
-        code,
-        ...promptNode?.dataset
-      },
-      response: [response],
-      error,
-      action,
-      languageid: targetLanguageid,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      generate_at: parseInt(id),
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      report_at: new Date().valueOf()
-    };
-  };
-
   function buildQuestion(username, avatar, timestamp, id, innerHTML, status) {
-    let questionTitle = `<h2 class="avatar place-content-between mb-4 -mx-2 flex flex-row-reverse">
-                              <span class="flex gap-2 flex flex-row-reverse text-xl">
+    let questionTitle = `<h2 class="avatar place-content-between mb-4 -mx-2 flex">
+                              <span class="flex gap-2 flex text-xl">
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
-                                <span class="text-xs text-right" style="font-family: var(--vscode-editor-font-family);">
+                                <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
                                   <b class="text-sm">${username}</b>
                                   <div class="opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${timestamp}
@@ -149,6 +118,45 @@ const vscode = acquireVsCodeApi();
       err.remove();
     }, 3000);
   };
+
+  function render(id, scroll) {
+    const responseElem = document.getElementById(`response-${id}`);
+    const content = contents.get(id);
+    if (!responseElem || !content) return;
+    const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(content)), "text/html");
+    const preCodeList = markedResponse.querySelectorAll("pre > code");
+    preCodeList.forEach((preCode, _index) => {
+      preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+    });
+    responseElem.innerHTML = markedResponse.documentElement.innerHTML;
+    if (scroll) {
+      const list = document.getElementById("qa-list");
+      list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+    }
+  }
+
+  function createReponseRender(id) {
+    renderers.set(
+      id,
+      setInterval(
+        function () {
+          let lastts = lasttimestamps.get(id);
+          let ts = timestamps.get(id);
+          if (lastts !== ts) {
+            lasttimestamps.get(id, ts);
+            const scroll = scrollPositionAtBottom();
+            render(id, scroll);
+          }
+        },
+        30
+      )
+    );
+  }
+
+  function clearReponseRender(id) {
+    clearInterval(renderers.get(id));
+    delete renderers.delete(id);
+  }
 
   function wrapCode(cont) {
     if (cont.split("```").length % 2 !== 1) {
@@ -193,7 +201,6 @@ const vscode = acquireVsCodeApi();
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
             const preCodeList = markedResponse.querySelectorAll("pre > code");
             var lang = '';
-            var code = '';
             preCodeList.forEach((preCode, index) => {
               preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "mt-4");
               preCode.classList.forEach((cls, _idx, _arr) => {
@@ -254,11 +261,7 @@ const vscode = acquireVsCodeApi();
             if (item.instruction) {
               labelInstruction = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${item.instruction.replace("...", "")}</p>`;
             }
-            let values = `<div id="values-${item.id}" class="values hidden">
-              <div class="languageid-value">${lang}</div>
-              <div class="code-value">${code}</div>
-            </div>`;
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2" data-prompt="${item.value}">${labelInstruction}${markedResponse.documentElement.innerHTML} ${values}</div>`;
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelInstruction}${markedResponse.documentElement.innerHTML}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
@@ -337,7 +340,7 @@ const vscode = acquireVsCodeApi();
                                 </span>
                               </span>
                             </h2>
-                            <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body" data-response="${item.value}">
+                            <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body">
                               ${markedResponse.documentElement.innerHTML}
                             </div>
                           </div>`;
@@ -361,7 +364,7 @@ const vscode = acquireVsCodeApi();
             acc.classList.remove('hidden');
             let fl = new URL(message.file);
             ct.innerHTML = '<span class="material-symbols-rounded" style="transform: rotate(90deg);">chevron_right</span>'
-              + '<span class="grow">' + fl.pathname.split('/').slice(-1) + '</span>'
+              + '<span class="grow whitespace-pre text-ellipsis overflow-hidden">' + fl.pathname.split('/').slice(-1) + '</span>'
               + '<span class="material-symbols-rounded" style="float: right">open_in_new</span>';
             ct.title = decodeURIComponent(fl.pathname);
             ct.onclick = (_event) => {
@@ -497,11 +500,11 @@ const vscode = acquireVsCodeApi();
           updateHistory(promptInfo.prompt);
           document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
           document.getElementById("question-input").disabled = true;
+          contents.set(id, "");
           var chat = document.getElementById(`${id}`);
           if (!chat) {
             chat = document.createElement("div");
             chat.id = `${id}`;
-            chat.dataset['name'] = message.robot;
             chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
                       <span class="flex gap-1 opacity-60 items-center">
@@ -611,9 +614,9 @@ const vscode = acquireVsCodeApi();
         if (!chatText) {
           break;
         }
+        const scroll = scrollPositionAtBottom();
+        render(message.id, scroll);
         let r = document.getElementById(`${message.id}`);
-        let name = r.dataset['name'];
-        let ts = '';
         if (chatText.classList.contains("empty")) {
           document.getElementById(`feedback-${message.id}`)?.classList?.add("empty");
         } else {
@@ -622,104 +625,83 @@ const vscode = acquireVsCodeApi();
             ts = rts[0].textContent;
           }
         }
-        if (!chatText.dataset.response || chatText.dataset.error) {
-          vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: '' });
-          break;
-        }
-        chatText.dataset.response = wrapCode(chatText.dataset.response);
-        const markedResponse = new DOMParser().parseFromString(marked.parse(chatText.dataset.response), "text/html");
-        // chatText.dataset.response = undefined;
-        const preCodeList = markedResponse.querySelectorAll("pre > code");
+        if (!chatText.classList.contains("error")) {
+          const preCodeList = chatText.querySelectorAll("pre > code");
 
-        preCodeList.forEach((preCode, index) => {
-          preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
-          preCode.classList.forEach((cls, _idx, _arr) => {
-            if (cls.startsWith('language-')) {
-              let lang = cls.slice(9);
-              preCode.parentElement.dataset.lang = lang;
-              return;
+          preCodeList.forEach((preCode, index) => {
+            preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+            preCode.classList.forEach((cls, _idx, _arr) => {
+              if (cls.startsWith('language-')) {
+                let lang = cls.slice(9);
+                preCode.parentElement.dataset.lang = lang;
+                return;
+              }
+            });
+
+            vscode.postMessage({ type: 'telemetry', id: parseInt(message.id), ts: new Date().valueOf(), action: "code-generated", languageid: preCode.parentElement.dataset.lang });
+
+            if (index !== preCodeList.length - 1) {
+              preCode.parentElement.classList.add("mb-8");
             }
+
+            const buttonWrapper = document.createElement("div");
+            buttonWrapper.classList.add("code-actions-wrapper");
+
+            const fav = document.createElement("button");
+            fav.dataset.id = message.id;
+            if (preCode.parentElement.dataset.lang !== 'mermaid') {
+              fav.title = l10nForUI["Favorite"];
+              fav.innerHTML = favIcon;
+              fav.classList.add("fav-element-gnc", "rounded");
+            } else {
+              fav.title = l10nForUI["Show graph"];
+              fav.innerHTML = viewIcon;
+              fav.classList.add("mermaid-element-gnc", "rounded");
+            }
+
+            const diff = document.createElement("button");
+            diff.dataset.id = message.id;
+            diff.title = l10nForUI["Diff"];
+            diff.innerHTML = diffIcon;
+
+            diff.classList.add("diff-element-gnc", "rounded");
+
+            // Create wrap to clipboard button
+            const wrapButton = document.createElement("button");
+            wrapButton.dataset.id = message.id;
+            wrapButton.title = l10nForUI["ToggleWrap"];
+            wrapButton.innerHTML = wrapIcon;
+
+            wrapButton.classList.add("wrap-element-gnc", "rounded");
+
+            // Create copy to clipboard button
+            const copyButton = document.createElement("button");
+            copyButton.dataset.id = message.id;
+            copyButton.title = l10nForUI["Copy"];
+            copyButton.innerHTML = clipboardIcon;
+
+            copyButton.classList.add("code-element-gnc", "rounded");
+
+            const insert = document.createElement("button");
+            insert.dataset.id = message.id;
+            insert.title = l10nForUI["Insert"];
+            insert.innerHTML = insertIcon;
+
+            insert.classList.add("edit-element-gnc", "rounded");
+
+            buttonWrapper.append(wrapButton, fav, diff, copyButton, insert);
+
+            preCode.parentElement.prepend(buttonWrapper);
           });
-
-          let info = {
-            action: "code-generated",
-            languageid: preCode.parentElement.dataset.lang,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            generate_at: parseInt(message.id),
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            report_at: new Date().valueOf()
-          };
-          vscode.postMessage({ type: 'telemetry', info });
-
-          if (index !== preCodeList.length - 1) {
-            preCode.parentElement.classList.add("mb-8");
-          }
-
-          const buttonWrapper = document.createElement("div");
-          buttonWrapper.classList.add("code-actions-wrapper");
-
-          const fav = document.createElement("button");
-          fav.dataset.id = message.id;
-          if (preCode.parentElement.dataset.lang !== 'mermaid') {
-            fav.title = l10nForUI["Favorite"];
-            fav.innerHTML = favIcon;
-            fav.classList.add("fav-element-gnc", "rounded");
-          } else {
-            fav.title = l10nForUI["Show graph"];
-            fav.innerHTML = viewIcon;
-            fav.classList.add("mermaid-element-gnc", "rounded");
-          }
-
-          const diff = document.createElement("button");
-          diff.dataset.id = message.id;
-          diff.title = l10nForUI["Diff"];
-          diff.innerHTML = diffIcon;
-
-          diff.classList.add("diff-element-gnc", "rounded");
-
-          // Create wrap to clipboard button
-          const wrapButton = document.createElement("button");
-          wrapButton.dataset.id = message.id;
-          wrapButton.title = l10nForUI["ToggleWrap"];
-          wrapButton.innerHTML = wrapIcon;
-
-          wrapButton.classList.add("wrap-element-gnc", "rounded");
-
-          // Create copy to clipboard button
-          const copyButton = document.createElement("button");
-          copyButton.dataset.id = message.id;
-          copyButton.title = l10nForUI["Copy"];
-          copyButton.innerHTML = clipboardIcon;
-
-          copyButton.classList.add("code-element-gnc", "rounded");
-
-          const insert = document.createElement("button");
-          insert.dataset.id = message.id;
-          insert.title = l10nForUI["Insert"];
-          insert.innerHTML = insertIcon;
-
-          insert.classList.add("edit-element-gnc", "rounded");
-
-          buttonWrapper.append(wrapButton, fav, diff, copyButton, insert);
-
-          preCode.parentElement.prepend(buttonWrapper);
-        });
-        chatText.innerHTML = markedResponse.documentElement.innerHTML;
-        if (scrollPositionAtBottom()) {
-          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
-        }
-        if (message.byUser === true) {
-          var ci = collectInfo(message.id, "stopped-by-user");
-          vscode.postMessage({ type: 'telemetry', info: ci });
-          vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: ci.response[0] });
-        } else {
-          var info = collectInfo(message.id, "");
-          if (info.response[0]) {
-            vscode.postMessage({ type: 'flushLog', action: "answer", id: message.id, name, ts, value: info.response[0] });
-          } else if (info.error) {
-            vscode.postMessage({ type: 'flushLog', action: "error", id: message.id, name, ts, value: info.error });
+          if (scroll) {
+            list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
           }
         }
+        clearReponseRender(message.id);
+        timestamps.delete(message.id);
+        lasttimestamps.delete(message.id);
+        renderers.delete(message.id);
+        contents.delete(message.id);
         break;
       }
       case "addMessage": {
@@ -751,12 +733,13 @@ const vscode = acquireVsCodeApi();
         list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         break;
       }
-      case "addResponse": {
+      case "updateResponse": {
         const chatText = document.getElementById(`response-${message.id}`);
         if (!chatText) {
           break;
         }
         if (chatText.classList.contains("empty")) {
+          createReponseRender(message.id);
           if (message.timestamp) {
             let r = document.getElementById(`${message.id}`);
             let rts = r?.getElementsByClassName("response-ts");
@@ -768,16 +751,8 @@ const vscode = acquireVsCodeApi();
         }
         const progText = document.getElementById(`progress-${message.id}`);
         progText?.classList.add("started");
-        chatText.dataset.response = (chatText.dataset.response || "") + message.value;
-        const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(chatText.dataset.response)), "text/html");
-        const preCodeList = markedResponse.querySelectorAll("pre > code");
-        preCodeList.forEach((preCode, _index) => {
-          preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
-        });
-        chatText.innerHTML = markedResponse.documentElement.innerHTML;
-        if (scrollPositionAtBottom()) {
-          list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
-        }
+        contents.set(message.id, message.value);
+        timestamps.set(message.id, message.timestamp);
         break;
       }
       case 'reLogin': {
@@ -798,7 +773,7 @@ const vscode = acquireVsCodeApi();
         if (!chatText) {
           break;
         }
-        chatText.dataset.error = message.message;
+        chatText.classList.add("error");
         chatText.innerHTML = chatText.innerHTML + `<div class="infoMsg rounded flex items-center">
                                         <span class="material-symbols-rounded text-3xl p-2">no_accounts</span>
                                         <div class="flex grow py-4">
@@ -818,7 +793,7 @@ const vscode = acquireVsCodeApi();
         }
         break;
       }
-      case "addError":
+      case "addError": {
         if (!list.innerHTML) {
           return;
         }
@@ -837,23 +812,27 @@ const vscode = acquireVsCodeApi();
         if (!chatText) {
           break;
         }
-        chatText.dataset.error = message.error;
-        chatText.innerHTML = chatText.innerHTML + `<div class="errorMsg rounded flex items-center">
-                                        <span class="material-symbols-rounded text-3xl p-2">report</span>
-                                        <div class="grow py-4 overflow-auto">
-                                            <div>An error occurred</div>
-                                            <div>${message.error}</div>
-                                        </div>
-                                        <button class="bug rounded border-0 mx-4 opacity-80 focus:outline-none" data-id=${message.id}>
-                                          <span class="material-symbols-rounded">
-                                            bug_report
-                                          </span>
-                                        </button>
-                                    </div>`;
-        if (scrollPositionAtBottom()) {
+        const scroll = scrollPositionAtBottom();
+        chatText.classList.add("error");
+        let error = `<div class="errorMsg rounded flex items-center">
+                        <span class="material-symbols-rounded text-3xl p-2">report</span>
+                        <div class="grow py-4 overflow-auto">
+                            <div>An error occurred</div>
+                            <div>${message.error}</div>
+                        </div>
+                        <button class="bug rounded border-0 mx-4 opacity-80 focus:outline-none" data-id=${message.id}>
+                          <span class="material-symbols-rounded">
+                            bug_report
+                          </span>
+                        </button>
+                    </div>`;
+        contents.set(message.id, contents.get(message.id) + error);
+        chatText.innerHTML = chatText.innerHTML + error;
+        if (scroll) {
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         }
         break;
+      }
       default:
         break;
     }
@@ -869,13 +848,6 @@ const vscode = acquireVsCodeApi();
       var values = {};
       var promptTemp = { ...prompt[0].dataset };
       promptTemp.message = { role: 'user', content: prompt[0].dataset['prompt'] };
-      const valuesEle = prompt[0].getElementsByClassName("values");
-      if (valuesEle && valuesEle[0]) {
-        promptTemp.languageid = valuesEle[0].getElementsByClassName("languageid-value")[0].textContent;
-        promptTemp.code = valuesEle[0].getElementsByClassName("code-value")[0].textContent;
-        values = { ...valuesEle[0].dataset };
-      }
-
       if (replace) {
         document.getElementById(`question-${replace}`)?.remove();
         document.getElementById(replace)?.remove();
@@ -883,7 +855,6 @@ const vscode = acquireVsCodeApi();
 
       vscode.postMessage({
         type: "sendQuestion",
-        history: collectHistory(),
         prompt: promptTemp,
         values
       });
@@ -898,43 +869,6 @@ const vscode = acquireVsCodeApi();
       item = item.replaceAll("{{code}}", "");
       history = [item.trim(), ...history];
     }
-  }
-
-  function collectHistory() {
-    let historyList = [];
-    const list = document.getElementById("qa-list");
-    let qlist = list.querySelectorAll(".question-element-gnc");
-    qlist.forEach((q, _idx, _arr) => {
-      let p = undefined;
-      let r = undefined;
-
-      const prompt = q.getElementsByClassName("prompt");
-      const values = prompt[0].getElementsByClassName("values");
-      const languageid = values[0]?.getElementsByClassName("languageid-value")[0]?.textContent || "";
-      const code = values[0]?.getElementsByClassName("code-value")[0]?.textContent || "";
-      p = prompt[0].dataset.prompt;
-      if (p) {
-        p = p.replaceAll("{{code}}", `\n\`\`\`${languageid}\n${code}\n\`\`\``);
-      }
-      const answer = q.nextElementSibling;
-      if (answer && answer.classList?.contains("answer-element-gnc")) {
-        const rs = answer.getElementsByClassName("response");
-        if (rs && rs[0] && rs[0].dataset.response) {
-          if (rs[0].dataset.error) {
-            // skip errors
-          } else if (rs[0].dataset.response) {
-            r = `${rs[0].dataset.response.trim()}`;
-          }
-        }
-      }
-      if (p && r) {
-        historyList.push({
-          question: p,
-          answer: r
-        });
-      }
-    });
-    return historyList;
   }
 
   function updateChatBoxStatus(status, id) {
@@ -1299,8 +1233,7 @@ const vscode = acquireVsCodeApi();
               label: "",
               type: "free chat",
               message: { role: 'user', content: e.target.value }
-            },
-            history: collectHistory()
+            }
           });
         }
       } else if (e.key === "ArrowDown" && document.getElementById("question").classList.contains("history")) {
@@ -1438,7 +1371,7 @@ const vscode = acquireVsCodeApi();
 
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
-
+    let ts = new Date().valueOf();
     if (targetButton?.id === "login") {
       let code = document.getElementById("login-code")?.value;
       let account = document.getElementById("login-account").value;
@@ -1468,8 +1401,7 @@ const vscode = acquireVsCodeApi();
               label: "",
               type: "free chat",
               message: { role: 'user', content: prompt }
-            },
-            history: collectHistory()
+            }
           });
         } else {
           var readyQuestion = document.getElementsByClassName("editRequired");
@@ -1546,7 +1478,7 @@ const vscode = acquireVsCodeApi();
       const id = targetButton.dataset.id;
       document.getElementById(`question-${id}`)?.remove();
       document.getElementById(id)?.remove();
-      vscode.postMessage({ type: 'flushLog', action: "delete", id: parseInt(id) });
+      vscode.postMessage({ type: 'deleteQA', id: parseInt(id) });
       return;
     }
 
@@ -1560,11 +1492,11 @@ const vscode = acquireVsCodeApi();
       var dislike = feedbackActions.querySelectorAll(".dislike")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "like-cancelled") });
+        vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "like-cancelled" });
       } else {
         dislike?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "like") });
+        vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "like" });
       }
       return;
     }
@@ -1574,17 +1506,18 @@ const vscode = acquireVsCodeApi();
       var like = feedbackActions.querySelectorAll(".like")[0];
       if (targetButton?.classList?.contains('checked')) {
         targetButton?.classList?.remove("checked");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "dislike-cancelled") });
+        vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "dislike-cancelled" });
       } else {
         like?.classList.remove("checked");
         targetButton?.classList?.add("checked");
-        vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "dislike") });
+        vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "dislike" });
       }
       return;
     }
 
     if (targetButton?.classList?.contains('bug') || targetButton?.classList?.contains('correct') || e.target.id === "report-issue") {
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "bug-report") });
+      const id = targetButton.dataset.id;
+      vscode.postMessage({ type: 'bug-report', id: id ? parseInt(id) : undefined, ts });
       return;
     }
 
@@ -1594,7 +1527,7 @@ const vscode = acquireVsCodeApi();
       // targetButton?.classList?.add("pointer-events-none");
       const question = document.getElementById(`question-${id}`);
       sendQuestion(question, id);
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "regenerate") });
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "regenerate" });
       return;
     }
 
@@ -1685,7 +1618,7 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
       var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(targetButton?.dataset.id, "copy-snippet", languageid) });
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", languageid });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
         targetButton.innerHTML = checkIcon;
 
@@ -1701,24 +1634,10 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       let id = targetButton?.dataset.id;
       var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "diff-code", languageid) });
-      var valuesNode = document.getElementById(`values-${id}`);
-      var lang;
-      var origin;
-      if (valuesNode) {
-        var v1 = valuesNode.getElementsByClassName("languageid-value");
-        if (v1[0]) {
-          lang = v1[0].textContent;
-        }
-        var v2 = valuesNode.getElementsByClassName("code-value");
-        if (v2[0]) {
-          origin = v2[0].textContent;
-        }
-      }
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "diff-code", languageid });
       vscode.postMessage({
         type: "diff",
         languageid: lang,
-        origin,
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
 
@@ -1729,7 +1648,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       let id = targetButton?.dataset.id;
       var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', info: collectInfo(id, "insert-snippet", languageid) });
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "insert-snippet", languageid });
       vscode.postMessage({
         type: "editCode",
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
