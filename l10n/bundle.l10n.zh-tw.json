@@ -119,6 +119,8 @@
   "Out of service": "無法使用",
   "Connecting...": "連接中...",
   "Typing...": "正在輸出...",
+  "Potentially Sensitive Content Encountered": "遇到敏感內容",
+  "Context Too long": "內容過長",
   "Regenerate": "重新回答",
   "Stop responding": "停止回答",
   "Done": "完成",

@@ -119,6 +119,8 @@
   "Out of service": "サービス停止中",
   "Connecting...": "接続中...",
   "Typing...": "入力中...",
+  "Potentially Sensitive Content Encountered": "機密情報が含まれる可能性があります",
+  "Context Too long": "コンテキストが長すぎます",
   "Regenerate": "再回答",
   "Stop responding": "回答停止",
   "Done": "完成",

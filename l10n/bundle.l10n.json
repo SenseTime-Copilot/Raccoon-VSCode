@@ -119,6 +119,8 @@
   "Out of service": "Out of service",
   "Connecting...": "Connecting...",
   "Typing...": "Typing...",
+  "Potentially Sensitive Content Encountered": "Potentially Sensitive Content Encountered",
+  "Context Too long": "Context Too long",
   "Regenerate": "Regenerate",
   "Stop responding": "Stop responding",
   "Done": "Done",
