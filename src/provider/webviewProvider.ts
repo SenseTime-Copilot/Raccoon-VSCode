@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit, QuickPickItem } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -11,7 +11,7 @@ import { FavoriteCodeEditor } from './favoriteCode';
 import { ModelCapacity } from './config';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 
-interface telemetryInfo {
+interface TelemetryInfo {
   id: number;
   ts: number;
   action: string;
@@ -403,34 +403,31 @@ export class RaccoonEditor extends Disposable {
 
     let trigger = (completionDelay === 3500) ? "opacity-60" : "";
     let activeOrg = raccoonManager.activeOrganization();
-    let KnowledgeBaseEnable = pro || activeOrg;
+    let knowledgeBaseEnable = pro || activeOrg;
 
     accountInfo = `
     <div class="flex gap-2 items-center w-full">
       ${avatarEle}
-      ${(activeOrg) ?
-        `<div class="grow flex flex-col">
-        <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
-        <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
-          <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-          <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}">
-            ${activeOrg.name}
-          </div>
+      ${(activeOrg) ? `<div class="grow flex flex-col">
+      <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
+      <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
+        <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
+        <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}">
+          ${activeOrg.name}
         </div>
-      </div>` :
-        `<div class="grow flex flex-col">
-        <div class="flex">
-          <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
-          ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
+      </div>
+    </div>` : `<div class="grow flex flex-col">
+      <div class="flex">
+        <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
+        ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
+      </div>
+      <div class="${username ? "flex" : "hidden"} w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
+        <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
+        <div class="cursor-pointer" id="switch-org" title="${l10n.t("Individual")}">
+          ${l10n.t("Individual")}
         </div>
-        <div class="${username ? "flex" : "hidden"} w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
-          <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-          <div class="cursor-pointer" id="switch-org" title="${l10n.t("Individual")}">
-            ${l10n.t("Individual")}
-          </div>
-        </div>
-      </div>`
-      }
+      </div>
+    </div>`}
       ${logout}
     </div>
     `;
@@ -498,16 +495,16 @@ export class RaccoonEditor extends Disposable {
       </vscode-radio-group>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-    <div class="flex gap-2 items-center ${KnowledgeBaseEnable ? "" : "opacity-50"}">
+    <div class="flex gap-2 items-center ${knowledgeBaseEnable ? "" : "opacity-50"}">
       <b>${l10n.t("Retrieval Argumention")}</b>
       <vscode-badge class="${activeOrg ? "hidden" : "opacity-50"}">Pro</vscode-badge>
     </div>
     <div class="ml-4 my-1">
-      <label class="my-1 ${KnowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
+      <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
-        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40" id="knowledgeBaseRef" ${KnowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
-        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="workspaceRef" ${KnowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
-        <vscode-checkbox ${KnowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${KnowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
     </div>
     <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -814,9 +811,15 @@ export class RaccoonEditor extends Disposable {
           let issueBody;
           let hinfos = await this.cache.getCacheItemWithId(data.id);
           if (hinfos.length >= 2) {
-            let qinfo = hinfos.filter((v, _idx, _arr) => { return v.type === CacheItemType.question });
-            let ainfo = hinfos.filter((v, _idx, _arr) => { return v.type === CacheItemType.answer });
-            let einfo = hinfos.filter((v, _idx, _arr) => { return v.type === CacheItemType.error });
+            let qinfo = hinfos.filter((v, _idx, _arr) => {
+              return v.type === CacheItemType.question;
+            });
+            let ainfo = hinfos.filter((v, _idx, _arr) => {
+              return v.type === CacheItemType.answer;
+            });
+            let einfo = hinfos.filter((v, _idx, _arr) => {
+              return v.type === CacheItemType.error;
+            });
             issueTitle = '[Feedback]';
             let renderRequestBody = qinfo[0]?.value;
             if (renderRequestBody) {
@@ -833,7 +836,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
           break;
         }
         case 'telemetry': {
-          let tinfo = data as telemetryInfo;
+          let tinfo = data as TelemetryInfo;
           if (!env.isTelemetryEnabled) {
             window.showInformationMessage("Thanks for your feedback, Please enable `telemetry.telemetryLevel` to send data to us.", "OK").then((v) => {
               if (v === "OK") {

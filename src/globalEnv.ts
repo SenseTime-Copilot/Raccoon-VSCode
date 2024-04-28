@@ -61,13 +61,14 @@ export async function initEnv(context: vscode.ExtensionContext) {
       let event = eventName;
       if (data && eventName) {
         if (eventName.startsWith(context.extension.id + "/")) {
-          // eslint-disable-next-line no-unused-vars
           event = eventName.slice(context.extension.id.length + 1);
         }
         let common = {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           client_agent: vscode.env.appName,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           machine_id: vscode.env.machineId
-        }
+        };
         try {
           raccoonManager.sendTelemetry(<MetricType>event, common, data);
         } catch (e) {

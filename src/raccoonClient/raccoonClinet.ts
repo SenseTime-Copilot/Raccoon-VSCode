@@ -159,7 +159,7 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  public async syncUserInfo(auth: AuthInfo, timeout_ms?: number): Promise<AccountInfo> {
+  public async syncUserInfo(auth: AuthInfo, timeoutMs?: number): Promise<AccountInfo> {
     let url = `${this.clientConfig.apiBaseUrl}/auth/v1/user_info`;
     return axios.get(url,
       {
@@ -167,7 +167,7 @@ export class RaccoonClient implements CodeClient {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           Authorization: `Bearer ${auth.weaverdKey}`
         },
-        timeout: timeout_ms
+        timeout: timeoutMs
       })
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0 && resp.data.data) {
@@ -325,7 +325,7 @@ export class RaccoonClient implements CodeClient {
             clearTimeout(requestTimeoutId);
             if (log) {
               let hh: any = {};
-              res.headers.forEach((v, k, h) => {
+              res.headers.forEach((v, k, _h) => {
                 hh[k] = v;
               });
               log(JSON.stringify(hh, undefined, 2));
@@ -448,7 +448,7 @@ export class RaccoonClient implements CodeClient {
 
         if (log) {
           let hh: any = {};
-          res.headers.forEach((v, k, h) => {
+          res.headers.forEach((v, k, _h) => {
             hh[k] = v;
           });
           log(JSON.stringify(hh, undefined, 2));
@@ -637,13 +637,15 @@ export class RaccoonClient implements CodeClient {
     }
     return axios.get(listUrl, {
       headers: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         Authorization: `Bearer ${authInfo.weaverdKey}`,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         "x-org-code": org?.code
       },
       timeout: 2000
     }).then((response) => {
       return response.data?.data?.knowledge_bases || [];
-    }).catch((e) => {
+    }).catch(() => {
       return [];
     });
   }
@@ -655,12 +657,15 @@ export class RaccoonClient implements CodeClient {
     metricInfo['metric_type'] = metricType.replace("_", "-");
     axios.post(telementryUrl,
       {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         common_header: common,
         metrics: [metricInfo],
       },
       {
         headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           Authorization: `Bearer ${authInfo.weaverdKey}`,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           "x-org-code": org?.code
         },
         timeout: 2000

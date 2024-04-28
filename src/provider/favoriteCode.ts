@@ -204,13 +204,18 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       switch (msg.type) {
         case 'save': {
           this.appendSnippetItem(msg);
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           let code_accept_usage: any;
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           let metrics_by_language: any = {};
           metrics_by_language[msg.languageid || "Unknown"] = {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             code_collect_num: 1
           };
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           code_accept_usage = { metrics_by_language };
           telemetryReporter.logUsage(MetricType.dialog, {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             code_accept_usage
           });
           panel.dispose();

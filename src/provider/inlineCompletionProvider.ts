@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { raccoonManager, outlog, telemetryReporter, extensionNameKebab } from "../globalEnv";
+import { raccoonManager, telemetryReporter, extensionNameKebab } from "../globalEnv";
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
 import { Choice, MetricType } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";

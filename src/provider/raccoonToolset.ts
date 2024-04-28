@@ -127,7 +127,7 @@ export class RaccoonRunner {
     return p;
 }
 `;
-    RaccoonRunner.run(output, 'typescript', chain, cancel).then((msg) => {
+    RaccoonRunner.run(output, 'typescript', chain, cancel).then((_msg) => {
       // console.log(msg.content);
     });
   }

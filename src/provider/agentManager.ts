@@ -317,7 +317,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
         </vscode-data-grid-cell>
       </vscode-data-grid-row>
       `;
-    })
+    });
     table += '</vscode-data-grid>';
 
     webview.html = `

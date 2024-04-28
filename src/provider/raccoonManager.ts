@@ -27,7 +27,7 @@ interface ClientAndAuthInfo {
 }
 
 type ChangeScope = "agent" | "prompt" | "engines" | "active" | "authorization" | "config";
-const Individual = "Individual";
+const individual = "Individual";
 
 export interface StatusChangeEvent {
   scope: ChangeScope[];
@@ -69,7 +69,7 @@ export class RaccoonManager {
           n: 1
         },
         {
-          onHeader: (headers: Headers) => {
+          onHeader: (_headers: Headers) => {
 
           },
           onError: (e: Choice) => {
@@ -380,7 +380,7 @@ export class RaccoonManager {
       agants.set(agent.id, agent);
     }
     let customAgents: Map<string, RaccoonAgent> = new Map(Object.entries(this.configuration.get("Agent") || {}));
-    customAgents?.forEach((value, key, map) => {
+    customAgents?.forEach((value, key, _map) => {
       agants.set(key, value);
     });
     return agants;
@@ -518,11 +518,11 @@ export class RaccoonManager {
     }
   }
 
-  public async userInfo(update: boolean = false, timeout_ms?: number): Promise<AccountInfo | undefined> {
+  public async userInfo(update: boolean = false, timeoutMs?: number): Promise<AccountInfo | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.authInfo) {
       if (update) {
-        return ca.client.syncUserInfo(ca.authInfo, timeout_ms).then((account) => {
+        return ca.client.syncUserInfo(ca.authInfo, timeoutMs).then((account) => {
           if (ca && ca.authInfo) {
             let ai = { ...ca.authInfo, account };
             this.updateToken(ca.client.robotName, ai);
@@ -545,9 +545,9 @@ export class RaccoonManager {
 
   public async setActiveOrganization(orgCode?: string): Promise<void> {
     if (!orgCode) {
-      orgCode = Individual;
+      orgCode = individual;
     }
-    let ao = this.context.globalState.get<string>("ActiveOrganization", Individual);
+    let ao = this.context.globalState.get<string>("ActiveOrganization", individual);
     if (orgCode === ao) {
       return Promise.resolve();
     }
@@ -560,8 +560,8 @@ export class RaccoonManager {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.client) {
       let orgs = ca.authInfo?.account.organizations;
-      let ao = this.context.globalState.get<string>("ActiveOrganization", Individual);
-      if (ao === Individual) {
+      let ao = this.context.globalState.get<string>("ActiveOrganization", individual);
+      if (ao === individual) {
         return undefined;
       }
       if (ao && orgs) {
@@ -579,11 +579,11 @@ export class RaccoonManager {
     let org: Organization | undefined = this.activeOrganization();
     if (ca && ca.authInfo) {
       let ts = this.context.globalState.get<number>("KnowledgeBasesUpdateAt") || 0;
-      let cur_ts = new Date().valueOf();
-      if (update || ((cur_ts - ts) > (3600 * 1000))) {
+      let curTs = new Date().valueOf();
+      if (update || ((curTs - ts) > (3600 * 1000))) {
         let kb = await ca.client.listKnowledgeBase(ca.authInfo, org);
         this.context.globalState.update("KnowledgeBases", kb);
-        this.context.globalState.update("KnowledgeBasesUpdateAt", cur_ts);
+        this.context.globalState.update("KnowledgeBasesUpdateAt", curTs);
         return Promise.resolve(kb);
       } else {
         return this.context.globalState.get<KnowledgeBase[]>("KnowledgeBases") || [];
@@ -684,7 +684,7 @@ export class RaccoonManager {
 
   public async switchOrganization() {
     interface OrgInfo extends QuickPickItem {
-      id: string
+      id: string;
     };
     return window.withProgress({
       location: { viewId: `${extensionNameKebab}.view` }
@@ -704,7 +704,7 @@ export class RaccoonManager {
               label: `${icon} ${value.name}`,
               description: `@${name}`,
               id: value.code
-            }
+            };
           });
         let individualItem: OrgInfo = {
           label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
@@ -715,16 +715,16 @@ export class RaccoonManager {
           id: "",
           label: "",
           kind: QuickPickItemKind.Separator
-        }
+        };
         progress.report({ increment: 100 });
         window.showQuickPick<OrgInfo>([individualItem, separator, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
           if (select) {
             raccoonManager.setActiveOrganization(select.id);
           }
-        })
+        });
       }).then(() => {
         this.listKnowledgeBase(true);
-      })
+      });
     });
   }
 

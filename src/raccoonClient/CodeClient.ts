@@ -185,7 +185,7 @@ export interface CodeClient {
 
   logout(auth: AuthInfo): Promise<string | undefined>;
 
-  syncUserInfo(auth: AuthInfo, timeout_ms?: number): Promise<AccountInfo>;
+  syncUserInfo(auth: AuthInfo, timeoutMs?: number): Promise<AccountInfo>;
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 

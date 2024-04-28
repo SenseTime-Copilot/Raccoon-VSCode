@@ -252,7 +252,7 @@ export class HistoryCache {
     return workspace.fs.readFile(cacheUri).then(content => {
       try {
         let h: CacheItem[] = JSON.parse(decoder.decode(content) || "[]");
-        return h.filter((v, idx, arr) => {
+        return h.filter((v, _idx, _arr) => {
           return v.id === id;
         });
       } catch {
