@@ -552,6 +552,7 @@ export class RaccoonManager {
       return Promise.resolve();
     }
     return this.context.globalState.update("ActiveOrganization", orgCode).then(() => {
+      this.listKnowledgeBase(true);
       this.notifyStateChange({ scope: ["active"] });
     });
   }
@@ -722,8 +723,6 @@ export class RaccoonManager {
             raccoonManager.setActiveOrganization(select.id);
           }
         });
-      }).then(() => {
-        this.listKnowledgeBase(true);
       });
     });
   }
@@ -896,6 +895,9 @@ export class RaccoonManager {
 
   public set knowledgeBaseRef(value: boolean) {
     this.context.globalState.update("KnowledgeBaseRef", value).then(() => {
+      if (!value) {
+        this.context.globalState.update("KnowledgeBasesUpdateAt", 0);
+      }
       this.notifyStateChange({ scope: ["config"] });
     });
   }

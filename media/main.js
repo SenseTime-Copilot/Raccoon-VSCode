@@ -122,7 +122,9 @@ const vscode = acquireVsCodeApi();
   function render(id, scroll) {
     const responseElem = document.getElementById(`response-${id}`);
     const content = contents.get(id);
-    if (!responseElem || !content) return;
+    if (!responseElem || !content) {
+      return;
+    }
     const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(content)), "text/html");
     const preCodeList = markedResponse.querySelectorAll("pre > code");
     preCodeList.forEach((preCode, _index) => {
@@ -420,9 +422,9 @@ const vscode = acquireVsCodeApi();
       }
       case "agentList": {
         agents = message.value;
-        var shortcuts = '';
+        var agentnames = '';
         agents.forEach((p, _id, _m) => {
-          shortcuts += `<button class="flex flex-row-reverse gap-2 items-center" data-shortcut='@${p.id}'
+          agentnames += `<button class="flex flex-row-reverse gap-2 items-center" data-shortcut='@${p.id}'
                                   onclick='vscode.postMessage({type: "addAgent", id: "${p.id}"});'
                           >
                             <span class="material-symbols-rounded">${p.icon || "badge"}</span>
@@ -431,7 +433,7 @@ const vscode = acquireVsCodeApi();
                           </button>
                       `;
         });
-        document.getElementById("agent-list").innerHTML = shortcuts;
+        document.getElementById("agent-list").innerHTML = agentnames;
         _toggleAgentList();
         break;
       }
@@ -632,9 +634,7 @@ const vscode = acquireVsCodeApi();
             preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
             preCode.classList.forEach((cls, _idx, _arr) => {
               if (cls.startsWith('language-')) {
-                let lang = cls.slice(9);
-                preCode.parentElement.dataset.lang = lang;
-                return;
+                preCode.parentElement.dataset.lang = cls.slice(9);
               }
             });
 
@@ -789,7 +789,9 @@ const vscode = acquireVsCodeApi();
         }
         const reference = document.getElementById(`reference-${message.id}`);
         if (reference) {
-          reference.innerHTML = message.files.map((v) => `<vscode-tag class="opacity-50 max-w-full break-all">${decodeURIComponent(v)}</vscode-tag>`).join("");
+          reference.innerHTML = message.files.map((v) => {
+            return `<vscode-tag class="opacity-50 max-w-full break-all"><span class="material-symbols-rounded">quick_reference_all</span><span class="align-middle">${decodeURIComponent(v)}</span></vscode-tag>`;
+          }).join("");
         }
         break;
       }
@@ -900,7 +902,7 @@ const vscode = acquireVsCodeApi();
     var q = document.getElementById('question-input');
     if (q.value) {
       document.getElementById("question").classList.add("prompt-ready");
-      document.getElementById("highlight-anchor").innerHTML = q.value.replace(/\n$/g, '\n\n').replace(/(@\S+)/g, '<mark>$1</mark>');
+      document.getElementById("highlight-anchor").innerHTML = q.value.replace(/</g, '&lt;').replace(/\n$/g, '\n\n').replace(/(@\S+)/g, '<mark>$1</mark>');
     } else {
       document.getElementById("question").classList.remove("prompt-ready");
     }
@@ -1071,7 +1073,7 @@ const vscode = acquireVsCodeApi();
   });
 
   document.addEventListener("keydown", (e) => {
-    var agents = document.getElementById("agent-list");
+    var agentList = document.getElementById("agent-list");
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
     var settings = document.getElementById("settings");
@@ -1169,40 +1171,40 @@ const vscode = acquireVsCodeApi();
       if (curIdx >= 0) {
         return;
       }
-    } else if (!agents.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
-      var btns = Array.from(agents.querySelectorAll("button")).filter((b, _i, _a) => {
+    } else if (!agentList.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
+      var agentItems = Array.from(agentList.querySelectorAll("button")).filter((b, _i, _a) => {
         return !b.classList.contains('hidden');
       });
       if (e.key === "Enter") {
         e.preventDefault();
-        for (let i = 0; i < btns.length; i++) {
-          if (!agents.classList.contains("pin") && btns[i].classList.contains('selected')) {
-            btns[i].click();
+        for (let i = 0; i < agentItems.length; i++) {
+          if (agentItems[i].classList.contains('selected')) {
+            agentItems[i].click();
             break;
           }
         }
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        for (let i = 0; i < btns.length; i++) {
-          if (btns[i].classList.contains('selected')) {
-            btns[i].classList.remove('selected');
-            if (i < btns.length - 1) {
-              btns[i + 1].classList.add('selected');
+        for (let i = 0; i < agentItems.length; i++) {
+          if (agentItems[i].classList.contains('selected')) {
+            agentItems[i].classList.remove('selected');
+            if (i < agentItems.length - 1) {
+              agentItems[i + 1].classList.add('selected');
             } else {
-              btns[0].classList.add('selected');
+              agentItems[0].classList.add('selected');
             }
             break;
           }
         }
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        for (let i = 0; i < btns.length; i++) {
-          if (btns[i].classList.contains('selected')) {
-            btns[i].classList.remove('selected');
+        for (let i = 0; i < agentItems.length; i++) {
+          if (agentItems[i].classList.contains('selected')) {
+            agentItems[i].classList.remove('selected');
             if (i > 0) {
-              btns[i - 1].classList.add('selected');
+              agentItems[i - 1].classList.add('selected');
             } else {
-              btns[btns.length - 1].classList.add('selected');
+              agentItems[agentItems.length - 1].classList.add('selected');
             }
             break;
           }
@@ -1616,8 +1618,8 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
-      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", languageid });
+      var codelang = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", codelang });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
         targetButton.innerHTML = checkIcon;
 
@@ -1632,11 +1634,11 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("diff-element-gnc")) {
       e.preventDefault();
       let id = targetButton?.dataset.id;
-      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "diff-code", languageid });
+      var difflang = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "diff-code", difflang });
       vscode.postMessage({
         type: "diff",
-        languageid: lang,
+        languageid: difflang,
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
       });
 
@@ -1646,8 +1648,8 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("edit-element-gnc")) {
       e.preventDefault();
       let id = targetButton?.dataset.id;
-      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "insert-snippet", languageid });
+      var insertlang = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "insert-snippet", insertlang });
       vscode.postMessage({
         type: "editCode",
         value: targetButton.parentElement?.parentElement?.lastChild?.textContent,

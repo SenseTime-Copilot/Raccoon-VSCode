@@ -366,6 +366,7 @@ textarea::placeholder {
     max-height: 30vh;
     white-space: pre-wrap;
     text-align: justify;
+    overflow-wrap: anywhere;
 }
 
 #attach-code-container.hidden {
@@ -426,6 +427,7 @@ textarea::placeholder {
     text-align: justify;
 }
 
+#backdrop::-webkit-scrollbar,
 #question-input::-webkit-scrollbar {
     display: none;
 }
@@ -489,6 +491,9 @@ textarea::placeholder {
     overflow: auto;
     pointer-events: none;
     transition: transform 1s;
+    width: 100%;
+    max-height: 30vh;
+    text-align: justify;
 }
 
 #question button,

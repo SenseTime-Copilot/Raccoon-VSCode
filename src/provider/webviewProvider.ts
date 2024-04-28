@@ -1246,10 +1246,10 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                         <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Search")}
                       </div>
                       <div class="history-hint items-center" style="margin-left: 1rem;">
-                      <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Send")}
+                        <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Send")}
                       </div>
                       <div class="history-hint items-center">
-                      <kbd><span class="material-symbols-rounded">keyboard_tab</span>Tab</kbd>${l10n.t("Revise")}
+                        <kbd><span class="material-symbols-rounded">keyboard_tab</span>Tab</kbd>${l10n.t("Revise")}
                       </div>
                       <div class="history-hint items-center">
                         <kbd><span class="material-symbols-rounded">first_page</span>Esc</kbd>${l10n.t("Clear")}
