@@ -212,6 +212,9 @@ export class RaccoonEditor extends Disposable {
     let category = "welcome";
     let username = '';
     let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+    if (org) {
+      robot += ` (${org.name})`;
+    }
     if (name) {
       username = ` @${name}`;
       if (org) {
@@ -956,7 +959,8 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
     let loggedin = raccoonManager.isClientLoggedin();
     let userinfo = await raccoonManager.userInfo();
-    let username = userinfo?.username;
+    let org = raccoonManager.activeOrganization();
+    let username = org?.username || userinfo?.username;
     if (!loggedin || !username) {
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
       return;
@@ -974,7 +978,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     let maxTokens = raccoonManager.maxInputTokenNum(ModelCapacity.assistant);
 
     let avatar = userinfo?.avatar;
-    let robot = raccoonManager.getActiveClientRobotName();
+    let robot = raccoonManager.getActiveClientRobotName() + (org ? ` (${org.name})` : "");
 
     if (promptHtml.status === RenderStatus.editRequired) {
       this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
@@ -1041,6 +1045,15 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().toLocaleString();
+                let errmsg = err.message?.content || "";
+                switch (err.index) {
+                  case -3008: {
+                    errmsg = l10n.t("Connection error. Check your network settings.");
+                    break;
+                  } default: {
+                    break;
+                  }
+                }
                 h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
                 errorFlag = true;

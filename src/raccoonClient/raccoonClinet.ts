@@ -430,7 +430,7 @@ export class RaccoonClient implements CodeClient {
               return;
             }
             let error: Choice = {
-              index: e.status,
+              index: e.cause.errno,
               message: {
                 role: Role.assistant,
                 content: e.cause.message

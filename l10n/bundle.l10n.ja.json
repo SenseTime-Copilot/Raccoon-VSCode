@@ -121,6 +121,7 @@
   "Typing...": "入力中...",
   "Potentially Sensitive Content Encountered": "機密情報が含まれる可能性があります",
   "Context Too long": "コンテキストが長すぎます",
+  "Connection error, check your network settings": "接続エラー。ネットワーク設定を確認してください",
   "Regenerate": "再回答",
   "Stop responding": "回答停止",
   "Done": "完成",
