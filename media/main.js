@@ -82,9 +82,9 @@ const vscode = acquireVsCodeApi();
     let questionTitle = `<h2 class="avatar place-content-between mb-4 -mx-2 flex">
                               <span class="flex gap-2 flex text-xl">
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
-                                <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                  <b class="text-sm">${username}</b>
-                                  <div class="opacity-60 text-[0.6rem] leading-[0.6rem]">
+                                <span class="text-xs">
+                                  <b>${username}</b>
+                                  <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${timestamp}
                                   </div>
                                 </span>
@@ -332,9 +332,9 @@ const vscode = acquireVsCodeApi();
                             <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
                               <span class="flex gap-2 flex text-xl">
                                 ${aiIcon}
-                                <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                  <b class="text-sm">${item.name}</b>
-                                  <div class="response-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
+                                <span class="text-xs">
+                                  <b>${item.name}</b>
+                                  <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${item.timestamp || `<span class="material-symbols-rounded">more_horiz</span>`}
                                   </div>
                                 </span>
@@ -564,9 +564,9 @@ const vscode = acquireVsCodeApi();
             chat.innerHTML = `  <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
                                     <span class="flex gap-2 flex text-xl">
                                       ${aiIcon}
-                                      <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                        <b class="text-sm">${message.robot}</b>
-                                        <div class="response-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
+                                      <span class="text-xs">
+                                        <b>${message.robot}</b>
+                                        <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                           <span class="material-symbols-rounded">
                                             more_horiz
                                           </span>
@@ -620,7 +620,7 @@ const vscode = acquireVsCodeApi();
         if (chatText.classList.contains("empty")) {
           document.getElementById(`feedback-${message.id}`)?.classList?.add("empty");
         } else {
-          let rts = r?.getElementsByClassName("response-ts");
+          let rts = r?.getElementsByClassName("message-ts");
           if (rts && rts[0] && !rts[0].classList.contains("material-symbols-rounded")) {
             ts = rts[0].textContent;
           }
@@ -718,9 +718,9 @@ const vscode = acquireVsCodeApi();
                             <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
                               <span class="flex gap-2 flex text-xl">
                                 ${aiIcon}
-                                <span class="text-xs" style="font-family: var(--vscode-editor-font-family);">
-                                  <b class="text-sm">${message.robot}</b>
-                                  <div class="opacity-60 text-[0.6rem] leading-[0.6rem]">
+                                <span class="text-xs">
+                                  <b>${message.robot}</b>
+                                  <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${message.timestamp}
                                   </div>
                                 </span>
@@ -742,7 +742,7 @@ const vscode = acquireVsCodeApi();
           createReponseRender(message.id);
           if (message.timestamp) {
             let r = document.getElementById(`${message.id}`);
-            let rts = r?.getElementsByClassName("response-ts");
+            let rts = r?.getElementsByClassName("message-ts");
             if (rts && rts[0]) {
               rts[0].textContent = message.timestamp;
             }
@@ -763,7 +763,7 @@ const vscode = acquireVsCodeApi();
         if (chatText?.classList.contains("empty")) {
           if (message.timestamp) {
             let r = document.getElementById(`${message.id}`);
-            let rts = r?.getElementsByClassName("response-ts");
+            let rts = r?.getElementsByClassName("message-ts");
             if (rts && rts[0]) {
               rts[0].textContent = message.timestamp;
             }
@@ -801,7 +801,7 @@ const vscode = acquireVsCodeApi();
         if (chatText?.classList.contains("empty")) {
           if (message.timestamp) {
             let r = document.getElementById(`${message.id}`);
-            let rts = r?.getElementsByClassName("response-ts");
+            let rts = r?.getElementsByClassName("message-ts");
             if (rts && rts[0]) {
               rts[0].textContent = message.timestamp;
             }
@@ -817,7 +817,6 @@ const vscode = acquireVsCodeApi();
         let error = `<div class="errorMsg rounded flex items-center">
                         <span class="material-symbols-rounded text-3xl p-2">report</span>
                         <div class="grow py-4 overflow-auto">
-                            <div>An error occurred</div>
                             <div>${message.error}</div>
                         </div>
                         <button class="bug rounded border-0 mx-4 opacity-80 focus:outline-none" data-id=${message.id}>
@@ -1516,7 +1515,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('bug') || targetButton?.classList?.contains('correct') || e.target.id === "report-issue") {
-      const id = targetButton.dataset.id;
+      const id = targetButton?.dataset?.id;
       vscode.postMessage({ type: 'bug-report', id: id ? parseInt(id) : undefined, ts });
       return;
     }

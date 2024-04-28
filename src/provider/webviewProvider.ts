@@ -1054,8 +1054,8 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                     break;
                   }
                 }
-                h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
-                h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
+                h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+                h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
                 errorFlag = true;
               },
               onFinish(choices: Choice[], thisArg) {
