@@ -630,7 +630,7 @@ export class RaccoonClient implements CodeClient {
     return this.completionUsingFetch(auth, options, org);
   }
 
-  public async listKnowledgeBase(authInfo: AuthInfo, org?: Organization): Promise<KnowledgeBase[]> {
+  public async listKnowledgeBase(authInfo: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
     let listUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
     if (!authInfo.account.pro && !org) {
       return [];
@@ -642,11 +642,9 @@ export class RaccoonClient implements CodeClient {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         "x-org-code": org?.code
       },
-      timeout: 2000
+      timeout: timeoutMs || 2000
     }).then((response) => {
       return response.data?.data?.knowledge_bases || [];
-    }).catch(() => {
-      return [];
     });
   }
 

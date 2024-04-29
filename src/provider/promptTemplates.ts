@@ -160,10 +160,10 @@ export class PromptInfo {
 
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}></div></div>`;
     } else {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2"  data-label="${this.label}" data-type="${this.type}" data-prompt="${prompt.message.content}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"></div></div>`;
     }
 
     return renderHtml;

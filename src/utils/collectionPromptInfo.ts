@@ -2,20 +2,20 @@ import { TextDocument, Range, commands, LocationLink, Location, SemanticTokens, 
 import { registerCommand } from "../globalEnv";
 
 interface CollectionInfo {
-  declarations: LocationLink[];
+  typeDefinitions: Location[];
   definitions: LocationLink[];
+  declarations: LocationLink[];
   implementations: Location[];
   references: Location[];
-  typeDefinitions: Location[];
 }
 
 async function collectionPromptInfo(doc: TextDocument, position: Position) {
   let out: CollectionInfo = {
-    declarations: [],
+    typeDefinitions: [],
     definitions: [],
+    declarations: [],
     implementations: [],
-    references: [],
-    typeDefinitions: []
+    references: []
   };
 
   return commands.executeCommand("vscode.provideDocumentSemanticTokens", doc.uri).then(async (result) => {
@@ -48,6 +48,7 @@ async function collectionPromptInfo(doc: TextDocument, position: Position) {
         let tdefs = tdef as Location[];
         out.typeDefinitions.push(...tdefs);
       });
+      /*
       let p3 = commands.executeCommand("vscode.executeDeclarationProvider", doc.uri, p).then((dec) => {
         let decs = dec as LocationLink[];
         out.declarations.push(...decs);
@@ -59,8 +60,8 @@ async function collectionPromptInfo(doc: TextDocument, position: Position) {
       let p5 = commands.executeCommand("vscode.executeReferenceProvider", doc.uri, p).then((ref) => {
         let refs = ref as Location[];
         out.references.push(...refs);
-      });
-      return Promise.all([p1, p2, p3, p4, p5])
+      });*/
+      return Promise.all([p1, p2/*, p3, p4, p5*/])
         .then(() => {
           return out;
         });
@@ -77,14 +78,21 @@ export function registerInfoCollector(context: ExtensionContext) {
           return;
         }
         let n = { declarations: [] as string[], definitions: [] as string[], implementations: [] as string[], references: [] as string[], typeDefinitions: [] as string[] };
-        for (let a of v.declarations) {
-          await workspace.openTextDocument(a.targetUri).then(doc => {
-            n.declarations.push(doc.getText(a.targetRange));
+        for (let e of v.typeDefinitions) {
+          await workspace.openTextDocument(e.uri).then(doc => {
+            let line = doc.lineAt(e.range.start.line);
+            n.typeDefinitions.push(line.text);
           });
         }
         for (let b of v.definitions) {
           await workspace.openTextDocument(b.targetUri).then(doc => {
             n.definitions.push(doc.getText(b.targetRange));
+          });
+        }
+        /*
+        for (let a of v.declarations) {
+          await workspace.openTextDocument(a.targetUri).then(doc => {
+            n.declarations.push(doc.getText(a.targetRange));
           });
         }
         for (let c of v.implementations) {
@@ -99,12 +107,7 @@ export function registerInfoCollector(context: ExtensionContext) {
             n.references.push(line.text);
           });
         }
-        for (let e of v.typeDefinitions) {
-          await workspace.openTextDocument(e.uri).then(doc => {
-            let line = doc.lineAt(e.range.start.line);
-            n.typeDefinitions.push(line.text);
-          });
-        }
+        */
         console.log(JSON.stringify(n, undefined, 2));
       });
     }

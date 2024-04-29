@@ -20,7 +20,7 @@ const vscode = acquireVsCodeApi();
   });
 
   const aiIcon = `<div class="robot-avatar w-8 h-8"></div>`;
-  const questionIcon = `<span class="material-symbols-rounded">live_help</span>`;
+  const questionIcon = `<span class="material-symbols-rounded w-8 h-8 text-center">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
@@ -42,6 +42,7 @@ const vscode = acquireVsCodeApi();
   var lasttimestamps = new Map();
   var timestamps = new Map();
   var renderers = new Map();
+  var editCache = new Map();
   var tipN = 0;
 
   document.oncontextmenu = () => {
@@ -67,22 +68,17 @@ const vscode = acquireVsCodeApi();
       tipN = 0;
     }
     if (tipN === 0) {
-      var al = document.getElementById("ask-list");
-      if (al.classList?.contains("pin")) {
-        qs.dataset['tip'] = qs.dataset[`placeholderShort`];
-      } else {
-        qs.dataset['tip'] = qs.dataset[`placeholder`];
-      }
+      qs.dataset['tip'] = qs.dataset[`placeholder`];
     }
     tipN++;
     setTimeout(showTips, 8000);
   }
 
   function buildQuestion(username, avatar, timestamp, id, innerHTML, status) {
-    let questionTitle = `<h2 class="avatar place-content-between mb-4 -mx-2 flex">
-                              <span class="flex gap-2 flex text-xl">
+    let questionTitle = `<h2 class="avatar mb-2 -ml-1 flex gap-1 justify-between">
+                              <span class="flex gap-2 flex text-xl items-center">
                                 ${avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full">` : questionIcon}
-                                <span class="text-xs">
+                                <span class="flex flex-col gap-1 text-xs">
                                   <b>${username}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${timestamp}
@@ -94,7 +90,7 @@ const vscode = acquireVsCodeApi();
                                 <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-60 hover:opacity-100">${cancelIcon}</button>
                               </div>
                             </h2>`;
-    return `<div id="question-${id}" class="p-4 question-element-gnc w-full ${status}">
+    return `<div id="question-${id}" class="p-4 question-element-gnc ${status}">
              ${questionTitle}
              ${innerHTML}
              <div class="send-btns flex justify-end mt-4" style="color: var(--panel-tab-foreground);"><vscode-button tabindex="0" class="send-element-gnc text-base rounded" title="${l10nForUI["Send"]} [Ctrl+Enter]">${sendIcon}</vscode-button></div>
@@ -330,11 +326,11 @@ const vscode = acquireVsCodeApi();
 
               preCode.parentElement.prepend(buttonWrapper);
             });
-            list.innerHTML += `<div id="${item.id}" data-name="${item.name}" class="p-4 answer-element-gnc w-full">
-                            <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
-                              <span class="flex gap-2 flex text-xl">
+            list.innerHTML += `<div id="${item.id}" data-name="${item.name}" class="p-4 answer-element-gnc">
+                            <h2 class="avatar mb-2 -ml-1 flex gap-1">
+                              <span class="flex gap-2 flex text-xl items-center">
                                 ${aiIcon}
-                                <span class="text-xs">
+                                <span class="flex flex-col gap-1 text-xs">
                                   <b>${item.name}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${item.timestamp || `<span class="material-symbols-rounded">more_horiz</span>`}
@@ -496,6 +492,7 @@ const vscode = acquireVsCodeApi();
         if (promptInfo.status === "editRequired") {
           document.getElementById("chat-button-wrapper")?.classList?.add("editing");
           document.getElementById("question-input").disabled = true;
+          editCache.set(`${id}`, promptInfo.prompt);
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
           break;
         } else {
@@ -507,7 +504,7 @@ const vscode = acquireVsCodeApi();
           if (!chat) {
             chat = document.createElement("div");
             chat.id = `${id}`;
-            chat.classList.add("p-4", "answer-element-gnc", "w-full", "responsing");
+            chat.classList.add("p-4", "answer-element-gnc", "responsing");
             let progress = `<div id="progress-${id}" class="progress pt-6 flex justify-between items-center">
                       <span class="flex gap-1 opacity-60 items-center">
                         <div class="spinner thinking">
@@ -563,10 +560,10 @@ const vscode = acquireVsCodeApi();
               </button>
             </div>`;
             }
-            chat.innerHTML = `  <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
-                                    <span class="flex gap-2 flex text-xl">
+            chat.innerHTML = `  <h2 class="avatar mb-2 -ml-1 flex gap-1">
+                                    <span class="flex gap-2 flex text-xl items-center">
                                       ${aiIcon}
-                                      <span class="text-xs">
+                                      <span class="flex flex-col gap-1 text-xs">
                                         <b>${message.robot}</b>
                                         <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                           <span class="material-symbols-rounded">
@@ -714,11 +711,11 @@ const vscode = acquireVsCodeApi();
         } else {
         }
 
-        list.innerHTML += `<div class="p-4 w-full message-element-gnc ${message.category || ""}">
-                            <h2 class="avatar mt-1 mb-4 -mx-2 flex gap-1">
-                              <span class="flex gap-2 flex text-xl">
+        list.innerHTML += `<div class="p-4 message-element-gnc ${message.category || ""}">
+                            <h2 class="avatar mb-2 -ml-1 flex gap-1">
+                              <span class="flex gap-2 flex text-xl items-center">
                                 ${aiIcon}
-                                <span class="text-xs">
+                                <span class="flex flex-col gap-1 text-xs">
                                   <b>${message.robot}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
                                     ${message.timestamp}
@@ -846,9 +843,14 @@ const vscode = acquireVsCodeApi();
   const sendQuestion = (question, replace) => {
     const prompt = question.getElementsByClassName("prompt");
     if (prompt && prompt[0]) {
+      var id = prompt[0].dataset['id'];
+      var valuesElems = prompt[0].getElementsByClassName(`values`);
       var values = {};
-      var promptTemp = { ...prompt[0].dataset };
-      promptTemp.message = { role: 'user', content: prompt[0].dataset['prompt'] };
+      if (valuesElems && valuesElems[0]) {
+        values = { ...valuesElems[0].dataset };
+      }
+      var promptTemp = editCache.get(id);
+      promptTemp.args = undefined;
       if (replace) {
         document.getElementById(`question-${replace}`)?.remove();
         document.getElementById(replace)?.remove();
@@ -859,6 +861,7 @@ const vscode = acquireVsCodeApi();
         prompt: promptTemp,
         values
       });
+      editCache.delete(id);
     } else {
       showInfoTip({ style: "error", category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
@@ -917,6 +920,7 @@ const vscode = acquireVsCodeApi();
       });
       if (btns.length > 0) {
         list.classList.remove("hidden");
+        document.getElementById("question").classList.add("agent");
         btns.forEach((btn, _index) => {
           var sc = btn.querySelector('.shortcut');
           if (sc) {
@@ -929,9 +933,11 @@ const vscode = acquireVsCodeApi();
         btns[0].classList.add('selected');
       } else {
         list.classList.add("hidden");
+        document.getElementById("question").classList.remove("agent");
       }
     } else {
       list.classList.add("hidden");
+      document.getElementById("question").classList.remove("agent");
     }
   }
 
@@ -953,6 +959,7 @@ const vscode = acquireVsCodeApi();
       });
       if (btns.length > 0) {
         list.classList.remove("hidden");
+        document.getElementById("question").classList.add("action");
         btns.forEach((btn, _index) => {
           var sc = btn.querySelector('.shortcut');
           if (sc) {
@@ -965,9 +972,11 @@ const vscode = acquireVsCodeApi();
         btns[0].classList.add('selected');
       } else {
         list.classList.add("hidden");
+        document.getElementById("question").classList.remove("action");
       }
     } else {
       list.classList.add("hidden");
+      document.getElementById("question").classList.remove("action");
     }
   }
 

@@ -310,11 +310,15 @@ textarea::placeholder {
 }
 
 #chat-button-wrapper {
+    border-radius: 6px;
     user-select: none;
     position: sticky;
-    bottom: 0;
+    bottom: 0px;
+    margin: 2px 3px;
+    width: calc(100% - 6px);
     background-color: var(--input-background);
     border-top: 1px solid var(--panel-view-border);
+    border: 1px solid var(--checkbox-border);
 }
 
 #msg-wrapper {
@@ -433,13 +437,13 @@ textarea::placeholder {
 }
 
 #question {
-    margin-bottom: 3px;
-    margin-top: 3px;
+    margin-bottom: 22px;
+    margin-top: 0px;
+    border-bottom: 1px dashed var(--checkbox-border);
 }
 
 #question.history #question-input {
     caret-color: transparent;
-    /* color: var(--input-placeholder-foreground); */
     opacity: 0.7;
 }
 
@@ -512,42 +516,58 @@ textarea::placeholder {
     vertical-align: top;
     align-items: stretch;
     position: relative;
-    margin: 3px 0 8px 5px;
+    margin: 5px 0 5px 5px;
     width: 100%;
     cursor: text;
 }
 
 .op-hint {
     position: fixed;
-    height: 12px;
     padding-left: 0.75rem;
-    bottom: 1px;
+    bottom: 6px;
     display: flex;
     gap: 0.5rem;
-    font-size: 9px;
-    line-height: 1;
-    width: calc(100%);
+    width: 100%;
 }
 
+.op-hint vscode-badge .key {
+    font-weight: bold;
+    margin-right: 0.5ch;
+}
+
+.prompt-hint {
+    display: inline-flex;
+    grid-gap: 0.1rem;
+    opacity: 0.4;
+}
+
+.prompt-ready-hint,
+.stop-hint,
+.agent-hint,
+.action-hint,
 .search-hint,
 .history-hint {
     display: none;
-    opacity: 0.6;
+    opacity: 0.4;
 }
 
+#chat-button-wrapper.responsing .prompt-hint,
+.prompt-ready .prompt-hint,
+.agent .prompt-hint,
+.action .prompt-hint,
+.history .prompt-hint,
+.search .prompt-hint {
+    display: none;
+}
+
+#chat-button-wrapper.responsing .stop-hint,
+.prompt-ready .prompt-ready-hint,
+.agent .op-hint .agent-hint,
+.action .op-hint .action-hint,
 .history .op-hint .history-hint,
 .search .op-hint .search-hint {
     display: inline-flex;
     grid-gap: 0.1rem;
-}
-
-.search .search-hint {
-    display: inline-block;
-    transform: none;
-}
-
-.search .history-hint.trigger {
-    display: none;
 }
 
 #question-sizer:before {
@@ -555,7 +575,7 @@ textarea::placeholder {
     width: calc(100% - 3rem + 1ch);
     line-height: 2;
     margin-left: 2px;
-    opacity: 0.6;
+    opacity: 0.4;
     overflow: hidden;
     white-space: nowrap;
 }
@@ -570,8 +590,13 @@ textarea::placeholder {
 }
 
 #question-sizer[data-value="/"]:before {
-    content: attr(data-hint);
-    margin-left: 1.5ch;
+    content: attr(data-action-hint);
+    margin-left: 2ch;
+}
+
+#question-sizer[data-value="?"]:before {
+    content: attr(data-search-hint);
+    margin-left: 2ch;
 }
 
 #agent-list+#question>#question-sizer[data-value="@"]:before {
@@ -609,6 +634,10 @@ textarea::placeholder {
     display: block;
 }
 
+#question #stop-button {
+    color: var(--progress-background);
+}
+
 #question.prompt-ready #send-button,
 #question.prompt-ready.search #search-button {
     display: block;
@@ -620,7 +649,6 @@ textarea::placeholder {
     display: none;
 }
 
-#chat-button-wrapper.responsing .op-hint,
 #chat-button-wrapper.responsing #attach-code-container,
 #chat-button-wrapper.responsing button#send-button {
     display: none !important;
@@ -640,12 +668,13 @@ button.disabled,
 #agent-list,
 #ask-list {
     position: fixed;
-    bottom: 43px;
-    width: 100%;
+    bottom: 50px;
+    width: calc(100% - 6px);
+    margin: 3px;
     padding-bottom: 5px;
     background-color: var(--input-background);
-    border-radius: 6px 6px 0 0;
-    border: 1px solid var(--vscode-welcomePage-tileBorder);
+    border-radius: 6px;
+    border: 1px solid var(--checkbox-border);
     z-index: 99999;
 }
 
@@ -694,7 +723,7 @@ button.disabled,
 }
 
 #ask-list .toolbar {
-    border-bottom: 1px solid var(--panel-view-border);
+    border-bottom: 1px solid var(--checkbox-border);
 }
 
 #ask-list.pin .toolbar {
@@ -790,6 +819,10 @@ span.shortcut:after {
 
 .question-element-gnc {
     background: var(--vscode-chat-requestBackground);
+    border-radius: 6px;
+    margin: 3px;
+    width: calc(100% - 6px);
+    border: 1px solid var(--checkbox-border);
 }
 
 .response pre {
@@ -854,7 +887,12 @@ span.shortcut:after {
 }
 
 #qa-list::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
+    height: 4px;
+}
+
+#qa-list::-webkit-scrollbar-thumb {
+    border-radius: 2px;
 }
 
 .question-element-gnc .pre-code-element::-webkit-scrollbar {
@@ -864,7 +902,11 @@ span.shortcut:after {
 .message-element-gnc {
     user-select: none;
     background-color: var(--panel-view-background);
-    border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
+    border-radius: 6px;
+    margin: 3px;
+    width: calc(100% - 6px);
+    border: 1px solid var(--checkbox-border);
+    border-bottom: 2px solid var(--checkbox-border);
 }
 
 .message-element-gnc.welcome kbd {
@@ -894,23 +936,18 @@ span.shortcut:after {
 
 .answer-element-gnc {
     background-color: var(--panel-view-background);
-    border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
+    border-radius: 6px;
+    margin: 3px;
+    margin-top: -4px;
+    width: calc(100% - 6px);
+    border-left: 1px solid var(--checkbox-border);
+    border-right: 1px solid var(--checkbox-border);
+    border-top: 1px dashed var(--checkbox-border);
+    border-bottom: 2px solid var(--checkbox-border);
 }
 
 .answer-element-gnc:not(:last-child) .regenerate {
     display: none;
-}
-
-.answer-element-gnc:last-child {
-    border-bottom: 2px solid var(--panel-view-border);
-}
-
-.answer-element-gnc:before {
-    content: " ";
-    float: left;
-    margin: -1.25rem 0 0 -0.75rem;
-    width: calc(100% + 1.5rem);
-    border-bottom: 0.5rem dotted var(--vscode-chat-requestBackground);
 }
 
 .answer-element-gnc.responsing .markdown-body pre code::-webkit-scrollbar {
@@ -1095,12 +1132,6 @@ button.stopGenerate:hover,
     display: none;
 }
 
-.history-seperator {
-    height: 1rem;
-    border-bottom: 2px solid var(--vscode-welcomePage-tileBorder);
-    margin-bottom: 0;
-}
-
 .history-seperator:before {
     content: attr(data-text);
     text-align: center;
@@ -1108,6 +1139,9 @@ button.stopGenerate:hover,
     font-size: 0.6rem;
     font-family: var(--vscode-editor-font-family);
     opacity: 0.3;
+    margin: 0 3px;
+    background-color: var(--badge-background);
+    border-radius: 6px;
 }
 
 .vscode-high-contrast .answer-element-gnc {
@@ -1123,6 +1157,15 @@ button.stopGenerate:hover,
 .markdown-body .reflink:hover {
     color: var(--link-foreground);
     text-decoration: none;
+}
+
+.markdown-body::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+.markdown-body::-webkit-scrollbar-thumb {
+    border-radius: 2px;
 }
 
 .markdown-body {

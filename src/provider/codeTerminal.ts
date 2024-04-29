@@ -83,7 +83,7 @@ export class RaccoonTerminal {
     let writeEmitter = new EventEmitter<string>();
     let changeNameEmitter = new EventEmitter<string>();
     raccoonManager.onDidChangeStatus((e) => {
-      if (!e.quiet && e.scope.includes("active") || e.scope.includes("authorization") || e.scope.includes("engines")) {
+      if (!e.quiet && (e.scope.includes("active") || e.scope.includes("authorization") || e.scope.includes("engines"))) {
         writeEmitter.fire('\r\n');
         welcome();
       }
@@ -102,9 +102,13 @@ export class RaccoonTerminal {
         open: () => { welcome(); },
         close: () => { },
         handleInput: async (input: string) => {
+          let org = raccoonManager.activeOrganization();
           let userinfo = await raccoonManager.userInfo();
-          let username = userinfo?.username || "You";
+          let username = org?.username || userinfo?.username || "You";
           let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+          if (org) {
+            robot += ` (${org.name})`;
+          }
           let question = '';
           if (isCtrlC(input)) {
             if (this.responsing) {
@@ -220,7 +224,7 @@ export class RaccoonTerminal {
           }
 
           for (let j = 0; j < totalLens.length; j++) {
-            if ((totalLens[j] + question.length) <= raccoonManager.maxInputTokenNum(ModelCapacity.assistant) / 2) {
+            if ((totalLens[j] + question.length) <= raccoonManager.maxInputTokenNum(ModelCapacity.assistant)) {
               break;
             } else {
               this.history.shift();
@@ -249,7 +253,9 @@ export class RaccoonTerminal {
                 let fs = headers.get("x-raccoon-know-files");
                 if (fs) {
                   writeEmitter.fire(`---------------------------------\r\n`);
-                  writeEmitter.fire(fs.split(",").join("\r\n"));
+                  writeEmitter.fire(fs.split(",").map((f, _idx, _arr)=>{
+                    return decodeURIComponent(f);
+                  }).join("\r\n"));
                   writeEmitter.fire(`\r\n---------------------------------\r\n`);
                 }
               },
@@ -296,11 +302,14 @@ export class RaccoonTerminal {
     terminal.show();
 
     async function welcome() {
+      let org = raccoonManager.activeOrganization();
       let userinfo = await raccoonManager.userInfo();
-      let un = userinfo?.username || "You";
+      let un = org?.username || userinfo?.username;
       let ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
-      ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
-      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` ${un}` : "", ai);
+      if (org) {
+        ai += ` (${org.name})`;
+      }
+      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` @${un}` : "", ai);
       writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
       writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");
     }

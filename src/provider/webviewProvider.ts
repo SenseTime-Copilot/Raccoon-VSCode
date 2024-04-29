@@ -410,7 +410,7 @@ export class RaccoonEditor extends Disposable {
       ${avatarEle}
       ${(activeOrg) ? `<div class="grow flex flex-col">
       <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
-      <div class="flex w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
+      <div class="flex w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
         <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
         <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}">
           ${activeOrg.name}
@@ -421,7 +421,7 @@ export class RaccoonEditor extends Disposable {
         <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || l10n.t("Unknown")}</span>
         ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
       </div>
-      <div class="${username ? "flex" : "hidden"} w-fit opacity-50 rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--badge-foreground);background: var(--badge-background);">
+      <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
         <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
         <div class="cursor-pointer" id="switch-org" title="${l10n.t("Individual")}">
           ${l10n.t("Individual")}
@@ -502,7 +502,7 @@ export class RaccoonEditor extends Disposable {
     <div class="ml-4 my-1">
       <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
-        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs=>kbs.map((v,_idx,_arr)=>v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
@@ -671,11 +671,9 @@ export class RaccoonEditor extends Disposable {
         case 'stopGenerate': {
           if (data.id) {
             this.stopList[data.id]?.abort();
-            this.sendMessage({ type: 'stopResponse', id: data.id, byUser: true });
           } else {
             for (let id in this.stopList) {
               this.stopList[id]?.abort();
-              this.sendMessage({ type: 'stopResponse', id, byUser: true });
             }
           }
           break;
@@ -720,7 +718,9 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'switch-org': {
-          raccoonManager.switchOrganization();
+          raccoonManager.switchOrganization().then(()=>{
+            this.updateSettingPage();
+          });
           break;
         }
         case 'logout': {
@@ -783,11 +783,15 @@ export class RaccoonEditor extends Disposable {
         }
         case 'knowledgeBaseRef': {
           if (!!data.value) {
-            await raccoonManager.listKnowledgeBase(true);
-            raccoonManager.knowledgeBaseRef = true;
+            try {
+              await raccoonManager.listKnowledgeBase(true);
+              raccoonManager.knowledgeBaseRef = true;
+            } catch (error) {
+            }
           } else {
             raccoonManager.knowledgeBaseRef = false;
           }
+          this.updateSettingPage();
           break;
         }
         case 'workspaceRef': {
@@ -1242,30 +1246,58 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                       history
                     </span>
                     <div class="op-hint">
-                      <div class="search-hint items-center">
-                        <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Search")}
-                      </div>
-                      <div class="history-hint items-center" style="margin-left: 1rem;">
-                        <kbd><span class="material-symbols-rounded">keyboard_return</span>Enter</kbd>${l10n.t("Send")}
-                      </div>
-                      <div class="history-hint items-center">
-                        <kbd><span class="material-symbols-rounded">keyboard_tab</span>Tab</kbd>${l10n.t("Revise")}
-                      </div>
-                      <div class="history-hint items-center">
-                        <kbd><span class="material-symbols-rounded">first_page</span>Esc</kbd>${l10n.t("Clear")}
-                      </div>
+                      <vscode-badge class="prompt-ready-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Send")}
+                      </vscode-badge>
+                      <vscode-badge class="stop-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${l10n.t("Stop")}
+                      </vscode-badge>
+                      <vscode-badge class="prompt-hint items-center">
+                        <span class="key">@</span>${l10n.t("Agent")}
+                      </vscode-badge>
+                      <vscode-badge class="prompt-hint items-center">
+                        <span class="key">/</span>${l10n.t("Prompt")}
+                      </vscode-badge>
+                      <vscode-badge class="prompt-hint items-center">
+                        <span class="key">↑↓</span>${l10n.t("History")}
+                      </vscode-badge>
+                      <vscode-badge class="prompt-hint items-center">
+                        <span class="key">?</span>${l10n.t("Search")}
+                      </vscode-badge>
+                      <vscode-badge class="agent-hint items-center">
+                        <span class="key">↑↓</span>${l10n.t("Switch")}
+                      </vscode-badge>
+                      <vscode-badge class="agent-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Select")}
+                      </vscode-badge>
+                      <vscode-badge class="action-hint items-center">
+                        <span class="key">↑↓</span>${l10n.t("Switch")}
+                      </vscode-badge>
+                      <vscode-badge class="action-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Select")}
+                      </vscode-badge>
+                      <vscode-badge class="search-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Search")}
+                      </vscode-badge>
+                      <vscode-badge class="history-hint items-center" style="margin-left: 1rem;">
+                        <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Send")}
+                      </vscode-badge>
+                      <vscode-badge class="history-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">keyboard_tab</span>Tab</span>${l10n.t("Revise")}
+                      </vscode-badge>
+                      <vscode-badge class="history-hint items-center">
+                        <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${l10n.t("Clear")}
+                      </vscode-badge>
                     </div>
                     <label id="question-sizer" data-value
-                          data-placeholder="${l10n.t("Ask Raccoon a question") + ", " + l10n.t("or type '/' for prompts")}"
+                          data-placeholder="${l10n.t("Ask Raccoon a question")}"
                           data-placeholder-short="${l10n.t("Ask Raccoon a question")}"
-                          data-hint="${l10n.t("Pick one prompt to send")} [Enter]"
+                          data-action-hint="${l10n.t("Pick one prompt to send")} [Enter]"
                           data-agent-hint="${l10n.t("Pick one agent")} [Enter]"
-                          data-tip="${l10n.t("Ask Raccoon a question") + ", " + l10n.t("or type '/' for prompts")}"
+                          data-search-hint="${l10n.t("Type anything to search")} [Enter]"
+                          data-tip="${l10n.t("Ask Raccoon a question")}"
                           data-tip1="${l10n.t("Type [Shift + Enter] to start a new line")}"
                           data-tip2="${l10n.t("Press [Esc] to stop responding")}"
-                          data-tip3="${l10n.t("Press ↑/↓ key to recall history")}"
-                          data-tip4="${l10n.t("Type ? to tigger search")}"
-                          data-tip5="${l10n.t("Clear button can be found on the top of this view")}"
                     >
                       <div id="backdrop">
                         <div id="highlight-anchor">

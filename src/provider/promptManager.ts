@@ -175,6 +175,12 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     <script src="${vendorTailwindJs}"></script>
     <link href="${iconUri}" rel="stylesheet" />
     <link href="${mainCSS}" rel="stylesheet" />
+    <style>
+    textarea:invalid,
+    vscode-text-field:invalid {
+      --focus-border: var(--vscode-inputValidation-warningBorder);
+    }
+    </style>
     <script>
     document.oncontextmenu = () => {
       return false;
@@ -267,6 +273,11 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         updatePreview();
       });
       prompt.addEventListener("input", (_e)=>{
+        if (labelNode.value && /^[a-zA-Z]\\w{0,15}$/.test(shortcutNode.value) && prompt.value){
+          saveNode.disabled = false;
+        } else {
+          saveNode.disabled = true;
+        }
         updatePreview();
       });
       window.addEventListener("message", (event) => {
@@ -291,12 +302,12 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
       <h2>${l10n.t("Custom Prompt")}</h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem; flex-flow: wrap">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of {0} word characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}
+          <vscode-text-field id="shortcut" tabindex="1" required pattern="^[a-zA-Z]\\w{0,15}$" maxlength=16 placeholder="${l10n.t("Start with a letter, with a length limit of {0} word characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}
             <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Shortcut")}">
               <span class="material-symbols-rounded">pen_size_3</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="label" tabindex="2" placeholder="${l10n.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${label && `value="${label}"`}>${l10n.t("Label")}
+          <vscode-text-field id="label" tabindex="2" required maxlength="16" placeholder="${l10n.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" ${label && `value="${label}"`}>${l10n.t("Label")}
             <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Display label")}">
               <span class="material-symbols-rounded">smart_button</span>
             </vscode-link>
@@ -317,12 +328,12 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
                 <span class="material-symbols-rounded">glyphs</span>
               </vscode-button>
             </div>
-            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 43px 9px 9px 9px;margin-top: -34px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
+            <textarea tabindex="3" id="prompt" required rows="10" resize="vertical" style="border-radius: 6px;padding: 43px 9px 9px 9px;margin-top: -34px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
           </div>
           <div style="display: flex;flex-direction: column;min-width: 480px;flex-grow: 1;margin-top: 1rem;">
             <label for="preview" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Preview")}</label>
             <div id="ask-list" style="position: initial; border-bottom: none; padding: 0;"></div>
-            <div id="preview" style="box-sizing: border-box;flex-grow: 1;padding: 1rem;border: 1px solid var(--dropdown-border);border-radius: 0 0 6px 6px; background-color: var(--panel-view-background);">
+            <div id="preview" style="box-sizing: border-box;flex-grow: 1;padding: 1rem;border: 1px solid var(--dropdown-border);margin: 0 3px;border-radius: 6px; background-color: var(--panel-view-background);">
             </div>
           </div>
         </div>

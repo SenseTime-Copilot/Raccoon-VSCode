@@ -26,7 +26,7 @@ interface ClientAndAuthInfo {
   authInfo?: AuthInfo;
 }
 
-type ChangeScope = "agent" | "prompt" | "engines" | "active" | "authorization" | "config";
+type ChangeScope = "agent" | "prompt" | "engines" | "active" | "konwledge" | "authorization" | "config";
 const individual = "Individual";
 
 export interface StatusChangeEvent {
@@ -231,10 +231,11 @@ export class RaccoonManager {
   private async appendClient(name: string, c: ClientAndAuthInfo, username?: string) {
     this._clients[name] = c;
     if (c.authInfo) {
-      if (username) {
+      if (username && c.authInfo.account.username !== username) {
         c.authInfo.account.username = username;
+        return this.updateToken(name, c.authInfo);
       }
-      return this.updateToken(name, c.authInfo);
+      return Promise.resolve();
     }
 
     let url = await c.client.getAuthUrlLogin("");
@@ -322,7 +323,7 @@ export class RaccoonManager {
     await this.configuration.update("Prompt", undefined, true);
 
     await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
-    this.notifyStateChange({ scope: ["authorization", "active", "engines", "agent", "prompt", "config"] });
+    this.notifyStateChange({ scope: ["authorization", "active", "konwledge", "engines", "agent", "prompt", "config"] });
   }
 
   public update(): void {
@@ -543,7 +544,7 @@ export class RaccoonManager {
     return [];
   }
 
-  public async setActiveOrganization(orgCode?: string): Promise<void> {
+  private async setActiveOrganization(orgCode?: string): Promise<void> {
     if (!orgCode) {
       orgCode = individual;
     }
@@ -552,7 +553,6 @@ export class RaccoonManager {
       return Promise.resolve();
     }
     return this.context.globalState.update("ActiveOrganization", orgCode).then(() => {
-      this.listKnowledgeBase(true);
       this.notifyStateChange({ scope: ["active"] });
     });
   }
@@ -579,15 +579,23 @@ export class RaccoonManager {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     let org: Organization | undefined = this.activeOrganization();
     if (ca && ca.authInfo) {
-      let ts = this.context.globalState.get<number>("KnowledgeBasesUpdateAt") || 0;
+      let ts = this.context.globalState.get<number>("KnowledgeBasesNextUpdateAt") || 0;
       let curTs = new Date().valueOf();
-      if (update || ((curTs - ts) > (3600 * 1000))) {
-        let kb = await ca.client.listKnowledgeBase(ca.authInfo, org);
-        this.context.globalState.update("KnowledgeBases", kb);
-        this.context.globalState.update("KnowledgeBasesUpdateAt", curTs);
-        return Promise.resolve(kb);
+      let oldKb = this.context.globalState.get<KnowledgeBase[]>("KnowledgeBases") || [];
+      if (update || (curTs > ts)) {
+        return ca.client.listKnowledgeBase(ca.authInfo, org).then((kb) => {
+          if (JSON.stringify(oldKb) !== JSON.stringify(kb)) {
+            this.context.globalState.update("KnowledgeBases", kb);
+            this.notifyStateChange({ scope: ["konwledge"] });
+          }
+          this.context.globalState.update("KnowledgeBasesNextUpdateAt", curTs + (30 * 60 * 1000));
+          return kb;
+        }).catch((_e) => {
+          this.context.globalState.update("KnowledgeBasesNextUpdateAt", curTs + (10 * 60 * 1000));
+          return oldKb;
+        });
       } else {
-        return this.context.globalState.get<KnowledgeBase[]>("KnowledgeBases") || [];
+        return oldKb;
       }
     }
     return Promise.resolve([]);
@@ -690,7 +698,7 @@ export class RaccoonManager {
     return window.withProgress({
       location: { viewId: `${extensionNameKebab}.view` }
     }, async (progress, _cancel) => {
-      await this.userInfo(true, 3000).then((ac) => {
+      return this.userInfo(true, 3000).then(async (ac) => {
         let ao = this.activeOrganization();
         let username = ac?.username || "";
         let orgs: OrgInfo[] = this.organizationList()
@@ -717,10 +725,12 @@ export class RaccoonManager {
           label: "",
           kind: QuickPickItemKind.Separator
         };
-        progress.report({ increment: 100 });
-        window.showQuickPick<OrgInfo>([individualItem, separator, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
+        return window.showQuickPick<OrgInfo>([individualItem, separator, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
+          progress.report({ increment: 100 });
           if (select) {
-            raccoonManager.setActiveOrganization(select.id);
+            return raccoonManager.setActiveOrganization(select.id).then(() => {
+              return this.listKnowledgeBase(true);
+            });
           }
         });
       });
@@ -751,7 +761,10 @@ export class RaccoonManager {
     if (ca && ca.authInfo && opts) {
       let knowledgeBases: KnowledgeBase[] = [];
       if (this.knowledgeBaseRef) {
-        knowledgeBases = await this.listKnowledgeBase();
+        try {
+          knowledgeBases = await this.listKnowledgeBase();
+        } catch (e) {
+        }
       }
       let config: RequestParam = {
         ...opts.parameters,
@@ -787,7 +800,10 @@ export class RaccoonManager {
     if (ca && ca.authInfo && opts) {
       let knowledgeBases: KnowledgeBase[] = [];
       if (this.knowledgeBaseRef) {
-        knowledgeBases = await this.listKnowledgeBase();
+        try {
+          knowledgeBases = await this.listKnowledgeBase();
+        } catch (e) {
+        }
       }
       let config: RequestParam = {
         ...opts.parameters,
@@ -896,7 +912,7 @@ export class RaccoonManager {
   public set knowledgeBaseRef(value: boolean) {
     this.context.globalState.update("KnowledgeBaseRef", value).then(() => {
       if (!value) {
-        this.context.globalState.update("KnowledgeBasesUpdateAt", 0);
+        this.context.globalState.update("KnowledgeBasesNextUpdateAt", 0);
       }
       this.notifyStateChange({ scope: ["config"] });
     });
