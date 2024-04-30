@@ -19,6 +19,8 @@
   "Label": "标签",
   "Display label": "显示标签",
   "Custom Prompt": "提示模板",
+  "Custom Agent": "自定义智能体",
+  "System Prompt": "系统提示",
   "Captured code from editor": "从编辑器捕获的代码",
   "Text field": "文本字段",
   "Text field with placeholder": "带占位符的文本字段",

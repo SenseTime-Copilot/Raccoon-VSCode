@@ -447,7 +447,7 @@ textarea::placeholder {
     opacity: 0.7;
 }
 
-#question.flash {
+#chat-button-wrapper.flash {
     animation: flash .4s ease-in-out 3;
     outline-color: var(--focus-border);
 }
@@ -668,10 +668,9 @@ button.disabled,
 #agent-list,
 #ask-list {
     position: fixed;
-    bottom: 50px;
+    bottom: 61px;
     width: calc(100% - 6px);
     margin: 3px;
-    padding-bottom: 5px;
     background-color: var(--input-background);
     border-radius: 6px;
     border: 1px solid var(--checkbox-border);
@@ -713,16 +712,16 @@ button.disabled,
     border-top-right-radius: 0;
 }
 
-#ask-list .toolbar vscode-link {
+.toolbar vscode-link {
     margin-right: 0.25rem;
     color: var(--panel-tab-foreground);
 }
 
-#ask-list .toolbar vscode-link:hover {
+.toolbar vscode-link:hover {
     color: var(--progress-background);
 }
 
-#ask-list .toolbar {
+.toolbar {
     border-bottom: 1px solid var(--checkbox-border);
 }
 

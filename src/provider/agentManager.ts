@@ -1,13 +1,14 @@
-import { ExtensionContext, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
-import { agentEditorViewType, extensionNameCamel, extensionNameKebab, raccoonManager } from "../globalEnv";
-import { KnowledgeBase } from "../raccoonClient/CodeClient";
+import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
+import { agentEditorViewType, extensionNameKebab, raccoonManager } from "../globalEnv";
 
 export interface RaccoonAgent {
   id: string;
   label: string;
   icon: string;
   systemPrompt: string;
-  knowledges: KnowledgeBase[];
+  knowledges: boolean;
+  webSearch: boolean;
+  builtin?: boolean;
 }
 
 export class AgentInfo {
@@ -27,43 +28,55 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Raccoon"),
     icon: "pets",
     systemPrompt: l10n.t(""),
-    knowledges: []
-  }/*,
+    knowledges: false,
+    webSearch: false,
+    builtin: true
+  },
   {
     id: "martin",
     label: l10n.t("Manager"),
     icon: "manage_accounts",
     systemPrompt: l10n.t(""),
-    knowledges: []
+    knowledges: false,
+    webSearch: false,
+    builtin: true
   },
   {
     id: "andy",
     label: l10n.t("Architect"),
     icon: "design_services",
     systemPrompt: l10n.t(""),
-    knowledges: []
+    knowledges: false,
+    webSearch: false,
+    builtin: true
   },
   {
     id: "eason",
     label: l10n.t("Engineer"),
     icon: "build_circle",
     systemPrompt: l10n.t(""),
-    knowledges: []
+    knowledges: false,
+    webSearch: false,
+    builtin: true
   },
   {
     id: "taylor",
     label: l10n.t("Testing"),
     icon: "science",
     systemPrompt: l10n.t(""),
-    knowledges: []
+    knowledges: false,
+    webSearch: false,
+    builtin: true
   },
   {
     id: "doris",
     label: l10n.t("Deployment"),
     icon: "deployed_code",
     systemPrompt: l10n.t(""),
-    knowledges: []
-  }*/
+    knowledges: false,
+    webSearch: false,
+    builtin: true
+  }
 ];
 
 export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
@@ -71,11 +84,9 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
   private webview?: Webview;
 
   private constructor(private readonly context: ExtensionContext) {
-    workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration(`${extensionNameCamel}.Agent`)) {
-        if (this.webview) {
-          this.renderList(this.webview);
-        }
+    raccoonManager.onDidChangeStatus((e) => {
+      if (this.webview && e.scope.includes("agent")) {
+        this.renderList(this.webview);
       }
     });
   }
@@ -242,6 +253,15 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
             <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 9px 9px 9px 9px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
           </div>
         </div>
+        <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
+          <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
+            <label for="RAG" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Retrieval Argumention")}</label>
+            <div style="display: flex; margin-left: 1rem; grid-gap: 0 1rem; flex-flow: wrap">
+              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${l10n.t("Knowledge Base")}</vscode-checkbox>
+              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${l10n.t("Internet")}</vscode-checkbox>
+            </div>
+          </div>
+        </div>
         <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
           <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
           <vscode-button tabindex="4" id="save" ${(agent && agent.id.length > 0) ? '' : 'disabled'} onclick="save('${agent?.id}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
@@ -259,6 +279,14 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     };
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
+        case 'show': {
+          raccoonManager.setAgentVisibility(msg.id, true);
+          break;
+        }
+        case 'hide': {
+          raccoonManager.setAgentVisibility(msg.id, false);
+          break;
+        }
         case 'add': {
           commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/new.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Agent")} [${l10n.t("New")}]` }))}`), agentEditorViewType);
           break;
@@ -292,28 +320,39 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       <div style="font-family: var(--vscode-editor-font-family);">No Custom Agent</div>
     </div>`;
     let table = `
-    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) 1fr 2fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
+    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) 1fr 2fr 120px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
       <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("ID")}</vscode-data-grid-cell>
       <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Label")}</vscode-data-grid-cell>
       <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("System Prompt")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Action")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="4" style="text-align: right;">${l10n.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
+    let hiddenAgents = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenAgents`) || [];
     agents.forEach((s, _id, _m) => {
+      let invisible = hiddenAgents.includes(s.id);
+      let actions = `<vscode-link ${invisible ? `style="display: none"` : ``}>
+                      <span class="material-symbols-rounded hide-agent" onclick="hideAgent('${s.id}')">visibility</span>
+                    </vscode-link>
+                    <vscode-link ${invisible ? `` : `style="display: none"`}>
+                      <span class="material-symbols-rounded show-agent" onclick="showAgent('${s.id}')">visibility_off</span>
+                    </vscode-link>`;
+      if (!s.builtin) {
+        actions = `<vscode-link>
+                    <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')">edit</span>
+                  </vscode-link>
+                  <vscode-link>
+                    <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')">delete</span>
+                  </vscode-link>` + actions;
+      }
       emptyPlaceholder = '';
       table += `
-      <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
+      <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border); ${invisible ? 'opacity: 0.6' : ""}">
         <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="@${s.id}" onclick="editAgent('${s.id}')"><vscode-link>${s.id}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="align-self: center;" title="${s.label}">${s.label}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center; overflow-x: auto; white-space: pre;">${s.systemPrompt?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center;">
-          <vscode-link>
-            <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')">edit</span>
-          </vscode-link>
-          <vscode-link>
-            <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')">delete</span>
-          </vscode-link>
+        <vscode-data-grid-cell grid-column="4" style="align-self: center; justify-self: flex-end;">
+          ${actions}
         </vscode-data-grid-cell>
       </vscode-data-grid-row>
       `;
@@ -338,6 +377,22 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       return false;
     };
     const vscode = acquireVsCodeApi();
+    function showAgent(id) {
+      vscode.postMessage(
+        {
+          "type": "show",
+          "id": id
+        }
+      )
+    }
+    function hideAgent(id) {
+      vscode.postMessage(
+        {
+          "type": "hide",
+          "id": id
+        }
+      )
+    }
     function addAgent() {
       vscode.postMessage(
         {

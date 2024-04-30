@@ -193,7 +193,7 @@ export interface CodeClient {
 
   completion(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void>;
 
-  listKnowledgeBase(authInfo: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]>;
+  listKnowledgeBase(auth: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]>;
 
-  sendTelemetry(authInfo: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
+  sendTelemetry(auth: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
 }

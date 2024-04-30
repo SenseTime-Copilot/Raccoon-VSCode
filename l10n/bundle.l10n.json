@@ -19,6 +19,8 @@
   "Label": "Label",
   "Display label": "Display label",
   "Custom Prompt": "Custom Prompt",
+  "Custom Agent": "Custom Agent",
+  "System Prompt": "System Prompt",
   "Captured code from editor": "Captured code from editor",
   "Text field": "Text field",
   "Text field with placeholder": "Text field with placeholder",

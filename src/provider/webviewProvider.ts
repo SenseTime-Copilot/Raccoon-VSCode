@@ -70,7 +70,7 @@ function makeGuide(isMac: boolean) {
   </li>
   <li>
   ${l10n.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon")}:
-      <a onclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
+      <a onclick="document.getElementById('question-input').focus();document.getElementById('chat-button-wrapper').classList.remove('flash');void document.getElementById('chat-button-wrapper').offsetHeight;document.getElementById('chat-button-wrapper').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
         <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
       </a>
   </li>
@@ -104,9 +104,16 @@ export class RaccoonEditor extends Disposable {
         this.showWelcome();
       } else if (e.scope.includes("agent")) {
         let value = Array.from(raccoonManager.agent.values());
+        value = value.filter((v, _idx, _arr) => {
+          return raccoonManager.checkAgentVisibility(v.id);
+        });
         this.sendMessage({ type: 'agentList', value });
       } else if (e.scope.includes("prompt")) {
-        this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
+        let value = raccoonManager.prompt;
+        value = value.filter((v, _idx, _arr) => {
+          return raccoonManager.checkPromptVisibility(v.label);
+        });
+        this.sendMessage({ type: 'promptList', value });
       } else if (e.scope.includes("engines")) {
         this.updateSettingPage("full");
       } else if (e.scope.includes("active")) {
@@ -225,7 +232,7 @@ export class RaccoonEditor extends Disposable {
       detail += this.buildLoginHint();
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
-      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('question').classList.remove('flash');void document.getElementById('question').offsetHeight;document.getElementById('question').classList.add('flash');">Ctrl</kbd>`)}</div>`
+      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('chat-button-wrapper').classList.remove('flash');void document.getElementById('chat-button-wrapper').offsetHeight;document.getElementById('chat-button-wrapper').classList.add('flash');">Ctrl</kbd>`)}</div>`
       + detail
       + `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" onclick='vscode.postMessage({type: "sendQuestion", userAgent: navigator.userAgent, prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'>
   <span class="material-symbols-rounded">celebration</span>
@@ -502,7 +509,7 @@ export class RaccoonEditor extends Disposable {
     <div class="ml-4 my-1">
       <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
-        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs=>kbs.map((v,_idx,_arr)=>v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs => kbs.map((v, _idx, _arr) => v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
@@ -568,11 +575,22 @@ export class RaccoonEditor extends Disposable {
         }
         case 'listAgent': {
           let value = Array.from(raccoonManager.agent.values());
+          value = value.filter((v, _idx, _arr) => {
+            return raccoonManager.checkAgentVisibility(v.id);
+          });
           this.sendMessage({ type: 'agentList', value });
           break;
         }
         case 'listPrompt': {
-          this.sendMessage({ type: 'promptList', value: raccoonManager.prompt });
+          let value = raccoonManager.prompt;
+          value = value.filter((v, _idx, _arr) => {
+            return raccoonManager.checkPromptVisibility(v.label);
+          });
+          this.sendMessage({ type: 'promptList', value });
+          break;
+        }
+        case 'agentManage': {
+          commands.executeCommand(`${extensionNameKebab}.agent.manage`);
           break;
         }
         case 'promptManage': {
@@ -718,7 +736,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'switch-org': {
-          raccoonManager.switchOrganization().then(()=>{
+          raccoonManager.switchOrganization().then(() => {
             this.updateSettingPage();
           });
           break;

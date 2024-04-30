@@ -19,6 +19,8 @@
   "Label": "ラベル",
   "Display label": "ラベルを表示",
   "Custom Prompt": "カスタマプロンプト",
+  "Custom Agent": "カスタマエージェント",
+  "System Prompt": "システムプロンプト",
   "Captured code from editor": "エディターからコードを取り込む",
   "Text field": "テキストフィールド",
   "Text field with placeholder": "プレースホルダを持つテキストフィールド",

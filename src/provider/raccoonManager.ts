@@ -387,6 +387,32 @@ export class RaccoonManager {
     return agants;
   }
 
+  public async setAgentVisibility(id: string, visible: boolean) {
+    let a = this.agent.get(id);
+    if (a) {
+      let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenAgents`) || [];
+      if (visible && as.includes(id)) {
+        return this.context.globalState.update(`${extensionNameKebab}.hiddenAgents`, as.filter(v => v !== id)).then(() => {
+          this.notifyStateChange({ scope: ["agent"] });
+        });
+      } else if (!visible && !as.includes(id)) {
+        return this.context.globalState.update(`${extensionNameKebab}.hiddenAgents`, [...as, id]).then(() => {
+          this.notifyStateChange({ scope: ["agent"] });
+        });
+      }
+    }
+    return Promise.resolve();
+  }
+
+  public checkAgentVisibility(id: string) {
+    let a = this.agent.get(id);
+    if (a) {
+      let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenAgents`) || [];
+      return !as.includes(id);
+    }
+    return true;
+  }
+
   public async appendAgent(agent: RaccoonAgent, overwrite?: boolean): Promise<void> {
     let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let writeable = true;
@@ -415,6 +441,84 @@ export class RaccoonManager {
       customAgents.delete(id);
       cfg.update("Agent", Object.fromEntries(customAgents), true);
     }
+  }
+
+  public getPromptItem(label: string): RaccoonPrompt | undefined {
+    let ps = this.prompt;
+    let t = ps.filter((p) => (p.label === label && p.type === PromptType.customPrompt));
+    return t[0];
+  }
+
+  public async appendPrompt(label: string, shortcut: string, prompt: string, overwrite?: boolean): Promise<void> {
+    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let customPrompts: { [key: string]: string | any } = {};
+    let writeable = true;
+    if (cfg) {
+      customPrompts = cfg.get("Prompt", {});
+      if (!overwrite) {
+        for (let labelName in customPrompts) {
+          if (typeof customPrompts[labelName] === 'object') {
+            if (labelName === label) {
+              writeable = false;
+            }
+          }
+        }
+      }
+    }
+    if (!writeable) {
+      await window.showWarningMessage(l10n.t("The prompt already exists, overwrite it?"), l10n.t("Cancel"), l10n.t("Overwrite")).then(res => {
+        if (res === l10n.t("Overwrite")) {
+          writeable = true;
+        }
+      }, () => { });
+    }
+    if (!writeable) {
+      return Promise.reject();
+    }
+    let p = RaccoonManager.parseStringPrompt(label, prompt, shortcut);
+    let savep: any = { shortcut: p.shortcut, origin: prompt, prompt: p.message.content, args: p.args };
+    return cfg.update("Prompt", { ...customPrompts, [label]: savep }, true);
+  }
+
+  public async removePromptItem(label: string) {
+    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let customPrompts: { [key: string]: string | any } = {};
+    if (cfg) {
+      customPrompts = cfg.get("Prompt", {});
+      for (let labelName in customPrompts) {
+        if (labelName === label) {
+          customPrompts[labelName] = undefined;
+          cfg.update("Prompt", customPrompts, true);
+          return;
+        }
+      }
+    }
+  }
+
+  public async setPromptVisibility(label: string, visible: boolean) {
+    let p = this.prompt.filter((v) => v.label === label);
+    if (p[0]) {
+      let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
+      if (visible && as.includes(label)) {
+        return this.context.globalState.update(`${extensionNameKebab}.hiddenPrompts`, as.filter(a => a !== label)).then(() => {
+          this.notifyStateChange({ scope: ["prompt"] });
+        });
+      } else if (!visible && !as.includes(label)) {
+        return this.context.globalState.update(`${extensionNameKebab}.hiddenPrompts`, [...as, label]).then(() => {
+          this.notifyStateChange({ scope: ["prompt"] });
+        });
+      }
+    }
+    return Promise.resolve();
+  }
+
+  public checkPromptVisibility(label: string) {
+    let p = this.prompt.filter((v) => v.label === label);
+    if (p[0]) {
+      let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
+      return !as.includes(label);
+    }
+    return true;
   }
 
   public get prompt(): RaccoonPrompt[] {

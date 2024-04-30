@@ -181,9 +181,9 @@ const vscode = acquireVsCodeApi();
       case 'focus': {
         document.getElementById('settings')?.remove();
         document.getElementById("question-input").focus();
-        document.getElementById('question').classList.remove('flash');
-        void document.getElementById('question').offsetHeight;
-        document.getElementById('question').classList.add('flash');
+        document.getElementById('chat-button-wrapper').classList.remove('flash');
+        void document.getElementById('chat-button-wrapper').offsetHeight;
+        document.getElementById('chat-button-wrapper').classList.add('flash');
         break;
       }
       case 'clear': {
@@ -418,7 +418,9 @@ const vscode = acquireVsCodeApi();
       }
       case "agentList": {
         agents = message.value;
-        var agentnames = '';
+        var agentnames = `<div class="toolbar w-full text-end p-1">
+                            <vscode-link><span id="agent-manage" class="material-symbols-rounded">edit_note</span></vscode-link>
+                          </div>`;
         agents.forEach((p, _id, _m) => {
           agentnames += `<button class="flex flex-row-reverse gap-2 items-center" data-shortcut='@${p.id}'
                                   onclick='vscode.postMessage({type: "addAgent", id: "${p.id}"});'
@@ -918,27 +920,28 @@ const vscode = acquireVsCodeApi();
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
         return q.value === '@' || sc.dataset.shortcut?.startsWith(q.value);
       });
-      if (btns.length > 0) {
+      var emptyByFilter = (allAction.length === 0 && q.value !== '@') || (allAction.length > 0 && btns.length === 0);
+      if (!emptyByFilter) {
         list.classList.remove("hidden");
         document.getElementById("question").classList.add("agent");
-        btns.forEach((btn, _index) => {
+        btns.forEach((btn, index) => {
+          if (index === 0) {
+            btn.classList.add('selected');
+          } else {
+            btn.classList.remove('selected');
+          }
           var sc = btn.querySelector('.shortcut');
           if (sc) {
             sc.textContent = q.value.slice(1);
             sc.dataset.suffix = btn.dataset.shortcut.slice(q.value.length);
           }
           btn.classList.remove('hidden');
-          btn.classList.remove('selected');
         });
-        btns[0].classList.add('selected');
-      } else {
-        list.classList.add("hidden");
-        document.getElementById("question").classList.remove("agent");
+        return;
       }
-    } else {
-      list.classList.add("hidden");
-      document.getElementById("question").classList.remove("agent");
     }
+    list.classList.add("hidden");
+    document.getElementById("question").classList.remove("agent");
   }
 
   function _toggleAskList() {
@@ -957,27 +960,28 @@ const vscode = acquireVsCodeApi();
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
         return q.value === '/' || sc.dataset.shortcut?.startsWith(q.value);
       });
-      if (btns.length > 0) {
+      var emptyByFilter = (allAction.length === 0 && q.value !== '/') || (allAction.length > 0 && btns.length === 0);
+      if (!emptyByFilter) {
         list.classList.remove("hidden");
         document.getElementById("question").classList.add("action");
-        btns.forEach((btn, _index) => {
+        btns.forEach((btn, index) => {
+          if (index === 0) {
+            btn.classList.add('selected');
+          } else {
+            btn.classList.remove('selected');
+          }
           var sc = btn.querySelector('.shortcut');
           if (sc) {
             sc.textContent = q.value.slice(1);
             sc.dataset.suffix = btn.dataset.shortcut.slice(q.value.length);
           }
           btn.classList.remove('hidden');
-          btn.classList.remove('selected');
         });
-        btns[0].classList.add('selected');
-      } else {
-        list.classList.add("hidden");
-        document.getElementById("question").classList.remove("action");
+        return;
       }
-    } else {
-      list.classList.add("hidden");
-      document.getElementById("question").classList.remove("action");
     }
+    list.classList.add("hidden");
+    document.getElementById("question").classList.remove("action");
   }
 
   function _toggleSearchList() {
@@ -1445,6 +1449,11 @@ const vscode = acquireVsCodeApi();
       return;
     }
 
+    if (e.target.id === "agent-manage") {
+      vscode.postMessage({ type: "agentManage" });
+      return;
+    }
+
     if (e.target.id === "prompt-manage") {
       vscode.postMessage({ type: "promptManage" });
       return;
@@ -1627,6 +1636,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
+      let id = targetButton?.dataset.id;
       var codelang = targetButton.parentElement?.parentElement?.dataset?.lang;
       vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", codelang });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {

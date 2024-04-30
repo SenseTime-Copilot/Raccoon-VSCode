@@ -161,6 +161,15 @@ export class RaccoonClient implements CodeClient {
 
   public async syncUserInfo(auth: AuthInfo, timeoutMs?: number): Promise<AccountInfo> {
     let url = `${this.clientConfig.apiBaseUrl}/auth/v1/user_info`;
+    let ts = new Date();
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+      try {
+        auth = await this.refreshToken(auth);
+      } catch (err: any) {
+        return Promise.reject(err);
+      }
+    }
+
     return axios.get(url,
       {
         headers: {
@@ -630,15 +639,24 @@ export class RaccoonClient implements CodeClient {
     return this.completionUsingFetch(auth, options, org);
   }
 
-  public async listKnowledgeBase(authInfo: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
+  public async listKnowledgeBase(auth: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
     let listUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
-    if (!authInfo.account.pro && !org) {
+    if (!auth.account.pro && !org) {
       return [];
     }
+    let ts = new Date();
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+      try {
+        auth = await this.refreshToken(auth);
+      } catch (err: any) {
+        return Promise.reject(err);
+      }
+    }
+
     return axios.get(listUrl, {
       headers: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        Authorization: `Bearer ${authInfo.weaverdKey}`,
+        Authorization: `Bearer ${auth.weaverdKey}`,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         "x-org-code": org?.code
       },
@@ -648,12 +666,20 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  public async sendTelemetry(authInfo: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
+  public async sendTelemetry(auth: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
     let telementryUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/b/v1/m`;
     let metricInfo: any = {};
     metricInfo[metricType] = metric;
     metricInfo['metric_type'] = metricType.replace("_", "-");
-    axios.post(telementryUrl,
+    let ts = new Date();
+    if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
+      try {
+        auth = await this.refreshToken(auth);
+      } catch (err: any) {
+        return Promise.reject(err);
+      }
+    }
+    return axios.post(telementryUrl,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         common_header: common,
@@ -662,13 +688,13 @@ export class RaccoonClient implements CodeClient {
       {
         headers: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          Authorization: `Bearer ${authInfo.weaverdKey}`,
+          Authorization: `Bearer ${auth.weaverdKey}`,
           // eslint-disable-next-line @typescript-eslint/naming-convention
           "x-org-code": org?.code
         },
         timeout: 2000
       }
-    );
+    ).then(()=>{});
     /* eslint-enable */
   }
 }

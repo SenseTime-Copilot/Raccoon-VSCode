@@ -1,6 +1,6 @@
-import { ExtensionContext, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
+import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
-import { promptEditorViewType, extensionNameCamel, extensionNameKebab, raccoonManager } from "../globalEnv";
+import { promptEditorViewType, extensionNameKebab, raccoonManager } from "../globalEnv";
 import { RaccoonManager } from "./raccoonManager";
 
 export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
@@ -8,11 +8,9 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
   private webview?: Webview;
 
   private constructor(private readonly context: ExtensionContext) {
-    workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration(`${extensionNameCamel}.Prompt`)) {
-        if (this.webview) {
-          this.renderList(this.webview);
-        }
+    raccoonManager.onDidChangeStatus((e) => {
+      if (this.webview && e.scope.includes("prompt")) {
+        this.renderList(this.webview);
       }
     });
   }
@@ -29,58 +27,6 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
         }
       }));
       context.subscriptions.push(PromptEditor.instance);
-    }
-  }
-
-  private getPromptItems(label: string): RaccoonPrompt | undefined {
-    let ps = raccoonManager.prompt;
-    let t = ps.filter((p) => (p.label === label && p.type === PromptType.customPrompt));
-    return t[0];
-  }
-
-  private async appendPrompt(label: string, shortcut: string, prompt: string, overwrite?: boolean): Promise<void> {
-    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
-    let customPrompts: { [key: string]: string | any } = {};
-    let writeable = true;
-    if (cfg) {
-      customPrompts = cfg.get("Prompt", {});
-      if (!overwrite) {
-        for (let labelName in customPrompts) {
-          if (typeof customPrompts[labelName] === 'object') {
-            if (labelName === label) {
-              writeable = false;
-            }
-          }
-        }
-      }
-    }
-    if (!writeable) {
-      await window.showWarningMessage(l10n.t("The prompt already exists, overwrite it?"), l10n.t("Cancel"), l10n.t("Overwrite")).then(res => {
-        if (res === l10n.t("Overwrite")) {
-          writeable = true;
-        }
-      }, () => { });
-    }
-    if (!writeable) {
-      return Promise.reject();
-    }
-    let p = RaccoonManager.parseStringPrompt(label, prompt, shortcut);
-    let savep: any = { shortcut: p.shortcut, origin: prompt, prompt: p.message.content, args: p.args };
-    return cfg.update("Prompt", { ...customPrompts, [label]: savep }, true);
-  }
-
-  private async removePromptItem(label: string) {
-    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
-    let customPrompts: { [key: string]: string | any } = {};
-    if (cfg) {
-      customPrompts = cfg.get("Prompt", {});
-      for (let labelName in customPrompts) {
-        if (labelName === label) {
-          customPrompts[labelName] = undefined;
-          cfg.update("Prompt", customPrompts, true);
-          return;
-        }
-      }
     }
   }
 
@@ -147,9 +93,9 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'save': {
-          this.appendPrompt(msg.label, msg.shortcut, msg.prompt, msg.force).then(() => {
+          raccoonManager.appendPrompt(msg.label, msg.shortcut, msg.prompt, msg.force).then(() => {
             if (label && label !== msg.label) {
-              this.removePromptItem(label);
+              raccoonManager.removePromptItem(label);
             }
             panel.dispose();
           }, () => { });
@@ -354,12 +300,20 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     };
     webview.onDidReceiveMessage((msg) => {
       switch (msg.type) {
+        case 'show': {
+          raccoonManager.setPromptVisibility(msg.label, true);
+          break;
+        }
+        case 'hide': {
+          raccoonManager.setPromptVisibility(msg.label, false);
+          break;
+        }
         case 'add': {
           commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/new.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${l10n.t("New")}]` }))}`), promptEditorViewType);
           break;
         }
         case 'edit': {
-          let prompt = this.getPromptItems(msg.label);
+          let prompt = raccoonManager.getPromptItem(msg.label);
           if (prompt) {
             let info = { label: prompt.label, shortcut: prompt.shortcut || "", origin: prompt.origin || prompt.message.content || "" };
             commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), promptEditorViewType);
@@ -367,7 +321,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'delete': {
-          this.removePromptItem(msg.label);
+          raccoonManager.removePromptItem(msg.label);
           break;
         }
       }
@@ -388,31 +342,40 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
       <div style="font-family: var(--vscode-editor-font-family);">No Custom Prompt</div>
     </div>`;
     let table = `
-    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) 1fr 2fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
+    <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) 1fr 2fr 120px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
       <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("Shortcut")}</vscode-data-grid-cell>
       <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Label")}</vscode-data-grid-cell>
       <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Custom Prompt")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Action")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="4" style="text-align: right;">${l10n.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
+    let hiddenPrompts = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
     for (let s of prompts) {
-      if (s.type !== PromptType.customPrompt) {
-        continue;
+      let invisible = hiddenPrompts.includes(s.label);
+      let actions = `<vscode-link ${invisible ? `style="display: none"` : ``}>
+                      <span class="material-symbols-rounded hide-prompt" onclick="hidePrompt('${s.label}')">visibility</span>
+                    </vscode-link>
+                    <vscode-link ${invisible ? `` : `style="display: none"`}>
+                      <span class="material-symbols-rounded show-prompt" onclick="showPrompt('${s.label}')">visibility_off</span>
+                    </vscode-link>`;
+      if (s.type === PromptType.customPrompt) {
+        actions = `<vscode-link>
+                    <span class="material-symbols-rounded edit-prompt" onclick="editPrompt('${s.label}')">edit</span>
+                  </vscode-link>
+                  <vscode-link>
+                    <span class="material-symbols-rounded delete-prompt" onclick="deleteByShortcut('${s.label}')">delete</span>
+                  </vscode-link>` + actions;
       }
+      
       emptyPlaceholder = '';
       table += `
-      <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
+      <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border); ${invisible ? 'opacity: 0.6' : ""}">
         <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="/${s.shortcut}">${s.shortcut || '-'}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="align-self: center;" title="${s.label}" onclick="editPrompt('${s.label}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center; overflow-x: auto; white-space: pre;">${s.origin?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center;">
-          <vscode-link>
-            <span class="material-symbols-rounded edit-prompt" onclick="editPrompt('${s.label}')">edit</span>
-          </vscode-link>
-          <vscode-link>
-            <span class="material-symbols-rounded delete-prompt" onclick="deleteByShortcut('${s.label}')">delete</span>
-          </vscode-link>
+        <vscode-data-grid-cell grid-column="4" style="align-self: center; justify-self: flex-end;">
+          ${actions}
         </vscode-data-grid-cell>
       </vscode-data-grid-row>
       `;
@@ -437,6 +400,22 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
       return false;
     };
     const vscode = acquireVsCodeApi();
+    function showPrompt(label) {
+      vscode.postMessage(
+        {
+          "type": "show",
+          "label": label
+        }
+      )
+    }
+    function hidePrompt(label) {
+      vscode.postMessage(
+        {
+          "type": "hide",
+          "label": label
+        }
+      )
+    }
     function addPrompt() {
       vscode.postMessage(
         {
