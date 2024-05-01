@@ -213,7 +213,7 @@ export class RaccoonEditor extends Disposable {
     let userinfo = await raccoonManager.userInfo();
     let org = raccoonManager.activeOrganization();
     let ts = new Date();
-    let timestamp = ts.toLocaleString();
+    let timestamp = ts.valueOf();
     let detail = '';
     let name = org?.username || userinfo?.username;
     let category = "welcome";
@@ -655,7 +655,7 @@ export class RaccoonEditor extends Disposable {
                 let tm = new Date();
                 let id = tm.valueOf();
                 let isMac = data.userAgent.includes("Mac OS X");
-                let timestamp = tm.toLocaleString();
+                let timestamp = tm.valueOf();
                 let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
                 let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.help">
                 <span class="material-symbols-rounded">book</span>
@@ -980,7 +980,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     let ts = new Date();
     let id = ts.valueOf();
     let response = "";
-    let reqTimestamp = ts.toLocaleString();
+    let reqTimestamp = ts.valueOf();
 
     let loggedin = raccoonManager.isClientLoggedin();
     let userinfo = await raccoonManager.userInfo();
@@ -1069,7 +1069,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               onError(err: Choice, thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
-                let rts = new Date().toLocaleString();
+                let rts = new Date().valueOf();
                 let errmsg = err.message?.content || "";
                 switch (err.index) {
                   case -3008: {
@@ -1086,7 +1086,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               onFinish(choices: Choice[], thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 if (!errorFlag) {
-                  let rts = new Date().toLocaleString();
+                  let rts = new Date().valueOf();
                   h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
@@ -1095,7 +1095,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 h.sendMessage({ type: 'stopResponse', id });
               },
               onUpdate(choice: Choice, thisArg) {
-                let rts = new Date().toLocaleString();
+                let rts = new Date().valueOf();
                 if (choice.finishReason === FinishReason.sensitive) {
                   thisArg.sendMessage({ type: 'addError', error: l10n.t("Potentially Sensitive Content Encountered"), id, timestamp: rts });
                   return;
@@ -1131,14 +1131,14 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               onError(err, thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
-                let rts = new Date().toLocaleString();
+                let rts = new Date().valueOf();
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
                 h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
                 errorFlag = true;
               },
               onFinish(choices, thisArg) {
                 let h = <RaccoonEditor>thisArg;
-                let rts = new Date().toLocaleString();
+                let rts = new Date().valueOf();
                 if (!errorFlag) {
                   h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content || "" });
                   // eslint-disable-next-line @typescript-eslint/naming-convention

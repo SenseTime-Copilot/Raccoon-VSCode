@@ -608,7 +608,6 @@ textarea::placeholder {
 #question button .material-symbols-rounded {
     transition-duration: 0.2s;
     transition-delay: 0.1s;
-    margin-top: -0.5rem;
 }
 
 #send-button,
@@ -618,18 +617,17 @@ textarea::placeholder {
 }
 
 #send-button {
-    display: block;
+    display: flex;
     color: var(--progress-background);
     opacity: 1;
 }
 
 .material-symbols-rounded.history-icon {
     display: none;
-    margin-top: -0.2rem;
 }
 
 #question.history .material-symbols-rounded.history-icon {
-    display: block;
+    display: flex;
 }
 
 #question #stop-button {
@@ -638,7 +636,7 @@ textarea::placeholder {
 
 #question.prompt-ready #send-button,
 #question.prompt-ready.search #search-button {
-    display: block;
+    display: flex;
     color: var(--progress-background);
     opacity: 1;
 }
@@ -653,7 +651,7 @@ textarea::placeholder {
 }
 
 #chat-button-wrapper.responsing button#stop-button {
-    display: block;
+    display: flex;
 }
 
 button.disabled,

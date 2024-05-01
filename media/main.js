@@ -81,7 +81,7 @@ const vscode = acquireVsCodeApi();
                                 <span class="flex flex-col gap-1 text-xs">
                                   <b>${username}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                    ${timestamp}
+                                    ${new Date(timestamp).toLocaleString()}
                                   </div>
                                 </span>
                               </span>
@@ -141,7 +141,7 @@ const vscode = acquireVsCodeApi();
           let lastts = lasttimestamps.get(id);
           let ts = timestamps.get(id);
           if (lastts !== ts) {
-            lasttimestamps.get(id, ts);
+            lasttimestamps.set(id, ts);
             const scroll = scrollPositionAtBottom();
             render(id, scroll);
           }
@@ -333,7 +333,7 @@ const vscode = acquireVsCodeApi();
                                 <span class="flex flex-col gap-1 text-xs">
                                   <b>${item.name}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                    ${item.timestamp || `<span class="material-symbols-rounded">more_horiz</span>`}
+                                    ${new Date(item.timestamp).toLocaleString() || `<span class="material-symbols-rounded">more_horiz</span>`}
                                   </div>
                                 </span>
                               </span>
@@ -720,7 +720,7 @@ const vscode = acquireVsCodeApi();
                                 <span class="flex flex-col gap-1 text-xs">
                                   <b>${message.robot}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                    ${message.timestamp}
+                                    ${new Date(message.timestamp).toLocaleString()}
                                   </div>
                                 </span>
                               </span>
@@ -743,7 +743,7 @@ const vscode = acquireVsCodeApi();
             let r = document.getElementById(`${message.id}`);
             let rts = r?.getElementsByClassName("message-ts");
             if (rts && rts[0]) {
-              rts[0].textContent = message.timestamp;
+              rts[0].textContent = new Date(message.timestamp).toLocaleString();
             }
           }
           chatText.classList.remove("empty");
@@ -764,7 +764,7 @@ const vscode = acquireVsCodeApi();
             let r = document.getElementById(`${message.id}`);
             let rts = r?.getElementsByClassName("message-ts");
             if (rts && rts[0]) {
-              rts[0].textContent = message.timestamp;
+              rts[0].textContent = new Date(message.timestamp).toLocaleString();
             }
           }
         }
@@ -804,7 +804,7 @@ const vscode = acquireVsCodeApi();
             let r = document.getElementById(`${message.id}`);
             let rts = r?.getElementsByClassName("message-ts");
             if (rts && rts[0]) {
-              rts[0].textContent = message.timestamp;
+              rts[0].textContent = new Date(message.timestamp).toLocaleString();
             }
           }
         }

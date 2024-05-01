@@ -235,7 +235,7 @@ export class RaccoonTerminal {
             return { role: v.type === CacheItemType.question ? Role.user : Role.assistant, content: v.value };
           });
 
-          this.history = this.history.concat([{ id: this.id, timestamp: "", name: username, type: CacheItemType.question, value: question }]);
+          this.history = this.history.concat([{ id: this.id, timestamp: 0, name: username, type: CacheItemType.question, value: question }]);
 
           // eslint-disable-next-line @typescript-eslint/naming-convention
           telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { user_question_num: 1 } });
@@ -253,7 +253,7 @@ export class RaccoonTerminal {
                 let fs = headers.get("x-raccoon-know-files");
                 if (fs) {
                   writeEmitter.fire(`---------------------------------\r\n`);
-                  writeEmitter.fire(fs.split(",").map((f, _idx, _arr)=>{
+                  writeEmitter.fire(fs.split(",").map((f, _idx, _arr) => {
                     return decodeURIComponent(f);
                   }).join("\r\n"));
                   writeEmitter.fire(`\r\n---------------------------------\r\n`);
@@ -272,7 +272,7 @@ export class RaccoonTerminal {
               onFinish(choices: Choice[], thisArg?: any) {
                 let h = <RaccoonTerminal>thisArg;
                 h.responsing = false;
-                h.history = h.history.concat([{ id: h.id, timestamp: "", name: username, type: CacheItemType.answer, value: h.cacheOutput }]);
+                h.history = h.history.concat([{ id: h.id, timestamp: 0, name: username, type: CacheItemType.answer, value: h.cacheOutput }]);
                 h.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
 

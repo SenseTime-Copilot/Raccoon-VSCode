@@ -15,7 +15,7 @@ export enum CacheItemType {
 
 export interface CacheItem {
   id: number;
-  timestamp: string;
+  timestamp: number;
   name: string;
   type: CacheItemType;
   instruction?: string;
