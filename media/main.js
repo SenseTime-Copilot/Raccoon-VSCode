@@ -491,10 +491,10 @@ const vscode = acquireVsCodeApi();
           c.classList.add("hidden");
         }
 
+        editCache.set(`${id}`, promptInfo.prompt);
         if (promptInfo.status === "editRequired") {
           document.getElementById("chat-button-wrapper")?.classList?.add("editing");
           document.getElementById("question-input").disabled = true;
-          editCache.set(`${id}`, promptInfo.prompt);
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
           break;
         } else {
@@ -863,7 +863,7 @@ const vscode = acquireVsCodeApi();
         prompt: promptTemp,
         values
       });
-      editCache.delete(id);
+      //editCache.delete(id);
     } else {
       showInfoTip({ style: "error", category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
@@ -1477,11 +1477,6 @@ const vscode = acquireVsCodeApi();
 
     if (e.target.id === 'candidates') {
       vscode.postMessage({ type: "candidates", value: (parseInt(e.target.dataset.value) + 1) % 4 });
-      return;
-    }
-
-    if (e.target.id === 'tokenPropensity') {
-      vscode.postMessage({ type: "tokenPropensity", value: (parseInt(e.target.dataset.value) + 20) % 100 });
       return;
     }
 

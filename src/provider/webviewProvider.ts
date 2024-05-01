@@ -1297,7 +1297,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                       <vscode-badge class="search-hint items-center">
                         <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Search")}
                       </vscode-badge>
-                      <vscode-badge class="history-hint items-center" style="margin-left: 1rem;">
+                      <vscode-badge class="history-hint items-center">
                         <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Send")}
                       </vscode-badge>
                       <vscode-badge class="history-hint items-center">

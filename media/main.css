@@ -124,10 +124,6 @@ textarea::placeholder {
     word-break: break-all;
 }
 
-.response:not(.with-code) .diff-element-gnc {
-    display: none;
-}
-
 .message-ts {
     font-family: var(--vscode-editor-font-family);
 }
@@ -305,8 +301,6 @@ textarea::placeholder {
 
 #qa-list-wrapper {
     margin: 0;
-    background: var(--vscode-sideBar-background);
-    border-top: 1px solid var(--panel-view-border);
 }
 
 #chat-button-wrapper {
@@ -317,7 +311,6 @@ textarea::placeholder {
     margin: 2px 3px;
     width: calc(100% - 6px);
     background-color: var(--input-background);
-    border-top: 1px solid var(--panel-view-border);
     border: 1px solid var(--checkbox-border);
 }
 
@@ -383,12 +376,12 @@ textarea::placeholder {
     font-size: 0.8em;
     width: 100%;
     max-height: 100px;
-    border-bottom: 1px solid var(--panel-view-border);
+    border-bottom: 1px solid var(--checkbox-border);
 }
 
 #attach-code-container #code-title {
     display: flex;
-    border-bottom: 1px solid var(--panel-view-border);
+    border-bottom: 1px solid var(--checkbox-border);
     background-color: var(--input-background);
     font-family: var(--vscode-editor-font-family);
     color: var(--panel-tab-foreground);
@@ -539,6 +532,7 @@ textarea::placeholder {
     display: inline-flex;
     grid-gap: 0.1rem;
     opacity: 0.4;
+    text-wrap: nowrap;
 }
 
 .prompt-ready-hint,
@@ -556,7 +550,11 @@ textarea::placeholder {
 .agent .prompt-hint,
 .action .prompt-hint,
 .history .prompt-hint,
-.search .prompt-hint {
+.search .prompt-hint,
+.prompt-ready.agent .op-hint .prompt-ready-hint,
+.prompt-ready.action .op-hint .prompt-ready-hint,
+.prompt-ready.history .op-hint .prompt-ready-hint,
+.prompt-ready.search .op-hint .prompt-ready-hint {
     display: none;
 }
 
@@ -692,7 +690,6 @@ button.disabled,
     flex-wrap: wrap;
     flex-direction: row;
     border: none;
-    border-bottom: 1px solid var(--panel-view-border);
 }
 
 #ask-list #pin-ask-list {
@@ -721,9 +718,7 @@ button.disabled,
     color: var(--progress-background);
 }
 
-.toolbar {
-    border-bottom: 1px solid var(--checkbox-border);
-}
+.toolbar {}
 
 #ask-list.pin .toolbar {
     padding: 0;
@@ -737,7 +732,6 @@ button.disabled,
 
 #ask-list.pin.hidden {
     display: flex;
-    border-bottom: 1px solid var(--panel-view-border);
 }
 
 #agent-list button,
@@ -1903,8 +1897,8 @@ button.stopGenerate:hover,
     font-family: var(--vscode-editor-font-family);
     font-size: 13px;
     color: var(--badge-foreground);
-    border-bottom: 1px solid var(--panel-view-border);
-    box-shadow: inset 0 0 1px var(--panel-view-border);
+    border-bottom: 1px solid var(--checkbox-border);
+    box-shadow: inset 0 0 1px var(--checkbox-border);
     background-color: var(--badge-background);
     opacity: 0.4;
     gap: 0.4rem;
@@ -1940,8 +1934,8 @@ button.stopGenerate:hover,
 
 .pre-code-element {
     border-radius: 6px;
-    border: 1px solid var(--panel-view-border);
-    box-shadow: inset 0 0 1px var(--panel-view-border);
+    border: 1px solid var(--checkbox-border);
+    box-shadow: inset 0 0 1px var(--checkbox-border);
 }
 
 .vscode-high-contrast .pre-code-element {
@@ -1956,6 +1950,7 @@ button.stopGenerate:hover,
     color: var(--panel-tab-active-foreground);
     background-color: transparent;
     border: 0;
+    background-color: var(--vscode-editor-background);
 }
 
 .markdown-body pre code.whitespace-pre-wrap {
