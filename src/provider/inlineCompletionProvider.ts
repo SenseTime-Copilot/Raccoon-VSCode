@@ -141,6 +141,10 @@ export function inlineCompletionProvider(
         return;
       }
 
+      if (context.selectedCompletionInfo) {
+        return;
+      }
+
       let loggedin = raccoonManager.isClientLoggedin();
       if (!loggedin) {
         updateStatusBarItem(
