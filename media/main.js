@@ -910,6 +910,7 @@ const vscode = acquireVsCodeApi();
       document.getElementById("highlight-anchor").innerHTML = q.value.replace(/</g, '&lt;').replace(/\n$/g, '\n\n').replace(/(@\S+)/g, '<mark>$1</mark>');
     } else {
       document.getElementById("question").classList.remove("prompt-ready");
+      document.getElementById("highlight-anchor").innerHTML = "";
     }
     var list = document.getElementById("agent-list");
     if (q.value.startsWith('@')) {

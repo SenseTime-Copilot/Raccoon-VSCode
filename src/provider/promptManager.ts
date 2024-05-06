@@ -354,27 +354,27 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     for (let s of prompts) {
       let invisible = hiddenPrompts.includes(s.label);
       let actions = `<vscode-link ${invisible ? `style="display: none"` : ``}>
-                      <span class="material-symbols-rounded hide-prompt" onclick="hidePrompt('${s.label}')">visibility</span>
+                      <span class="material-symbols-rounded hide-prompt" onclick="hidePrompt('${s.label}')" title="${l10n.t("Hide")}">visibility</span>
                     </vscode-link>
                     <vscode-link ${invisible ? `` : `style="display: none"`}>
-                      <span class="material-symbols-rounded show-prompt" onclick="showPrompt('${s.label}')">visibility_off</span>
+                      <span class="material-symbols-rounded show-prompt" onclick="showPrompt('${s.label}')" title="${l10n.t("Show")}">visibility_off</span>
                     </vscode-link>`;
       if (s.type === PromptType.customPrompt) {
         actions = `<vscode-link>
-                    <span class="material-symbols-rounded edit-prompt" onclick="editPrompt('${s.label}')">edit</span>
+                    <span class="material-symbols-rounded edit-prompt" onclick="editPrompt('${s.label}')" title="${l10n.t("Edit")}">edit</span>
                   </vscode-link>
                   <vscode-link>
-                    <span class="material-symbols-rounded delete-prompt" onclick="deleteByShortcut('${s.label}')">delete</span>
+                    <span class="material-symbols-rounded delete-prompt" onclick="deleteByShortcut('${s.label}')" title="${l10n.t("Delete")}">delete</span>
                   </vscode-link>` + actions;
       }
       
       emptyPlaceholder = '';
       table += `
-      <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border); ${invisible ? 'opacity: 0.6' : ""}">
-        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="/${s.shortcut}">${s.shortcut || '-'}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="2" style="align-self: center;" title="${s.label}" onclick="editPrompt('${s.label}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="3" style="align-self: center; overflow-x: auto; white-space: pre;">${s.origin?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center; justify-self: flex-end;">
+      <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
+        <vscode-data-grid-cell grid-column="1" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="/${s.shortcut}">${s.shortcut || '-'}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="2" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="${s.label}" onclick="editPrompt('${s.label}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow-x: auto; white-space: pre;">${s.origin?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="4" style="display: flex; align-self: center; justify-self: flex-end; column-gap: 0.25rem;">
           ${actions}
         </vscode-data-grid-cell>
       </vscode-data-grid-row>

@@ -332,26 +332,26 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     agents.forEach((s, _id, _m) => {
       let invisible = hiddenAgents.includes(s.id);
       let actions = `<vscode-link ${invisible ? `style="display: none"` : ``}>
-                      <span class="material-symbols-rounded hide-agent" onclick="hideAgent('${s.id}')">visibility</span>
+                      <span class="material-symbols-rounded hide-agent" onclick="hideAgent('${s.id}')" title="${l10n.t("Hide")}">visibility</span>
                     </vscode-link>
                     <vscode-link ${invisible ? `` : `style="display: none"`}>
-                      <span class="material-symbols-rounded show-agent" onclick="showAgent('${s.id}')">visibility_off</span>
+                      <span class="material-symbols-rounded show-agent" onclick="showAgent('${s.id}')" title="${l10n.t("Show")}">visibility_off</span>
                     </vscode-link>`;
       if (!s.builtin) {
         actions = `<vscode-link>
-                    <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')">edit</span>
+                    <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')" title="${l10n.t("Edit")}">edit</span>
                   </vscode-link>
                   <vscode-link>
-                    <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')">delete</span>
+                    <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')" title="${l10n.t("Delete")}">delete</span>
                   </vscode-link>` + actions;
       }
       emptyPlaceholder = '';
       table += `
-      <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border); ${invisible ? 'opacity: 0.6' : ""}">
-        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="@${s.id}" onclick="editAgent('${s.id}')"><vscode-link>${s.id}</vscode-link></vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="2" style="align-self: center;" title="${s.label}">${s.label}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="3" style="align-self: center; overflow-x: auto; white-space: pre;">${s.systemPrompt?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="4" style="align-self: center; justify-self: flex-end;">
+      <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
+        <vscode-data-grid-cell grid-column="1" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="@${s.id}" onclick="editAgent('${s.id}')"><vscode-link>${s.id}</vscode-link></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="2" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="${s.label}">${s.label}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow-x: auto; white-space: pre;">${s.systemPrompt?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="4" style="display: flex; align-self: center; justify-self: flex-end; column-gap: 0.25rem;">
           ${actions}
         </vscode-data-grid-cell>
       </vscode-data-grid-row>
