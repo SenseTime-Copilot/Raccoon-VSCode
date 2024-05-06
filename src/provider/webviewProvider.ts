@@ -1270,7 +1270,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                       <vscode-badge class="stop-hint items-center">
                         <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${l10n.t("Stop")}
                       </vscode-badge>
-                      <vscode-badge class="prompt-hint items-center">
+                      <vscode-badge class="prompt-hint items-center hidden">
                         <span class="key">@</span>${l10n.t("Agent")}
                       </vscode-badge>
                       <vscode-badge class="prompt-hint items-center">
@@ -1282,7 +1282,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                       <vscode-badge class="prompt-hint items-center">
                         <span class="key">?</span>${l10n.t("Search")}
                       </vscode-badge>
-                      <vscode-badge class="agent-hint items-center">
+                      <vscode-badge class="agent-hint items-center hidden">
                         <span class="key">↑↓</span>${l10n.t("Switch")}
                       </vscode-badge>
                       <vscode-badge class="agent-hint items-center">

@@ -468,11 +468,11 @@ textarea::placeholder {
     opacity: 0.5;
 }
 
-#question-sizer #highlight-anchor {
+/* #question-sizer #highlight-anchor {
     color: transparent;
     white-space: pre-wrap;
     word-wrap: break-word;
-}
+} */
 
 #question-sizer mark {
     color: transparent;
@@ -582,10 +582,10 @@ textarea::placeholder {
     content: "\00a0" attr(data-tip);
 }
 
-#question-sizer[data-value="@"]:before {
-    content: attr(data-agent-hint);
-    margin-left: 2.5ch;
-}
+/* #question-sizer[data-value="@"]:before { */
+    /* content: attr(data-agent-hint); */
+    /* margin-left: 2.5ch; */
+/* } */
 
 #question-sizer[data-value="/"]:before {
     content: attr(data-action-hint);
@@ -715,8 +715,6 @@ button.disabled,
 .toolbar vscode-link:hover {
     color: var(--progress-background);
 }
-
-.toolbar {}
 
 #ask-list.pin .toolbar {
     padding: 0;

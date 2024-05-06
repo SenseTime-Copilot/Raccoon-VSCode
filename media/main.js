@@ -417,6 +417,7 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "agentList": {
+        break;
         agents = message.value;
         var agentnames = `<div class="toolbar w-full text-end p-1">
                             <vscode-link><span id="agent-manage" class="material-symbols-rounded">edit_note</span></vscode-link>
@@ -436,8 +437,17 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addAgent": {
-        document.getElementById("question-input").value = "@" + message.value + " ";
-        document.getElementById("question-sizer").dataset.value = "@" + message.value + " ";
+        break;
+        var inputText = document.getElementById("question-input").value;
+        var cursorPos = document.getElementById("question-input").selectionStart;
+        var preVa = inputText.slice(0, cursorPos - 1);
+        var postVa = inputText.slice(cursorPos);
+        var va = preVa + "@" + message.value;
+        if (postVa) {
+          va = va + " " + postVa;
+        }
+        document.getElementById("question-input").value = va;
+        document.getElementById("question-sizer").dataset.value = va;
         _toggleAgentList();
         break;
       }
@@ -903,6 +913,14 @@ const vscode = acquireVsCodeApi();
     }
   }
 
+  function checkCommandToken(target, token) {
+    if (target.value && target.selectionStart > 0 && target.selectionStart === target.selectionEnd && String.fromCodePoint(target.value.codePointAt(target.selectionStart - 1))) {
+      let pieces = target.value.slice(0, target.selectionStart).split(" ");
+      let tail = pieces[pieces.length - 1];
+      return tail.startsWith(token) ? tail : undefined;
+    }
+  }
+
   function _toggleAgentList() {
     var q = document.getElementById('question-input');
     if (q.value) {
@@ -913,15 +931,16 @@ const vscode = acquireVsCodeApi();
       document.getElementById("highlight-anchor").innerHTML = "";
     }
     var list = document.getElementById("agent-list");
-    if (q.value.startsWith('@')) {
+    var agentCmd = checkCommandToken(q, "@");
+    if (agentCmd) {
       let allAction = list.querySelectorAll("button");
       allAction.forEach((btn, _index) => {
         btn.classList.add('hidden');
       });
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
-        return q.value === '@' || sc.dataset.shortcut?.startsWith(q.value);
+        return sc.dataset.shortcut?.startsWith(agentCmd);
       });
-      var emptyByFilter = (allAction.length === 0 && q.value !== '@') || (allAction.length > 0 && btns.length === 0);
+      var emptyByFilter = (allAction.length === 0 && promptCmd !== '@') || (allAction.length > 0 && btns.length === 0);
       if (!emptyByFilter) {
         list.classList.remove("hidden");
         document.getElementById("question").classList.add("agent");
@@ -933,8 +952,8 @@ const vscode = acquireVsCodeApi();
           }
           var sc = btn.querySelector('.shortcut');
           if (sc) {
-            sc.textContent = q.value.slice(1);
-            sc.dataset.suffix = btn.dataset.shortcut.slice(q.value.length);
+            sc.textContent = agentCmd.slice(1);
+            sc.dataset.suffix = btn.dataset.shortcut.slice(agentCmd.length);
           }
           btn.classList.remove('hidden');
         });
@@ -953,15 +972,16 @@ const vscode = acquireVsCodeApi();
       document.getElementById("question").classList.remove("prompt-ready");
     }
     var list = document.getElementById("ask-list");
-    if (q.value.startsWith('/')) {
+    var promptCmd = checkCommandToken(q, "/");
+    if (promptCmd) {
       let allAction = list.querySelectorAll("button");
       allAction.forEach((btn, _index) => {
         btn.classList.add('hidden');
       });
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
-        return q.value === '/' || sc.dataset.shortcut?.startsWith(q.value);
+        return sc.dataset.shortcut?.startsWith(promptCmd);
       });
-      var emptyByFilter = (allAction.length === 0 && q.value !== '/') || (allAction.length > 0 && btns.length === 0);
+      var emptyByFilter = (allAction.length === 0 && promptCmd !== '/') || (allAction.length > 0 && btns.length === 0);
       if (!emptyByFilter) {
         list.classList.remove("hidden");
         document.getElementById("question").classList.add("action");
@@ -973,8 +993,8 @@ const vscode = acquireVsCodeApi();
           }
           var sc = btn.querySelector('.shortcut');
           if (sc) {
-            sc.textContent = q.value.slice(1);
-            sc.dataset.suffix = btn.dataset.shortcut.slice(q.value.length);
+            sc.textContent = promptCmd.slice(1);
+            sc.dataset.suffix = btn.dataset.shortcut.slice(promptCmd.length);
           }
           btn.classList.remove('hidden');
         });
@@ -1231,6 +1251,10 @@ const vscode = acquireVsCodeApi();
     if (e.target.id === "question-input") {
       if (e.key === "PageUp" || e.key === "PageDown") {
         e.preventDefault();
+        return;
+      }
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        toggleSubMenuList();
         return;
       }
       var composing = e.isComposing || isComposing;
