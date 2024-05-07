@@ -887,6 +887,14 @@ export class RaccoonManager {
       };
       return ca.client.chat(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
+          outlog.debug(`[${ca.client.robotName}] Reset access token sense 401 recevived`);
+          if (ca.authInfo) {
+            outlog.debug(`[${ca.client.robotName}] Access Key: ${ca.authInfo.weaverdKey}`);
+            outlog.debug(`[${ca.client.robotName}] Expired At: ${ca.authInfo.expiration}`);
+            outlog.debug(`[${ca.client.robotName}] Refresh Key: ${ca.authInfo.refreshToken}`);
+          } else {
+            outlog.debug(`[${ca.client.robotName}] No auth info`);
+          }
           this.updateToken(ca!.client.robotName);
         }
         return Promise.reject(e);
@@ -923,6 +931,14 @@ export class RaccoonManager {
       };
       return ca.client.completion(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
+          outlog.debug(`[${ca.client.robotName}] Reset access token sense 401 recevived`);
+          if (ca.authInfo) {
+            outlog.debug(`[${ca.client.robotName}] Access Key: ${ca.authInfo.weaverdKey}`);
+            outlog.debug(`[${ca.client.robotName}] Expired At: ${ca.authInfo.expiration}`);
+            outlog.debug(`[${ca.client.robotName}] Refresh Key: ${ca.authInfo.refreshToken}`);
+          } else {
+            outlog.debug(`[${ca.client.robotName}] No auth info`);
+          }
           this.updateToken(ca!.client.robotName);
         }
         return Promise.reject(e);
