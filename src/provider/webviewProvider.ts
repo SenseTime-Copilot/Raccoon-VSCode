@@ -70,7 +70,7 @@ function makeGuide(isMac: boolean) {
   </li>
   <li>
   ${l10n.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon")}:
-      <a onclick="document.getElementById('question-input').focus();document.getElementById('chat-button-wrapper').classList.remove('flash');void document.getElementById('chat-button-wrapper').offsetHeight;document.getElementById('chat-button-wrapper').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
+      <a onclick="document.getElementById('question-input').focus();document.getElementById('chat-input-box').classList.remove('flash');void document.getElementById('chat-input-box').offsetHeight;document.getElementById('chat-input-box').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
         <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
       </a>
   </li>
@@ -232,7 +232,7 @@ export class RaccoonEditor extends Disposable {
       detail += this.buildLoginHint();
     }
     let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", username, robot)
-      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('chat-button-wrapper').classList.remove('flash');void document.getElementById('chat-button-wrapper').offsetHeight;document.getElementById('chat-button-wrapper').classList.add('flash');">Ctrl</kbd>`)}</div>`
+      + `<div style="margin: 0.25rem auto;">${l10n.t("Double-pressing {0} to summon me at any time.", `<kbd ondblclick="document.getElementById('question-input').focus();document.getElementById('chat-input-box').classList.remove('flash');void document.getElementById('chat-input-box').offsetHeight;document.getElementById('chat-input-box').classList.add('flash');">Ctrl</kbd>`)}</div>`
       + detail
       + `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" onclick='vscode.postMessage({type: "sendQuestion", userAgent: navigator.userAgent, prompt: { label: "", type: "help", message: { role: "function", content: "" }}});'>
   <span class="material-symbols-rounded">celebration</span>
@@ -1227,7 +1227,11 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 </vscode-panel-view>
                 <div id="msg-wrapper">
                 </div>
-                <div id="chat-button-wrapper" class="w-full flex flex-col justify-center items-center px-1 gap-1">
+                <div id="chat-input-box" class="w-full flex flex-col justify-center items-center px-1 gap-1">
+                  <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
+                    <div id="code-title"></div>
+                    <pre id="attach-code-wrapper"><code id="attach-code"></code></pre>
+                  </div>
                   <div id="search-list" class="flex flex-col w-full py-2 hidden">
                     <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://raccoon.search/stackoverflow.search?\${query}'>
                       StackOverflow
@@ -1254,10 +1258,6 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   <div id="agent-list" class="flex flex-col hidden">
                   </div>
                   <div id="ask-list" class="flex flex-col hidden">
-                  </div>
-                  <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
-                  <div id="code-title"></div>
-                  <pre id="attach-code-wrapper"><code id="attach-code"></code></pre>
                   </div>
                   <div id="question" class="w-full flex justify-center items-center">
                     <span class="material-symbols-rounded opacity-60 history-icon">

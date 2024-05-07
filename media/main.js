@@ -181,13 +181,13 @@ const vscode = acquireVsCodeApi();
       case 'focus': {
         document.getElementById('settings')?.remove();
         document.getElementById("question-input").focus();
-        document.getElementById('chat-button-wrapper').classList.remove('flash');
-        void document.getElementById('chat-button-wrapper').offsetHeight;
-        document.getElementById('chat-button-wrapper').classList.add('flash');
+        document.getElementById('chat-input-box').classList.remove('flash');
+        void document.getElementById('chat-input-box').offsetHeight;
+        document.getElementById('chat-input-box').classList.add('flash');
         break;
       }
       case 'clear': {
-        document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+        document.getElementById("chat-input-box")?.classList?.remove("responsing");
         document.getElementById("question-input").disabled = false;
         document.getElementById("question-input").focus();
         list.innerHTML = "";
@@ -417,13 +417,12 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "agentList": {
-        break;
         agents = message.value;
         var agentnames = `<div class="toolbar w-full text-end p-1">
                             <vscode-link><span id="agent-manage" class="material-symbols-rounded">edit_note</span></vscode-link>
                           </div>`;
-        agents.forEach((p, _id, _m) => {
-          agentnames += `<button class="flex flex-row-reverse gap-2 items-center" data-shortcut='@${p.id}'
+        agents.forEach((p, idx, _m) => {
+          agentnames += `<button class="flex flex-row-reverse gap-2 items-center ${idx === 1 ? "selected" : ""}" data-shortcut='@${p.id}'
                                   onclick='vscode.postMessage({type: "addAgent", id: "${p.id}"});'
                           >
                             <span class="material-symbols-rounded">${p.icon || "badge"}</span>
@@ -437,7 +436,6 @@ const vscode = acquireVsCodeApi();
         break;
       }
       case "addAgent": {
-        break;
         var inputText = document.getElementById("question-input").value;
         var cursorPos = document.getElementById("question-input").selectionStart;
         var preVa = inputText.slice(0, cursorPos - 1);
@@ -454,9 +452,10 @@ const vscode = acquireVsCodeApi();
       case "promptList": {
         prompts = message.value;
         var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
+        var first = true;
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
-          shortcuts += `  <button class="flex flex-row-reverse gap-2 items-center"
+          shortcuts += `  <button class="flex flex-row-reverse gap-2 items-center ${first ? "selected" : ""}"
                                  ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}
                                         onclick='vscode.postMessage({
                                             type: "sendQuestion",
@@ -468,6 +467,7 @@ const vscode = acquireVsCodeApi();
                             ${p.shortcut ? `<span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
                           </button>
                       `;
+          first = false;
         }
         document.getElementById("ask-list").innerHTML = shortcuts;
         document.getElementById("question-input").disabled = false;
@@ -503,13 +503,13 @@ const vscode = acquireVsCodeApi();
 
         editCache.set(`${id}`, promptInfo.prompt);
         if (promptInfo.status === "editRequired") {
-          document.getElementById("chat-button-wrapper")?.classList?.add("editing");
+          document.getElementById("chat-input-box")?.classList?.add("editing");
           document.getElementById("question-input").disabled = true;
           list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
           break;
         } else {
           updateHistory(promptInfo.prompt);
-          document.getElementById("chat-button-wrapper")?.classList?.add("responsing");
+          document.getElementById("chat-input-box")?.classList?.add("responsing");
           document.getElementById("question-input").disabled = true;
           contents.set(id, "");
           var chat = document.getElementById(`${id}`);
@@ -897,7 +897,7 @@ const vscode = acquireVsCodeApi();
       } else {
         document.getElementById(`feedback-${id}`)?.remove();
       }
-      document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+      document.getElementById("chat-input-box")?.classList?.remove("responsing");
       document.getElementById("question-input").disabled = false;
       //document.getElementById("question-input").focus();
     }
@@ -909,7 +909,7 @@ const vscode = acquireVsCodeApi();
       document.getElementById("question-input").value = "";
       document.getElementById("highlight-anchor").innerHTML = "";
       document.getElementById("question-sizer").dataset.value = "";
-      document.getElementById("question").classList.remove("history");
+      document.getElementById("chat-input-box").classList.remove("history");
     }
   }
 
@@ -924,10 +924,10 @@ const vscode = acquireVsCodeApi();
   function _toggleAgentList() {
     var q = document.getElementById('question-input');
     if (q.value) {
-      document.getElementById("question").classList.add("prompt-ready");
+      document.getElementById("chat-input-box").classList.add("prompt-ready");
       document.getElementById("highlight-anchor").innerHTML = q.value.replace(/</g, '&lt;').replace(/\n$/g, '\n\n').replace(/(@\S+)/g, '<mark>$1</mark>');
     } else {
-      document.getElementById("question").classList.remove("prompt-ready");
+      document.getElementById("chat-input-box").classList.remove("prompt-ready");
       document.getElementById("highlight-anchor").innerHTML = "";
     }
     var list = document.getElementById("agent-list");
@@ -940,10 +940,10 @@ const vscode = acquireVsCodeApi();
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
         return sc.dataset.shortcut?.startsWith(agentCmd);
       });
-      var emptyByFilter = (allAction.length === 0 && promptCmd !== '@') || (allAction.length > 0 && btns.length === 0);
+      var emptyByFilter = (allAction.length === 0 && agentCmd !== '@') || (allAction.length > 0 && btns.length === 0);
       if (!emptyByFilter) {
         list.classList.remove("hidden");
-        document.getElementById("question").classList.add("agent");
+        document.getElementById("chat-input-box").classList.add("agent");
         btns.forEach((btn, index) => {
           if (index === 0) {
             btn.classList.add('selected');
@@ -961,15 +961,15 @@ const vscode = acquireVsCodeApi();
       }
     }
     list.classList.add("hidden");
-    document.getElementById("question").classList.remove("agent");
+    document.getElementById("chat-input-box").classList.remove("agent");
   }
 
   function _toggleAskList() {
     var q = document.getElementById('question-input');
     if (q.value) {
-      document.getElementById("question").classList.add("prompt-ready");
+      document.getElementById("chat-input-box").classList.add("prompt-ready");
     } else {
-      document.getElementById("question").classList.remove("prompt-ready");
+      document.getElementById("chat-input-box").classList.remove("prompt-ready");
     }
     var list = document.getElementById("ask-list");
     var promptCmd = checkCommandToken(q, "/");
@@ -984,7 +984,7 @@ const vscode = acquireVsCodeApi();
       var emptyByFilter = (allAction.length === 0 && promptCmd !== '/') || (allAction.length > 0 && btns.length === 0);
       if (!emptyByFilter) {
         list.classList.remove("hidden");
-        document.getElementById("question").classList.add("action");
+        document.getElementById("chat-input-box").classList.add("action");
         btns.forEach((btn, index) => {
           if (index === 0) {
             btn.classList.add('selected');
@@ -1002,17 +1002,17 @@ const vscode = acquireVsCodeApi();
       }
     }
     list.classList.add("hidden");
-    document.getElementById("question").classList.remove("action");
+    document.getElementById("chat-input-box").classList.remove("action");
   }
 
   function _toggleSearchList() {
     var q = document.getElementById('question-input');
     var list = document.getElementById("search-list");
     if (q.value.startsWith('?') || q.value.startsWith('？')) {
-      document.getElementById("question").classList.add("search");
+      document.getElementById("chat-input-box").classList.add("search");
       //list.classList.remove("hidden");
     } else {
-      document.getElementById("question").classList.remove("search");
+      document.getElementById("chat-input-box").classList.remove("search");
       var urls = list.querySelectorAll("vscode-checkbox");
       for (let i = 0; i < urls.length; i++) {
         urls[i].classList.remove("selected");
@@ -1022,7 +1022,7 @@ const vscode = acquireVsCodeApi();
   }
 
   function toggleSubMenuList() {
-    _toggleAgentList();
+    // _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
   }
@@ -1118,7 +1118,7 @@ const vscode = acquireVsCodeApi();
     if (targetButton) {
       return;
     }
-    if (!list.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
+    if (!list.classList.contains("hidden") && !document.getElementById("chat-input-box").classList.contains("history")) {
       var btns = Array.from(list.querySelectorAll("button")).filter((b, _i, _a) => {
         return !b.classList.contains('hidden');
       });
@@ -1160,7 +1160,7 @@ const vscode = acquireVsCodeApi();
         document.getElementById("question-input").focus();
       }
       return;
-    } else if (!search.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
+    } else if (!search.classList.contains("hidden") && !document.getElementById("chat-input-box").classList.contains("history")) {
       var urls = search.querySelectorAll("vscode-checkbox");
       var curIdx = -1;
       for (let i = 0; i < urls.length; i++) {
@@ -1205,7 +1205,7 @@ const vscode = acquireVsCodeApi();
       if (curIdx >= 0) {
         return;
       }
-    } else if (!agentList.classList.contains("hidden") && !document.getElementById("question").classList.contains("history")) {
+    } else if (!agentList.classList.contains("hidden") && !document.getElementById("chat-input-box").classList.contains("history")) {
       var agentItems = Array.from(agentList.querySelectorAll("button")).filter((b, _i, _a) => {
         return !b.classList.contains('hidden');
       });
@@ -1254,7 +1254,6 @@ const vscode = acquireVsCodeApi();
         return;
       }
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        toggleSubMenuList();
         return;
       }
       var composing = e.isComposing || isComposing;
@@ -1263,7 +1262,7 @@ const vscode = acquireVsCodeApi();
         if (!e.target.value.trim()) {
           return;
         }
-        if (document.getElementById("question").classList.contains("search")) {
+        if (document.getElementById("chat-input-box").classList.contains("search")) {
           sendSearchQuery(e.target.value.slice(1).trim());
         } else {
           vscode.postMessage({
@@ -1275,24 +1274,24 @@ const vscode = acquireVsCodeApi();
             }
           });
         }
-      } else if (e.key === "ArrowDown" && document.getElementById("question").classList.contains("history")) {
+      } else if (e.key === "ArrowDown" && document.getElementById("chat-input-box").classList.contains("history")) {
         e.preventDefault();
         if (historyIdx > 0) {
           historyIdx--;
           e.target.value = history[historyIdx];
-          document.getElementById("question").classList.add("history");
+          document.getElementById("chat-input-box").classList.add("history");
           if (e.target.value.startsWith('?') || e.target.value.startsWith('？')) {
-            document.getElementById("question").classList.add("search");
+            document.getElementById("chat-input-box").classList.add("search");
           } else {
-            document.getElementById("question").classList.remove("search");
+            document.getElementById("chat-input-box").classList.remove("search");
           }
         } else {
           historyIdx = -1;
           e.target.value = "";
-          document.getElementById("question").classList.remove("prompt-ready");
+          document.getElementById("chat-input-box").classList.remove("prompt-ready");
           document.getElementById("highlight-anchor").innerHTML = "";
-          document.getElementById("question").classList.remove("history");
-          document.getElementById("question").classList.remove("search");
+          document.getElementById("chat-input-box").classList.remove("history");
+          document.getElementById("chat-input-box").classList.remove("search");
         }
         document.getElementById("question-sizer").dataset.value = e.target.value;
         toggleSubMenuList();
@@ -1301,27 +1300,27 @@ const vscode = acquireVsCodeApi();
         if (historyIdx < history.length - 1) {
           historyIdx++;
           e.target.value = history[historyIdx];
-          document.getElementById("question").classList.add("history");
+          document.getElementById("chat-input-box").classList.add("history");
           document.getElementById("question-sizer").dataset.value = e.target.value;
           if (e.target.value.startsWith('?') || e.target.value.startsWith('？')) {
-            document.getElementById("question").classList.add("search");
+            document.getElementById("chat-input-box").classList.add("search");
           } else {
-            document.getElementById("question").classList.remove("search");
+            document.getElementById("chat-input-box").classList.remove("search");
           }
           toggleSubMenuList();
         }
       } else {
-        if (document.getElementById("question").classList.contains("history")) {
+        if (document.getElementById("chat-input-box").classList.contains("history")) {
           if (e.key !== "Tab") {
             e.target.value = "";
             document.getElementById("question-sizer").dataset.value = "";
-            document.getElementById("question").classList.remove("search");
+            document.getElementById("chat-input-box").classList.remove("search");
           } else {
             e.preventDefault();
-            document.getElementById("question").classList.add("prompt-ready");
+            document.getElementById("chat-input-box").classList.add("prompt-ready");
           }
           historyIdx = -1;
-          document.getElementById("question").classList.remove("history");
+          document.getElementById("chat-input-box").classList.remove("history");
           document.getElementById("question-input").focus();
         }
         toggleSubMenuList();
@@ -1332,7 +1331,7 @@ const vscode = acquireVsCodeApi();
     const promptBox = e.target.closest('.prompt');
     if (promptBox && e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
-      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("chat-input-box")?.classList?.remove("editing");
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       const question = e.target.closest('.question-element-gnc');
@@ -1344,7 +1343,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       const question = e.target.closest('.question-element-gnc');
       question.remove();
-      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("chat-input-box")?.classList?.remove("editing");
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       return;
@@ -1354,7 +1353,7 @@ const vscode = acquireVsCodeApi();
       e.preventDefault();
       var readyQuestion = document.getElementsByClassName("editRequired");
       if (readyQuestion.length > 0) {
-        document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+        document.getElementById("chat-input-box")?.classList?.remove("editing");
         document.getElementById("question-input").disabled = false;
         document.getElementById("question-input").focus();
         const question = readyQuestion[readyQuestion.length - 1].closest(".question-element-gnc");
@@ -1370,7 +1369,7 @@ const vscode = acquireVsCodeApi();
         p.remove();
       }
       vscode.postMessage({ type: 'stopGenerate' });
-      document.getElementById("chat-button-wrapper")?.classList?.remove("editing", "responsing");
+      document.getElementById("chat-input-box")?.classList?.remove("editing", "responsing");
       document.getElementById("question-input").disabled = false;
       return;
     }
@@ -1445,7 +1444,7 @@ const vscode = acquireVsCodeApi();
         } else {
           var readyQuestion = document.getElementsByClassName("editRequired");
           if (readyQuestion.length > 0) {
-            document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+            document.getElementById("chat-input-box")?.classList?.remove("editing");
             document.getElementById("question-input").disabled = false;
             document.getElementById("question-input").focus();
             const question = readyQuestion[readyQuestion.length - 1].closest(".question-element-gnc");
@@ -1507,7 +1506,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "clearAll") {
       vscode.postMessage({ type: "clearAll" });
-      document.getElementById("chat-button-wrapper")?.classList?.remove("responsing");
+      document.getElementById("chat-input-box")?.classList?.remove("responsing");
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       return;
@@ -1580,7 +1579,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("send-element-gnc")) {
       e.preventDefault();
-      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("chat-input-box")?.classList?.remove("editing");
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       const question = targetButton.closest(".question-element-gnc");
@@ -1591,7 +1590,7 @@ const vscode = acquireVsCodeApi();
     if (targetButton?.classList?.contains("cancel-element-gnc")) {
       e.preventDefault();
       const question = targetButton.closest(".question-element-gnc");
-      document.getElementById("chat-button-wrapper")?.classList?.remove("editing");
+      document.getElementById("chat-input-box")?.classList?.remove("editing");
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       question.remove();
