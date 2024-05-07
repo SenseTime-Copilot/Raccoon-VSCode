@@ -1,6 +1,6 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
 import { supportedLanguages } from "../utils/getSupportedLanguages";
-import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter } from "../globalEnv";
+import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter, extensionDisplayName } from "../globalEnv";
 import { MetricType } from "../raccoonClient/CodeClient";
 
 const encoder = new TextEncoder();
@@ -70,7 +70,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
           }
           let item = new CompletionItem(snippet.shortcut, CompletionItemKind.Snippet);
           item.insertText = snippet.code;
-          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(raccoon-icon) _${l10n.t("from Raccoon favorite code snippets")}_`, true);
+          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(raccoon-icon) _${l10n.t("from {robot} favorite code snippets", { robot: extensionDisplayName })}_`, true);
           return new CompletionList([item]);
         }
       }

@@ -41,11 +41,14 @@ export function updateStatusBarItem(
     let tip = new MarkdownString;
     tip.supportThemeIcons = true;
     tip.supportHtml = true;
-    if (raccoonManager.isClientLoggedin()) {
-      tip.appendMarkdown(`**${extensionDisplayName}**\n\n`);
-    } else {
-      tip.appendMarkdown(`**Raccoon**    <code>${l10n.t("Unauthorized")}</code>\n\n`);
+    tip.isTrusted = true;
+    let login = raccoonManager.isClientLoggedin();
+    if (!login) {
+      tip.appendMarkdown(`**${extensionDisplayName}**    <code>${l10n.t("Unauthorized")}</code>\n\n`);
+      return;
     }
+
+    tip.appendMarkdown(`**${extensionDisplayName}**\n\n`);
     tip.appendMarkdown(`***\n\n`);
     tip.appendMarkdown(`<table>\n\n`);
     tip.appendMarkdown(`<tr><td align="left">$(server-environment) ${l10n.t("Code Engine")}</td><td>  </td><td align="right">${raccoonManager.getActiveClientRobotName()}</td></tr>\n\n`);

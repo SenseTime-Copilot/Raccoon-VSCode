@@ -705,7 +705,7 @@ export class RaccoonManager {
     return Promise.resolve([]);
   }
 
-  public async getAuthUrlLogin(): Promise<string | undefined> {
+  public async getAuthUrlLogin(): Promise<string | void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca) {
       let authMethods = ca.client.authMethods;
@@ -719,7 +719,7 @@ export class RaccoonManager {
           }
           return ca.client.login(url, verifier).then(async (token) => {
             if (ca && token) {
-              this.updateToken(ca.client.robotName, token);
+              return this.updateToken(ca.client.robotName, token);
             }
             return undefined;
           }, (_err) => {

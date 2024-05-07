@@ -105,7 +105,7 @@ export class RaccoonTerminal {
           let org = raccoonManager.activeOrganization();
           let userinfo = await raccoonManager.userInfo();
           let username = org?.username || userinfo?.username || "You";
-          let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+          let robot = extensionDisplayName || "Raccoon";
           if (org) {
             robot += ` (${org.name})`;
           }
@@ -305,7 +305,7 @@ export class RaccoonTerminal {
       let org = raccoonManager.activeOrganization();
       let userinfo = await raccoonManager.userInfo();
       let un = org?.username || userinfo?.username;
-      let ai = raccoonManager.getActiveClientRobotName() || "Raccoon";
+      let ai = extensionDisplayName || "Raccoon";
       if (org) {
         ai += ` (${org.name})`;
       }

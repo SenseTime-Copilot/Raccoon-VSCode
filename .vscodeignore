@@ -1,12 +1,15 @@
 .vscode/**
 .vscode-test/**
 .vscode-test-web/**
+*.vsix
+*.zip
 out/test/**
 node_modules/**
 src/**
 .gitignore
 .gitlab-ci.yml 
-package-*.json
+package-lock.json
+RewriteGuide.md
 **/tsconfig.json
 **/tslint.json
 **/*.map

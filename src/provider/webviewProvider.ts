@@ -1,5 +1,5 @@
 import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit } from 'vscode';
-import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand } from "../globalEnv";
+import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, extensionNameCamel, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand, extensionDisplayName } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
@@ -20,10 +20,10 @@ interface TelemetryInfo {
 
 function makeGuide(isMac: boolean) {
   return `
-  <h3>${l10n.t("Coding with Raccoon")}</h3>
+  <h3>${l10n.t("Coding with {robot}", { robot: extensionDisplayName })}</h3>
   <ol>
   <li>
-    ${l10n.t("Stop typing or press hotkey (default: <code>{0}</code>) to starts Raccoon thinking", isMac ? "⌥/" : "Alt+/")}:
+    ${l10n.t("Stop typing or press hotkey (default: <code>{hotkey}</code>) to starts {robot} thinking", { hotkey: isMac ? "⌥/" : "Alt+/", robot: extensionDisplayName })}:
     <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
       <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
       <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
@@ -53,7 +53,7 @@ function makeGuide(isMac: boolean) {
   ${l10n.t("Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>")}:
   </li>
   </ol>
-  <h3>${l10n.t("Ask Raccoon")}</h3>
+  <h3>${l10n.t("Ask {robot}", { robot: extensionDisplayName })}</h3>
   <ol>
   <li>
   ${l10n.t("Select code in editor (if necessary)")}:
@@ -69,7 +69,7 @@ function makeGuide(isMac: boolean) {
     </code>
   </li>
   <li>
-  ${l10n.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask Raccoon")}:
+  ${l10n.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask {robot}", { robot: extensionDisplayName })}:
       <a onclick="document.getElementById('question-input').focus();document.getElementById('chat-input-box').classList.remove('flash');void document.getElementById('chat-input-box').offsetHeight;document.getElementById('chat-input-box').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
         <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
       </a>
@@ -197,10 +197,10 @@ export class RaccoonEditor extends Disposable {
   }
 
   private buildLoginHint() {
-    let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+    let robot = extensionDisplayName || "Raccoon";
     return `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.settings">
             <span class='material-symbols-rounded'>person</span>
-            <div class='inline-block leading-loose'>${l10n.t("Login to <b>{0}</b>", robot)}</div>
+            <div class='inline-block leading-loose'>${l10n.t("Login to <b>{robot}</b>", { robot })}</div>
             <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
           </a>`;
   }
@@ -218,7 +218,7 @@ export class RaccoonEditor extends Disposable {
     let name = org?.username || userinfo?.username;
     let category = "welcome";
     let username = '';
-    let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+    let robot = extensionDisplayName || "Raccoon";
     if (org) {
       robot += ` (${org.name})`;
     }
@@ -656,10 +656,10 @@ export class RaccoonEditor extends Disposable {
                 let id = tm.valueOf();
                 let isMac = data.userAgent.includes("Mac OS X");
                 let timestamp = tm.valueOf();
-                let robot = raccoonManager.getActiveClientRobotName() || "Raccoon";
+                let robot = extensionDisplayName || "Raccoon";
                 let helplink = `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.help">
                 <span class="material-symbols-rounded">book</span>
-                <div class="inline-block leading-loose">${l10n.t("Read Raccoon document for more information")}</div>
+                <div class="inline-block leading-loose">${l10n.t("Read {robot} document for more information", { robot: extensionDisplayName })}</div>
                 <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
               </a>`;
                 let loginHint = raccoonManager.isClientLoggedin() ? "" : this.buildLoginHint();
@@ -1003,7 +1003,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     let maxTokens = raccoonManager.maxInputTokenNum(ModelCapacity.assistant);
 
     let avatar = userinfo?.avatar;
-    let robot = raccoonManager.getActiveClientRobotName() + (org ? ` (${org.name})` : "");
+    let robot = extensionDisplayName + (org ? ` (${org.name})` : "");
 
     if (promptHtml.status === RenderStatus.editRequired) {
       this.sendMessage({ type: 'addQuestion', username, avatar, robot, value: promptHtml, streaming, id, timestamp: reqTimestamp });
@@ -1079,7 +1079,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                     break;
                   }
                 }
-                h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
                 h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
                 errorFlag = true;
               },
@@ -1087,7 +1087,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 if (!errorFlag) {
                   let rts = new Date().valueOf();
-                  h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
+                  h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
@@ -1133,14 +1133,14 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().valueOf();
                 h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
-                h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
                 errorFlag = true;
               },
               onFinish(choices, thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 let rts = new Date().valueOf();
                 if (!errorFlag) {
-                  h.cache.appendCacheItem({ id, name: raccoonManager.getActiveClientRobotName() || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content || "" });
+                  h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content || "" });
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
@@ -1308,12 +1308,11 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                       </vscode-badge>
                     </div>
                     <label id="question-sizer" data-value
-                          data-placeholder="${l10n.t("Ask Raccoon a question")}"
-                          data-placeholder-short="${l10n.t("Ask Raccoon a question")}"
+                          data-placeholder="${l10n.t("Ask ${robot} a question", { robot: extensionDisplayName })}"
                           data-action-hint="${l10n.t("Pick one prompt to send")} [Enter]"
                           data-agent-hint="${l10n.t("Pick one agent")} [Enter]"
                           data-search-hint="${l10n.t("Type anything to search")} [Enter]"
-                          data-tip="${l10n.t("Ask Raccoon a question")}"
+                          data-tip="${l10n.t("Ask ${robot} a question", { robot: extensionDisplayName })}"
                           data-tip1="${l10n.t("Type [Shift + Enter] to start a new line")}"
                           data-tip2="${l10n.t("Press [Esc] to stop responding")}"
                     >

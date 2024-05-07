@@ -50,7 +50,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       }
       actions.push(
         new vscode.CodeAction(
-          `${extensionDisplayName}: ${vscode.l10n.t("Ask Raccoon")}...`,
+          `${extensionDisplayName}: ${vscode.l10n.t("Ask {robot}", { robot: extensionDisplayName })}...`,
           vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append("preset")
         )
       );
@@ -72,7 +72,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       return codeAction;
     }
     if (vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('preset').contains(codeAction.kind)) {
-      if (codeAction.title === `${extensionDisplayName}: ${vscode.l10n.t("Ask Raccoon")}...`) {
+      if (codeAction.title === `${extensionDisplayName}: ${vscode.l10n.t("Ask {robot}", { robot: extensionDisplayName })}...`) {
         codeAction.command = {
           command: `${extensionNameKebab}.codeaction`,
           title: codeAction.title
