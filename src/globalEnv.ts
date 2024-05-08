@@ -26,7 +26,7 @@ export async function initEnv(context: vscode.ExtensionContext) {
 
   extensionNameKebab = context.extension.packageJSON['name'];
   extensionDisplayName = context.extension.packageJSON['displayName'];
-  extensionNameCamel = context.extension.packageJSON['displayName'].replace(' ', '');
+  extensionNameCamel = context.extension.packageJSON['displayName'].replaceAll(' ', '');
 
   raccoonEditorProviderViewType = `${extensionNameKebab}.editor`;
   favoriteCodeEditorViewType = `${extensionNameKebab}.favorites`;

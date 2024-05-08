@@ -55,14 +55,20 @@ export class RaccoonManager {
       if (RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] && !RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].signal.aborted) {
         RaccoonManager.abortCtrller[targetRepo.rootUri.toString()].abort();
         delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
+        return Promise.resolve();
       }
+      const commitMsg = targetRepo.inputBox.value;
       targetRepo.inputBox.value = '';
+      let preComiitMsg = '';
+      if (commitMsg) {
+        preComiitMsg = `\n\n\nsome reference info you must follow: ${commitMsg}`;
+      }
 
       // eslint-disable-next-line @typescript-eslint/naming-convention
       telemetryReporter.logUsage(MetricType.commitMessage, { usage_num: 1 });
 
       return rm.chat(
-        [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.` }],
+        [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only, limited the message to 40 characters, in plain text format, and without quotation marks.${preComiitMsg}\n\n\n` }],
         {
           stream: true,
           maxNewTokenNum: 128,
@@ -84,6 +90,9 @@ export class RaccoonManager {
           },
           onController(controller) {
             RaccoonManager.abortCtrller[targetRepo.rootUri.toString()] = controller;
+          },
+          onFinish(_choices, _thisArg) {
+            delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
           },
         },
         buildHeader(context.extension, "commit-message", `${new Date().valueOf()}`)
@@ -887,13 +896,13 @@ export class RaccoonManager {
       };
       return ca.client.chat(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
-          outlog.debug(`[${ca.client.robotName}] Reset access token sense 401 recevived`);
-          if (ca.authInfo) {
-            outlog.debug(`[${ca.client.robotName}] Access Key: ${ca.authInfo.weaverdKey}`);
-            outlog.debug(`[${ca.client.robotName}] Expired At: ${ca.authInfo.expiration}`);
-            outlog.debug(`[${ca.client.robotName}] Refresh Key: ${ca.authInfo.refreshToken}`);
+          outlog.debug(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
+          if (ca!.authInfo) {
+            outlog.debug(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
+            outlog.debug(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
+            outlog.debug(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
           } else {
-            outlog.debug(`[${ca.client.robotName}] No auth info`);
+            outlog.debug(`[${ca!.client.robotName}] No auth info`);
           }
           this.updateToken(ca!.client.robotName);
         }
@@ -931,13 +940,13 @@ export class RaccoonManager {
       };
       return ca.client.completion(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
-          outlog.debug(`[${ca.client.robotName}] Reset access token sense 401 recevived`);
-          if (ca.authInfo) {
-            outlog.debug(`[${ca.client.robotName}] Access Key: ${ca.authInfo.weaverdKey}`);
-            outlog.debug(`[${ca.client.robotName}] Expired At: ${ca.authInfo.expiration}`);
-            outlog.debug(`[${ca.client.robotName}] Refresh Key: ${ca.authInfo.refreshToken}`);
+          outlog.debug(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
+          if (ca!.authInfo) {
+            outlog.debug(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
+            outlog.debug(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
+            outlog.debug(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
           } else {
-            outlog.debug(`[${ca.client.robotName}] No auth info`);
+            outlog.debug(`[${ca!.client.robotName}] No auth info`);
           }
           this.updateToken(ca!.client.robotName);
         }
