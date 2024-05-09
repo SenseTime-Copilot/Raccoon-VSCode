@@ -1308,13 +1308,14 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                       </vscode-badge>
                     </div>
                     <label id="question-sizer" data-value
-                          data-placeholder="${l10n.t("Ask ${robot} a question", { robot: extensionDisplayName })}"
+                          data-placeholder="${l10n.t("Ask {robot} a question", { robot: extensionDisplayName })}"
                           data-action-hint="${l10n.t("Pick one prompt to send")} [Enter]"
                           data-agent-hint="${l10n.t("Pick one agent")} [Enter]"
                           data-search-hint="${l10n.t("Type anything to search")} [Enter]"
-                          data-tip="${l10n.t("Ask ${robot} a question", { robot: extensionDisplayName })}"
-                          data-tip1="${l10n.t("Type [Shift + Enter] to start a new line")}"
-                          data-tip2="${l10n.t("Press [Esc] to stop responding")}"
+                          data-tip="${l10n.t("Ask {robot} a question", { robot: extensionDisplayName })}"
+                          data-tip1="${l10n.t("Double-pressing {0} to summon me at any time.", "[Ctrl]")}"
+                          data-tip2="${l10n.t("Type [Shift + Enter] to start a new line")}"
+                          data-tip3="${l10n.t("Press [Esc] to stop responding")}"
                     >
                       <div id="backdrop">
                         <div id="highlight-anchor">
