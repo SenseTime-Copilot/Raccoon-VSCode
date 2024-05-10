@@ -1092,6 +1092,10 @@ const vscode = acquireVsCodeApi();
   var historyIdx = -1;
   document.getElementById("question-input").addEventListener("blur", () => {
     historyIdx = -1;
+    var c = document.getElementById("attach-code-container");
+    if (c) {
+      c.classList.add("hidden");
+    }
   });
 
   document.addEventListener("compositionstart", (e) => {
