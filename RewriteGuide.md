@@ -42,7 +42,7 @@ extensionNameWithoutWhiteSpace: "RaccoonSample"
 
 * extension/config/value.json
 
-`emailLogin`: 按需修改，如：私有化版本应修改为 `true`
+`type`: 为 `Standard`/`Enterprise` 之一，按需修改，私有化版本应修改为 `Enterprise`
 `engines[0].robotname`: 修改为 `{extensionName}`, 如 `Raccoon Sample`
 `engines[0].apiBaseUrl`: 修改为对应 API 服务地址，如：私有化版本修改为API服务地址 `${baseURL}/api/plugin`
 

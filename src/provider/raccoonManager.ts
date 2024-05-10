@@ -226,6 +226,11 @@ export class RaccoonManager {
         let client = new RaccoonClient(e);
         client.setLogger(outlog.debug);
         client.onDidChangeAuthInfo(async (ai) => {
+          if (!ai) {
+            outlog.info(`[${e.robotname}] Reset access token sense refresh token failed`);
+          } else {
+            outlog.info(`[${e.robotname}] Refresh access token OK`);
+          }
           await this.updateToken(e.robotname, ai);
         });
         if (authinfos[e.robotname]) {
@@ -769,6 +774,13 @@ export class RaccoonManager {
       return ca.client.login(callbackUrl, verifier).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
+          let orgs = token.account.organizations;
+          if (orgs) {
+            let isEnterprise = raccoonConfig.value("type") === "Enterprise";
+            if (isEnterprise && orgs.length > 0 && !this.activeOrganization()) {
+              this.setActiveOrganization(orgs[0].code);
+            }
+          }
           this.updateToken(ca.client.robotName, token);
           return 'ok';
         } else {
@@ -804,7 +816,7 @@ export class RaccoonManager {
     });
   }
 
-  public async switchOrganization() {
+  public async switchOrganization(includeIndividual: boolean) {
     interface OrgInfo extends QuickPickItem {
       id: string;
     };
@@ -828,17 +840,22 @@ export class RaccoonManager {
               id: value.code
             };
           });
-        let individualItem: OrgInfo = {
-          label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
-          description: `@${username}`,
-          id: ""
-        };
-        let separator: OrgInfo = {
-          id: "",
-          label: "",
-          kind: QuickPickItemKind.Separator
-        };
-        return window.showQuickPick<OrgInfo>([individualItem, separator, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
+
+        let additionalItem: OrgInfo[] = [];
+        if (includeIndividual) {
+          let individualItem: OrgInfo = {
+            label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
+            description: `@${username}`,
+            id: ""
+          };
+          let separator: OrgInfo = {
+            id: "",
+            label: "",
+            kind: QuickPickItemKind.Separator
+          };
+          additionalItem = [individualItem, separator];
+        }
+        return window.showQuickPick<OrgInfo>([...additionalItem, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
           progress.report({ increment: 100 });
           if (select) {
             return raccoonManager.setActiveOrganization(select.id).then(() => {
@@ -896,13 +913,13 @@ export class RaccoonManager {
       };
       return ca.client.chat(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
-          outlog.debug(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
+          outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
           if (ca!.authInfo) {
-            outlog.debug(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
-            outlog.debug(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
-            outlog.debug(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
+            outlog.info(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
+            outlog.info(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
+            outlog.info(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
           } else {
-            outlog.debug(`[${ca!.client.robotName}] No auth info`);
+            outlog.info(`[${ca!.client.robotName}] No auth info`);
           }
           this.updateToken(ca!.client.robotName);
         }
@@ -940,13 +957,13 @@ export class RaccoonManager {
       };
       return ca.client.completion(ca.authInfo, options, org).catch(e => {
         if (e.response?.status === 401) {
-          outlog.debug(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
+          outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
           if (ca!.authInfo) {
-            outlog.debug(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
-            outlog.debug(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
-            outlog.debug(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
+            outlog.info(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
+            outlog.info(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
+            outlog.info(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
           } else {
-            outlog.debug(`[${ca!.client.robotName}] No auth info`);
+            outlog.info(`[${ca!.client.robotName}] No auth info`);
           }
           this.updateToken(ca!.client.robotName);
         }

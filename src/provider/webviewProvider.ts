@@ -185,8 +185,9 @@ export class RaccoonEditor extends Disposable {
   }
 
   private buildOrgHint(): string {
+    let isEnterprise = (raccoonConfig.value("type") === "Enterprise");
     let orgs = raccoonManager.organizationList();
-    if (orgs.length === 0) {
+    if (orgs.length === 0 || (isEnterprise && (orgs.length === 1))) {
       return "";
     }
     return `<a id="switch-org" class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
@@ -280,7 +281,7 @@ export class RaccoonEditor extends Disposable {
     let loginForm = ``;
     let logout = ``;
     let accountInfo = ``;
-    let emailLogin = raccoonConfig.value("emailLogin");
+    let isEnterprise = (raccoonConfig.value("type") === "Enterprise");
     if (!raccoonManager.isClientLoggedin()) {
       await raccoonManager.getAuthUrlLogin().then(authUrl => {
         if (!authUrl) {
@@ -300,7 +301,7 @@ export class RaccoonEditor extends Disposable {
           let accountForm = ``;
           let forgetPwd = ``;
           let tips = ``;
-          if (emailLogin) {
+          if (isEnterprise) {
             accountForm = `<div class="flex flex-row mx-4">
                                 <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
                                 <vscode-text-field class="grow" type="email" autofocus id="login-account" required="required">
@@ -411,6 +412,7 @@ export class RaccoonEditor extends Disposable {
     let trigger = (completionDelay === 3500) ? "opacity-60" : "";
     let activeOrg = raccoonManager.activeOrganization();
     let knowledgeBaseEnable = pro || activeOrg;
+    let disableSwitch = (isEnterprise && (raccoonManager.organizationList().length === 1));
 
     accountInfo = `
     <div class="flex gap-2 items-center w-full">
@@ -418,8 +420,10 @@ export class RaccoonEditor extends Disposable {
       ${(activeOrg) ? `<div class="grow flex flex-col">
       <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || l10n.t("Unknown")}</span>
       <div class="flex w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
-        <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-        <div class="cursor-pointer" id="switch-org" title="${l10n.t("Managed by {0}", activeOrg.name)}">
+        <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${l10n.t("Switch Organization")}">
+          <span id="switch-org" class="material-symbols-rounded">sync_alt</span>
+        </div>
+        <div class="cursor-pointer" id="${disableSwitch ? "org-tag" : "switch-org"}" title="${l10n.t("Managed by {0}", activeOrg.name)}">
           ${activeOrg.name}
         </div>
       </div>
@@ -429,8 +433,10 @@ export class RaccoonEditor extends Disposable {
         ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
       </div>
       <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
-        <div class="cursor-pointer" title="${l10n.t("Switch Organization")}"><span id="switch-org" class="material-symbols-rounded">sync_alt</span></div>
-        <div class="cursor-pointer" id="switch-org" title="${l10n.t("Individual")}">
+        <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${l10n.t("Switch Organization")}">
+          <span id="switch-org" class="material-symbols-rounded">sync_alt</span>
+        </div>
+        <div class="cursor-pointer" id="${disableSwitch ? "org-tag" : "switch-org"}" title="${l10n.t("Individual")}">
           ${l10n.t("Individual")}
         </div>
       </div>
@@ -736,7 +742,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'switch-org': {
-          raccoonManager.switchOrganization().then(() => {
+          raccoonManager.switchOrganization((raccoonConfig.value("type") !== "Enterprise")).then(() => {
             this.updateSettingPage();
           });
           break;
