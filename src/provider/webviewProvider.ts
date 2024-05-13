@@ -243,7 +243,16 @@ export class RaccoonEditor extends Disposable {
     this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
   }
 
-  async loadHistory(history: string) {
+  async loadHistory(history: string, replay?: boolean) {
+    if (replay) {
+      return HistoryCache.getCacheItems(this.context, history).then((items?: Array<CacheItem>) => {
+        this.clear();
+        this.cache = new HistoryCache(this.context, history);
+        if (items && items.length > 0) {
+          this.sendMessage({ type: 'replay', value: items });
+        }
+      });
+    }
     if (history === this.cache.cacheFileId) {
       return;
     }
@@ -1417,8 +1426,8 @@ export class RaccoonViewProvider implements WebviewViewProvider {
     return RaccoonViewProvider.webviewView?.visible;
   }
 
-  public static async loadHistory(id: string) {
-    return RaccoonViewProvider.editor?.loadHistory(id);
+  public static async loadHistory(id: string, replay?: boolean) {
+    return RaccoonViewProvider.editor?.loadHistory(id, replay);
   }
 
   public static async ask(prompt?: PromptInfo) {

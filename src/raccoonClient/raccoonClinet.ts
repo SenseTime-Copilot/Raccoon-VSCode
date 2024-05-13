@@ -164,6 +164,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
+        this.log?.('syncUserInfo trigger token refresh');
         auth = await this.refreshToken(auth);
       } catch (err: any) {
         return Promise.reject(err);
@@ -214,6 +215,10 @@ export class RaccoonClient implements CodeClient {
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
     let url = `${this.clientConfig.apiBaseUrl}/auth/v1/refresh`;
+    let log = this.log;
+    log?.(url);
+    log?.(`refresh_token: ${auth.refreshToken}`);
+
     return axios.post(url,
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -515,6 +520,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
+        this.log?.('chat trigger token refresh');
         auth = await this.refreshToken(auth);
       } catch (err: any) {
         return Promise.reject(err);
@@ -631,6 +637,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
+        this.log?.('completion trigger token refresh');
         auth = await this.refreshToken(auth);
       } catch (err: any) {
         return Promise.reject(err);
@@ -647,6 +654,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
+        this.log?.('listKnowledgeBase trigger token refresh');
         auth = await this.refreshToken(auth);
       } catch (err: any) {
         return Promise.reject(err);
@@ -674,6 +682,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
+        this.log?.('sendTelemetry trigger token refresh');
         auth = await this.refreshToken(auth);
       } catch (err: any) {
         return Promise.reject(err);

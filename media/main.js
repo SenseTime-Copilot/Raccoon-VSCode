@@ -173,7 +173,7 @@ const vscode = acquireVsCodeApi();
   });
 
   // Handle messages sent from the extension to the webview
-  window.addEventListener("message", (event) => {
+  window.addEventListener("message", async (event) => {
     const message = event.data;
     const list = document.getElementById("qa-list");
 
@@ -191,6 +191,201 @@ const vscode = acquireVsCodeApi();
         document.getElementById("question-input").disabled = false;
         document.getElementById("question-input").focus();
         list.innerHTML = "";
+        break;
+      }
+      case 'replay': {
+        vscode.postMessage({ type: "welcome" });
+        await new Promise(r => setTimeout(r, 5000));
+        for (let item of message.value) {
+          if (item.type === 'question') {
+            let qinput = document.getElementById("question-input");
+            let qsizer = document.getElementById("question-sizer");
+            let qc = '';
+            for (let i = 0; i < item.value.length; i++) {
+              if (item.value[i] === ' ' || item.value[i] === '\t' || item.value[i] === '\n') {
+                qc += item.value[i];
+                continue;
+              }
+              if ((i + 2) < item.value.length && item.value[i] === "`" && item.value[i + 1] === "`" && item.value[i + 2] === "`") {
+                break;
+              }
+              qc += item.value[i];
+              qinput.value = qc;
+              qsizer.dataset.value = qc;
+              let jitter = Math.floor(Math.random() * 100);
+              await new Promise(r => setTimeout(r, 20 + jitter));
+            }
+            await new Promise(r => setTimeout(r, 1000));
+            qinput.value = "";
+            qsizer.dataset.value = "";
+            await new Promise(r => setTimeout(r, 200));
+            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
+            const preCodeList = markedResponse.querySelectorAll("pre > code");
+            var langTag = '';
+            preCodeList.forEach((preCode, index) => {
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col", "mt-4");
+              preCode.classList.forEach((cls, _idx, _arr) => {
+                if (cls.startsWith('language-')) {
+                  langTag = cls.slice(9);
+                  code = JSON.stringify(preCode.textContent);
+                  preCode.parentElement.dataset.lang = langTag;
+                }
+              });
+
+              if (index !== preCodeList.length - 1) {
+                preCode.parentElement.classList.add("mb-8");
+              }
+
+              const buttonWrapper = document.createElement("div");
+              buttonWrapper.classList.add("code-actions-wrapper");
+
+              // Create wrap button
+              const wrapButton = document.createElement("button");
+              wrapButton.dataset.id = item.id;
+              wrapButton.title = l10nForUI["ToggleWrap"];
+              wrapButton.innerHTML = wrapIcon;
+              wrapButton.classList.add("wrap-element-gnc", "rounded");
+
+              buttonWrapper.append(wrapButton);
+
+              if (preCode.parentElement.dataset.lang === 'mermaid') {
+                const view = document.createElement("button");
+                view.dataset.id = item.id;
+                view.title = l10nForUI["Show graph"];
+                view.innerHTML = viewIcon;
+                view.classList.add("mermaid-element-gnc", "rounded");
+                buttonWrapper.append(view);
+              }
+
+              var lineNum = preCode.innerText.split("\n").length;
+              if (lineNum > 10) {
+                preCode.parentElement.classList.add("fold");
+
+                // Create fold button
+                const foldButton = document.createElement("button");
+                foldButton.dataset.id = item.id;
+                foldButton.innerHTML = foldIcon;
+                foldButton.classList.add("fold-btn", "expend-code", "rounded");
+
+                // Create unfold button
+                const unfoldButton = document.createElement("button");
+                unfoldButton.dataset.id = item.id;
+                unfoldButton.innerHTML = unfoldIcon;
+                unfoldButton.classList.add("unfold-btn", "expend-code", "rounded", "hidden");
+
+                buttonWrapper.append(unfoldButton, foldButton);
+              }
+
+              preCode.parentElement.prepend(buttonWrapper);
+            });
+            let labelInstruction = '';
+            if (item.instruction) {
+              labelInstruction = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${item.instruction.replace("...", "")}</p>`;
+            }
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelInstruction}${markedResponse.documentElement.innerHTML}</div>`;
+            item.timestamp = new Date().valueOf();
+            list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
+          } else if (item.type === "answer") {
+            const ac = `<div id="${item.id}" data-name="${item.name}" class="p-4 answer-element-gnc">
+                          <h2 class="avatar mb-2 -ml-1 flex gap-1">
+                            <span class="flex gap-2 flex text-xl items-center">
+                              ${aiIcon}
+                              <span class="flex flex-col gap-1 text-xs">
+                                <b>${item.name}</b>
+                                <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
+                                  <span class="material-symbols-rounded">more_horiz</span>
+                                </div>
+                              </span>
+                            </span>
+                          </h2>
+                          <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body">
+                          </div>
+                        </div>`;
+            list.innerHTML += ac;
+            let content = '';
+            let t = document.getElementById(`${item.id}`).getElementsByClassName("message-ts")[0];
+            let c = document.getElementById(`response-${item.id}`);
+            document.getElementById("chat-input-box")?.classList?.add("responsing");
+            await new Promise(r => setTimeout(r, 2000));
+            t.innerHTML = new Date().toLocaleString();
+            for (let i = 0; i < item.value.length; i++) {
+              content += item.value[i];
+              const md = new DOMParser().parseFromString(marked.parse(wrapCode(content)), "text/html");
+              c.innerHTML = md.documentElement.innerHTML;
+              list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
+              let jitter = Math.floor(Math.random() * 40);
+              await new Promise(r => setTimeout(r, 10 + jitter));
+            }
+            document.getElementById("chat-input-box")?.classList?.remove("responsing");
+            const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
+            const preCodeList = markedResponse.querySelectorAll("pre > code");
+
+            preCodeList.forEach((preCode, index) => {
+              preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+              preCode.classList.forEach((cls, _idx, _arr) => {
+                if (cls.startsWith('language-')) {
+                  preCode.parentElement.dataset.lang = cls.slice(9);
+                }
+              });
+
+              if (index !== preCodeList.length - 1) {
+                preCode.parentElement.classList.add("mb-8");
+              }
+
+              const buttonWrapper = document.createElement("div");
+              buttonWrapper.classList.add("code-actions-wrapper");
+
+              // Create wrap button
+              const wrapButton = document.createElement("button");
+              wrapButton.dataset.id = item.id;
+              wrapButton.title = l10nForUI["ToggleWrap"];
+              wrapButton.innerHTML = wrapIcon;
+
+              wrapButton.classList.add("wrap-element-gnc", "rounded");
+
+              const fav = document.createElement("button");
+              fav.dataset.id = item.id;
+              if (preCode.parentElement.dataset.lang !== 'mermaid') {
+                fav.title = l10nForUI["Favorite"];
+                fav.innerHTML = favIcon;
+                fav.classList.add("fav-element-gnc", "rounded");
+              } else {
+                fav.title = l10nForUI["Show graph"];
+                fav.innerHTML = viewIcon;
+                fav.classList.add("mermaid-element-gnc", "rounded");
+              }
+
+              const diff = document.createElement("button");
+              diff.dataset.id = item.id;
+              diff.title = l10nForUI["Diff"];
+              diff.innerHTML = diffIcon;
+
+              diff.classList.add("diff-element-gnc", "rounded");
+
+              // Create copy to clipboard button
+              const copyButton = document.createElement("button");
+              copyButton.dataset.id = item.id;
+              copyButton.title = l10nForUI["Copy"];
+              copyButton.innerHTML = clipboardIcon;
+
+              copyButton.classList.add("code-element-gnc", "rounded");
+
+              const insert = document.createElement("button");
+              insert.dataset.id = item.id;
+              insert.title = l10nForUI["Insert"];
+              insert.innerHTML = insertIcon;
+
+              insert.classList.add("edit-element-gnc", "rounded");
+
+              buttonWrapper.append(wrapButton, fav, diff, copyButton, insert);
+
+              preCode.parentElement.prepend(buttonWrapper);
+            });
+            c.innerHTML = markedResponse.documentElement.innerHTML;
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+        list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         break;
       }
       case 'restoreFromCache': {

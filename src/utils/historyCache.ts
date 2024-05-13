@@ -1,4 +1,4 @@
-import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, l10n } from 'vscode';
+import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, l10n, TextDocument } from 'vscode';
 import { RaccoonEditorProvider } from '../provider/assitantEditorProvider';
 import { RaccoonViewProvider } from '../provider/webviewProvider';
 import { registerCommand } from '../globalEnv';
@@ -37,6 +37,14 @@ export class HistoryCache {
                 label: '$(git-commit) ' + f,
                 detail: `$(kebab-vertical) ${new Date(n.ctime).toLocaleString()}`,
                 buttons: [
+                  {
+                    iconPath: new ThemeIcon("go-to-file"),
+                    tooltip: l10n.t("Preview")
+                  },
+                  /*{
+                    iconPath: new ThemeIcon("play"),
+                    tooltip: l10n.t("Replay")
+                  },*/
                   {
                     iconPath: new ThemeIcon("edit"),
                     tooltip: l10n.t("Rename")
@@ -106,6 +114,17 @@ export class HistoryCache {
                 commands.executeCommand('raccoon.restoreHistory', ...args);
               }
             });
+          } else if (e.button.tooltip === l10n.t('Preview')) {
+            workspace.openTextDocument(Uri.joinPath(context.globalStorageUri, 'history', fid + ".json")).then((doc: TextDocument) => {
+              window.showTextDocument(doc);
+            });
+          } else if (e.button.tooltip === l10n.t('Replay')) {
+            if (args[0]) {
+              let editor = RaccoonEditorProvider.getEditor(args[0]);
+              editor?.loadHistory(fid, true);
+            } else {
+              RaccoonViewProvider.loadHistory(fid, true);
+            }
           }
         });
         quickPick.onDidChangeSelection(selection => {
