@@ -5,6 +5,7 @@ import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager"
 import { Choice, MetricType } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ModelCapacity } from "./config";
+import { docSymbolMap } from "../extension";
 
 export function showHideStatusBtn(doc: vscode.TextDocument | undefined, statusBarItem: vscode.StatusBarItem): boolean {
   if (doc) {
@@ -29,6 +30,22 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     return;
   }
 
+  let refs = '';
+  let len = codeSnippets.prefix.length + codeSnippets.suffix.length;
+  for (let s of codeSnippets.relativeSymbol) {
+    for (let d of vscode.workspace.textDocuments) {
+      if (d.uri.toString() === s.uri) {
+        let r = s.symbol.range;
+        let t = d.getText(r);
+        let c = `// FILE: ${s.uri}#L${r.start.line + 1}-L${r.end.line + 2}: \n//` + t.split('\n').join('\n//') + '\n\n';
+        if (len + c.length <= maxLength) {
+          refs += c;
+          len += c.length;
+        }
+      }
+    }
+  }
+
   let items = new Array<vscode.InlineCompletionItem>();
   let lenPreference = raccoonManager.completionPreference;
   updateStatusBarItem(
@@ -40,7 +57,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     }
   );
 
-  let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, codeSnippets.prefix, codeSnippets.suffix);
+  let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, refs + codeSnippets.prefix, codeSnippets.suffix);
   if (!content) {
     updateStatusBarItem(statusBarItem,
       {
@@ -180,6 +197,27 @@ export function inlineCompletionProvider(
 }
 
 export async function captureCode(document: vscode.TextDocument, position: vscode.Position, maxLength: number) {
+  let relativeSymbol: { uri: string; symbol: vscode.DocumentSymbol }[] = [];
+  let processNames: string[] = [];
+  function filterSymbol(names: string[]) {
+    for (let name of names) {
+      if (processNames.includes(name)) {
+        continue;
+      }
+      processNames.push(name);
+      for (let r in docSymbolMap) {
+        if (r === document.uri.toString()) {
+          continue;
+        }
+        let rs = docSymbolMap[r];
+        for (let n of rs) {
+          if (names.includes(n.name)) {
+            relativeSymbol.push({ uri: r, symbol: n });
+          }
+        }
+      }
+    }
+  }
   let foldings: vscode.FoldingRange[] = await vscode.commands.executeCommand("vscode.executeFoldingRangeProvider", document.uri);
   let cursorX = position.character;
   let cursorY = position.line;
@@ -258,6 +296,74 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
       document.lineAt(folding.end).text.length
     ));
   }
-  return { prefix, suffix };
+  if (raccoonManager.workspaceRef) {
+    let preNames: string[] = [];
+    let postNames: string[] = [];
+    await vscode.commands.executeCommand("vscode.provideDocumentRangeSemanticTokens", document.uri, new vscode.Range(new vscode.Position(folding.start, 0), new vscode.Position(cursorY + 1, 0))).then(async (result) => {
+      let tokens = result as vscode.SemanticTokens;
+      if (!tokens || !tokens.data) {
+        return;
+      }
+      let len = Math.floor(tokens.data.length / 5);
+      let p = new vscode.Position(0, 0);
+      for (let idx = 0; idx < len; idx++) {
+        let tpos = idx * 5;
+        let deltaLine = tokens.data[tpos];
+        let startChar = tokens.data[tpos + 1];
+        let length = tokens.data[tpos + 2];
+        let tokenType = tokens.data[tpos + 3];
+        if (deltaLine !== 0) {
+          p = p.with(undefined, 0);
+        }
+        if (tokenType === 0 || tokenType === 2 || tokenType === 10 || tokenType === 11) {
+          let range = new vscode.Range(p.translate(deltaLine, startChar), p.translate(deltaLine, startChar + length));
+          let name = document.getText(range);
+          preNames.push(name);
+        }
+        preNames.reverse();
+        p = p.translate(deltaLine, startChar);
+      }
+    });
+    await vscode.commands.executeCommand("vscode.provideDocumentRangeSemanticTokens", document.uri, new vscode.Range(new vscode.Position(cursorY, cursorX), new vscode.Position(folding.end, document.lineAt(folding.end).text.length))).then(async (result) => {
+      let tokens = result as vscode.SemanticTokens;
+      if (!tokens || !tokens.data) {
+        return;
+      }
+      let len = Math.floor(tokens.data.length / 5);
+      let p = new vscode.Position(0, 0);
+      for (let idx = 0; idx < len; idx++) {
+        let tpos = idx * 5;
+        let deltaLine = tokens.data[tpos];
+        let startChar = tokens.data[tpos + 1];
+        let length = tokens.data[tpos + 2];
+        let tokenType = tokens.data[tpos + 3];
+        if (deltaLine !== 0) {
+          p = p.with(undefined, 0);
+        }
+        if (tokenType === 0 || tokenType === 2 || tokenType === 10 || tokenType === 11) {
+          let range = new vscode.Range(p.translate(deltaLine, startChar), p.translate(deltaLine, startChar + length));
+          let name = document.getText(range);
+          postNames.push(name);
+        }
+        p = p.translate(deltaLine, startChar);
+      }
+    });
+    let n1 = preNames.length;
+    let n2 = postNames.length;
+    let names: string[] = [];
+    for (let i = 0; i < n1; i++) {
+      names.push(preNames[i]);
+      if (n2 >= n1) {
+        names.push(postNames[i]);
+      }
+      if (i === (n1 - 1) && n2 > n1) {
+        for (let j = i + 1; j < n2; j++) {
+          names.push(postNames[j]);
+        }
+      }
+    }
+    filterSymbol(names);
+  }
+  return { relativeSymbol, prefix, suffix };
 }
 

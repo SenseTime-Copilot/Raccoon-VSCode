@@ -1,4 +1,4 @@
-import { TextDocument, Range, commands, LocationLink, Location, SemanticTokens, Position, ExtensionContext, window, workspace } from "vscode";
+import { TextDocument, Range, commands, LocationLink, Location, SemanticTokens, Position, ExtensionContext, window, workspace, DocumentSymbol, Uri } from "vscode";
 import { registerCommand } from "../globalEnv";
 
 interface CollectionInfo {
@@ -7,6 +7,12 @@ interface CollectionInfo {
   declarations: LocationLink[];
   implementations: Location[];
   references: Location[];
+}
+
+export function getDocumentSymbols(uri: Uri): Thenable<DocumentSymbol[]> {
+  return commands.executeCommand("vscode.executeDocumentSymbolProvider", uri).then(result => {
+    return result as DocumentSymbol[];
+  });
 }
 
 async function collectionPromptInfo(doc: TextDocument, position: Position) {

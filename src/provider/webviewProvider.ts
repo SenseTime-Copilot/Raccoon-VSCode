@@ -525,7 +525,7 @@ export class RaccoonEditor extends Disposable {
       <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs => kbs.map((v, _idx, _arr) => v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
-        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
       </div>
     </div>
@@ -1189,7 +1189,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
   public async clear(showWelcome?: boolean) {
     for (let id in this.stopList) {
-      this.stopList[id].abort();
+      this.stopList[id]?.abort();
     }
     this.cache = new HistoryCache(this.context, `${env.sessionId}-${new Date().valueOf()}`);
     this.sendMessage({ type: "clear" });

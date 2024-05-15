@@ -16,6 +16,9 @@ import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionN
 import { PromptEditor } from "./provider/promptManager";
 import { MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
+import { getDocumentSymbols } from "./utils/collectionPromptInfo";
+
+export let docSymbolMap: { [key: string]: vscode.DocumentSymbol[] } = {};
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -159,8 +162,16 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      showHideStatusBtn(editor?.document, statusBarItem);
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      let enable = showHideStatusBtn(editor?.document, statusBarItem);
+      if (!enable) {
+        return;
+      }
+      for (let d of vscode.workspace.textDocuments) {
+        if (d.uri.scheme === "file") {
+          docSymbolMap[d.uri.toString()] = await getDocumentSymbols(d.uri);
+        }
+      }
     })
   );
 
