@@ -10,6 +10,7 @@ import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
 import { RaccoonAgent, builtinAgents } from "./agentManager";
+import { TGIClient } from "../raccoonClient/tgiClient";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onHeader" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -223,10 +224,18 @@ export class RaccoonManager {
     this._clients = {};
     for (let e of es) {
       if (e.robotname) {
-        let client = new RaccoonClient(e);
+        let client: CodeClient = new RaccoonClient(e);
+        if (e.robotname.startsWith("TGI")) {
+          client = new TGIClient(e);
+        }
         client.setLogger(outlog.debug);
         client.onDidChangeAuthInfo(async (ai) => {
           if (!ai) {
+            let ts = new Date();
+            if ((this._clients[e.robotname]?.authInfo?.expiration || 0) > (ts.valueOf() / 1000 + (60))) {
+              outlog.info(`[${e.robotname}] Ignore refresh token error`);
+              return;
+            }
             outlog.info(`[${e.robotname}] Reset access token sense refresh token failed`);
           } else {
             outlog.info(`[${e.robotname}] Refresh access token OK`);
@@ -641,13 +650,7 @@ export class RaccoonManager {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.authInfo) {
       if (update) {
-        return ca.client.syncUserInfo(ca.authInfo, timeoutMs).then((account) => {
-          if (ca && ca.authInfo) {
-            let ai = { ...ca.authInfo, account };
-            this.updateToken(ca.client.robotName, ai);
-            return account;
-          }
-        });
+        return ca.client.syncUserInfo(ca.authInfo, timeoutMs);
       }
       return Promise.resolve(ca.authInfo.account);
     }
