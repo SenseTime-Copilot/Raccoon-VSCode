@@ -307,7 +307,7 @@
                 "command": "{extensionId}.inlineSuggest.trigger",
                 "category": "{extensionName}",
                 "title": "%raccoon.command.completionTrigger%",
-                "enablement": "editorTextFocus && !editorReadonly"
+                "enablement": "editorTextFocus && !editorReadonly && !suggestWidgetVisible"
             },
             {
                 "command": "{extensionId}.inlineSuggest.acceptLine",

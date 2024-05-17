@@ -1,34 +1,34 @@
 {
-    "type": "Standard",
-    "signup": "https://raccoon.sensetime.com/register",
-    "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
-    "docs": "https://raccoon.sensetime.com/code/docs",
-    "engines": [
-        {
-            "robotname": "Raccoon",
-            "apiBaseUrl": "https://raccoon-api.sensetime.com/api/plugin",
-            "completion": {
-                "template": "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
-                "parameters": {
-                    "stop": [
-                        "<EOT>"
-                    ],
-                    "temperature": 0.4
-                },
-                "maxInputTokenNum": 12288,
-                "totalTokenNum": 16384
-            },
-            "assistant": {
-                "template": "[prefix]",
-                "parameters": {
-                    "stop": [
-                        "<|endofmessage|>"
-                    ],
-                    "temperature": 0.4
-                },
-                "maxInputTokenNum": 28672,
-                "totalTokenNum": 32768
-            }
-        }
-    ]
+  "type": "Standard",
+  "signup": "https://raccoon.sensetime.com/register",
+  "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
+  "docs": "https://raccoon.sensetime.com/code/docs",
+  "engines": [
+    {
+      "robotname": "Raccoon",
+      "apiBaseUrl": "https://raccoon-api.sensetime.com/api/plugin",
+      "completion": {
+        "template": "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
+        "parameters": {
+          "stop": [
+            "<EOT>"
+          ],
+          "temperature": 0.4
+        },
+        "maxInputTokenNum": 12288,
+        "totalTokenNum": 16384
+      },
+      "assistant": {
+        "template": "[prefix]",
+        "parameters": {
+          "stop": [
+            "<|endofmessage|>"
+          ],
+          "temperature": 0.4
+        },
+        "maxInputTokenNum": 28672,
+        "totalTokenNum": 32768
+      }
+    }
+  ]
 }

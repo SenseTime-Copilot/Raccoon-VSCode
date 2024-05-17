@@ -1,10 +1,43 @@
+cache:
+  paths:
+    - node_modules/
+    - .npm/
+
 stages:
   - code_scan
+  - build
 
-job_code_scan2:
+variables:
+  PACKAGE_ID:
+    description: "The package ID for shipping package."
+    value: "raccoon"
+  PACKAGE_NAME:
+    description: "The package name for shipping package."
+    value: "Raccoon"
+  API_BASEURL:
+    description: "The API base URL path of backend"
+    value: "https://raccoon-api.sensetime.com/api/plugin"
+
+code_scan:
   image: registry.sensetime.com/security/codescan:latest
   stage: code_scan
   script:
     - sonar_full_scan.sh
   tags:
     - k8s
+
+build_package:
+  stage: build
+  when: manual
+  script:
+    - cd $CI_PROJECT_DIR
+    - npm install minimist
+    - node ./render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --apiBaseUrl="$API_BASEURL"
+    - npm install
+    - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
+  artifacts:
+    paths:
+      - ./$PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
+    expire_in: 1 week
+  tags:
+    - copilot-nv-tag
