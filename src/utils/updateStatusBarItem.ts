@@ -45,7 +45,7 @@ export function updateStatusBarItem(
     let login = raccoonManager.isClientLoggedin();
     if (!login) {
       tip.appendMarkdown(`**${extensionDisplayName}**    <code>${l10n.t("Unauthorized")}</code>\n\n`);
-      return;
+      return tip;
     }
 
     tip.appendMarkdown(`**${extensionDisplayName}**\n\n`);

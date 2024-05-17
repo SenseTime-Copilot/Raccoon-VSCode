@@ -164,13 +164,6 @@ export function inlineCompletionProvider(
 
       let loggedin = raccoonManager.isClientLoggedin();
       if (!loggedin) {
-        updateStatusBarItem(
-          statusBarItem,
-          {
-            text: "$(workspace-untrusted)",
-            tooltip: vscode.l10n.t("Unauthorized")
-          }
-        );
         return;
       }
       if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic && !raccoonManager.autoComplete) {
