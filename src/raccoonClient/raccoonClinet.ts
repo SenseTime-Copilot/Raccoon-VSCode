@@ -256,13 +256,13 @@ export class RaccoonClient implements CodeClient {
 
   private async chatUsingFetch(auth: AuthInfo, options: ChatOptions, org?: Organization) {
     let ts = new Date();
-    let url = `${this.clientConfig.apiBaseUrl}/llm/v1/chat-completions`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/llm/v1/chat-completions`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     headers["x-raccoon-user-id"] = auth.account.userId || "";
     if (org) {
       headers["x-org-code"] = org.code;
-      url = `${this.clientConfig.apiBaseUrl}/org/llm/v1/chat-completions`;
+      url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/org/llm/v1/chat-completions`;
     }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
@@ -533,12 +533,12 @@ export class RaccoonClient implements CodeClient {
   async completionUsingFetch(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void> {
     let ts = new Date();
     let headers = options.headers || {};
-    let url = `${this.clientConfig.apiBaseUrl}/llm/v1/completions`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/llm/v1/completions`;
     headers["Content-Type"] = "application/json";
     headers["x-raccoon-user-id"] = auth.account.userId || "";
     if (org) {
       headers["x-org-code"] = org.code;
-      url = `${this.clientConfig.apiBaseUrl}/org/llm/v1/completions`;
+      url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/org/llm/v1/completions`;
     }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
@@ -703,7 +703,7 @@ export class RaccoonClient implements CodeClient {
         },
         timeout: 2000
       }
-    ).then(()=>{});
+    ).then(() => { });
     /* eslint-enable */
   }
 }

@@ -72,7 +72,7 @@ export class TGIClient implements CodeClient {
   }
 
   async chat(_auth: AuthInfo, options: ChatOptions, _org?: Organization): Promise<void> {
-    let url = `${this.clientConfig.apiBaseUrl}:20668`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
 
@@ -287,7 +287,7 @@ export class TGIClient implements CodeClient {
   }
 
   async completion(_auth: AuthInfo, options: CompletionOptions, _org?: Organization): Promise<void> {
-    let url = `${this.clientConfig.apiBaseUrl}:20006`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
 

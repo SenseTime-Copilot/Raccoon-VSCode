@@ -1,13 +1,18 @@
 import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
 import { agentEditorViewType, extensionNameKebab, raccoonManager } from "../globalEnv";
+import { Tool } from "../raccoonClient/CodeClient";
+
+export interface AgentAbility {
+  type: "knowledges" | "webSearch" | "openedFiles" | "document" | "workspaceTree";
+  tools: Tool[];
+}
 
 export interface RaccoonAgent {
   id: string;
   label: string;
   icon: string;
+  abilities: AgentAbility[];
   systemPrompt: string;
-  knowledges: boolean;
-  webSearch: boolean;
   builtin?: boolean;
 }
 
@@ -28,8 +33,7 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Raccoon"),
     icon: "pets",
     systemPrompt: l10n.t(""),
-    knowledges: false,
-    webSearch: false,
+    abilities: [],
     builtin: true
   },
   {
@@ -37,8 +41,7 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Manager"),
     icon: "manage_accounts",
     systemPrompt: l10n.t(""),
-    knowledges: false,
-    webSearch: false,
+    abilities: [],
     builtin: true
   },
   {
@@ -46,8 +49,7 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Architect"),
     icon: "design_services",
     systemPrompt: l10n.t(""),
-    knowledges: false,
-    webSearch: false,
+    abilities: [],
     builtin: true
   },
   {
@@ -55,8 +57,7 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Engineer"),
     icon: "build_circle",
     systemPrompt: l10n.t(""),
-    knowledges: false,
-    webSearch: false,
+    abilities: [],
     builtin: true
   },
   {
@@ -64,8 +65,7 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Testing"),
     icon: "science",
     systemPrompt: l10n.t(""),
-    knowledges: false,
-    webSearch: false,
+    abilities: [],
     builtin: true
   },
   {
@@ -73,8 +73,7 @@ export const builtinAgents: RaccoonAgent[] = [
     label: l10n.t("Deployment"),
     icon: "deployed_code",
     systemPrompt: l10n.t(""),
-    knowledges: false,
-    webSearch: false,
+    abilities: [],
     builtin: true
   }
 ];

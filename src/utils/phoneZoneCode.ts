@@ -95,7 +95,7 @@ export const phoneZoneCode: { [key: string]: string } = {
   //"Israel": "972",
   //"Italy": "39",
   //"Jamaica": "1876",
-  //"Japan": "81",
+  "Japan": "81",
   //"Jordan": "962",
   //"Kazakhstan": "7",
   //"Kenya": "254",

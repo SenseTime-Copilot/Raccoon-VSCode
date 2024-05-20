@@ -8,7 +8,7 @@ import { randomBytes } from "crypto";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
-import { ClientOption, ModelCapacity, RaccoonClientConfig } from "./config";
+import { ClientOption, ModelCapacity } from "./config";
 import { RaccoonAgent, builtinAgents } from "./agentManager";
 import { TGIClient } from "../raccoonClient/tgiClient";
 
@@ -220,13 +220,17 @@ export class RaccoonManager {
         authinfos = JSON.parse(tks);
       } catch (e) { }
     }
-    let es = (<RaccoonClientConfig[]>raccoonConfig.value("engines"));
+    let es = raccoonConfig.builtinEngines;
     this._clients = {};
     for (let e of es) {
       if (e.robotname) {
-        let client: CodeClient = new RaccoonClient(e);
-        if (e.robotname.startsWith("TGI")) {
+        let client: CodeClient;
+        if (e.apiType === "TGI") {
           client = new TGIClient(e);
+        } else if (e.apiType === "Raccoon") {
+          client = new RaccoonClient(e);
+        } else {
+          client = new RaccoonClient(e);
         }
         client.setLogger(outlog.debug);
         client.onDidChangeAuthInfo(async (ai) => {
@@ -607,7 +611,7 @@ export class RaccoonManager {
   }
 
   public get robotNames(): string[] {
-    return (<RaccoonClientConfig[]>raccoonConfig.value("engines")).map((v, _idx, _arr) => {
+    return raccoonConfig.builtinEngines.map((v, _idx, _arr) => {
       return v.robotname;
     });
   }
@@ -875,7 +879,7 @@ export class RaccoonManager {
     if (!clientName) {
       return [];
     }
-    let cfg = (<RaccoonClientConfig[]>raccoonConfig.value("engines")).filter((v, _idx, _arr) => v.robotname === clientName);
+    let cfg = raccoonConfig.builtinEngines.filter((v, _idx, _arr) => v.robotname === clientName);
     if (cfg.length === 0) {
       return [];
     }

@@ -1,5 +1,5 @@
 import { outlog } from "../globalEnv";
-import { ClientConfig } from "../raccoonClient/CodeClient";
+import { ClientConfig, RequestParam } from "../raccoonClient/CodeClient";
 import { ExtensionContext, Uri, workspace } from 'vscode';
 
 const decoder = new TextDecoder();
@@ -11,12 +11,18 @@ export enum ModelCapacity {
 
 export interface ClientOption {
   template: string;
-  parameters: any;
+  parameters: RequestParam;
   maxInputTokenNum: number;
   totalTokenNum: number;
 }
 
-export type RaccoonClientConfig = ClientConfig & {
+export type RaccoonClientConfig = ClientConfig
+  &
+{
+  apiType: "Raccoon" | "TGI";
+}
+  &
+{
   [key in ModelCapacity]?: ClientOption;
 };
 

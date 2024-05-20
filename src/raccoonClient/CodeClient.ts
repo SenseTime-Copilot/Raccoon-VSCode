@@ -99,7 +99,8 @@ export interface KnowledgeBase {
 }
 
 export interface RequestParam {
-  model: string;
+  urlOverwrite?: string;
+  model?: string;
   tools?: Array<Tool>;
   toolChoice?: ToolChoice;
   temperature?: number | null;
