@@ -3,11 +3,13 @@ const fs = require('node:fs');
 
 let packageId = args.packageId || "raccoon";
 let packageName = args.packageName || "Raccoon";
+let packageType = args.packageType || "Standard";
 let apiBaseUrl = args.apiBaseUrl || "https://raccoon-api.sensetime.com/api/plugin";
 
 console.log("=============== Rendering Settings ===============");
 console.log(` Package ID   : ${packageId}`);
 console.log(` Package Name : ${packageName}`);
+console.log(` Package Type : ${packageType}`);
 console.log(` API Base URL : ${apiBaseUrl}`);
 console.log("==================================================");
 
@@ -33,6 +35,7 @@ fs.readFile('./config/value.json', 'utf8', (err, data) => {
     return;
   }
   let cfg = JSON.parse(data);
+  cfg.type = packageType;
   for (let e of cfg.engines) {
     e.apiBaseUrl = apiBaseUrl;
   }

@@ -14,6 +14,9 @@ variables:
   PACKAGE_NAME:
     description: "The package name for shipping package."
     value: "Raccoon"
+  PACKAGE_TYPE:
+    description: "The package type for shipping package, Standard/Enterprise"
+    value: "Standard"
   API_BASEURL:
     description: "The API base URL path of backend"
     value: "https://raccoon-api.sensetime.com/api/plugin"
@@ -32,7 +35,7 @@ build_package:
   script:
     - cd $CI_PROJECT_DIR
     - npm install minimist
-    - node ./render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --apiBaseUrl="$API_BASEURL"
+    - node ./render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageType="$PACKAGE_TYPE" --apiBaseUrl="$API_BASEURL"
     - npm install
     - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
   artifacts:
