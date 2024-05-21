@@ -94,7 +94,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       },
       onFinish(choices: Choice[]) {
         for (let i = 0; i < choices.length; i++) {
-          let message = choices[i].message?.content;
+          let message = choices[i].message?.content.trimEnd();
           if (!message) {
             continue;
           }

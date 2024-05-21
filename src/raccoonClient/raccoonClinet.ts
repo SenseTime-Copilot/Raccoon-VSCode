@@ -590,6 +590,13 @@ export class RaccoonClient implements CodeClient {
         this.log?.(JSON.stringify(requestPayload, undefined, 2));
         const res = await fetch(chatPath, chatPayload);
         clearTimeout(requestTimeoutId);
+        if (this.log) {
+          let hh: any = {};
+          res.headers.forEach((v, k, _h) => {
+            hh[k] = v;
+          });
+          this.log(JSON.stringify(hh, undefined, 2));
+        }
         const resJson = await res.json();
         if (!res.ok) {
           if (res.status === 401) {
