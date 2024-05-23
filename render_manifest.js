@@ -9,12 +9,12 @@ let webBaseUrl = args.webBaseUrl || "https://raccoon.sensetime.com";
 let apiBaseUrl = args.apiBaseUrl || "https://raccoon-api.sensetime.com/api/plugin";
 
 console.log("=============== Rendering Settings ===============");
-console.log(` Package ID   : ${packageId}`);
-console.log(` Package Name : ${packageName}`);
+console.log(` Package ID         : ${packageId}`);
+console.log(` Package Name       : ${packageName}`);
 console.log(` Package Value File : ${packageValueFile || "None"}`);
-console.log(` Package Type : ${packageType} ${packageValueFile ? "([IGNORED])" : ""}`);
-console.log(` Web Base URL : ${webBaseUrl} ${packageValueFile ? "([IGNORED])" : ""}`);
-console.log(` API Base URL : ${apiBaseUrl} ${packageValueFile ? "([IGNORED])" : ""}`);
+console.log(` Package Type       : ${packageType} ${packageValueFile ? "[IGNORED]" : ""}`);
+console.log(` Web Base URL       : ${webBaseUrl} ${packageValueFile ? "[IGNORED]" : ""}`);
+console.log(` API Base URL       : ${apiBaseUrl} ${packageValueFile ? "[IGNORED]" : ""}`);
 console.log("==================================================");
 
 fs.readFile('./package-sample.json', 'utf8', (err, data) => {

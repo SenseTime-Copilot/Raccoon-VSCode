@@ -15,7 +15,7 @@ variables:
     description: "The package name for shipping package."
     value: "Raccoon"
   PACKAGE_VALUE_FILE:
-    description: "The package value file content for value.json, if set, ignore all belowing values"
+    description: "FILE TYPE VARIABLE: content for value.json, if set, ignore all belowing values"
   PACKAGE_TYPE:
     description: "The package type for shipping package, Standard/Enterprise"
     value: "Standard"
