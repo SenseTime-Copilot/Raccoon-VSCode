@@ -2,34 +2,36 @@ export enum AuthMethod {
   browser = "browser",
   apikey = "apikey",
   accesskey = "accesskey",
-  password = "password"
+  phone = "phone",
+  sms = "sms",
+  email = "email"
 }
 
-export interface AccessKey {
+export type AccessKey = {
   accessKeyId: string;
   secretAccessKey: string;
 }
 
-export interface Password {
+export type Password = {
   account: string;
   password: string;
 }
 
-export interface ClientConfig {
+export type ClientConfig = {
   robotname: string;
   apiBaseUrl: string;
   username?: string;
   key?: string | AccessKey | Password;
 }
 
-export interface Organization {
+export type Organization = {
   code: string;
   name: string;
   username: string;
   status: string;
 }
 
-export interface AccountInfo {
+export type AccountInfo = {
   username: string;
   pro: boolean;
   organizations?: Organization[];
@@ -37,7 +39,7 @@ export interface AccountInfo {
   avatar?: string;
 }
 
-export interface AuthInfo {
+export type AuthInfo = {
   account: AccountInfo;
   weaverdKey: string;
   expiration?: number;
@@ -52,7 +54,7 @@ export enum Role {
   function = 'function'
 }
 
-export interface Message {
+export type Message = {
   role: Role;
   content: string;
 }
@@ -61,7 +63,7 @@ export enum ToolType {
   function = 'function'
 }
 
-export interface FuntcionTool {
+export type FuntcionTool = {
   type: ToolType.function;
   function: {
     name: string;
@@ -72,7 +74,7 @@ export interface FuntcionTool {
 
 export type Tool = FuntcionTool;
 
-export interface ToolChoice {
+export type ToolChoice = {
   mode: "auto" | undefined;
   tools?: {
     type: ToolType;
@@ -80,7 +82,7 @@ export interface ToolChoice {
   };
 };
 
-export interface FunctionCall {
+export type FunctionCall = {
   type: 'function';
   id: string;
   function: {
@@ -93,12 +95,12 @@ export type ToolCall = FunctionCall;
 
 export type StopToken = Array<string> | undefined;
 
-export interface KnowledgeBase {
+export type KnowledgeBase = {
   code: string;
   name: string;
 }
 
-export interface RequestParam {
+export type RequestParam = {
   urlOverwrite?: string;
   model?: string;
   tools?: Array<Tool>;
@@ -121,7 +123,7 @@ export enum FinishReason {
   toolCalls = 'tool_calls'
 }
 
-export interface Choice {
+export type Choice = {
   index: number;
   toolCalls?: Array<ToolCall>;
   message?: Message;
@@ -136,7 +138,7 @@ export enum ResponseEvent {
   done = 'done'
 }
 
-export interface ResponseData {
+export type ResponseData = {
   id: string;
   created: number;
   choices: Choice[];
@@ -172,6 +174,48 @@ export enum MetricType {
   commitMessage = "commit_message"
 }
 
+export type Captcha = {
+  image: string,
+  uuid: string
+};
+
+export type apiKeyLoginParam = {
+  type: AuthMethod.apikey;
+  apikey: string;
+}
+
+export type accessKeyLoginParam = {
+  type: AuthMethod.accesskey;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
+export type browserLoginParam = {
+  type: AuthMethod.browser;
+  callbackUrl: string;
+  codeVerifer: string;
+}
+
+export type phoneLoginParam = {
+  type: AuthMethod.phone;
+  nationCode: string;
+  phone: string;
+  password: string;
+}
+
+export type emailLoginParam = {
+  type: AuthMethod.email;
+  email: string;
+  password: string;
+}
+
+export type smsLoginParam = {
+  type: AuthMethod.sms;
+  nationCode: string;
+  phone: string;
+  smsCode: string;
+}
+
 export interface CodeClient {
 
   setLogger(log?: (message: string, ...args: any[]) => void): void;
@@ -182,7 +226,10 @@ export interface CodeClient {
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
-  login(callbackUrl: string, codeVerifer: string): Promise<AuthInfo>;
+  getCaptcha(timeoutMs?: number): Promise<Captcha | undefined>;
+  sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string): Promise<void>;
+
+  login(param?: apiKeyLoginParam | accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo>;
 
   logout(auth: AuthInfo): Promise<string | undefined>;
 

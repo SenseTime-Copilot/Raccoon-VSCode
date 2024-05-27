@@ -581,6 +581,14 @@ const vscode = acquireVsCodeApi();
         }
         break;
       }
+      case "captcha": {
+        var captcha = document.getElementById('captcha');
+        if (captcha) {
+          captcha.src = message.value.image;
+          captcha.dataset.id = message.value.uuid;
+        }
+        break;
+      }
       case "updateSettingPage": {
         var settings = document.getElementById('settings');
         if (message.action === "close" || (message.action === "toggle" && settings)) {
@@ -607,6 +615,9 @@ const vscode = acquireVsCodeApi();
               }
               settings.append(...sn.childNodes);
             }
+          }
+          if (document.getElementById("captcha")) {
+            vscode.postMessage({ type: "getCaptcha" });
           }
         }
         break;
@@ -959,34 +970,6 @@ const vscode = acquireVsCodeApi();
         timestamps.set(message.id, message.timestamp);
         break;
       }
-      case 'reLogin': {
-        if (!list.innerHTML) {
-          return;
-        }
-        const chatText = document.getElementById(`response-${message.id}`);
-        if (chatText?.classList.contains("empty")) {
-          if (message.timestamp) {
-            let r = document.getElementById(`${message.id}`);
-            let rts = r?.getElementsByClassName("message-ts");
-            if (rts && rts[0]) {
-              rts[0].textContent = new Date(message.timestamp).toLocaleString();
-            }
-          }
-        }
-        updateChatBoxStatus("relogin", message.id);
-        if (!chatText) {
-          break;
-        }
-        chatText.classList.add("error");
-        chatText.innerHTML = chatText.innerHTML + `<div class="infoMsg rounded flex items-center">
-                                        <span class="material-symbols-rounded text-3xl p-2">no_accounts</span>
-                                        <div class="flex grow py-4">
-                                          <div>${message.message}</div>
-                                        </div>
-                                    </div>`;
-        list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
-        break;
-      }
       case "addReference": {
         if (!list.innerHTML) {
           return;
@@ -1083,15 +1066,11 @@ const vscode = acquireVsCodeApi();
   }
 
   function updateChatBoxStatus(status, id) {
-    if (status === "stop" || status === "relogin") {
+    if (status === "stop") {
       document.getElementById(`question-${id}`)?.classList.remove("responsing");
       document.getElementById(id)?.classList.remove("responsing");
       document.getElementById(`progress-${id}`)?.classList?.add("hidden");
-      if (status === "stop") {
-        document.getElementById(`feedback-${id}`)?.classList?.remove("hidden");
-      } else {
-        document.getElementById(`feedback-${id}`)?.remove();
-      }
+      document.getElementById(`feedback-${id}`)?.classList?.remove("hidden");
       document.getElementById("chat-input-box")?.classList?.remove("responsing");
       document.getElementById("question-input").disabled = false;
       //document.getElementById("question-input").focus();
@@ -1260,28 +1239,50 @@ const vscode = acquireVsCodeApi();
   });
 
   document.addEventListener("input", (e) => {
-    if (e.target.id === "login-account") {
-      var pwd = document.getElementById("login-password");
-      var loginBtn = document.getElementById("login");
-      if (e.target.checkValidity() && pwd.checkValidity()) {
-        loginBtn.classList.remove('disabled');
+    if (
+      e.target.id === "login-email-account" ||
+      e.target.id === "login-email-password") {
+      var account = document.getElementById("login-email-account");
+      var pwd = document.getElementById("login-email-password");
+      var loginEmailBtn = document.getElementById("login-email-btn");
+      if (account.checkValidity() && pwd?.checkValidity()) {
+        if (loginEmailBtn) loginEmailBtn.disabled = false;
       } else {
-        loginBtn.classList.add('disabled');
+        if (loginEmailBtn) loginEmailBtn.disabled = true;
       }
-    }
-    if (e.target.id === "login-password") {
-      var username = document.getElementById("login-account");
-      var loginBtn1 = document.getElementById("login");
-      if (e.target.checkValidity() && username.checkValidity()) {
-        loginBtn1.classList.remove('disabled');
+    } else if (
+      e.target.id === "login-phone-account" ||
+      e.target.id === "login-phone-password") {
+      var account = document.getElementById("login-phone-account");
+      var pwd = document.getElementById("login-phone-password");
+      var loginPwdBtn = document.getElementById("login-phone-btn");
+      if (account.checkValidity() && pwd?.checkValidity()) {
+        if (loginPwdBtn) loginPwdBtn.disabled = false;
       } else {
-        loginBtn1.classList.add('disabled');
+        if (loginPwdBtn) loginPwdBtn.disabled = true;
       }
+    } else if (
+      e.target.id === "login-sms-account" ||
+      e.target.id === "login-sms-captcha" ||
+      e.target.id === "login-sms-answer") {
+      var account = document.getElementById("login-sms-account");
+      var captcha = document.getElementById("login-sms-captcha");
+      var smsCode = document.getElementById("login-sms-answer");
+      var sendSmsCode = document.getElementById("sendSmsCode");
+      var loginSmsBtn = document.getElementById("login-sms-btn");
+      if (account.checkValidity() && captcha?.checkValidity()) {
+        if (sendSmsCode) sendSmsCode.disabled = false;
+      } else {
+        if (sendSmsCode) sendSmsCode.disabled = true;
+      }
+      if (account.checkValidity() && smsCode?.checkValidity()) {
+        if (loginSmsBtn) loginSmsBtn.disabled = false;
+      } else {
+        if (loginSmsBtn) loginSmsBtn.disabled = true;
+      }
+    } else {
+      toggleSubMenuList();
     }
-  });
-
-  document.getElementById("question-input").addEventListener("input", () => {
-    toggleSubMenuList();
   });
 
   var historyIdx = -1;
@@ -1609,15 +1610,73 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
     let ts = new Date().valueOf();
-    if (targetButton?.id === "login") {
-      let code = document.getElementById("login-code")?.value;
-      let account = document.getElementById("login-account").value;
-      let password = document.getElementById("login-password").value;
+    if (targetButton?.id === "refreshCaptcha") {
+      vscode.postMessage({ type: "getCaptcha" });
+      return;
+    }
+    if (targetButton?.id === "sendSmsCode") {
+      let code = document.getElementById("login-sms-code")?.value;
+      let account = document.getElementById("login-sms-account").value;
+      let uuid = document.getElementById("captcha").dataset['id'];
+      let captcha = document.getElementById("login-sms-captcha").value;
+      document.getElementById("login-sms-captcha").value = "";
+      vscode.postMessage({ type: "getCaptcha" });
+      targetButton.classList.add("frozen");
+      setTimeout(
+        () => {
+          targetButton.classList.remove("frozen");
+        },
+        60000
+      );
       vscode.postMessage({
-        type: "login",
+        type: "sendSmsCode",
         code,
         account,
-        password
+        uuid,
+        captcha
+      });
+      return;
+    }
+    if (targetButton?.id === "login-sms-btn") {
+      let nationCode = document.getElementById("login-sms-code")?.value;
+      let phone = document.getElementById("login-sms-account").value;
+      let smsCode = document.getElementById("login-sms-answer").value;
+      vscode.postMessage({
+        type: "login",
+        value: {
+          type: "sms",
+          nationCode,
+          phone,
+          smsCode
+        }
+      });
+      return;
+    }
+    if (targetButton?.id === "login-phone-btn") {
+      let nationCode = document.getElementById("login-phone-code")?.value;
+      let phone = document.getElementById("login-phone-account").value;
+      let password = document.getElementById("login-phone-password").value;
+      vscode.postMessage({
+        type: "login",
+        value: {
+          type: "phone",
+          nationCode,
+          phone,
+          password
+        }
+      });
+      return;
+    }
+    if (targetButton?.id === "login-email-btn") {
+      let email = document.getElementById("login-email-account").value;
+      let password = document.getElementById("login-email-password").value;
+      vscode.postMessage({
+        type: "login",
+        value: {
+          type: "email",
+          email,
+          password
+        }
       });
       return;
     }

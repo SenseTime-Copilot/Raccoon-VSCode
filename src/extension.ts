@@ -14,21 +14,11 @@ import { CodeNotebook } from "./provider/codeNotebook";
 import { HistoryCache } from "./utils/historyCache";
 import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig, agentEditorViewType } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
-import { MetricType } from "./raccoonClient/CodeClient";
+import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
 import { getDocumentSymbols } from "./utils/collectionPromptInfo";
 
 export let docSymbolMap: { [key: string]: vscode.DocumentSymbol[] } = {};
-
-class RaccoonUriHandler implements vscode.UriHandler {
-  handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    raccoonManager.getTokenFromLoginResult(uri.toString()).then((res) => {
-      if (res !== "ok") {
-        RaccoonViewProvider.showError(vscode.l10n.t("Login failed") + ": " + res.message);
-      }
-    });
-  }
-}
 
 export async function activate(context: vscode.ExtensionContext) {
   let statusBarItem: vscode.StatusBarItem;
@@ -50,7 +40,11 @@ export async function activate(context: vscode.ExtensionContext) {
       if (accessKeyId) {
         vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then(async (secretAccessKey) => {
           if (secretAccessKey) {
-            raccoonManager.getTokenFromLoginResult(`authorization://accesskey?${accessKeyId}&${secretAccessKey}`);
+            raccoonManager.login({
+              type: AuthMethod.accesskey,
+              accessKeyId,
+              secretAccessKey
+            });
           }
         });
       }
@@ -60,15 +54,16 @@ export async function activate(context: vscode.ExtensionContext) {
   registerCommand(context, "setApiKey", () => {
     vscode.window.showInputBox({ placeHolder: "API Key", password: true, validateInput, ignoreFocusOut: true }).then(async (key) => {
       if (key) {
-        raccoonManager.getTokenFromLoginResult(`authorization://apikey?${key}`);
+        raccoonManager.login({
+          type: AuthMethod.apikey,
+          apikey: key
+        });
       }
     });
   });
 
-  context.subscriptions.push(vscode.window.registerUriHandler(new RaccoonUriHandler()));
-
   registerCommand(context, "help", async () => {
-    vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(raccoonConfig.value("docs")));
+    vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(`vscode:extension/${context.extension.id}`));
   });
 
   registerCommand(context, "favorite.manage", async () => {

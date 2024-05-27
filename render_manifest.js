@@ -57,7 +57,6 @@ if (packageValueFile) {
     cfg.type = packageType;
     cfg.signup = `${webBaseUrl}/register`;
     cfg.forgetPassword = `${webBaseUrl}/login?step=forgot-password`;
-    cfg.docs = `${webBaseUrl}/code/docs`;
     for (let e of cfg.engines) {
       e.apiBaseUrl = apiBaseUrl;
     }

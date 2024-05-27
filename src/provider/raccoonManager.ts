@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, accessKeyLoginParam, browserLoginParam, smsLoginParam, phoneLoginParam, emailLoginParam, apiKeyLoginParam } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -39,7 +39,6 @@ export class RaccoonManager {
   protected static instance: RaccoonManager | undefined = undefined;
   private flag: string;
 
-  private seed: string = this.randomUUID();
   private configuration: WorkspaceConfiguration;
   private _clients: { [key: string]: ClientAndAuthInfo } = {};
   private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
@@ -263,21 +262,16 @@ export class RaccoonManager {
         return this.updateToken(name, c.authInfo);
       }
       return Promise.resolve();
-    }
-
-    let url = await c.client.getAuthUrlLogin("");
-    if (url && Uri.parse(url).scheme === 'authorization' && !c.authInfo) {
-      return c.client.login(url, "").then((ai) => {
+    } else {
+      return c.client.login().then((ai) => {
         if (username) {
           ai.account.username = username;
         }
         return this.updateToken(name, ai);
       }, (_err) => {
+        outlog.debug(`Append client ${name} [Unauthorized]`);
         return undefined;
       });
-    } else {
-      outlog.debug(`Append client ${name} [Unauthorized]`);
-      return Promise.resolve();
     }
   }
 
@@ -730,30 +724,12 @@ export class RaccoonManager {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca) {
       let authMethods = ca.client.authMethods;
-      let verifier = this.seed;
-      verifier += env.machineId;
-      let url = await ca.client.getAuthUrlLogin(verifier);
-      if (url) {
-        if (Uri.parse(url).scheme === 'authorization') {
-          if (ca.authInfo) {
-            return undefined;
-          }
-          return ca.client.login(url, verifier).then(async (token) => {
-            if (ca && token) {
-              return this.updateToken(ca.client.robotName, token);
-            }
-            return undefined;
-          }, (_err) => {
-            return undefined;
-          });
-        } else {
-          if (env.uiKind === UIKind.Desktop && authMethods.includes(AuthMethod.browser)) {
-            return url;
-          }
-        }
-      }
-      if (authMethods.includes(AuthMethod.password)) {
-        return Promise.resolve(`command:${extensionNameKebab}.password`);
+      if (raccoonConfig.value("type") === "Enterprise" && authMethods.includes(AuthMethod.email)) {
+        return Promise.resolve(`command:${extensionNameKebab}.email`);
+      } else if (authMethods.includes(AuthMethod.phone) || authMethods.includes(AuthMethod.sms)) {
+        return Promise.resolve(`command:${extensionNameKebab}.phone`);
+      } else if (authMethods.includes(AuthMethod.email)) {
+        return Promise.resolve(`command:${extensionNameKebab}.email`);
       } else if (authMethods.includes(AuthMethod.accesskey)) {
         return Promise.resolve(`command:${extensionNameKebab}.setAccessKey`);
       } else if (authMethods.includes(AuthMethod.apikey)) {
@@ -766,7 +742,7 @@ export class RaccoonManager {
     }
   }
 
-  public getTokenFromLoginResult(callbackUrl: string): Thenable<'ok' | Error> {
+  public login(param: apiKeyLoginParam | accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Thenable<'ok' | Error> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
 
     return window.withProgress({
@@ -775,10 +751,7 @@ export class RaccoonManager {
       if (!ca) {
         return new Error("Invalid Client Handler");
       }
-      let verifier = this.seed;
-      this.seed = this.randomUUID();
-      verifier += env.machineId;
-      return ca.client.login(callbackUrl, verifier).then(async (token) => {
+      return ca.client.login(param).then(async (token) => {
         progress.report({ increment: 100 });
         if (ca && token) {
           let orgs = token.account.organizations;
@@ -797,6 +770,16 @@ export class RaccoonManager {
         return new Error(err.response?.data?.details || err.message);
       });
     });
+  }
+
+  public async getCaptcha(timeoutMs?: number) {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    return ca?.client.getCaptcha(timeoutMs);
+  }
+
+  public async sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string) {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    return ca?.client.sendSMS(captchaUuid, code, nationCode, phone);
   }
 
   public async logout() {

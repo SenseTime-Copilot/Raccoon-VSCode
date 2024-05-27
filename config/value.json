@@ -2,7 +2,6 @@
   "type": "Standard",
   "signup": "https://raccoon.sensetime.com/register",
   "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
-  "docs": "https://raccoon.sensetime.com/code/docs",
   "engines": [
     {
       "robotname": "Raccoon",

@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, Captcha, browserLoginParam, smsLoginParam, phoneLoginParam, emailLoginParam, accessKeyLoginParam } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -43,104 +43,147 @@ export class RaccoonClient implements CodeClient {
   }
 
   public get authMethods(): AuthMethod[] {
-    return [AuthMethod.password, AuthMethod.accesskey];
+    return [AuthMethod.phone, AuthMethod.sms, AuthMethod.email, AuthMethod.accesskey];
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    if (this.clientConfig.key) {
-      return Promise.resolve(`authorization://accesskey?${encodeURIComponent(JSON.stringify(this.clientConfig.key))}`);
-    }
     return Promise.resolve(undefined);
   }
 
-  public async login(callbackUrl: string, _codeVerifer: string): Promise<AuthInfo> {
-    return this._login(callbackUrl).then((v) => {
+  async getCaptcha(timeoutMs?: number): Promise<Captcha | undefined> {
+    return axios.get(this.clientConfig.apiBaseUrl + "/auth/v1/captcha", { timeout: timeoutMs }).then((resp) => {
+      if (resp.status === 200) {
+        let c: Captcha = {
+          uuid: resp.data.data.captcha_uuid,
+          image: resp.data.data.captcha_image
+        }
+        return c;
+      }
+      return undefined;
+    }).catch((e) => {
+      return undefined;
+    });
+  }
+
+  async sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string): Promise<void> {
+    return axios.post(
+      this.clientConfig.apiBaseUrl + "/auth/v1/send_sms",
+      {
+        captcha_result: code,
+        captcha_uuid: captchaUuid,
+        nation_code: nationCode,
+        phone: encrypt(phone)
+      }
+    );
+  }
+
+  public async login(param?: accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo> {
+    if (!param) {
+      let k = this.clientConfig.key;
+      if (k && typeof k === "object" && "secretAccessKey" in k) {
+        let kp = k as AccessKey;
+        return {
+          account: {
+            userId: kp.accessKeyId,
+            username: this.clientConfig.username || "User",
+            pro: false
+          },
+          weaverdKey: kp.secretAccessKey,
+        };
+      }
+      return Promise.reject(new Error("No preset auth info"));
+    }
+    return this._login(param).then((v) => {
       return this.syncUserInfo(v).then((info) => {
         return { ...v, account: info };
       }, () => v);
     });
   }
 
-  async _login(callbackUrl: string): Promise<AuthInfo> {
-    let url = new URL(callbackUrl);
-    let query = url.search?.slice(1);
-    if (!query) {
+  async _login(param: accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo> {
+    if (param.type === "browser") {
+      let _p = param as browserLoginParam;
       return Promise.reject();
-    }
-    if (url.protocol === "authorization:") {
-      let logininfo = decodeURIComponent(query);
-      let method = url.host || url.pathname.slice(2);
-      try {
-        let decoded = JSON.parse(logininfo);
-        if (method === AuthMethod.accesskey) {
+    } else if (param.type === AuthMethod.accesskey) {
+      let p = param as accessKeyLoginParam;
+      return {
+        account: {
+          userId: p.accessKeyId,
+          username: "User",
+          pro: false
+        },
+        weaverdKey: p.secretAccessKey,
+      };
+    } else if (param.type === AuthMethod.sms) {
+      let p = param as smsLoginParam;
+      return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_sms", {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        nation_code: p.nationCode, phone: encrypt(p.phone), sms_code: p.smsCode
+      }).then(resp => {
+        if (resp.status === 200 && resp.data.code === 0) {
+          let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
           return {
             account: {
-              userId: decoded.accessKeyId,
-              username: "User",
+              userId: jwtDecoded["iss"],
+              username: jwtDecoded["name"],
               pro: false
             },
-            weaverdKey: decoded.secretAccessKey,
+            expiration: jwtDecoded["exp"],
+            weaverdKey: resp.data.data.access_token,
+            refreshToken: resp.data.data.refresh_token,
           };
-        } else if (method === AuthMethod.password) {
-          if (decoded["code"] && decoded["account"] && decoded["password"]) {
-            let code = decoded["code"];
-            let phone = encrypt(decoded["account"]);
-            let password = encrypt(decoded["password"]);
-            return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_password", {
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              nation_code: code, phone, password
-            }).then(resp => {
-              if (resp.status === 200 && resp.data.code === 0) {
-                let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
-                return {
-                  account: {
-                    userId: jwtDecoded["iss"],
-                    username: jwtDecoded["name"],
-                    pro: false
-                  },
-                  expiration: jwtDecoded["exp"],
-                  weaverdKey: resp.data.data.access_token,
-                  refreshToken: resp.data.data.refresh_token,
-                };
-              }
-              throw new Error(resp.data.message || resp.data);
-            }).catch(err => {
-              throw err;
-            });
-          } else if (decoded["account"] && decoded["password"]) {
-            let email = decoded["account"];
-            let password = encrypt(decoded["password"]);
-            return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_email_password", {
-              email, password
-            }).then(resp => {
-              if (resp.status === 200 && resp.data.code === 0) {
-                let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
-                return {
-                  account: {
-                    userId: jwtDecoded["iss"],
-                    username: jwtDecoded["name"],
-                    pro: false
-                  },
-                  expiration: jwtDecoded["exp"],
-                  weaverdKey: resp.data.data.access_token,
-                  refreshToken: resp.data.data.refresh_token,
-                };
-              }
-              throw new Error(resp.data.message || resp.data);
-            }).catch(err => {
-              throw err;
-            });
-          } else {
-            throw new Error("Malformed login info");
-          }
-        } else {
-          throw new Error("Unsupported auth method");
         }
-      } catch (e) {
-        throw e;
-      }
+        throw new Error(resp.data.message || resp.data);
+      }).catch(err => {
+        throw err;
+      });
+    } else if (param.type === AuthMethod.phone) {
+      let p = param as phoneLoginParam;
+      return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_password", {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        nation_code: p.nationCode, phone: encrypt(p.phone), password: encrypt(p.password)
+      }).then(resp => {
+        if (resp.status === 200 && resp.data.code === 0) {
+          let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
+          return {
+            account: {
+              userId: jwtDecoded["iss"],
+              username: jwtDecoded["name"],
+              pro: false
+            },
+            expiration: jwtDecoded["exp"],
+            weaverdKey: resp.data.data.access_token,
+            refreshToken: resp.data.data.refresh_token,
+          };
+        }
+        throw new Error(resp.data.message || resp.data);
+      }).catch(err => {
+        throw err;
+      });
+    } else if (param.type === AuthMethod.email) {
+      let p = param as emailLoginParam;
+      return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_email_password", {
+        email: p.email, password: encrypt(p.password)
+      }).then(resp => {
+        if (resp.status === 200 && resp.data.code === 0) {
+          let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
+          return {
+            account: {
+              userId: jwtDecoded["iss"],
+              username: jwtDecoded["name"],
+              pro: false
+            },
+            expiration: jwtDecoded["exp"],
+            weaverdKey: resp.data.data.access_token,
+            refreshToken: resp.data.data.refresh_token,
+          };
+        }
+        throw new Error(resp.data.message || resp.data);
+      }).catch(err => {
+        throw err;
+      });
     } else {
-      return Promise.reject(new Error("Malformed login info"));
+      return Promise.reject(new Error("Not supported login method"));
     }
   }
 
