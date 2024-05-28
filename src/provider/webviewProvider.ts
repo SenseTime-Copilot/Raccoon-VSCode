@@ -164,7 +164,7 @@ export class RaccoonEditor extends Disposable {
 
   async updateSettingPage(action?: string): Promise<void> {
     if (!raccoonManager.isClientLoggedin()) {
-      buildLoginPage().then((value) => {
+      buildLoginPage(this.context, this.webview).then((value) => {
         this.sendMessage({ type: 'updateSettingPage', value, action });
       });
     } else {

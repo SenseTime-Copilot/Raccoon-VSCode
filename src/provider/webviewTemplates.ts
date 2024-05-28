@@ -127,7 +127,7 @@ export function makeGuide(isMac: boolean) {
   `;
 }
 
-export async function buildLoginPage(): Promise<string> {
+export async function buildLoginPage(context: ExtensionContext, webview: Webview): Promise<string> {
   let loginForm = ``;
   await raccoonManager.getAuthUrlLogin().then(async authUrl => {
     if (!authUrl) {
@@ -173,6 +173,7 @@ export async function buildLoginPage(): Promise<string> {
                     </vscode-panels>`;
     }
     if (url.scheme === "command" && url.path === `${extensionNameKebab}.phone`) {
+      const stylesMainUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-placeholder-20.png'));
       let phoneAccount = `<div class="flex flex-row">
                             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
                             <vscode-dropdown class="grow" id="login-phone-code" value="86">
@@ -214,7 +215,7 @@ export async function buildLoginPage(): Promise<string> {
         </div>`;
       let smsForm = `
           <div class="flex flex-row gap-2 flex-wrap">
-            <img id="captcha" src="#" style="max-width: fit-content; cursor: pointer; border-radius: 2px;" title="${l10n.t("Refresh")}"/>
+            <img id="captcha" src="#" style="max-width: fit-content; cursor: pointer; border-radius: 2px;" title="${l10n.t("Refresh")}" onerror="this.src='${stylesMainUri}';this.onerror='';"/>
             <div class="flex flex-col grow gap-2 w-min">
               <div class="flex flex-row">
                 <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">pin</span>
