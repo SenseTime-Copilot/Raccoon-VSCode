@@ -1610,7 +1610,7 @@ const vscode = acquireVsCodeApi();
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
     let ts = new Date().valueOf();
-    if (targetButton?.id === "refreshCaptcha") {
+    if (e.target.id === "captcha") {
       vscode.postMessage({ type: "getCaptcha" });
       return;
     }
@@ -1626,7 +1626,7 @@ const vscode = acquireVsCodeApi();
         () => {
           targetButton.classList.remove("frozen");
         },
-        60000
+        3000
       );
       vscode.postMessage({
         type: "sendSmsCode",

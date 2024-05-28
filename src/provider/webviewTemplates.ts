@@ -213,22 +213,23 @@ export async function buildLoginPage(): Promise<string> {
           </vscode-text-field>
         </div>`;
       let smsForm = `
-          <div class="flex flex-row">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">pin</span>
-            <vscode-text-field id="login-sms-captcha" pattern=".{1,32}" maxlength=32 class="grow" required="required">
-            </vscode-text-field>
-            <img id="captcha" style="width: 70px;"/>
-            <vscode-button tabindex="-1" style="border-radius:2px" appearance="icon" id="refreshCaptcha">
-              <span class="material-symbols-rounded">refresh</span>
-            </vscode-button>
-          </div>
-          <div class="flex flex-row">
-            <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">sms</span>
-            <vscode-text-field id="login-sms-answer" pattern=".{6}" maxlength=6 onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-sms-account');var pwd = document.getElementById('login-sms-answer');if(account.validity.valid && pwd.validity.valid){document.getElementById('login-sms-btn').click();};})(this)" class="grow" required="required">
-            </vscode-text-field>
-            <vscode-button tabindex="-1" style="border-radius:2px" appearance="icon" id="sendSmsCode" disabled>
-              <span class="material-symbols-rounded">send_to_mobile</span>
-            </vscode-button>
+          <div class="flex flex-row gap-2 flex-wrap">
+            <img id="captcha" src="#" style="max-width: fit-content; cursor: pointer; border-radius: 2px;" title="${l10n.t("Refresh")}"/>
+            <div class="flex flex-col grow gap-2 w-min">
+              <div class="flex flex-row">
+                <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">pin</span>
+                <vscode-text-field id="login-sms-captcha" class="grow" required="required">
+                </vscode-text-field>
+                <vscode-button class="attach-btn-right" style="--button-icon-padding: 0; border-radius:2px; background-color: var(--input-background);" title="${l10n.t("Send Verification Code")}" appearance="icon" id="sendSmsCode" disabled>
+                  <span class="material-symbols-rounded" style="display: contents;">send_to_mobile</span>
+                </vscode-button>
+              </div>
+              <div class="flex flex-row">
+                <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">sms</span>
+                <vscode-text-field id="login-sms-answer" pattern="\\d{6}" maxlength=6 onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-sms-account');var pwd = document.getElementById('login-sms-answer');if(account.validity.valid && pwd.validity.valid){document.getElementById('login-sms-btn').click();};})(this)" class="grow" required="required">
+                </vscode-text-field>
+              </div>
+            </div>
           </div>`;
       let tips = `<span class="self-center grow">
                         ${l10n.t("Do not have an account?")}

@@ -486,7 +486,7 @@
                 ]
             },
             {
-                "viewType": "raccoon.promptManager",
+                "viewType": "{extensionId}.promptManager",
                 "displayName": "{extensionName} Prompt Manager",
                 "selector": [
                     {
@@ -523,6 +523,7 @@
         "open-in-browser": "vscode-test-web --extensionDevelopmentPath=."
     },
     "devDependencies": {
+        "@fortaine/fetch-event-source": "^3.0.6",
         "@types/glob": "^7.2.0",
         "@types/jwt-encode": "^1.0.3",
         "@types/mocha": "^9.1.1",
@@ -535,7 +536,6 @@
         "@vscode/vsce": "^2.18.0",
         "@vscode/webview-ui-toolkit": "^1.2.0",
         "axios": "^1.6.2",
-        "@fortaine/fetch-event-source": "^3.0.6",
         "crypto-browserify": "^3.12.0",
         "eslint": "^8.20.0",
         "form-data": "^4.0.0",

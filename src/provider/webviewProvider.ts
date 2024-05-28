@@ -197,8 +197,12 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'sendSmsCode': {
-          raccoonManager.sendSMS(data.uuid, data.captcha, data.code, data.account).catch((e) => {
-            this.webview.postMessage({ type: 'showInfoTip', style: 'error', category: 'login', value: e.message, id: new Date().valueOf() })
+          raccoonManager.sendSMS(
+            data.uuid, data.captcha, data.code, data.account
+          ).then(() => {
+            this.webview.postMessage({ type: 'showInfoTip', style: 'message', category: 'login', value: l10n.t("Verification code has been sent"), id: new Date().valueOf() })
+          }).catch((e) => {
+            this.webview.postMessage({ type: 'showInfoTip', style: 'error', category: 'login', value: l10n.t("Incorrect Captcha Code"), id: new Date().valueOf() })
           });
           break;
         }
@@ -246,7 +250,7 @@ export class RaccoonEditor extends Disposable {
           }
           raccoonManager.login(data.value).then((res) => {
             if (res !== "ok") {
-              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login Failed") + ": " + res.message, id: new Date().valueOf() });
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login failed"), id: new Date().valueOf() });
             }
           });
           break;

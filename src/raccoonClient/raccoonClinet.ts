@@ -66,15 +66,16 @@ export class RaccoonClient implements CodeClient {
   }
 
   async sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string): Promise<void> {
-    return axios.post(
-      this.clientConfig.apiBaseUrl + "/auth/v1/send_sms",
-      {
-        captcha_result: code,
-        captcha_uuid: captchaUuid,
-        nation_code: nationCode,
-        phone: encrypt(phone)
-      }
-    );
+    return axios
+      .post(
+        this.clientConfig.apiBaseUrl + "/auth/v1/send_sms",
+        {
+          captcha_result: code,
+          captcha_uuid: captchaUuid,
+          nation_code: nationCode,
+          phone: encrypt(phone)
+        }
+      );
   }
 
   public async login(param?: accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo> {

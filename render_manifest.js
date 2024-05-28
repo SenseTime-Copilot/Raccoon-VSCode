@@ -1,7 +1,7 @@
 const args = require('minimist')(process.argv.slice(2));
 const fs = require('node:fs');
 
-let packageId = args.packageId || "raccoon";
+let packageId = args.packageId.toLowerCase().replaceAll(" ", "-") || "raccoon";
 let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";

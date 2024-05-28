@@ -12,7 +12,7 @@ import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
 import { HistoryCache } from "./utils/historyCache";
-import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, raccoonConfig, agentEditorViewType } from "./globalEnv";
+import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, agentEditorViewType } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
@@ -111,9 +111,9 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
   });
 
-  registerCommand(context, "onSuggestionAccepted", (uri, languageid, range: vscode.Range, _selection) => {
+  registerCommand(context, "onSuggestionAccepted", (uri: vscode.Uri, languageid: string, _selection: string, range?: vscode.Range) => {
     let editor = vscode.window.activeTextEditor;
-    if (editor) {
+    if (range && editor) {
       let start = range.start.line;
       let end = range.end.line;
       decorateCodeWithRaccoonLabel(editor, start, end);

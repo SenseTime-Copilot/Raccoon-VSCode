@@ -27,7 +27,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
 
   if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
     updateStatusBarItem(statusBarItem);
-    return;
+    return [];
   }
 
   let refs = '';
@@ -64,7 +64,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
         text: "$(exclude)",
         tooltip: vscode.l10n.t("Out of service")
       });
-    return;
+    return [];
   }
 
   let cfg: RaccoonRequestParam = {
@@ -79,68 +79,85 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     cfg.stop = ["\n"];
   }
 
-  await raccoonManager.completion(
-    content,
-    cfg,
-    {
-      onError(err: Choice) {
-        updateStatusBarItem(
-          statusBarItem,
-          {
-            text: "$(warning)",
-            tooltip: vscode.l10n.t(err.message?.content || "Unknown error")
+  return new Promise<vscode.InlineCompletionItem[]>((resolve, reject) => {
+    raccoonManager.completion(
+      content || "",
+      cfg,
+      {
+        onError(err: Choice) {
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: "$(warning)",
+              tooltip: vscode.l10n.t(err.message?.content || "Unknown error")
+            }
+          );
+        },
+        onFinish(choices: Choice[]) {
+          for (let i = 0; i < choices.length; i++) {
+            let message = choices[i].message?.content.trimEnd();
+            if (!message) {
+              continue;
+            }
+            let afterCursor = document.lineAt(position.line).text.slice(position.character);
+            let range: vscode.Range | undefined;
+            if (message.endsWith(afterCursor.trimEnd())) {
+              range = new vscode.Range(
+                new vscode.Position(position.line, position.character),
+                new vscode.Position(position.line, position.character + afterCursor.length)
+              );
+            } else {
+              range = new vscode.Range(
+                new vscode.Position(position.line, position.character),
+                new vscode.Position(position.line, position.character)
+              );
+            }
+            let resultLines = message.split('\n').length - 1;
+            let decoratorRange: vscode.Range | undefined;
+            if (resultLines > 1 || !afterCursor.trimEnd()) {
+              decoratorRange = new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + resultLines, character: 0 }));
+            }
+            let command = {
+              title: "suggestion-accepted",
+              command: `${extensionNameKebab}.onSuggestionAccepted`,
+              arguments: [
+                document.uri,
+                document.languageId,
+                i.toString(),
+                decoratorRange
+              ]
+            };
+            items.push({
+              insertText: message,
+              range,
+              command
+            });
           }
-        );
-      },
-      onFinish(choices: Choice[]) {
-        for (let i = 0; i < choices.length; i++) {
-          let message = choices[i].message?.content.trimEnd();
-          if (!message) {
-            continue;
-          }
-          let command = {
-            title: "suggestion-accepted",
-            command: `${extensionNameKebab}.onSuggestionAccepted`,
-            arguments: [
-              document.uri,
-              document.languageId,
-              new vscode.Range(position.with({ character: 0 }), position.with({ line: position.line + message.split('\n').length - 1, character: 0 })),
-              i.toString()
-            ]
-          };
-          let afterCursor = document.lineAt(position.line).text.slice(position.character);
-          items.push({
-            insertText: message,
-            range: new vscode.Range(new vscode.Position(position.line, position.character),
-              new vscode.Position(position.line, position.character + afterCursor.length)),
-            command
-          });
-        }
-        if (items.length > 0) {
-          let usage: any = {};
-          usage[document.languageId] = {
+          if (items.length > 0) {
+            let usage: any = {};
+            usage[document.languageId] = {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              code_generate_num: items.length
+            };
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            code_generate_num: items.length
-          };
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
-        }
-        updateStatusBarItem(
-          statusBarItem,
-          {
-            text: items.length > 0 ? "$(pass)" : "$(array)",
-            tooltip: items.length > 0 ? vscode.l10n.t("Done") : vscode.l10n.t("No completion suggestion")
+            telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
           }
-        );
+          updateStatusBarItem(
+            statusBarItem,
+            {
+              text: items.length > 0 ? "$(pass)" : "$(array)",
+              tooltip: items.length > 0 ? vscode.l10n.t("Done") : vscode.l10n.t("No completion suggestion")
+            }
+          );
+          resolve(cancel.isCancellationRequested ? [] : items);
+        },
+        onController(controller) {
+          abortCtler = controller;
+        },
       },
-      onController(controller) {
-        abortCtler = controller;
-      },
-    },
-    buildHeader(extension.extension, 'inline completion', `${new Date().valueOf()}`)
-  );
-
-  return cancel.isCancellationRequested ? null : items;
+      buildHeader(extension.extension, 'inline completion', `${new Date().valueOf()}`)
+    ).catch(e => reject(e));
+  });
 }
 
 export function inlineCompletionProvider(
