@@ -42,7 +42,7 @@ build_package:
   when: manual
   script:
     - cd $CI_PROJECT_DIR
-    - npm install -g minimist
+    - npm install minimist
     - node ./render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageValueFile="$PACKAGE_VALUE_FILE" --packageType="$PACKAGE_TYPE" --webBaseUrl="$WEB_BASEURL" --apiBaseUrl="$API_BASEURL"
     - npm install
     - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
