@@ -58,6 +58,7 @@ if (packageValueFile) {
     cfg.signup = `${webBaseUrl}/register`;
     cfg.forgetPassword = `${webBaseUrl}/login?step=forgot-password`;
     for (let e of cfg.engines) {
+      e.robotname = packageName;
       e.apiBaseUrl = apiBaseUrl;
     }
     let content = JSON.stringify(cfg, undefined, 2);
