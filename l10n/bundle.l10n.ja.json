@@ -158,7 +158,7 @@
   "Show graph": "画像を表示",
   "Hide graph": "画像を隠す",
   "Add to favorites": "お気に入りに追加",
-  "Diff with original code": "オリジナルのコードと比較",
+  "Diff with selected code": "選択したタグと比較する",
   "Copy to clipboard": "クリップボードにコピー",
   "Insert the below code at cursor": "カーソル位置に次のコードを挿入",
   "Active engine not set": "アクティブエンジンは未設定",

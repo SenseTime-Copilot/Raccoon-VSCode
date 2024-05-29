@@ -668,7 +668,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 "Show graph": "${l10n.t("Show graph")}",
                 "Hide graph": "${l10n.t("Hide graph")}",
                 "Favorite": "${l10n.t("Add to favorites")}",
-                "Diff": "${l10n.t("Diff with original code")}",
+                "Diff": "${l10n.t("Diff with selected code")}",
                 "Copy": "${l10n.t("Copy to clipboard")}",
                 "Insert": "${l10n.t("Insert the below code at cursor")}",
                 "Thinking...": "${l10n.t("Thinking...")}",

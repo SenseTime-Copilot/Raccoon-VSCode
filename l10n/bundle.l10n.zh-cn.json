@@ -158,7 +158,7 @@
   "Show graph": "显示图像",
   "Hide graph": "隐藏图像",
   "Add to favorites": "添加至收藏",
-  "Diff with original code": "与原始代码比较",
+  "Diff with selected code": "与选中代码比较",
   "Copy to clipboard": "复制至剪贴板",
   "Insert the below code at cursor": "将以下代码插入到光标位置",
   "Active engine not set": "未设置活动的后端引擎",

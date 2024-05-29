@@ -324,6 +324,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'diff': {
+          const editor = window.activeTextEditor || this.lastTextEditor;
           let selection = editor?.document.getText(editor?.selection);
           if (data.languageid && selection && data.value) {
             diffCode(data.languageid, selection, data.value);
