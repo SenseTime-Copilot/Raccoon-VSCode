@@ -6,15 +6,20 @@ let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";
 let webBaseUrl = args.webBaseUrl || "https://raccoon.sensetime.com";
+let apiType = args.apiType || "Raccoon";
 let apiBaseUrl = args.apiBaseUrl || "https://raccoon-api.sensetime.com/api/plugin";
 
 console.log("=============== Rendering Settings ===============");
 console.log(` Package ID         : ${packageId}`);
 console.log(` Package Name       : ${packageName}`);
-console.log(` Package Value File : ${packageValueFile || "None"}`);
-console.log(` Package Type       : ${packageType} ${packageValueFile ? "[IGNORED]" : ""}`);
-console.log(` Web Base URL       : ${webBaseUrl} ${packageValueFile ? "[IGNORED]" : ""}`);
-console.log(` API Base URL       : ${apiBaseUrl} ${packageValueFile ? "[IGNORED]" : ""}`);
+if (packageValueFile) {
+  console.log(` Package Value File : ${packageValueFile}`);
+} else {
+  console.log(` Package Type       : ${packageType}`);
+  console.log(` Web Base URL       : ${webBaseUrl}`);
+  console.log(` API Type           : ${apiType}`);
+  console.log(` API Base URL       : ${apiBaseUrl}`);
+}
 console.log("==================================================");
 
 fs.readFile('./package-sample.json', 'utf8', (err, data) => {
@@ -59,6 +64,7 @@ if (packageValueFile) {
     cfg.forgetPassword = `${webBaseUrl}/login?step=forgot-password`;
     for (let e of cfg.engines) {
       e.robotname = packageName;
+      e.apiType = apiType;
       e.apiBaseUrl = apiBaseUrl;
     }
     let content = JSON.stringify(cfg, undefined, 2);
