@@ -200,9 +200,23 @@ export class RaccoonEditor extends Disposable {
           raccoonManager.sendSMS(
             data.uuid, data.captcha, data.code, data.account
           ).then(() => {
-            this.webview.postMessage({ type: 'showInfoTip', style: 'message', category: 'login', value: l10n.t("Verification code has been sent"), id: new Date().valueOf() })
+            this.webview.postMessage({ type: 'showInfoTip', style: 'message', category: 'login', value: l10n.t("Verification code has been sent"), id: new Date().valueOf() });
           }).catch((e) => {
-            this.webview.postMessage({ type: 'showInfoTip', style: 'error', category: 'login', value: l10n.t("Incorrect Captcha Code"), id: new Date().valueOf() })
+            raccoonManager.getCaptcha().then((captcha) => {
+              this.sendMessage({ type: 'captcha', value: captcha });
+            });
+            if (!e || !e.response) {
+              return;
+            }
+            if (e.response.status === 400) {
+              if (e.response.data?.code === 100006) {
+                this.webview.postMessage({ type: 'showInfoTip', style: 'error', category: 'login', value: l10n.t("Incorrect Captcha Code"), id: new Date().valueOf() });
+              } else {
+                this.webview.postMessage({ type: 'showInfoTip', style: 'error', category: 'login', value: l10n.t("Invalid Parameters"), id: new Date().valueOf() });
+              }
+            } else if (e.response.status === 429) {
+              this.webview.postMessage({ type: 'showInfoTip', style: 'error', category: 'login', value: `${l10n.t("Too Many Captcha Attemps")}. ${l10n.t("Please try again in {0} seconds", 60)}`, id: new Date().valueOf() });
+            }
           });
           break;
         }

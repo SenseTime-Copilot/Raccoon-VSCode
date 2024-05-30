@@ -215,7 +215,7 @@ export async function buildLoginPage(context: ExtensionContext, webview: Webview
         </div>`;
       let smsForm = `
           <div class="flex flex-row gap-2 flex-wrap">
-            <img id="captcha" src="#" style="max-width: fit-content; cursor: pointer; border-radius: 2px;" title="${l10n.t("Refresh")}" onerror="this.src='${stylesMainUri}';this.onerror='';"/>
+            <img id="captcha" src="#" style="cursor: pointer; max-width: 30%; min-width: 90px; border-raduis: 2px; image-rendering: -webkit-optimize-contrast;" title="${l10n.t("Refresh")}" onerror="this.src='${stylesMainUri}';this.onerror='';"/>
             <div class="flex flex-col grow gap-2 w-min">
               <div class="flex flex-row">
                 <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">pin</span>
@@ -253,7 +253,7 @@ export async function buildLoginPage(context: ExtensionContext, webview: Webview
             <vscode-panel-view id="view-pwd" class="flex-col gap-2">
               ${phoneAccount}
               ${passwordForm}
-              <vscode-button id="login-phone-btn" style="width: 300px;max-width: 100%;margin: 32px auto 0 auto;" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
+              <vscode-button id="login-phone-btn" style="width: 300px;max-width: 100%;margin: 33px auto 0 auto;" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
             </vscode-panel-view>
           </vscode-panels>
           ${tips}

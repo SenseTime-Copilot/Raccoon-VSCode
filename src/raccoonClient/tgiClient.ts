@@ -1,4 +1,4 @@
-import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, Captcha, accessKeyLoginParam, browserLoginParam, smsLoginParam, phoneLoginParam, emailLoginParam, apiKeyLoginParam } from "./CodeClient";
+import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, Captcha, AccessKeyLoginParam, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam } from "./CodeClient";
 import { EventStreamContentType, fetchEventSource } from "@fortaine/fetch-event-source";
 
 export class TGIClient implements CodeClient {
@@ -23,15 +23,15 @@ export class TGIClient implements CodeClient {
     return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
   }
 
-  getCaptcha(timeoutMs?: number): Promise<Captcha> {
+  getCaptcha(_timeoutMs?: number): Promise<Captcha> {
     return Promise.reject();
   }
 
-  sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string): Promise<void> {
+  sendSMS(_captchaUuid: string, _code: string, _nationCode: string, _phone: string): Promise<void> {
     return Promise.reject();
   }
 
-  public async login(_param?: apiKeyLoginParam | accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo> {
+  public async login(_param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
         username: this.clientConfig.username || "User",

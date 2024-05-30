@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, Captcha, browserLoginParam, smsLoginParam, phoneLoginParam, emailLoginParam, accessKeyLoginParam } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, Captcha, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -56,11 +56,11 @@ export class RaccoonClient implements CodeClient {
         let c: Captcha = {
           uuid: resp.data.data.captcha_uuid,
           image: resp.data.data.captcha_image
-        }
+        };
         return c;
       }
       return undefined;
-    }).catch((e) => {
+    }).catch(() => {
       return undefined;
     });
   }
@@ -70,15 +70,18 @@ export class RaccoonClient implements CodeClient {
       .post(
         this.clientConfig.apiBaseUrl + "/auth/v1/send_sms",
         {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           captcha_result: code,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           captcha_uuid: captchaUuid,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           nation_code: nationCode,
           phone: encrypt(phone)
         }
       );
   }
 
-  public async login(param?: accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo> {
+  public async login(param?: AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (!param) {
       let k = this.clientConfig.key;
       if (k && typeof k === "object" && "secretAccessKey" in k) {
@@ -101,12 +104,12 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  async _login(param: accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Promise<AuthInfo> {
+  async _login(param: AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (param.type === "browser") {
-      let _p = param as browserLoginParam;
+      // let p = param as browserLoginParam;
       return Promise.reject();
     } else if (param.type === AuthMethod.accesskey) {
-      let p = param as accessKeyLoginParam;
+      let p = param as AccessKeyLoginParam;
       return {
         account: {
           userId: p.accessKeyId,
@@ -116,7 +119,7 @@ export class RaccoonClient implements CodeClient {
         weaverdKey: p.secretAccessKey,
       };
     } else if (param.type === AuthMethod.sms) {
-      let p = param as smsLoginParam;
+      let p = param as SmsLoginParam;
       return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_sms", {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         nation_code: p.nationCode, phone: encrypt(p.phone), sms_code: p.smsCode
@@ -139,7 +142,7 @@ export class RaccoonClient implements CodeClient {
         throw err;
       });
     } else if (param.type === AuthMethod.phone) {
-      let p = param as phoneLoginParam;
+      let p = param as PhoneLoginParam;
       return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_password", {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         nation_code: p.nationCode, phone: encrypt(p.phone), password: encrypt(p.password)
@@ -162,7 +165,7 @@ export class RaccoonClient implements CodeClient {
         throw err;
       });
     } else if (param.type === AuthMethod.email) {
-      let p = param as emailLoginParam;
+      let p = param as EmailLoginParam;
       return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_email_password", {
         email: p.email, password: encrypt(p.password)
       }).then(resp => {

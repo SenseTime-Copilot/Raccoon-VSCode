@@ -15,13 +15,13 @@
 			],
 			"sourceMaps": true,
 			"skipFiles": [
-                "${workspaceFolder}/node_modules/**/*.js",
-                "<node_internals>/**/*.js"
-            ],
+				"${workspaceFolder}/node_modules/**/*.js",
+				"<node_internals>/**/*.js"
+			],
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			"preLaunchTask": "npm: webpack"
+			"preLaunchTask": "npm: watch"
 		},
 		{
 			"name": "Extension Tests",

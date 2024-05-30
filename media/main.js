@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 const vscode = acquireVsCodeApi();
 
 (function () {
@@ -586,6 +587,7 @@ const vscode = acquireVsCodeApi();
         if (captcha) {
           captcha.src = message.value.image;
           captcha.dataset.id = message.value.uuid;
+          document.getElementById("login-sms-captcha").value = "";
         }
         break;
       }
@@ -1246,9 +1248,13 @@ const vscode = acquireVsCodeApi();
       var pwd = document.getElementById("login-email-password");
       var loginEmailBtn = document.getElementById("login-email-btn");
       if (account.checkValidity() && pwd?.checkValidity()) {
-        if (loginEmailBtn) loginEmailBtn.disabled = false;
+        if (loginEmailBtn) {
+          loginEmailBtn.disabled = false;
+        }
       } else {
-        if (loginEmailBtn) loginEmailBtn.disabled = true;
+        if (loginEmailBtn) {
+          loginEmailBtn.disabled = true;
+        }
       }
     } else if (
       e.target.id === "login-phone-account" ||
@@ -1257,9 +1263,13 @@ const vscode = acquireVsCodeApi();
       var pwd = document.getElementById("login-phone-password");
       var loginPwdBtn = document.getElementById("login-phone-btn");
       if (account.checkValidity() && pwd?.checkValidity()) {
-        if (loginPwdBtn) loginPwdBtn.disabled = false;
+        if (loginPwdBtn) {
+          loginPwdBtn.disabled = false;
+        }
       } else {
-        if (loginPwdBtn) loginPwdBtn.disabled = true;
+        if (loginPwdBtn) {
+          loginPwdBtn.disabled = true;
+        }
       }
     } else if (
       e.target.id === "login-sms-account" ||
@@ -1271,14 +1281,22 @@ const vscode = acquireVsCodeApi();
       var sendSmsCode = document.getElementById("sendSmsCode");
       var loginSmsBtn = document.getElementById("login-sms-btn");
       if (account.checkValidity() && captcha?.checkValidity()) {
-        if (sendSmsCode) sendSmsCode.disabled = false;
+        if (sendSmsCode) {
+          sendSmsCode.disabled = false;
+        }
       } else {
-        if (sendSmsCode) sendSmsCode.disabled = true;
+        if (sendSmsCode) {
+          sendSmsCode.disabled = true;
+        }
       }
       if (account.checkValidity() && smsCode?.checkValidity()) {
-        if (loginSmsBtn) loginSmsBtn.disabled = false;
+        if (loginSmsBtn) {
+          loginSmsBtn.disabled = false;
+        }
       } else {
-        if (loginSmsBtn) loginSmsBtn.disabled = true;
+        if (loginSmsBtn) {
+          loginSmsBtn.disabled = true;
+        }
       }
     } else {
       toggleSubMenuList();
@@ -1619,8 +1637,6 @@ const vscode = acquireVsCodeApi();
       let account = document.getElementById("login-sms-account").value;
       let uuid = document.getElementById("captcha").dataset['id'];
       let captcha = document.getElementById("login-sms-captcha").value;
-      document.getElementById("login-sms-captcha").value = "";
-      vscode.postMessage({ type: "getCaptcha" });
       targetButton.classList.add("frozen");
       setTimeout(
         () => {

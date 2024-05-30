@@ -1,5 +1,5 @@
-import { commands, env, ExtensionContext, l10n, UIKind, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, accessKeyLoginParam, browserLoginParam, smsLoginParam, phoneLoginParam, emailLoginParam, apiKeyLoginParam } from "../raccoonClient/CodeClient";
+import { commands, env, ExtensionContext, l10n, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -742,7 +742,7 @@ export class RaccoonManager {
     }
   }
 
-  public login(param: apiKeyLoginParam | accessKeyLoginParam | browserLoginParam | smsLoginParam | phoneLoginParam | emailLoginParam): Thenable<'ok' | Error> {
+  public login(param: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
 
     return window.withProgress({
