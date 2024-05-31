@@ -18,7 +18,7 @@ import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
 import { getDocumentSymbols } from "./utils/collectionPromptInfo";
 
-export let docSymbolMap: { [key: string]: vscode.DocumentSymbol[] } = {};
+export let docSymbolMap: { [key: string]: { languageId: string; symbols: vscode.DocumentSymbol[] } } = {};
 
 export async function activate(context: vscode.ExtensionContext) {
   let statusBarItem: vscode.StatusBarItem;
@@ -164,7 +164,10 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       for (let d of vscode.workspace.textDocuments) {
         if (d.uri.scheme === "file") {
-          docSymbolMap[d.uri.toString()] = await getDocumentSymbols(d.uri);
+          docSymbolMap[d.uri.toString()] = {
+            languageId: d.languageId,
+            symbols: await getDocumentSymbols(d.uri)
+          };
         }
       }
     })

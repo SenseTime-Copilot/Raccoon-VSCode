@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, l10n, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -610,40 +610,6 @@ export class RaccoonManager {
     });
   }
 
-  public buildFillPrompt(capacity: ModelCapacity, language: string, prefix: string, suffix?: string): string | undefined {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (ca) {
-      if (ca.options[capacity]?.template) {
-        let _prefix = prefix.replace(/\r\n/g, '\n');
-        let _suffix = suffix?.replace(/\r\n/g, '\n') || "";
-        let prefixLines = '';
-        let prefixCursor = '';
-        let _prefixLines = _prefix.split('\n') || [];
-        if (_prefixLines.length > 0) {
-          prefixCursor = _prefixLines[_prefixLines.length - 1];
-          delete _prefixLines[_prefixLines.length - 1];
-          prefixLines = _prefixLines.join('\n');
-        }
-        let suffixLines = '';
-        let suffixCursor = '';
-        let _suffixLines = _suffix.split('\n') || [];
-        if (_suffixLines.length > 0) {
-          suffixCursor = _suffixLines[0];
-          delete _suffixLines[0];
-          suffixLines = _suffixLines.join('\n');
-        }
-        return ca.options[capacity]!.template
-          .replace("[languageid]", language)
-          .replace("[prefix]", _prefix)
-          .replace("[suffix]", _suffix)
-          .replace("[prefix.lines]", prefixLines)
-          .replace("[suffix.lines]", suffixLines)
-          .replace("[prefix.cursor]", prefixCursor)
-          .replace("[suffix.cursor]", suffixCursor);
-      }
-    }
-  }
-
   public async userInfo(update: boolean = false, timeoutMs?: number): Promise<AccountInfo | undefined> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca && ca.authInfo) {
@@ -893,10 +859,12 @@ export class RaccoonManager {
       };
       let org = this.activeOrganization();
       if (!config.maxNewTokenNum && (org || ca.authInfo.account.pro)) {
-        config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.completion) - this.maxInputTokenNum(ModelCapacity.completion));
+        config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.assistant) - this.maxInputTokenNum(ModelCapacity.assistant));
       }
       let options: ChatOptions = {
         messages,
+        template: opts.template,
+        maxInputTokens: this.maxInputTokenNum(ModelCapacity.assistant),
         config,
         headers,
         ...callbacks
@@ -922,7 +890,7 @@ export class RaccoonManager {
     }
   }
 
-  public async completion(prompt: string, param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>): Promise<void> {
+  public async completion(context: CompletionContext, param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>): Promise<void> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     let opts = ca?.options[ModelCapacity.completion];
     if (ca && ca.authInfo && opts) {
@@ -940,7 +908,9 @@ export class RaccoonManager {
       };
       let org = this.activeOrganization();
       let options: CompletionOptions = {
-        prompt,
+        context,
+        template: opts.template,
+        maxInputTokens: this.maxInputTokenNum(ModelCapacity.completion),
         config,
         headers,
         ...callbacks

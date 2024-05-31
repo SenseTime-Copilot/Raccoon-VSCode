@@ -146,6 +146,8 @@ export type ResponseData = {
 
 export interface ChatOptions {
   messages: Array<Message>;
+  template?: string;
+  maxInputTokens: number;
   config: RequestParam;
   headers?: Record<string, string>;
 
@@ -157,8 +159,25 @@ export interface ChatOptions {
   onController?: (controller: AbortController, thisArg?: any) => void;
 }
 
+export type Reference = {
+  languageId: string;
+  label: string;
+  snippet: string;
+};
+
+export type CompletionContext = {
+  languageId: string;
+  beforeLines: string;
+  beforeCursor: string;
+  afterCursor: string;
+  afterLines: string;
+  reference: Reference[];
+};
+
 export interface CompletionOptions {
-  prompt: string;
+  context: CompletionContext;
+  template: string;
+  maxInputTokens: number;
   config: RequestParam;
   headers?: Record<string, string>;
 

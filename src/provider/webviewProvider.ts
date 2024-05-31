@@ -688,7 +688,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
         telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { user_question_num: 1 } });
 
         let errorFlag = false;
-        let msgs = [...historyMsgs, { role: instruction.role, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', instruction.content) || "" }];
+        let msgs = [...historyMsgs, instruction];
         if (streaming) {
           raccoonManager.chat(
             msgs,
@@ -751,7 +751,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               }
             },
             buildHeader(this.context.extension, prompt.type, `${id}`)
-          );
+          ).catch((e) => {
+            this.sendMessage({ type: 'addError', error: e.message, id, timestamp: new Date().valueOf() });
+          });
         } else {
           await raccoonManager.chat(
             msgs,

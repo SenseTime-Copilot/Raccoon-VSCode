@@ -5,9 +5,10 @@
   "engines": [
     {
       "robotname": "Raccoon",
+      "apiType": "Raccoon",
       "apiBaseUrl": "https://raccoon-api.sensetime.com/api/plugin",
       "completion": {
-        "template": "<LANG>[languageid]<SUF>[suffix.lines]<PRE>[prefix.lines]<COVER>[suffix.cursor]<MID>[prefix.cursor]",
+        "template": "<LANG>{{languageId}}<SUF>{{afterLines}}<PRE>{{beforeLines}}<COVER>{{afterCursor}}<MID>{{beforeCursor}}",
         "parameters": {
           "stop": [
             "<EOT>"
@@ -18,7 +19,6 @@
         "totalTokenNum": 16384
       },
       "assistant": {
-        "template": "[prefix]",
         "parameters": {
           "stop": [
             "<|endofmessage|>"

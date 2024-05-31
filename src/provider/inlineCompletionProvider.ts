@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { raccoonManager, telemetryReporter, extensionNameKebab } from "../globalEnv";
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
-import { Choice, MetricType } from "../raccoonClient/CodeClient";
+import { Choice, CompletionContext, MetricType, Reference } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ModelCapacity } from "./config";
 import { docSymbolMap } from "../extension";
@@ -25,25 +25,9 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
   let maxLength = raccoonManager.maxInputTokenNum(ModelCapacity.completion) * 2;
   let codeSnippets = await captureCode(document, position, maxLength);
 
-  if (codeSnippets.prefix.trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
+  if ((codeSnippets.beforeLines + codeSnippets.beforeLines).trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
     updateStatusBarItem(statusBarItem);
     return [];
-  }
-
-  let refs = '';
-  let len = codeSnippets.prefix.length + codeSnippets.suffix.length;
-  for (let s of codeSnippets.relativeSymbol) {
-    for (let d of vscode.workspace.textDocuments) {
-      if (d.uri.toString() === s.uri) {
-        let r = s.symbol.range;
-        let t = d.getText(r);
-        let c = `// FILE: ${s.uri}#L${r.start.line + 1}-L${r.end.line + 2}: \n//` + t.split('\n').join('\n//') + '\n\n';
-        if (len + c.length <= maxLength) {
-          refs += c;
-          len += c.length;
-        }
-      }
-    }
   }
 
   let items = new Array<vscode.InlineCompletionItem>();
@@ -56,16 +40,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       keep: true
     }
   );
-
-  let content = raccoonManager.buildFillPrompt(ModelCapacity.completion, document.languageId, refs + codeSnippets.prefix, codeSnippets.suffix);
-  if (!content) {
-    updateStatusBarItem(statusBarItem,
-      {
-        text: "$(exclude)",
-        tooltip: vscode.l10n.t("Out of service")
-      });
-    return [];
-  }
 
   let cfg: RaccoonRequestParam = {
     stream: false,
@@ -81,7 +55,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
 
   return new Promise<vscode.InlineCompletionItem[]>((resolve, reject) => {
     raccoonManager.completion(
-      content || "",
+      codeSnippets,
       cfg,
       {
         onError(err: Choice) {
@@ -206,10 +180,10 @@ export function inlineCompletionProvider(
   return provider;
 }
 
-export async function captureCode(document: vscode.TextDocument, position: vscode.Position, maxLength: number) {
-  let relativeSymbol: { uri: string; symbol: vscode.DocumentSymbol }[] = [];
+export async function captureCode(document: vscode.TextDocument, position: vscode.Position, maxLength: number): Promise<CompletionContext> {
+  let refs: Reference[] = [];
   let processNames: string[] = [];
-  function filterSymbol(names: string[]) {
+  async function filterSymbol(names: string[]) {
     for (let name of names) {
       if (processNames.includes(name)) {
         continue;
@@ -220,9 +194,13 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
           continue;
         }
         let rs = docSymbolMap[r];
-        for (let n of rs) {
+        for (let n of rs.symbols) {
           if (names.includes(n.name)) {
-            relativeSymbol.push({ uri: r, symbol: n });
+            refs.push({
+              languageId: rs.languageId,
+              label: r,
+              snippet: (await vscode.workspace.openTextDocument(r)).getText(n.range)
+            });
           }
         }
       }
@@ -374,6 +352,32 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
     }
     filterSymbol(names);
   }
-  return { relativeSymbol, prefix, suffix };
-}
 
+  let _prefix = prefix.replace(/\r\n/g, '\n');
+  let _suffix = suffix?.replace(/\r\n/g, '\n') || "";
+  let beforeLines = '';
+  let beforeCursor = '';
+  let _prefixLines = _prefix.split('\n') || [];
+  if (_prefixLines.length > 0) {
+    beforeCursor = _prefixLines[_prefixLines.length - 1];
+    delete _prefixLines[_prefixLines.length - 1];
+    beforeLines = _prefixLines.join('\n');
+  }
+  let afterLines = '';
+  let afterCursor = '';
+  let _suffixLines = _suffix.split('\n') || [];
+  if (_suffixLines.length > 0) {
+    afterCursor = _suffixLines[0];
+    delete _suffixLines[0];
+    afterLines = _suffixLines.join('\n');
+  }
+
+  return {
+    languageId: document.languageId,
+    beforeLines,
+    beforeCursor,
+    afterCursor,
+    afterLines,
+    reference: refs
+  };
+}

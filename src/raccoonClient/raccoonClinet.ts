@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, Captcha, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, Captcha, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -333,12 +333,20 @@ export class RaccoonClient implements CodeClient {
 
     config.stream = !!options.config.stream;
     config.max_new_tokens = options.config.maxNewTokenNum;
+    let reversedMessages: Message[] = [];
+    let len = 0;
+    for (let v of reversedMessages) {
+      let newLen = len + v.content.length;
+      if (newLen < options.maxInputTokens * 4) {
+        reversedMessages.push(v);
+      } else {
+        break;
+      }
+    }
 
     const requestPayload = {
       ...config,
-      messages: options.messages.filter((m) => {
-        return !!m.content;
-      })
+      messages: reversedMessages.reverse()
     };
 
     const controller = new AbortController();
@@ -596,7 +604,31 @@ export class RaccoonClient implements CodeClient {
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
     }
 
+    let inputLen = options.context.languageId.length + options.context.beforeLines.length + options.context.beforeCursor.length + options.context.afterLines.length + options.context.afterCursor.length;
+    if (inputLen < options.maxInputTokens * 4) {
+      let shrinkRatio = options.maxInputTokens * 4 / inputLen;
+      let beforeLen = Math.floor(options.context.beforeLines.length * shrinkRatio);
+      options.context.beforeLines = options.context.beforeLines.slice(-1 * beforeLen);
+      let afterLen = Math.floor(options.context.afterLines.length * shrinkRatio);
+      options.context.afterLines = options.context.afterLines.slice(0, afterLen);
+    } else {
+      let len = inputLen;
+      let refs: Reference[] = [];
+      for (let ref of options.context.reference) {
+        let extraLen = ref.label.length + ref.languageId.length + ref.snippet.length;
+        if (len + extraLen < options.maxInputTokens * 4) {
+          refs.push(ref);
+          len += extraLen;
+        } else {
+          break;
+        }
+      }
+      options.context.reference = refs;
+    }
+
     let config: any = {};
+    let template = Handlebars.compile(options.template);
+    config.prompt = template(options.context);
     config.model = options.config.model;
     config.stop = options.config.stop ? options.config.stop[0] : undefined;
     config.temperature = options.config.temperature;
@@ -609,11 +641,6 @@ export class RaccoonClient implements CodeClient {
     config.stream = false;
     config.max_new_tokens = options.config.maxNewTokenNum;
 
-    const requestPayload = {
-      ...config,
-      prompt: options.prompt
-    };
-
     const controller = new AbortController();
     options.onController?.(controller, options.thisArg);
 
@@ -621,7 +648,7 @@ export class RaccoonClient implements CodeClient {
       const chatPath = url;
       const chatPayload = {
         method: "POST",
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify(config),
         signal: controller.signal,
         headers,
       };
@@ -634,7 +661,7 @@ export class RaccoonClient implements CodeClient {
       {
         this.log?.(chatPath);
         this.log?.(JSON.stringify(headers, undefined, 2));
-        this.log?.(JSON.stringify(requestPayload, undefined, 2));
+        this.log?.(JSON.stringify(config, undefined, 2));
         const res = await fetch(chatPath, chatPayload);
         clearTimeout(requestTimeoutId);
         if (this.log) {

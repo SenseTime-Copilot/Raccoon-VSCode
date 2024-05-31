@@ -540,6 +540,7 @@
         "eslint": "^8.20.0",
         "form-data": "^4.0.0",
         "glob": "^8.0.3",
+        "handlebars": "^4.7.8",
         "https-browserify": "^1.0.0",
         "jwt-decode": "^3.1.2",
         "jwt-encode": "^1.0.1",

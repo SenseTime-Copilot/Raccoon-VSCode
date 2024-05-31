@@ -1,4 +1,4 @@
-import { Message, Role } from "../../raccoonClient/CodeClient";
+import { CompletionContext, Message, Role } from "../../raccoonClient/CodeClient";
 import { raccoonManager } from "../../globalEnv";
 import { Toolset } from "../raccoonToolset";
 import { CancellationToken } from "vscode";
@@ -33,10 +33,10 @@ export class LlmToolset implements Toolset {
     };
   }
 
-  private async _completion(args: { prompt: string }): Promise<Message> {
+  private async _completion(args: CompletionContext): Promise<Message> {
     let msg: Message = { role: Role.assistant, content: "" };
     await raccoonManager.completion(
-      args.prompt,
+      args,
       { n: 1 },
       {
         thisArg: this,

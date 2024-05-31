@@ -242,7 +242,7 @@ export class RaccoonTerminal {
           let errorFlag = false;
 
           raccoonManager.chat(
-            [...hlist, { role: Role.user, content: raccoonManager.buildFillPrompt(ModelCapacity.assistant, '', question) || "" }],
+            [...hlist, { role: Role.user, content: question }],
             {
               stream: true,
               n: 1
