@@ -1,6 +1,6 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
-import { supportedLanguages } from "../utils/getSupportedLanguages";
 import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter, extensionDisplayName } from "../globalEnv";
+import { supportedLanguages } from "../raccoonClient/getSupportedLanguages";
 import { MetricType } from "../raccoonClient/CodeClient";
 
 const encoder = new TextEncoder();
@@ -50,7 +50,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     if (!FavoriteCodeEditor.instance) {
       let dd: string = `<div class="dropdown-container"><label for="lang-dropdown">${l10n.t("Programming Language")}</label><vscode-dropdown id="lang-dropdown">`;
       for (let lang in supportedLanguages) {
-        dd += `<vscode-option>${supportedLanguages[lang]} (${lang})</vscode-option>`;
+        dd += `<vscode-option>${supportedLanguages[lang].displayName} (${lang})</vscode-option>`;
       }
       dd += '</vscode-dropdown></div>';
       FavoriteCodeEditor.languageDropDown = dd;
@@ -274,8 +274,8 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       codesnippet.value = ${JSON.stringify(snippet.code)};
       ${supportedLanguages[snippet.languageid || ""] &&
       `var langdd = document.getElementById("lang-dropdown");
-        langdd.value = "${supportedLanguages[snippet.languageid!]} (${snippet.languageid})"
-        `}      
+        langdd.value = "${supportedLanguages[snippet.languageid!].displayName} (${snippet.languageid})"
+        `}
       var shortcutNode = document.getElementById("shortcut");
       var saveNode = document.getElementById("save");
       shortcutNode.addEventListener("input", (_e)=>{
@@ -395,7 +395,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       table += `
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
         <vscode-data-grid-cell grid-column="1" style="align-self: center; cursor: pointer;" title="#${s.id}" onclick="editSnippet('${s.id}')"><vscode-link>${s.shortcut}</vscode-link></vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="2" style="align-self: center;">${supportedLanguages[s.languageid!]} <small style="opacity: 0.6;">(${s.languageid})</small></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="2" style="align-self: center;">${supportedLanguages[s.languageid!].displayName} <small style="opacity: 0.6;">(${s.languageid})</small></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center; white-space: pre;max-height: 5rem; overflow: hidden; text-overflow: ellipsis;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="align-self: center;">
           <vscode-link>

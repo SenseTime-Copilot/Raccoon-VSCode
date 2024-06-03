@@ -195,11 +195,11 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
         }
         let rs = docSymbolMap[r];
         for (let n of rs.symbols) {
-          if (names.includes(n.name)) {
+          if (name === n.name) {
             refs.push({
               languageId: rs.languageId,
               label: r,
-              snippet: (await vscode.workspace.openTextDocument(r)).getText(n.range)
+              snippet: (await vscode.workspace.openTextDocument(vscode.Uri.parse(r))).getText(n.range)
             });
           }
         }
@@ -308,9 +308,9 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
           let name = document.getText(range);
           preNames.push(name);
         }
-        preNames.reverse();
         p = p.translate(deltaLine, startChar);
       }
+      preNames.reverse();
     });
     await vscode.commands.executeCommand("vscode.provideDocumentRangeSemanticTokens", document.uri, new vscode.Range(new vscode.Position(cursorY, cursorX), new vscode.Position(folding.end, document.lineAt(folding.end).text.length))).then(async (result) => {
       let tokens = result as vscode.SemanticTokens;
@@ -350,7 +350,7 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
         }
       }
     }
-    filterSymbol(names);
+    await filterSymbol(names);
   }
 
   let _prefix = prefix.replace(/\r\n/g, '\n');
