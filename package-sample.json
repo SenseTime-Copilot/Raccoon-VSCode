@@ -355,7 +355,7 @@
             "raccoon-icon": {
                 "description": "Raccoon icon",
                 "default": {
-                    "fontPath": "media/raccoon.woff",
+                    "fontPath": "media/raccoon-icons.woff",
                     "fontCharacter": "\\E001"
                 }
             }
