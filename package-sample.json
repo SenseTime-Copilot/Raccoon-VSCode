@@ -453,7 +453,7 @@
                 {
                     "id": "{extensionId}-view-container",
                     "title": "{extensionName}",
-                    "icon": "media/raccoon.svg"
+                    "icon": "media/raccoon-dark.svg"
                 }
             ]
         },
