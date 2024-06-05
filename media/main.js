@@ -1800,6 +1800,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('like')) {
+      const id = targetButton.dataset.id;
       const feedbackActions = targetButton.closest('.feedback');
       var dislike = feedbackActions.querySelectorAll(".dislike")[0];
       if (targetButton?.classList?.contains('checked')) {
@@ -1814,6 +1815,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('dislike')) {
+      const id = targetButton.dataset.id;
       const feedbackActions = targetButton.closest('.feedback');
       var like = feedbackActions.querySelectorAll(".like")[0];
       if (targetButton?.classList?.contains('checked')) {
@@ -1834,7 +1836,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (targetButton?.classList?.contains('regenerate')) {
-      let id = targetButton?.dataset.id;
+      let id = targetButton.dataset.id;
       e.preventDefault();
       // targetButton?.classList?.add("pointer-events-none");
       const question = document.getElementById(`question-${id}`);
@@ -1892,7 +1894,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("mermaid-element-gnc")) {
       e.preventDefault();
-      let id = targetButton?.dataset.id;
+      let id = targetButton.dataset.id;
       let preNode = targetButton.parentElement?.parentElement;
       let mermaidNode = preNode?.querySelector('.mermaid-ready');
       let codeNode = preNode?.lastChild;
@@ -1929,7 +1931,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
-      let id = targetButton?.dataset.id;
+      let id = targetButton.dataset.id;
       var codelang = targetButton.parentElement?.parentElement?.dataset?.lang;
       vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", codelang });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
@@ -1945,7 +1947,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("diff-element-gnc")) {
       e.preventDefault();
-      let id = targetButton?.dataset.id;
+      let id = targetButton.dataset.id;
       var difflang = targetButton.parentElement?.parentElement?.dataset?.lang;
       vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "diff-code", difflang });
       vscode.postMessage({
@@ -1959,7 +1961,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains("edit-element-gnc")) {
       e.preventDefault();
-      let id = targetButton?.dataset.id;
+      let id = targetButton.dataset.id;
       var insertlang = targetButton.parentElement?.parentElement?.dataset?.lang;
       vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "insert-snippet", insertlang });
       vscode.postMessage({

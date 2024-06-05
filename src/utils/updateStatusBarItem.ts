@@ -28,7 +28,7 @@ export function updateStatusBarItem(
     return;
   }
 
-  statusBarItem.text = `$(raccoon-icon) ${info.text}`;
+  statusBarItem.text = `$(raccoon-icon) $(dash) ${info.text}`;
   statusBarItem.tooltip = buildTip(info.tooltip);
   if (!info.keep) {
     statusbartimer = setTimeout(() => {

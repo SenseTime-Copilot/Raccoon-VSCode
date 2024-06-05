@@ -354,6 +354,23 @@ export async function buildSettingPage(): Promise<string> {
   let isEnterprise = (raccoonConfig.value("type") === "Enterprise");
   let disableSwitch = (isEnterprise && (raccoonManager.organizationList().length === 1));
 
+  let knowledgeBaseSetting = ``;
+  if (!isEnterprise) {
+    knowledgeBaseSetting = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <div class="flex gap-2 items-center ${knowledgeBaseEnable ? "" : "opacity-50"}">
+      <b>${l10n.t("Retrieval Argumention")}</b>
+      <vscode-badge class="${activeOrg ? "hidden" : "opacity-50"}">Pro</vscode-badge>
+    </div>
+    <div class="ml-4 my-1">
+      <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
+      <div class="flex flex-wrap ml-2 my-1">
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs => kbs.map((v, _idx, _arr) => v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
+      </div>
+    </div>`;
+  }
+
   let accountInfo = `
   <div class="flex gap-2 items-center w-full">
     ${avatarEle}
@@ -447,19 +464,7 @@ export async function buildSettingPage(): Promise<string> {
       </vscode-radio>
     </vscode-radio-group>
   </div>
-  <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-  <div class="flex gap-2 items-center ${knowledgeBaseEnable ? "" : "opacity-50"}">
-    <b>${l10n.t("Retrieval Argumention")}</b>
-    <vscode-badge class="${activeOrg ? "hidden" : "opacity-50"}">Pro</vscode-badge>
-  </div>
-  <div class="ml-4 my-1">
-    <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${l10n.t("Reference Source")}</label>
-    <div class="flex flex-wrap ml-2 my-1">
-      <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs => kbs.map((v, _idx, _arr) => v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${l10n.t("Knowledge Base")}</vscode-checkbox>
-      <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${l10n.t("Workspace Folder(s)")}</vscode-checkbox>
-      <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${l10n.t("Internet")}</vscode-checkbox>
-    </div>
-  </div>
+  ${knowledgeBaseSetting}
   <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
   <div class="flex flex-col">
     <vscode-checkbox id="privacy" ${raccoonManager.privacy ? "checked" : ""}>${l10n.t("Join the User Experience Improvement Program")}</vscode-checkbox>
