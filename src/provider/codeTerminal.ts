@@ -272,7 +272,11 @@ export class RaccoonTerminal {
               onFinish(choices: Choice[], thisArg?: any) {
                 let h = <RaccoonTerminal>thisArg;
                 h.responsing = false;
-                h.history = h.history.concat([{ id: h.id, timestamp: 0, name: username, type: CacheItemType.answer, value: h.cacheOutput }]);
+                if (h.cacheOutput) {
+                  h.history = h.history.concat([{ id: h.id, timestamp: 0, name: username, type: CacheItemType.answer, value: h.cacheOutput }]);
+                } else {
+                  h.history = h.history.concat([{ id: h.id, timestamp: 0, name: username, type: CacheItemType.error, value: "Empty Response" }]);
+                }
                 h.cacheOutput = "";
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
 

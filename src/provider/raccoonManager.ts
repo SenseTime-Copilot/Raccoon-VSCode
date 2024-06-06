@@ -945,6 +945,14 @@ export class RaccoonManager {
     return ca.client.sendTelemetry(ca.authInfo, org, metricType, common, metric);
   }
 
+  public get codelens(): boolean {
+    return this.context.globalState.get("Codelens", true);
+  }
+
+  public set codelens(v: boolean) {
+    this.context.globalState.update("Codelens", v);
+  }
+
   public get autoComplete(): boolean {
     return this.context.globalState.get("CompletionAutomatically", true);
   }

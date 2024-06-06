@@ -194,14 +194,21 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
           continue;
         }
         let rs = docSymbolMap[r];
-        for (let n of rs.symbols) {
-          if (name === n.name) {
-            refs.push({
-              languageId: rs.languageId,
-              label: r,
-              snippet: (await vscode.workspace.openTextDocument(vscode.Uri.parse(r))).getText(n.range)
-            });
-          }
+        await matchSymbols(rs, name, r);
+      }
+    }
+
+    async function matchSymbols(rs: { languageId: string; symbols: vscode.DocumentSymbol[] }, name: string, r: string) {
+      for (let n of rs.symbols) {
+        if (name === n.name) {
+          refs.push({
+            languageId: rs.languageId,
+            label: r,
+            snippet: (await vscode.workspace.openTextDocument(vscode.Uri.parse(r))).getText(n.range)
+          });
+        }
+        for (let nn of n.children) {
+          await matchSymbols(rs, nn.name, r);
         }
       }
     }

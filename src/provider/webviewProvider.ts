@@ -729,7 +729,11 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 if (!errorFlag) {
                   let rts = new Date().valueOf();
-                  h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
+                  if (response) {
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
+                  } else {
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+                  }
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
@@ -784,7 +788,11 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 let rts = new Date().valueOf();
                 if (!errorFlag) {
-                  h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content || "" });
+                  if (choices[0].message?.content) {
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content });
+                  } else {
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+                  }
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
