@@ -127,7 +127,7 @@ export function makeGuide(isMac: boolean) {
   `;
 }
 
-export async function buildLoginPage(context: ExtensionContext, webview: Webview): Promise<string> {
+export async function buildLoginPage(_context: ExtensionContext, _webview: Webview): Promise<string> {
   let loginForm = ``;
   await raccoonManager.getAuthUrlLogin().then(async authUrl => {
     if (!authUrl) {
@@ -173,7 +173,6 @@ export async function buildLoginPage(context: ExtensionContext, webview: Webview
                     </vscode-panels>`;
     }
     if (url.scheme === "command" && url.path === `${extensionNameKebab}.phone`) {
-      const stylesMainUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-placeholder-20.png'));
       let phoneAccount = `<div class="flex flex-row">
                             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
                             <vscode-dropdown class="grow" id="login-phone-code" value="86">
@@ -202,36 +201,6 @@ export async function buildLoginPage(context: ExtensionContext, webview: Webview
               </vscode-link>
             </div>
           </div>`;
-      let smsAccount = `<div class="flex flex-row">
-          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
-          <vscode-dropdown class="grow" id="login-sms-code" value="86">
-            ${Object.keys(phoneZoneCode).map((v, _idx, _arr) => `<vscode-option value="${phoneZoneCode[v]}" style="padding: 0 calc(var(--design-unit) * 2px);">${v} (${phoneZoneCode[v]})</vscode-option>`).join('')}
-          </vscode-dropdown>
-        </div>
-        <div class="flex flex-row">
-          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">smartphone</span>
-          <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-sms-account" required="required">
-          </vscode-text-field>
-        </div>`;
-      let smsForm = `
-          <div class="flex flex-row gap-2 flex-wrap">
-            <img id="captcha" src="#" style="cursor: pointer; max-width: 30%; min-width: 90px; border-raduis: 2px; image-rendering: -webkit-optimize-contrast;" title="${l10n.t("Refresh")}" onerror="this.src='${stylesMainUri}';this.onerror='';"/>
-            <div class="flex flex-col grow gap-2 w-min">
-              <div class="flex flex-row">
-                <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">pin</span>
-                <vscode-text-field id="login-sms-captcha" class="grow" required="required">
-                </vscode-text-field>
-                <vscode-button class="attach-btn-right" style="--button-icon-padding: 0; border-radius:2px; background-color: var(--input-background);" title="${l10n.t("Send Verification Code")}" appearance="icon" id="sendSmsCode" disabled>
-                  <span class="material-symbols-rounded" style="display: contents;">send_to_mobile</span>
-                </vscode-button>
-              </div>
-              <div class="flex flex-row">
-                <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">sms</span>
-                <vscode-text-field id="login-sms-answer" pattern="\\d{6}" maxlength=6 onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-sms-account');var pwd = document.getElementById('login-sms-answer');if(account.validity.valid && pwd.validity.valid){document.getElementById('login-sms-btn').click();};})(this)" class="grow" required="required">
-                </vscode-text-field>
-              </div>
-            </div>
-          </div>`;
       let tips = `<span class="self-center grow">
                         ${l10n.t("Do not have an account?")}
                         <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonConfig.value("signup")}">
@@ -243,13 +212,7 @@ export async function buildLoginPage(context: ExtensionContext, webview: Webview
                       </div>`;
       loginInputs = `
           <vscode-panels style="overflow: visible">
-            <vscode-panel-tab id="tab-sms">${l10n.t("Login with SMS Code")}</vscode-panel-tab>
             <vscode-panel-tab id="tab-pwd">${l10n.t("Login with Password")}</vscode-panel-tab>
-            <vscode-panel-view id="view-sms" class="flex-col gap-2">
-              ${smsAccount}
-              ${smsForm}
-              <vscode-button id="login-sms-btn" style="width: 300px;max-width: 100%;margin: 25px auto 0 auto;" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
-            </vscode-panel-view>
             <vscode-panel-view id="view-pwd" class="flex-col gap-2">
               ${phoneAccount}
               ${passwordForm}
