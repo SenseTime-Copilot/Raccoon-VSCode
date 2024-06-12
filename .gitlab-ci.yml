@@ -30,7 +30,7 @@ variables:
       - "TGI"
   BASEURL:
     description: "The base URL path of backend"
-    value: "https://raccoon-api.sensetime.com"
+    value: "https://raccoon.sensetime.com"
 
 code_scan:
   image: registry.sensetime.com/security/codescan:latest

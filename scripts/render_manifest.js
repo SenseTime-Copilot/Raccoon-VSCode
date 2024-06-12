@@ -6,7 +6,7 @@ let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";
 let apiType = args.apiType || "Raccoon";
-let baseUrl = args.baseUrl || "https://raccoon-api.sensetime.com";
+let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
 let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
 
 console.log("=============== Rendering Settings ===============");
