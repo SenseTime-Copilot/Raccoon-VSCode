@@ -535,11 +535,11 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               </vscode-panel-view>
               <div id="msg-wrapper">
               </div>
+              <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
+                <div id="code-title"></div>
+                <pre id="attach-code-wrapper"><code id="attach-code"></code></pre>
+              </div>
               <div id="chat-input-box" class="w-full flex flex-col justify-center items-center px-1 gap-1">
-                <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
-                  <div id="code-title"></div>
-                  <pre id="attach-code-wrapper"><code id="attach-code"></code></pre>
-                </div>
                 <div id="search-list" class="flex flex-col w-full py-2 hidden">
                   <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://raccoon.search/stackoverflow.search?\${query}'>
                     StackOverflow
@@ -571,7 +571,33 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                   <span class="material-symbols-rounded opacity-60 history-icon">
                     history
                   </span>
-                  <div class="op-hint">
+                  <label id="question-sizer" data-value
+                        data-placeholder="${l10n.t("Ask {robot} a question", { robot: extensionDisplayName })}"
+                        data-action-hint="${l10n.t("Pick one prompt to send")} [Enter]"
+                        data-agent-hint="${l10n.t("Pick one agent")} [Enter]"
+                        data-search-hint="${l10n.t("Type anything to search")} [Enter]"
+                        data-tip="${l10n.t("Ask {robot} a question", { robot: extensionDisplayName })}"
+                        data-tip1="${l10n.t("Double-pressing {0} to summon me at any time.", "[Ctrl]")}"
+                        data-tip2="${l10n.t("Type [Shift + Enter] to start a new line")}"
+                        data-tip3="${l10n.t("Press [Esc] to stop responding")}"
+                  >
+                    <div id="backdrop">
+                      <div id="highlight-anchor">
+                      </div>
+                    </div>
+                    <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
+                  </label>
+                  <button id="send-button" title="${l10n.t("Send")} [Enter]">
+                    <span class="material-symbols-rounded">send</span>
+                  </button>
+                  <button id="stop-button" title="${l10n.t("Stop")} [Esc]">
+                    <span class="material-symbols-rounded">stop</span>
+                  </button>
+                  <button id="search-button" title="${l10n.t("Search")} [Enter]">
+                    <span class="material-symbols-rounded">search</span>
+                  </button>
+                </div>
+                <div class="op-hint">
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Send")}
                     </vscode-badge>
@@ -615,32 +641,6 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                       <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${l10n.t("Clear")}
                     </vscode-badge>
                   </div>
-                  <label id="question-sizer" data-value
-                        data-placeholder="${l10n.t("Ask {robot} a question", { robot: extensionDisplayName })}"
-                        data-action-hint="${l10n.t("Pick one prompt to send")} [Enter]"
-                        data-agent-hint="${l10n.t("Pick one agent")} [Enter]"
-                        data-search-hint="${l10n.t("Type anything to search")} [Enter]"
-                        data-tip="${l10n.t("Ask {robot} a question", { robot: extensionDisplayName })}"
-                        data-tip1="${l10n.t("Double-pressing {0} to summon me at any time.", "[Ctrl]")}"
-                        data-tip2="${l10n.t("Type [Shift + Enter] to start a new line")}"
-                        data-tip3="${l10n.t("Press [Esc] to stop responding")}"
-                  >
-                    <div id="backdrop">
-                      <div id="highlight-anchor">
-                      </div>
-                    </div>
-                    <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
-                  </label>
-                  <button id="send-button" title="${l10n.t("Send")} [Enter]">
-                    <span class="material-symbols-rounded">send</span>
-                  </button>
-                  <button id="stop-button" title="${l10n.t("Stop")} [Esc]">
-                    <span class="material-symbols-rounded">stop</span>
-                  </button>
-                  <button id="search-button" title="${l10n.t("Search")} [Enter]">
-                    <span class="material-symbols-rounded">search</span>
-                  </button>
-                </div>
               </div>
             </div>
             <script>

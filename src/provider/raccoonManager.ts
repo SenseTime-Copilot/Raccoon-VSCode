@@ -737,20 +737,21 @@ export class RaccoonManager {
     }, async (progress, _cancel) => {
       let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
       if (ca && ca.authInfo) {
-        await ca.client.logout(ca.authInfo).then((logoutUrl) => {
-          progress.report({ increment: 100 });
-          if (logoutUrl) {
-            commands.executeCommand("vscode.open", logoutUrl);
-          }
-          if (ca) {
-            this.updateToken(ca.client.robotName);
-          }
-        }, () => {
-          progress.report({ increment: 100 });
-          if (ca) {
-            this.updateToken(ca.client.robotName);
-          }
-        });
+        await ca.client.logout(ca.authInfo)
+          .then(
+            async (logoutUrl) => {
+              if (logoutUrl) {
+                commands.executeCommand("vscode.open", logoutUrl);
+              }
+            }
+          ).finally(async () => {
+            if (ca) {
+              this.updateToken(ca.client.robotName);
+              await this.context.globalState.update("ActiveOrganization", undefined);
+              await this.context.globalState.update("ActiceClient", undefined);
+            }
+            progress.report({ increment: 100 });
+          });
       }
     });
   }

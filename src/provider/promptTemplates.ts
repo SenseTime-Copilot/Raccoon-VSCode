@@ -82,7 +82,7 @@ export class PromptInfo {
         let arg = args[argName];
         switch (arg.type) {
           case "enum": {
-            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}">`;
+            let renderElem = `<div class="inline-flex items-center gap-1 mx-1"><select class="ignoreText" id="${argName}-${id}" onChange="document.getElementById('values-${id}').dataset.${argName} = this.value;">`;
             for (let v of arg.options) {
               renderElem += `<option value="${v}">${v}</option>`;
             }

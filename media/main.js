@@ -659,7 +659,7 @@ const vscode = acquireVsCodeApi();
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link><vscode-link id="pin-ask-list-btn"><span class="material-symbols-rounded" id="pin-ask-list">push_pin</span></vscode-link></div>';
+        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link></div>';
         var first = true;
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
@@ -1201,6 +1201,13 @@ const vscode = acquireVsCodeApi();
     // _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
+    if (document.getElementById("chat-input-box").classList.contains("agent")
+      || document.getElementById("chat-input-box").classList.contains("action")
+      || document.getElementById("chat-input-box").classList.contains("search")) {
+      document.getElementById("attach-code-container").classList.add("overlayed");
+    } else {
+      document.getElementById("attach-code-container").classList.remove("overlayed");
+    }
   }
 
   document.addEventListener("change", (e) => {
@@ -1316,7 +1323,7 @@ const vscode = acquireVsCodeApi();
       if (e.key === "Enter") {
         e.preventDefault();
         for (let i = 0; i < btns.length; i++) {
-          if (!list.classList.contains("pin") && btns[i].classList.contains('selected')) {
+          if (btns[i].classList.contains('selected')) {
             btns[i].click();
             break;
           }
@@ -1691,12 +1698,6 @@ const vscode = acquireVsCodeApi();
 
     if (e.target.id === "prompt-manage") {
       vscode.postMessage({ type: "promptManage" });
-      return;
-    }
-
-    if (e.target.id === "pin-ask-list") {
-      document.getElementById("ask-list").classList.toggle("pin");
-      document.getElementById("question-input").focus();
       return;
     }
 
