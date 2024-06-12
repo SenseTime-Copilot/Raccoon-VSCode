@@ -120,7 +120,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
   });
 
-  registerCommand(context, "onSuggestionAccepted", (uri: vscode.Uri, languageid: string, _selection: string, range?: vscode.Range) => {
+  registerCommand(context, "onSuggestionAccepted", (uri: vscode.Uri, languageid: string, _selection: string, line: number, range?: vscode.Range) => {
     let editor = vscode.window.activeTextEditor;
     if (range && editor) {
       let start = range.start.line;
@@ -130,7 +130,9 @@ export async function activate(context: vscode.ExtensionContext) {
     let usage: any = {};
     usage[languageid] = {
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      code_accept_num: 1
+      code_accept_num: 1,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      code_accept_line_num: line
     };
     // eslint-disable-next-line @typescript-eslint/naming-convention
     telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });

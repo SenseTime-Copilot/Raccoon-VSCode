@@ -68,6 +68,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
           );
         },
         onFinish(choices: Choice[]) {
+          let lineNum = 0;
           for (let i = 0; i < choices.length; i++) {
             let message = choices[i].message?.content.trimEnd();
             if (!message) {
@@ -98,6 +99,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
                 document.uri,
                 document.languageId,
                 i.toString(),
+                resultLines + 1,
                 decoratorRange
               ]
             };
@@ -106,12 +108,15 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
               range,
               command
             });
+            lineNum += message.split("\n").length;
           }
           if (items.length > 0) {
             let usage: any = {};
             usage[document.languageId] = {
               // eslint-disable-next-line @typescript-eslint/naming-convention
-              code_generate_num: items.length
+              code_generate_num: items.length,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              code_generate_line_num: lineNum
             };
             // eslint-disable-next-line @typescript-eslint/naming-convention
             telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
