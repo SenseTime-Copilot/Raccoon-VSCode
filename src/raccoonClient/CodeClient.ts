@@ -3,7 +3,6 @@ export enum AuthMethod {
   apikey = "apikey",
   accesskey = "accesskey",
   phone = "phone",
-  sms = "sms",
   email = "email"
 }
 
@@ -12,16 +11,12 @@ export type AccessKey = {
   secretAccessKey: string;
 };
 
-export type Password = {
-  account: string;
-  password: string;
-};
-
 export type ClientConfig = {
   robotname: string;
-  apiBaseUrl: string;
+  baseUrl: string;
+  authMethod: AuthMethod[];
   username?: string;
-  key?: string | AccessKey | Password;
+  key?: string | AccessKey;
 };
 
 export type Organization = {
@@ -193,11 +188,6 @@ export enum MetricType {
   commitMessage = "commit_message"
 }
 
-export type Captcha = {
-  image: string;
-  uuid: string;
-};
-
 export type ApiKeyLoginParam = {
   type: AuthMethod.apikey;
   apikey: string;
@@ -211,8 +201,7 @@ export type AccessKeyLoginParam = {
 
 export type BrowserLoginParam = {
   type: AuthMethod.browser;
-  callbackUrl: string;
-  codeVerifer: string;
+  callbackParam: string;
 };
 
 export type PhoneLoginParam = {
@@ -228,12 +217,12 @@ export type EmailLoginParam = {
   password: string;
 };
 
-export type SmsLoginParam = {
-  type: AuthMethod.sms;
-  nationCode: string;
-  phone: string;
-  smsCode: string;
-};
+export enum UrlType {
+  base = "base",
+  signup = "signup",
+  login = "login",
+  forgetPassword = "forgetPassword"
+}
 
 export interface CodeClient {
 
@@ -243,12 +232,11 @@ export interface CodeClient {
 
   get authMethods(): AuthMethod[];
 
+  url(type: UrlType): string;
+
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
-  getCaptcha(timeoutMs?: number): Promise<Captcha | undefined>;
-  sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string): Promise<void>;
-
-  login(param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo>;
+  login(param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo>;
 
   logout(auth: AuthInfo): Promise<string | undefined>;
 

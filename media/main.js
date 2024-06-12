@@ -1271,33 +1271,6 @@ const vscode = acquireVsCodeApi();
           loginPwdBtn.disabled = true;
         }
       }
-    } else if (
-      e.target.id === "login-sms-account" ||
-      e.target.id === "login-sms-captcha" ||
-      e.target.id === "login-sms-answer") {
-      var account = document.getElementById("login-sms-account");
-      var captcha = document.getElementById("login-sms-captcha");
-      var smsCode = document.getElementById("login-sms-answer");
-      var sendSmsCode = document.getElementById("sendSmsCode");
-      var loginSmsBtn = document.getElementById("login-sms-btn");
-      if (account.checkValidity() && captcha?.checkValidity()) {
-        if (sendSmsCode) {
-          sendSmsCode.disabled = false;
-        }
-      } else {
-        if (sendSmsCode) {
-          sendSmsCode.disabled = true;
-        }
-      }
-      if (account.checkValidity() && smsCode?.checkValidity()) {
-        if (loginSmsBtn) {
-          loginSmsBtn.disabled = false;
-        }
-      } else {
-        if (loginSmsBtn) {
-          loginSmsBtn.disabled = true;
-        }
-      }
     } else {
       toggleSubMenuList();
     }
@@ -1630,42 +1603,6 @@ const vscode = acquireVsCodeApi();
     let ts = new Date().valueOf();
     if (e.target.id === "captcha") {
       vscode.postMessage({ type: "getCaptcha" });
-      return;
-    }
-    if (targetButton?.id === "sendSmsCode") {
-      let code = document.getElementById("login-sms-code")?.value;
-      let account = document.getElementById("login-sms-account").value;
-      let uuid = document.getElementById("captcha").dataset['id'];
-      let captcha = document.getElementById("login-sms-captcha").value;
-      targetButton.classList.add("frozen");
-      setTimeout(
-        () => {
-          targetButton.classList.remove("frozen");
-        },
-        3000
-      );
-      vscode.postMessage({
-        type: "sendSmsCode",
-        code,
-        account,
-        uuid,
-        captcha
-      });
-      return;
-    }
-    if (targetButton?.id === "login-sms-btn") {
-      let nationCode = document.getElementById("login-sms-code")?.value;
-      let phone = document.getElementById("login-sms-account").value;
-      let smsCode = document.getElementById("login-sms-answer").value;
-      vscode.postMessage({
-        type: "login",
-        value: {
-          type: "sms",
-          nationCode,
-          phone,
-          smsCode
-        }
-      });
       return;
     }
     if (targetButton?.id === "login-phone-btn") {

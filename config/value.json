@@ -1,12 +1,15 @@
 {
   "type": "Standard",
-  "signup": "https://raccoon.sensetime.com/register",
-  "forgetPassword": "https://raccoon.sensetime.com/login?step=forgot-password",
   "engines": [
     {
       "robotname": "Raccoon",
       "apiType": "Raccoon",
-      "apiBaseUrl": "https://raccoon-api.sensetime.com/api/plugin",
+      "baseUrl": "https://raccoon.sensetime.com",
+      "authMethod": [
+        "browser",
+        "email",
+        "phone"
+      ],
       "completion": {
         "template": "<LANG>{{languageId}}<SUF>{{afterLines}}<PRE>{{#each reference}}{{this.label}}\n{{this.snippet}}\n{{/each}}\n{{beforeLines}}<COVER>{{afterCursor}}<MID>{{beforeCursor}}",
         "parameters": {

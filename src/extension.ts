@@ -17,8 +17,15 @@ import { PromptEditor } from "./provider/promptManager";
 import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
 import { getDocumentSymbols } from "./utils/collectionPromptInfo";
+// import { RaccoonCodelensProvider } from "./provider/codeLensProvider";
 
 export let docSymbolMap: { [key: string]: { languageId: string; symbols: vscode.DocumentSymbol[] } } = {};
+
+class RaccoonUriHandler implements vscode.UriHandler {
+  handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
+    raccoonManager.login({ type: AuthMethod.browser, callbackParam: uri.query });
+  }
+}
 
 export async function activate(context: vscode.ExtensionContext) {
   let statusBarItem: vscode.StatusBarItem;
@@ -30,6 +37,8 @@ export async function activate(context: vscode.ExtensionContext) {
   PromptEditor.register(context);
 
   await raccoonManager.initialClients();
+
+  context.subscriptions.push(vscode.window.registerUriHandler(new RaccoonUriHandler()));
 
   let validateInput = function (v: string) {
     return v ? undefined : "The value must not be empty";
@@ -155,6 +164,22 @@ export async function activate(context: vscode.ExtensionContext) {
       inlineProvider
     )
   );
+
+  /*
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      "*",
+      new RaccoonCodelensProvider()
+    )
+  );
+
+  registerCommand(context, "codelensAction", async (range: vscode.Range) => {
+    let editor = vscode.window.activeTextEditor;
+    if (editor && editor.document) {
+      vscode.window.showTextDocument(editor?.document, { selection: range });
+    }
+  });
+  */
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {

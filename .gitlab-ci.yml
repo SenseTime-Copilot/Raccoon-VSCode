@@ -8,32 +8,29 @@ stages:
   - build
 
 variables:
+  PACKAGE_VALUE_FILE:
+    description: "FILE TYPE VARIABLE: content for value.json, if set, ignore all belowing values"
   PACKAGE_ID:
     description: "The package ID for shipping package."
     value: "raccoon"
   PACKAGE_NAME:
     description: "The package name for shipping package."
     value: "Raccoon"
-  PACKAGE_VALUE_FILE:
-    description: "FILE TYPE VARIABLE: content for value.json, if set, ignore all belowing values"
   PACKAGE_TYPE:
     description: "The package type for shipping package, Standard/Enterprise"
     value: "Standard"
     options:
       - "Standard"
       - "Enterprise"
-  WEB_BASEURL:
-    description: "The Web base URL path of backend"
-    value: "https://raccoon.sensetime.com"
   API_TYPE:
     description: "API type"
     value: "Raccoon"
     options:
       - "Raccoon"
       - "TGI"
-  API_BASEURL:
-    description: "The API base URL path of backend"
-    value: "https://raccoon-api.sensetime.com/api/plugin"
+  BASEURL:
+    description: "The base URL path of backend"
+    value: "https://raccoon-api.sensetime.com"
 
 code_scan:
   image: registry.sensetime.com/security/codescan:latest
@@ -49,7 +46,7 @@ build_package:
   script:
     - cd $CI_PROJECT_DIR
     - npm install --prefix ./scripts minimist
-    - node ./scripts/render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageValueFile="$PACKAGE_VALUE_FILE" --packageType="$PACKAGE_TYPE" --webBaseUrl="$WEB_BASEURL" --apiType="$API_TYPE" --apiBaseUrl="$API_BASEURL"
+    - node ./scripts/render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageValueFile="$PACKAGE_VALUE_FILE" --packageType="$PACKAGE_TYPE" --apiType="$API_TYPE" --baseUrl="$BASEURL"
     - npm install
     - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
   artifacts:

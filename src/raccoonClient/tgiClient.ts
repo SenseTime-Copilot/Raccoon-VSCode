@@ -1,4 +1,4 @@
-import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, Captcha, AccessKeyLoginParam, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam } from "./CodeClient";
+import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType } from "./CodeClient";
 import { EventStreamContentType, fetchEventSource } from "@fortaine/fetch-event-source";
 import hbs = require("handlebars");
 
@@ -20,19 +20,15 @@ export class TGIClient implements CodeClient {
     return [];
   }
 
+  public url(_type: UrlType): string {
+    return this.clientConfig.baseUrl;
+  }
+
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
     return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
   }
 
-  getCaptcha(_timeoutMs?: number): Promise<Captcha> {
-    return Promise.reject();
-  }
-
-  sendSMS(_captchaUuid: string, _code: string, _nationCode: string, _phone: string): Promise<void> {
-    return Promise.reject();
-  }
-
-  public async login(_param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  public async login(_param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
         username: this.clientConfig.username || "User",
@@ -72,7 +68,7 @@ export class TGIClient implements CodeClient {
   }
 
   async chat(_auth: AuthInfo, options: ChatOptions, _org?: Organization): Promise<void> {
-    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
 
@@ -300,7 +296,7 @@ export class TGIClient implements CodeClient {
   }
 
   async completion(_auth: AuthInfo, options: CompletionOptions, _org?: Organization): Promise<void> {
-    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
 

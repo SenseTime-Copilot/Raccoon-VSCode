@@ -1,11 +1,11 @@
-import { ExtensionContext, Uri, Webview, l10n } from 'vscode';
+import { ExtensionContext, Uri, Webview, env, l10n } from 'vscode';
 import { extensionDisplayName, extensionNameKebab, raccoonConfig, raccoonManager } from "../globalEnv";
-import { Organization } from '../raccoonClient/CodeClient';
+import { AuthMethod, Organization, UrlType } from '../raccoonClient/CodeClient';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 import { CompletionPreferenceType } from './raccoonManager';
 
 function buildOrgHint(): string {
-  let isEnterprise = (raccoonConfig.value("type") === "Enterprise");
+  let isEnterprise = (raccoonConfig.type() === "Enterprise");
   let orgs = raccoonManager.organizationList();
   if (orgs.length === 0 || (isEnterprise && (orgs.length === 1))) {
     return "";
@@ -127,53 +127,73 @@ export function makeGuide(isMac: boolean) {
   `;
 }
 
-export async function buildLoginPage(_context: ExtensionContext, _webview: Webview): Promise<string> {
-  let loginForm = ``;
-  await raccoonManager.getAuthUrlLogin().then(async authUrl => {
-    if (!authUrl) {
-      return;
+export async function buildLoginPage(context: ExtensionContext, _webview: Webview): Promise<string> {
+  let isEnterprise = (raccoonConfig.type() === "Enterprise");
+  let methods = raccoonManager.getAuthMethods();
+  if (methods.length === 0) {
+    return "";
+  }
+  let tabs = '';
+  let views = '';
+  if (methods.includes(AuthMethod.browser)) {
+    let loginUrl = raccoonManager.getUrl(UrlType.login);
+    if (loginUrl) {
+      tabs += `<vscode-panel-tab id="tab-browser">${l10n.t("Login with Browser")}</vscode-panel-tab>`;
+      let redirectUrl = Uri.parse(`${env.uriScheme}://${context.extension.id}/login`).toString();
+      views += `<vscode-panel-view id="view-browser" class="login-view flex-col gap-2">
+                  <div></div>
+                  <a title="${l10n.t("Login with Browser")}" class="sso-btn" href="${loginUrl.with({ query: `redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
+                    <vscode-button style="width: 100%">${l10n.t("Login")}</vscode-button>
+                  </a>
+                  <div></div>
+                </vscode-panel-view>`;
     }
-    let url = Uri.parse(authUrl);
-    let loginInputs = '';
-    if (url.scheme === "command" && (url.path === `${extensionNameKebab}.setAccessKey` || url.path === `${extensionNameKebab}.setApiKey`)) {
-      let title = l10n.t("Setup Access Key");
-      loginForm = `<vscode-link title="${title}" href="${url.toString(true)}">
-                    <vscode-button>${title}</vscode-button>
-                  </vscode-link>`;
+  }
+
+  if (methods.includes(AuthMethod.email)) {
+    tabs += `<vscode-panel-tab id="tab-email">${l10n.t("Login with Email")}</vscode-panel-tab>`;
+    views += `<vscode-panel-view id="view-email" class="login-view flex-col gap-2">
+                <div class="flex flex-col gap-2">
+                <div class="flex flex-row">
+                  <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
+                  <vscode-text-field class="grow" type="email" autofocus id="login-email-account" required="required">
+                  </vscode-text-field>
+                </div>
+                <div class="flex flex-row">
+                  <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">lock</span>
+                  <vscode-text-field type="password" pattern=".{8,32}" maxlength=32 id="login-email-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-email-account');var pwd = document.getElementById('login-email-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login-email-btn').click();};})(this)" class="grow" required="required">
+                    <div slot="end" onclick="((e) => {e.children[0].classList.toggle('hidden');e.children[1].classList.toggle('hidden');var pwd = document.getElementById('login-email-password');if (pwd.type === 'password') {pwd.type = 'text';} else {pwd.type = 'password';}})(this)">
+                      <span class="material-symbols-rounded opacity-50 cursor-pointer">visibility_off</span>
+                      <span class="material-symbols-rounded opacity-50 cursor-pointer hidden">visibility</span>
+                    </div>
+                  </vscode-text-field>
+                </div>
+                <div class="flex flex-col">
+                  <div class="grow text-right">
+                    <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs">
+                      ${l10n.t("Forgot Password")}?
+                    </vscode-link>
+                  </div>
+                </div>
+                </div>
+                <vscode-button id="login-email-btn" class="login-btn" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
+              </vscode-panel-view>`;
+  }
+  if (!isEnterprise && methods.includes(AuthMethod.phone)) {
+    tabs += `<vscode-panel-tab id="tab-pwd">${l10n.t("Login with Password")}</vscode-panel-tab>`;
+    let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
+    let forgetPwd = '';
+    if (forgetPwdLink) {
+      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString()}">
+                ${l10n.t("Forgot Password")}?
+              </vscode-link>`;
+    } else {
+      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs" href="#">
+                ${l10n.t("Forgot Password")}?
+              </vscode-link>`;
     }
 
-    if (url.scheme === "command" && url.path === `${extensionNameKebab}.email`) {
-      let accountForm = `<div class="flex flex-row">
-                          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">mail</span>
-                          <vscode-text-field class="grow" type="email" autofocus id="login-email-account" required="required">
-                          </vscode-text-field>
-                        </div>`;
-      loginInputs = `<vscode-panels style="overflow: visible">
-                      <vscode-panel-tab id="tab-email">${l10n.t("Login with Email")}</vscode-panel-tab>
-                      <vscode-panel-view id="view-email" class="flex-col gap-2">
-                        ${accountForm}
-                        <div class="flex flex-row">
-                          <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">lock</span>
-                          <vscode-text-field type="password" pattern=".{8,32}" maxlength=32 id="login-email-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-email-account');var pwd = document.getElementById('login-email-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login-email-btn').click();};})(this)" class="grow" required="required">
-                            <div slot="end" onclick="((e) => {e.children[0].classList.toggle('hidden');e.children[1].classList.toggle('hidden');var pwd = document.getElementById('login-email-password');if (pwd.type === 'password') {pwd.type = 'text';} else {pwd.type = 'password';}})(this)">
-                              <span class="material-symbols-rounded opacity-50 cursor-pointer">visibility_off</span>
-                              <span class="material-symbols-rounded opacity-50 cursor-pointer hidden">visibility</span>
-                            </div>
-                          </vscode-text-field>
-                        </div>
-                        <div class="flex flex-col">
-                          <div class="grow text-right">
-                            <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs">
-                              ${l10n.t("Forgot Password")}?
-                            </vscode-link>
-                          </div>
-                        </div>
-                        <vscode-button id="login-email-btn" style="width: 300px;max-width: 100%;margin: 25px auto 0 auto;" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
-                      </vscode-panel-view>
-                    </vscode-panels>`;
-    }
-    if (url.scheme === "command" && url.path === `${extensionNameKebab}.phone`) {
-      let phoneAccount = `<div class="flex flex-row">
+    let phoneAccount = `<div class="flex flex-row">
                             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--dropdown-background);">public</span>
                             <vscode-dropdown class="grow" id="login-phone-code" value="86">
                               ${Object.keys(phoneZoneCode).map((v, _idx, _arr) => `<vscode-option value="${phoneZoneCode[v]}" style="padding: 0 calc(var(--design-unit) * 2px);">${v} (${phoneZoneCode[v]})</vscode-option>`).join('')}
@@ -184,7 +204,7 @@ export async function buildLoginPage(_context: ExtensionContext, _webview: Webvi
                             <vscode-text-field class="grow" type="tel" autofocus pattern="[0-9]{7,11}" maxlength=11 id="login-phone-account" required="required">
                             </vscode-text-field>
                           </div>`;
-      let passwordForm = `
+    let passwordForm = `
           <div class="flex flex-row">
             <span class="material-symbols-rounded attach-btn-left" style="padding: 3px; background-color: var(--input-background);">lock</span>
             <vscode-text-field type="password" pattern=".{8,32}" maxlength=32 id="login-phone-password" onkeydown="((e) => {if(event.key !== 'Enter') {return;} var account = document.getElementById('login-phone-account');var pwd = document.getElementById('login-phone-password');if(account.validity.valid && pwd.validity.valid){document.getElementById('login-phone-btn').click();};})(this)" class="grow" required="required">
@@ -196,45 +216,17 @@ export async function buildLoginPage(_context: ExtensionContext, _webview: Webvi
           </div>
           <div class="flex flex-col">
             <div class="grow text-right">
-              <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${raccoonConfig.value("forgetPassword")}">
-                ${l10n.t("Forgot Password")}?
-              </vscode-link>
+              ${forgetPwd}
             </div>
           </div>`;
-      let tips = `<span class="self-center grow">
-                        ${l10n.t("Do not have an account?")}
-                        <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${raccoonConfig.value("signup")}">
-                          ${l10n.t("Sign Up")}
-                        </vscode-link>
-                      </span>
-                      <div class="flex self-center cursor-pointer items-end opacity-50">
-                        <span class="material-symbols-rounded">bug_report</span><span id="report-issue">${l10n.t("Report Issue")}</span>
-                      </div>`;
-      loginInputs = `
-          <vscode-panels style="overflow: visible">
-            <vscode-panel-tab id="tab-pwd">${l10n.t("Login with Password")}</vscode-panel-tab>
-            <vscode-panel-view id="view-pwd" class="flex-col gap-2">
-              ${phoneAccount}
-              ${passwordForm}
-              <vscode-button id="login-phone-btn" style="width: 300px;max-width: 100%;margin: 33px auto 0 auto;" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
-            </vscode-panel-view>
-          </vscode-panels>
-          ${tips}
-          `;
-    }
-    loginForm = `
-                  <style>
-                  #sendSmsCode.frozen {
-                    pointer-events: none;
-                    opacity: 0.5;
-                  }
-                  vscode-text-field:invalid {
-                    --focus-border: var(--vscode-inputValidation-warningBorder);
-                  }
-                  </style>
-                  <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
-                    ${loginInputs}`;
-  }, () => { });
+    views += `<vscode-panel-view id="view-pwd" class="login-view flex-col gap-2">
+              <div class="flex flex-col gap-2">
+                ${phoneAccount}
+                ${passwordForm}
+              </div>
+              <vscode-button id="login-phone-btn" class="login-btn" disabled tabindex="0">${l10n.t("Login")}</vscode-button>
+            </vscode-panel-view>`;
+  }
   let accountInfo = `
   <div class="flex gap-2 items-center w-full">
     <span class="material-symbols-rounded" style="font-size: 40px;">person_pin</span>
@@ -253,7 +245,40 @@ export async function buildLoginPage(_context: ExtensionContext, _webview: Webvi
   }
   esList += "</vscode-dropdown>";
 
+  let signupUrl = raccoonManager.getUrl(UrlType.signup);
+  let signupLink = ``;
+  if (!isEnterprise && signupUrl) {
+    signupLink = `<span class="self-center grow">
+      ${l10n.t("Do not have an account?")}
+      <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl.toString()}">
+        ${l10n.t("Sign Up")}
+      </vscode-link>
+    </span>`;
+  }
+  let feedbackBtn = `<div class="flex self-center cursor-pointer items-end opacity-50">
+                                  <span class="material-symbols-rounded">bug_report</span><span id="report-issue">${l10n.t("Report Issue")}</span>
+                                </div>`;
+
   let settingPage = `
+  <style>
+      .login-view  {
+        height: 220px;
+        justify-content: space-between;
+      }
+      .sso-btn {
+        max-width: 100%;
+        width: 300px;
+        align-self: center;
+      }
+      .login-btn {
+        width: 300px;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      vscode-text-field:invalid {
+        --focus-border: var(--vscode-inputValidation-warningBorder);
+      }
+  </style>
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-md">
     <div class="immutable fixed top-3 right-4">
       <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
@@ -272,7 +297,14 @@ export async function buildLoginPage(_context: ExtensionContext, _webview: Webvi
         ${esList}
       </div>
     </div>
-    ${loginForm}`;
+    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    <vscode-panels style="overflow: visible" class="px-4">
+      ${tabs}
+      ${views}
+    </vscode-panels>
+    <vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
+    ${signupLink}
+    ${feedbackBtn}`;
 
   return settingPage;
 }
@@ -282,7 +314,6 @@ export async function buildSettingPage(): Promise<string> {
   let streamResponse = raccoonManager.streamResponse;
   let completionDelay = raccoonManager.completionDelay;
   let candidates = raccoonManager.candidates;
-  let logout = ``;
 
   let userinfo = await raccoonManager.userInfo();
   let userId = userinfo?.userId;
@@ -293,28 +324,13 @@ export async function buildSettingPage(): Promise<string> {
   if (avatar) {
     avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
   }
-  await raccoonManager.getAuthUrlLogin().then(authUrl => {
-    if (!authUrl) {
-      logout = `<vscode-link title="${l10n.t("Authorized by key from settings")}">
-                    <span class="material-symbols-rounded" style="color: var(--foreground);opacity: 0.7;cursor: auto;">password</span>
+  let logout = `<vscode-link title="${l10n.t("Logout")}">
+                    <span id="logout" class="material-symbols-rounded" style="font-size: 24px;">logout</span>
                   </vscode-link>`;
-      return;
-    }
-    let url = Uri.parse(authUrl);
-    let title = l10n.t("Logout");
-    let icon = 'logout';
-    if (url.scheme === "command" && (url.path === `${extensionNameKebab}.setAccessKey` || url.path === `${extensionNameKebab}.setApiKey`)) {
-      icon = 'key_off';
-      title = l10n.t("Clear Access Key");
-    }
-    logout = `<vscode-link title="${title}">
-                    <span id="logout" class="material-symbols-rounded" style="font-size: 24px;">${icon}</span>
-                  </vscode-link>`;
-  }, () => { });
   let trigger = (completionDelay === 3500) ? "opacity-60" : "";
   let activeOrg = raccoonManager.activeOrganization();
   let knowledgeBaseEnable = pro || activeOrg;
-  let isEnterprise = (raccoonConfig.value("type") === "Enterprise");
+  let isEnterprise = (raccoonConfig.type() === "Enterprise");
   let disableSwitch = (isEnterprise && (raccoonManager.organizationList().length === 1));
 
   let knowledgeBaseSetting = ``;

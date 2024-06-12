@@ -5,9 +5,9 @@ let packageId = args.packageId.toLowerCase().replaceAll(" ", "-") || "raccoon";
 let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";
-let webBaseUrl = args.webBaseUrl || "https://raccoon.sensetime.com";
 let apiType = args.apiType || "Raccoon";
-let apiBaseUrl = args.apiBaseUrl || "https://raccoon-api.sensetime.com/api/plugin";
+let baseUrl = args.baseUrl || "https://raccoon-api.sensetime.com";
+let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
 
 console.log("=============== Rendering Settings ===============");
 console.log(` Package ID         : ${packageId}`);
@@ -16,9 +16,9 @@ if (packageValueFile) {
   console.log(` Package Value File : ${packageValueFile}`);
 } else {
   console.log(` Package Type       : ${packageType}`);
-  console.log(` Web Base URL       : ${webBaseUrl}`);
   console.log(` API Type           : ${apiType}`);
-  console.log(` API Base URL       : ${apiBaseUrl}`);
+  console.log(` Base URL           : ${baseUrl}`);
+  console.log(` Auth Method        : ${authMethod}`);
 }
 console.log("==================================================");
 
@@ -60,12 +60,11 @@ if (packageValueFile) {
     }
     let cfg = JSON.parse(data);
     cfg.type = packageType;
-    cfg.signup = `${webBaseUrl}/register`;
-    cfg.forgetPassword = `${webBaseUrl}/login?step=forgot-password`;
     for (let e of cfg.engines) {
       e.robotname = packageName;
       e.apiType = apiType;
-      e.apiBaseUrl = apiBaseUrl;
+      e.baseUrl = baseUrl;
+      e.authMethod = authMethod;
     }
     let content = JSON.stringify(cfg, undefined, 2);
     fs.writeFile('./config/value.json', content, writeErr => {

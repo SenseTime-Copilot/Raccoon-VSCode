@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, l10n, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
@@ -686,29 +686,22 @@ export class RaccoonManager {
     return Promise.resolve([]);
   }
 
-  public async getAuthUrlLogin(): Promise<string | void> {
+  public getAuthMethods(): AuthMethod[] {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
     if (ca) {
-      let authMethods = ca.client.authMethods;
-      if (raccoonConfig.value("type") === "Enterprise" && authMethods.includes(AuthMethod.email)) {
-        return Promise.resolve(`command:${extensionNameKebab}.email`);
-      } else if (authMethods.includes(AuthMethod.phone) || authMethods.includes(AuthMethod.sms)) {
-        return Promise.resolve(`command:${extensionNameKebab}.phone`);
-      } else if (authMethods.includes(AuthMethod.email)) {
-        return Promise.resolve(`command:${extensionNameKebab}.email`);
-      } else if (authMethods.includes(AuthMethod.accesskey)) {
-        return Promise.resolve(`command:${extensionNameKebab}.setAccessKey`);
-      } else if (authMethods.includes(AuthMethod.apikey)) {
-        return Promise.resolve(`command:${extensionNameKebab}.setApiKey`);
-      } else {
-        return Promise.reject();
-      }
-    } else {
-      return Promise.reject();
+      return ca.client.authMethods;
+    }
+    return [];
+  }
+
+  public getUrl(type: UrlType): Uri | undefined {
+    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    if (ca) {
+      return Uri.parse(ca.client.url(type));
     }
   }
 
-  public login(param: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
+  public login(param: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
     let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
 
     return window.withProgress({
@@ -722,7 +715,7 @@ export class RaccoonManager {
         if (ca && token) {
           let orgs = token.account.organizations;
           if (orgs) {
-            let isEnterprise = raccoonConfig.value("type") === "Enterprise";
+            let isEnterprise = raccoonConfig.type() === "Enterprise";
             if (isEnterprise && orgs.length > 0 && !this.activeOrganization()) {
               this.setActiveOrganization(orgs[0].code);
             }
@@ -736,16 +729,6 @@ export class RaccoonManager {
         return new Error(err.response?.data?.details || err.message);
       });
     });
-  }
-
-  public async getCaptcha(timeoutMs?: number) {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    return ca?.client.getCaptcha(timeoutMs);
-  }
-
-  public async sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string) {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    return ca?.client.sendSMS(captchaUuid, code, nationCode, phone);
   }
 
   public async logout() {

@@ -16,15 +16,14 @@ export interface ClientOption {
   totalTokenNum: number;
 }
 
-export type RaccoonClientConfig = ClientConfig
-  &
-{
-  apiType: "Raccoon" | "TGI";
-}
-  &
-{
-  [key in ModelCapacity]?: ClientOption;
-};
+export type RaccoonClientConfig =
+  ClientConfig
+  & {
+    apiType: "Raccoon" | "TGI";
+  }
+  & {
+    [key in ModelCapacity]?: ClientOption;
+  };
 
 export class RaccoonConfig {
   protected static instance: RaccoonConfig | undefined = undefined;
@@ -53,7 +52,7 @@ export class RaccoonConfig {
     return this._value.engines || [];
   }
 
-  public value(key: string): any {
-    return this._value[key];
+  public type(): string {
+    return this._value.type;
   }
 }

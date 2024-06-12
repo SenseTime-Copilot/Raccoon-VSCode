@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, Captcha, BrowserLoginParam, SmsLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType } from "./CodeClient";
 
 import hbs = require("handlebars");
 import sign = require('jwt-encode');
@@ -45,45 +45,27 @@ export class RaccoonClient implements CodeClient {
   }
 
   public get authMethods(): AuthMethod[] {
-    return [AuthMethod.phone, AuthMethod.sms, AuthMethod.email, AuthMethod.accesskey];
+    return this.clientConfig.authMethod;
+  }
+
+  public url(type: UrlType): string {
+    switch (type) {
+      case UrlType.base:
+        return this.clientConfig.baseUrl;
+      case UrlType.signup:
+        return this.clientConfig.baseUrl + "/register";
+      case UrlType.login:
+        return this.clientConfig.baseUrl + "/login";
+      case UrlType.forgetPassword:
+        return this.clientConfig.baseUrl + "/login?step=forget-password";
+    }
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.clientConfig.baseUrl + "/login");
   }
 
-  async getCaptcha(timeoutMs?: number): Promise<Captcha | undefined> {
-    return axios.get(this.clientConfig.apiBaseUrl + "/auth/v1/captcha", { timeout: timeoutMs }).then((resp) => {
-      if (resp.status === 200) {
-        let c: Captcha = {
-          uuid: resp.data.data.captcha_uuid,
-          image: resp.data.data.captcha_image
-        };
-        return c;
-      }
-      return undefined;
-    }).catch(() => {
-      return undefined;
-    });
-  }
-
-  async sendSMS(captchaUuid: string, code: string, nationCode: string, phone: string): Promise<void> {
-    return axios
-      .post(
-        this.clientConfig.apiBaseUrl + "/auth/v1/send_sms",
-        {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          captcha_result: code,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          captcha_uuid: captchaUuid,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          nation_code: nationCode,
-          phone: encrypt(phone)
-        }
-      );
-  }
-
-  public async login(param?: AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  public async login(param?: AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (!param) {
       let k = this.clientConfig.key;
       if (k && typeof k === "object" && "secretAccessKey" in k) {
@@ -106,10 +88,38 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  async _login(param: AccessKeyLoginParam | BrowserLoginParam | SmsLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  async _login(param: AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (param.type === "browser") {
-      // let p = param as browserLoginParam;
-      return Promise.reject();
+      let p = param as BrowserLoginParam;
+      let ak = '';
+      let rk = '';
+      let jwtDecoded;
+      p.callbackParam.trim()
+        .split('&')
+        .forEach(item => {
+          let kv = item.split('=');
+          if (kv[0] === 'access_token') {
+            ak = kv[1];
+            jwtDecoded = jwt_decode(ak);
+          }
+          if (kv[0] === 'refresh_token') {
+            rk = kv[1];
+          }
+        });
+      if (ak && rk && jwtDecoded) {
+        return {
+          account: {
+            userId: jwtDecoded["iss"],
+            username: jwtDecoded["name"],
+            pro: false
+          },
+          expiration: jwtDecoded["exp"],
+          weaverdKey: ak,
+          refreshToken: rk,
+        };
+      } else {
+        return Promise.reject();
+      }
     } else if (param.type === AuthMethod.accesskey) {
       let p = param as AccessKeyLoginParam;
       return {
@@ -120,32 +130,9 @@ export class RaccoonClient implements CodeClient {
         },
         weaverdKey: p.secretAccessKey,
       };
-    } else if (param.type === AuthMethod.sms) {
-      let p = param as SmsLoginParam;
-      return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_sms", {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        nation_code: p.nationCode, phone: encrypt(p.phone), sms_code: p.smsCode
-      }).then(resp => {
-        if (resp.status === 200 && resp.data.code === 0) {
-          let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
-          return {
-            account: {
-              userId: jwtDecoded["iss"],
-              username: jwtDecoded["name"],
-              pro: false
-            },
-            expiration: jwtDecoded["exp"],
-            weaverdKey: resp.data.data.access_token,
-            refreshToken: resp.data.data.refresh_token,
-          };
-        }
-        throw new Error(resp.data.message || resp.data);
-      }).catch(err => {
-        throw err;
-      });
     } else if (param.type === AuthMethod.phone) {
       let p = param as PhoneLoginParam;
-      return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_password", {
+      return axios.post(this.clientConfig.baseUrl + "/api/plugin/auth/v1/login_with_password", {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         nation_code: p.nationCode, phone: encrypt(p.phone), password: encrypt(p.password)
       }).then(resp => {
@@ -168,7 +155,7 @@ export class RaccoonClient implements CodeClient {
       });
     } else if (param.type === AuthMethod.email) {
       let p = param as EmailLoginParam;
-      return axios.post(this.clientConfig.apiBaseUrl + "/auth/v1/login_with_email_password", {
+      return axios.post(this.clientConfig.baseUrl + "/api/plugin/auth/v1/login_with_email_password", {
         email: p.email, password: encrypt(p.password)
       }).then(resp => {
         if (resp.status === 200 && resp.data.code === 0) {
@@ -202,14 +189,14 @@ export class RaccoonClient implements CodeClient {
       //headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
-      return axios.post(`${this.clientConfig.apiBaseUrl}/auth/v1/logout`, {}, { headers }).then(() => {
+      return axios.post(`${this.clientConfig.baseUrl}/api/plugin/auth/v1/logout`, {}, { headers }).then(() => {
         return undefined;
       });
     }
   }
 
   public async syncUserInfo(auth: AuthInfo, timeoutMs?: number): Promise<AccountInfo> {
-    let url = `${this.clientConfig.apiBaseUrl}/auth/v1/user_info`;
+    let url = `${this.clientConfig.baseUrl}/api/plugin/auth/v1/user_info`;
     let ts = new Date();
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -263,7 +250,7 @@ export class RaccoonClient implements CodeClient {
   }
 
   private async refreshToken(auth: AuthInfo): Promise<AuthInfo> {
-    let url = `${this.clientConfig.apiBaseUrl}/auth/v1/refresh`;
+    let url = `${this.clientConfig.baseUrl}/api/plugin/auth/v1/refresh`;
     let log = this.log;
     log?.(url);
     log?.(`refresh_token: ${auth.refreshToken}`);
@@ -305,13 +292,13 @@ export class RaccoonClient implements CodeClient {
 
   private async chatUsingFetch(auth: AuthInfo, options: ChatOptions, org?: Organization) {
     let ts = new Date();
-    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/llm/v1/chat-completions`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}/api/plugin/llm/v1/chat-completions`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     headers["x-raccoon-user-id"] = auth.account.userId || "";
     if (org) {
       headers["x-org-code"] = org.code;
-      url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/org/llm/v1/chat-completions`;
+      url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}/api/plugin/org/llm/v1/chat-completions`;
     }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
@@ -591,12 +578,12 @@ export class RaccoonClient implements CodeClient {
   async completionUsingFetch(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void> {
     let ts = new Date();
     let headers = options.headers || {};
-    let url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/llm/v1/completions`;
+    let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}/api/plugin/llm/v1/completions`;
     headers["Content-Type"] = "application/json";
     headers["x-raccoon-user-id"] = auth.account.userId || "";
     if (org) {
       headers["x-org-code"] = org.code;
-      url = options.config.urlOverwrite || `${this.clientConfig.apiBaseUrl}/org/llm/v1/completions`;
+      url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}/api/plugin/org/llm/v1/completions`;
     }
     if (!this.clientConfig.key) {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
@@ -739,7 +726,7 @@ export class RaccoonClient implements CodeClient {
   }
 
   public async listKnowledgeBase(auth: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
-    let listUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
+    let listUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
     if (!auth.account.pro && !org) {
       return [];
     }
@@ -767,7 +754,7 @@ export class RaccoonClient implements CodeClient {
   }
 
   public async sendTelemetry(auth: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
-    let telementryUrl = `${this.clientConfig.apiBaseUrl}${org ? "/org" : ""}/b/v1/m`;
+    let telementryUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/b/v1/m`;
     let metricInfo: any = {};
     metricInfo[metricType] = metric;
     metricInfo['metric_type'] = metricType.replace("_", "-");
