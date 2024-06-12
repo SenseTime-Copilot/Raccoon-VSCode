@@ -46,7 +46,7 @@ build_package:
   script:
     - cd $CI_PROJECT_DIR
     - npm install --prefix ./scripts minimist
-    - node ./scripts/render_manifest.js --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageValueFile="$PACKAGE_VALUE_FILE" --packageType="$PACKAGE_TYPE" --apiType="$API_TYPE" --baseUrl="$BASEURL"
+    - node ./scripts/render_manifest.js --packageValueFile="$PACKAGE_VALUE_FILE" --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageType="$PACKAGE_TYPE" --apiType="$API_TYPE" --baseUrl="$BASEURL"
     - npm install
     - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
   artifacts:
