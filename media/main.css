@@ -374,30 +374,11 @@ textarea::placeholder {
 
 #attach-code-container #code-title {
     display: flex;
-    border-bottom: 1px solid var(--checkbox-border);
     background-color: var(--input-background);
     font-family: var(--vscode-editor-font-family);
     color: var(--panel-tab-foreground);
     cursor: pointer;
-    border-radius: 6px 6px 0 0;
-    padding: 2px;
-}
-
-#attach-code-wrapper {
-    padding: 0.25rem;
-    overflow: auto;
-    scrollbar-width: thin;
-}
-
-#attach-code-wrapper::-webkit-scrollbar {
-    width: 1px;
-    height: 1px;
-}
-
-#attach-code {
-    background: none;
-    padding: 0;
-    user-select: text;
+    padding: 1px;
 }
 
 #question-input {
@@ -515,8 +496,7 @@ textarea::placeholder {
 }
 
 .op-hint {
-    padding-left: 0.5rem;
-    padding-bottom: 3px;
+    padding: 3px 0.5rem;
     display: flex;
     gap: 0.5rem;
     width: 100%;
@@ -664,12 +644,8 @@ button.disabled,
     display: flex;
     flex-direction: column;
     font-size: 0.8em;
-    max-height: 100px;
-    width: calc(100% + 10px);
-    margin: 0 0 -1px 0;
-    background-color: var(--input-background);
-    border-radius: 0 0 6px 6px;
-    border: 1px solid var(--checkbox-border);
+    width: 100%;
+    border-bottom: 1px dashed var(--checkbox-border);
     z-index: 99999;
 }
 

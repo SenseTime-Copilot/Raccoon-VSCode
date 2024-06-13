@@ -535,7 +535,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               </vscode-panel-view>
               <div id="msg-wrapper">
               </div>
-              <div id="chat-input-box" class="w-full flex flex-col justify-center items-center px-1 gap-1">
+              <div id="chat-input-box" class="w-full flex flex-col justify-center items-center px-1">
                 <div id="search-list" class="flex flex-col w-full py-2 hidden">
                   <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://raccoon.search/stackoverflow.search?\${query}'>
                     StackOverflow
@@ -593,6 +593,9 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <span class="material-symbols-rounded">search</span>
                   </button>
                 </div>
+                <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
+                  <div id="code-title"></div>
+                </div>
                 <div class="op-hint">
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${l10n.t("Send")}
@@ -636,10 +639,6 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <vscode-badge class="history-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${l10n.t("Clear")}
                     </vscode-badge>
-                  </div>
-                  <div id="attach-code-container" class="hidden" title="${l10n.t("Code attached")}">
-                    <div id="code-title"></div>
-                    <pre id="attach-code-wrapper"><code id="attach-code"></code></pre>
                   </div>
               </div>
             </div>

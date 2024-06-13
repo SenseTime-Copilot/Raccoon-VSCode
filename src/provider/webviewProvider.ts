@@ -75,9 +75,7 @@ export class RaccoonEditor extends Disposable {
         } else if (this.isSupportedScheme(doc)) {
           this.lastTextEditor = e;
           if (e && this.checkCodeReady(e)) {
-            let content = doc.getText(e.selections[0]);
-            let lang = doc.languageId;
-            this.sendMessage({ type: 'codeReady', value: true, file: e.document.uri.toString(), range: e.selections[0], lang, content });
+            this.sendMessage({ type: 'codeReady', value: true, file: e.document.uri.toString(), range: e.selections[0] });
           } else {
             this.sendMessage({ type: 'codeReady', value: false });
           }
@@ -101,9 +99,7 @@ export class RaccoonEditor extends Disposable {
             let doc = e.textEditor.document;
             let text = doc.getText(e.selections[0]);
             if (text.trim()) {
-              let content = doc.getText(e.selections[0]);
-              let lang = doc.languageId;
-              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: e.selections[0], lang, content });
+              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: e.selections[0] });
               return;
             }
           }
@@ -565,9 +561,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     const editor = window.activeTextEditor || this.lastTextEditor;
     if (editor && this.checkCodeReady(editor)) {
       setTimeout(() => {
-        let content = editor.document.getText(editor.selection);
-        let lang = editor.document.languageId;
-        this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0], lang, content });
+        this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0] });
       }, 1000);
     }
   }

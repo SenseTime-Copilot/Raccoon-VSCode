@@ -551,24 +551,22 @@ const vscode = acquireVsCodeApi();
       case 'codeReady': {
         var acc = document.getElementById("attach-code-container");
         var ct = document.getElementById("code-title");
-        var ac = document.getElementById("attach-code");
         if (message.value) {
-          if (acc && ac && message.content) {
+          if (acc && message.file && message.range) {
             acc.classList.add("with-code");
             acc.classList.remove('hidden');
             let fl = new URL(message.file);
-            ct.innerHTML = '<span class="material-symbols-rounded" style="transform: rotate(90deg);">chevron_right</span>'
-              + '<span class="grow whitespace-pre text-ellipsis overflow-hidden">' + fl.pathname.split('/').slice(-1) + '</span>'
-              + '<span class="material-symbols-rounded" style="float: right">open_in_new</span>';
-            ct.title = decodeURIComponent(fl.pathname);
+            let rangetag = `:L${message.range.start.line + 1}`;
+            if (message.range.start.line !== message.range.end.line) {
+              rangetag = `:L${message.range.start.line + 1}-${message.range.end.line + 1}`;
+            }
+            ct.innerHTML = '<span class="material-symbols-rounded">file_present</span>'
+              + '<span class="grow whitespace-pre text-ellipsis overflow-hidden">' + fl.pathname.split('/').slice(-1) + rangetag + '</span>'
+              + '<span class="material-symbols-rounded" style="float: right">chevron_right</span>';
+            ct.title = decodeURIComponent(fl.pathname) + rangetag;
             ct.onclick = (_event) => {
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
-            if (!hljs.getLanguage(message.lang)) {
-              ac.innerHTML = hljs.highlightAuto(message.content).value;
-            } else {
-              ac.innerHTML = hljs.highlight(message.lang, message.content).value;
-            }
           }
         } else {
           if (acc) {
@@ -577,7 +575,6 @@ const vscode = acquireVsCodeApi();
             ct.innerText = '';
             ct.title = '';
             ct.onclick = undefined;
-            ac.innerHTML = '';
           }
         }
         break;
@@ -1279,10 +1276,6 @@ const vscode = acquireVsCodeApi();
   var historyIdx = -1;
   document.getElementById("question-input").addEventListener("blur", () => {
     historyIdx = -1;
-    var c = document.getElementById("attach-code-container");
-    if (c) {
-      c.classList.add("hidden");
-    }
   });
 
   document.addEventListener("compositionstart", (e) => {
