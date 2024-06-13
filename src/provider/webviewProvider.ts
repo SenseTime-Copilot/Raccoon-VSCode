@@ -355,9 +355,8 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'logout': {
-          let ae = raccoonManager.getActiveClientRobotName() || "Raccoon";
           window.showWarningMessage(
-            l10n.t("Logout from {0}?", ae),
+            l10n.t("Logout from {0}?", extensionDisplayName),
             { modal: true },
             l10n.t("OK"))
             .then((v) => {

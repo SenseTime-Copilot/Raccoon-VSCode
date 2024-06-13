@@ -368,9 +368,6 @@ textarea::placeholder {
 }
 
 #chat-input-box.responsing #attach-code-container,
-#chat-input-box.agent #attach-code-container,
-#chat-input-box.action #attach-code-container,
-#chat-input-box.search #attach-code-container,
 #attach-code-container.hidden {
     display: none;
 }
@@ -384,10 +381,6 @@ textarea::placeholder {
     cursor: pointer;
     border-radius: 6px 6px 0 0;
     padding: 2px;
-}
-
-#attach-code-container.overlayed {
-    display: none;
 }
 
 #attach-code-wrapper {
@@ -522,7 +515,7 @@ textarea::placeholder {
 }
 
 .op-hint {
-    padding-left: 0.75rem;
+    padding-left: 0.5rem;
     padding-bottom: 3px;
     display: flex;
     gap: 0.5rem;
@@ -588,23 +581,19 @@ textarea::placeholder {
     content: "\00a0" attr(data-tip);
 }
 
-/* #question-sizer[data-value="@"]:before { */
-/* content: attr(data-agent-hint); */
-/* margin-left: 2.5ch; */
-/* } */
+#chat-input-box.agent #question-sizer[data-value="@"]:before {
+    content: attr(data-agent-hint);
+    margin-left: 2.5ch;
+}
 
-#question-sizer[data-value="/"]:before {
+#chat-input-box.action #question-sizer[data-value="/"]:before {
     content: attr(data-action-hint);
     margin-left: 2ch;
 }
 
-#question-sizer[data-value="?"]:before {
+#chat-input-box.search #question-sizer[data-value="?"]:before {
     content: attr(data-search-hint);
     margin-left: 2ch;
-}
-
-#agent-list+#question>#question-sizer[data-value="@"]:before {
-    content: none;
 }
 
 #question button .material-symbols-rounded {
@@ -676,20 +665,16 @@ button.disabled,
     flex-direction: column;
     font-size: 0.8em;
     max-height: 100px;
-    width: calc(100% - 6px);
-    margin: 3px 3px -3px 3px;
+    width: calc(100% + 10px);
+    margin: 0 0 -1px 0;
     background-color: var(--input-background);
-    border-radius: 6px 6px 0 0;
+    border-radius: 0 0 6px 6px;
     border: 1px solid var(--checkbox-border);
     z-index: 99999;
 }
 
 #attach-code-container.with-code+#chat-input-box {
     border-radius: 0 0 6px 6px;
-}
-
-#attach-code-container.overlayed+#chat-input-box {
-    border-radius: 6px;
 }
 
 #search-list vscode-checkbox.selected {

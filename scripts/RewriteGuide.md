@@ -26,7 +26,7 @@ Package Value File 是扩展配置文件
   "type": "Standard", // 扩展类型，可以是 "Standard" 或 "Enterprise"
   "engines": [ // 后端引擎列表
     {
-      "robotname": "Raccoon", // 显示名称
+      "robotname": "Raccoon", // 显示名称，仅用于多后端时下拉选项中区分显示，仅一个后端时没有用处
       "apiType": "Raccoon", // API 类型，可以是 "Raccoon" 或 "TGI"
       "baseUrl": "https://raccoon.sensetime.com", // 后端服务地址
       "authMethod": [ // 授权认证方法列表，扩展类型为 "Enterprise" 时，默认仅支持邮箱登录

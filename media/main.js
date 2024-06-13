@@ -1201,13 +1201,6 @@ const vscode = acquireVsCodeApi();
     // _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
-    if (document.getElementById("chat-input-box").classList.contains("agent")
-      || document.getElementById("chat-input-box").classList.contains("action")
-      || document.getElementById("chat-input-box").classList.contains("search")) {
-      document.getElementById("attach-code-container").classList.add("overlayed");
-    } else {
-      document.getElementById("attach-code-container").classList.remove("overlayed");
-    }
   }
 
   document.addEventListener("change", (e) => {
