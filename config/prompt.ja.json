@@ -1,0 +1,78 @@
+[
+  {
+    "label": "コードを生成",
+    "type": "code generation",
+    "shortcut": "generate",
+    "message": {
+      "role": "user",
+      "content": "コメントメッセージでコードを生成.\n{{code}}",
+      "brush": true,
+      "icon": "gradient"
+    }
+  },
+  {
+    "label": "テストコードを生成",
+    "type": "test sample generation",
+    "shortcut": "test",
+    "message": {
+      "role": "user",
+      "content": "以下のコードに対して、ユニットテストコードを生成.\n{{code}}",
+      "icon": "science"
+    }
+  },
+  {
+    "label": "コード変換",
+    "type": "code language conversion",
+    "shortcut": "translate",
+    "message": {
+      "role": "user",
+      "content": "以下のコードを同様な {{language}} コードに変換.\n{{code}}"
+    },
+    "args": {
+      "language": {
+        "type": "enum",
+        "options": [
+          "C",
+          "C++",
+          "C#",
+          "Go",
+          "Java",
+          "JavaScript",
+          "Lua",
+          "Objective-C",
+          "PHP",
+          "Perl",
+          "Python",
+          "R",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ]
+      }
+    },
+    "icon": "repeat"
+  },
+  {
+    "label": "コード修正",
+    "type": "code error correction",
+    "shortcut": "fix",
+    "message": {
+      "role": "user",
+      "content": "以下のコードの問題を修正.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "add_task"
+  },
+  {
+    "label": "コード再構築",
+    "type": "code refactoring optimization",
+    "shortcut": "refactor",
+    "message": {
+      "role": "user",
+      "content": "次のコードを再構築して、構造をより明確にし、読みやすくメンテナンスしやすくする.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "construction"
+  }
+]

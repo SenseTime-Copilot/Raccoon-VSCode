@@ -2,9 +2,8 @@ import { commands, env, ExtensionContext, l10n, window, workspace, WorkspaceConf
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
-import { builtinPrompts, RaccoonPrompt } from "./promptTemplates";
+import { RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
-import { randomBytes } from "crypto";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
@@ -21,10 +20,9 @@ export enum CompletionPreferenceType {
   bestEffort = "Best Effort"
 }
 
-interface ClientAndAuthInfo {
+interface ClientAndConfigInfo {
   client: CodeClient;
   options: { [key in ModelCapacity]?: ClientOption };
-  authInfo?: AuthInfo;
 }
 
 type ChangeScope = "agent" | "prompt" | "engines" | "active" | "konwledge" | "authorization" | "config";
@@ -40,15 +38,11 @@ export class RaccoonManager {
   private flag: string;
 
   private configuration: WorkspaceConfiguration;
-  private _clients: { [key: string]: ClientAndAuthInfo } = {};
+  private _clients: { [key: string]: ClientAndConfigInfo } = {};
   private changeStatusEmitter = new EventEmitter<StatusChangeEvent>();
   public onDidChangeStatus = this.changeStatusEmitter.event;
 
   private static abortCtrller: { [key: string]: AbortController } = {};
-
-  private randomUUID(): string {
-    return randomBytes(20).toString('hex');
-  }
 
   public static getInstance(context: ExtensionContext): RaccoonManager {
     function commitMessageByLLM(rm: RaccoonManager, changes: string, targetRepo: Repository): Promise<void> {
@@ -169,35 +163,39 @@ export class RaccoonManager {
       })
     );
     context.secrets.onDidChange((e) => {
-      if (e.key === `${extensionNameCamel}.tokens`) {
-        context.secrets.get(`${extensionNameCamel}.tokens`).then((tks) => {
-          if (tks) {
-            try {
-              let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
-              let quiet = true;
-              let activeClientName = this.getActiveClientRobotName();
-              for (let c in this._clients) {
-                let ca = this._clients[c];
-                if (ca) {
-                  if (ca.client.robotName === activeClientName) {
-                    if ((!ca.authInfo && authinfos[c]) || (ca.authInfo && !authinfos[c])) {
-                      quiet = false;
-                    }
-                  }
-                  ca.authInfo = authinfos[c];
-                }
-              }
-              this.notifyStateChange({ scope: ["authorization"], quiet });
-            } catch (_e) { }
-          }
-        });
-      } else if (e.key === `${extensionNameCamel}.stateUpdated`) {
+      if (e.key === `${extensionNameCamel}.stateUpdated`) {
         this.context.secrets.get(`${extensionNameCamel}.stateUpdated`).then((notify) => {
           if (notify) {
             let ntfy = JSON.parse(notify);
+            let evt = ntfy.event as StatusChangeEvent;
             if (ntfy.sessionId !== env.sessionId) {
-              let evt = ntfy.event as StatusChangeEvent;
-              evt.scope = evt.scope.filter((v) => v !== "authorization");
+              if (evt.scope.includes("authorization")) {
+                context.secrets.get(`${extensionNameCamel}.tokens`).then((tks) => {
+                  if (tks) {
+                    try {
+                      let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
+                      let quiet = true;
+                      let activeClientName = this.getActiveClientRobotName();
+                      for (let c in this._clients) {
+                        let ca = this._clients[c];
+                        if (ca) {
+                          let act = ca.client.restoreAuthInfo(authinfos[c]);
+                          if (ca.client.robotName === activeClientName) {
+                            if (act !== "UPDATE") {
+                              quiet = false;
+                            }
+                          }
+                        }
+                      }
+                      evt.quiet = quiet;
+                      this.changeStatusEmitter.fire(evt);
+                    } catch (_e) { }
+                  }
+                });
+              } else {
+                this.changeStatusEmitter.fire(evt);
+              }
+            } else {
               this.changeStatusEmitter.fire(evt);
             }
           }
@@ -233,49 +231,26 @@ export class RaccoonManager {
         }
         client.setLogger(outlog.debug);
         client.onDidChangeAuthInfo(async (ai) => {
-          if (!ai) {
-            let ts = new Date();
-            if ((this._clients[e.robotname]?.authInfo?.expiration || 0) > (ts.valueOf() / 1000 + (60))) {
-              outlog.info(`[${e.robotname}] Ignore refresh token error`);
-              return;
-            }
-            outlog.info(`[${e.robotname}] Reset access token sense refresh token failed`);
-          } else {
-            outlog.info(`[${e.robotname}] Refresh access token OK`);
-          }
-          await this.updateToken(e.robotname, ai);
+          await this.updateToken(e.robotname, ai, !!ai);
         });
         if (authinfos[e.robotname]) {
-          let account = await client.syncUserInfo(authinfos[e.robotname]);
-          authinfos[e.robotname].account = account;
+          outlog.debug(`Append client ${e.robotname}: [Authorized - ${authinfos[e.robotname].account.username}]`);
+          client.restoreAuthInfo(authinfos[e.robotname]);
+        } else {
+          await client.login().then((ai) => {
+            outlog.debug(`Append client ${e.robotname}: [Authorized - ${ai.account.username}]`);
+            return this.updateToken(e.robotname, ai);
+          }, (_err) => {
+            outlog.debug(`Append client ${e.robotname} [Unauthorized]`);
+            return undefined;
+          });
         }
-        await this.appendClient(e.robotname, { client, options: e, authInfo: authinfos[e.robotname] }, e.username);
+        this._clients[e.robotname] = { client, options: e };
       }
     }
   }
 
-  private async appendClient(name: string, c: ClientAndAuthInfo, username?: string) {
-    this._clients[name] = c;
-    if (c.authInfo) {
-      if (username && c.authInfo.account.username !== username) {
-        c.authInfo.account.username = username;
-        return this.updateToken(name, c.authInfo);
-      }
-      return Promise.resolve();
-    } else {
-      return c.client.login().then((ai) => {
-        if (username) {
-          ai.account.username = username;
-        }
-        return this.updateToken(name, ai);
-      }, (_err) => {
-        outlog.debug(`Append client ${name} [Unauthorized]`);
-        return undefined;
-      });
-    }
-  }
-
-  private async updateToken(clientName: string, ai?: AuthInfo) {
+  private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
     let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
     let authinfos: { [key: string]: AuthInfo } = {};
     if (tks) {
@@ -290,32 +265,24 @@ export class RaccoonManager {
     } else if (ai) {
       authinfos[clientName] = ai;
     }
-    if (ai) {
-      outlog.debug(`Append client ${clientName}: [Authorized - ${ai.account.username}]`);
-    } else {
-      outlog.debug(`Remove client ${clientName}`);
-    }
-    return this.context.secrets.store(`${extensionNameCamel}.tokens`, JSON.stringify(authinfos));
+    return this.context.secrets.store(`${extensionNameCamel}.tokens`, JSON.stringify(authinfos)).then(() => {
+      this.notifyStateChange({ scope: ["authorization"], quiet });
+    });
   }
 
   public clear(): void {
     let logoutAct: Promise<void>[] = [];
     for (let e in this._clients) {
       let ca = this._clients[e];
-      if (ca.authInfo) {
-        logoutAct.push(
-          ca.client.logout(ca.authInfo).then((logoutUrl) => {
-            if (logoutUrl) {
-              commands.executeCommand("vscode.open", logoutUrl);
-            }
-            if (ca) {
-              ca.authInfo = undefined;
-            }
-          }, (err) => {
-            outlog.debug(`Logout ${e} failed: ${err}`);
-          })
-        );
-      }
+      logoutAct.push(
+        ca.client.logout().then((logoutUrl) => {
+          if (logoutUrl) {
+            commands.executeCommand("vscode.open", logoutUrl);
+          }
+        }, (err) => {
+          outlog.debug(`Logout ${e} failed: ${err}`);
+        })
+      );
     }
     Promise.all(logoutAct).then(() => {
       this.clearStatusData();
@@ -331,7 +298,6 @@ export class RaccoonManager {
   }
 
   private notifyStateChange(event: StatusChangeEvent) {
-    this.changeStatusEmitter.fire(event);
     let timeStamp = new Date().valueOf();
     this.context.secrets.store(`${extensionNameCamel}.stateUpdated`, `${JSON.stringify({ sessionId: env.sessionId, timeStamp, event })}`);
   }
@@ -351,7 +317,7 @@ export class RaccoonManager {
     this.configuration = workspace.getConfiguration(`${extensionNameCamel}`, undefined);
   }
 
-  private getClient(client?: string): ClientAndAuthInfo | undefined {
+  private getClient(client?: string): ClientAndConfigInfo | undefined {
     if (!client) {
       return undefined;
     }
@@ -362,7 +328,7 @@ export class RaccoonManager {
     }
   }
 
-  private getActiveClient(): ClientAndAuthInfo | undefined {
+  private getActiveClient(): ClientAndConfigInfo | undefined {
     let ae = this.context.globalState.get<string>("ActiveClient");
     let ac = this.getClient(ae);
     if (!ac) {
@@ -378,10 +344,6 @@ export class RaccoonManager {
     return this.getActiveClient()?.client.robotName;
   }
 
-  public getActiveClientAuth(): AuthInfo | undefined {
-    return this.getActiveClient()?.authInfo;
-  }
-
   public setActiveClient(clientName: string | undefined) {
     let originClientState = this.context.globalState.get<string>("ActiveClient");
     if (originClientState !== clientName) {
@@ -392,8 +354,8 @@ export class RaccoonManager {
   }
 
   public isClientLoggedin() {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    return (ca && ca.authInfo);
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    return (ca && ca.client.getAuthInfo());
   }
 
   public get agent(): Map<string, RaccoonAgent> {
@@ -544,7 +506,7 @@ export class RaccoonManager {
 
   public get prompt(): RaccoonPrompt[] {
     let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
-    let prompts: RaccoonPrompt[] = JSON.parse(JSON.stringify(builtinPrompts));
+    let prompts: RaccoonPrompt[] = raccoonConfig.builtinPrompt();
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
         prompts.push(RaccoonManager.parseStringPrompt(label, customPrompts[label] as string));
@@ -611,20 +573,22 @@ export class RaccoonManager {
   }
 
   public async userInfo(update: boolean = false, timeoutMs?: number): Promise<AccountInfo | undefined> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-    if (ca && ca.authInfo) {
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    let auth = ca?.client.getAuthInfo();
+    if (ca && auth) {
       if (update) {
-        return ca.client.syncUserInfo(ca.authInfo, timeoutMs);
+        return ca.client.syncUserInfo(timeoutMs);
       }
-      return Promise.resolve(ca.authInfo.account);
+      return Promise.resolve(auth.account);
     }
     return Promise.resolve(undefined);
   }
 
   public organizationList(): Organization[] {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca && ca.client) {
-      return ca.authInfo?.account.organizations || [];
+      let auth = ca?.client.getAuthInfo();
+      return auth?.account.organizations || [];
     }
     return [];
   }
@@ -643,9 +607,10 @@ export class RaccoonManager {
   }
 
   public activeOrganization(): Organization | undefined {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca && ca.client) {
-      let orgs = ca.authInfo?.account.organizations;
+      let auth = ca?.client.getAuthInfo();
+      let orgs = auth?.account.organizations || [];
       let ao = this.context.globalState.get<string>("ActiveOrganization", individual);
       if (ao === individual) {
         return undefined;
@@ -661,14 +626,14 @@ export class RaccoonManager {
   }
 
   public async listKnowledgeBase(update?: boolean): Promise<KnowledgeBase[]> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     let org: Organization | undefined = this.activeOrganization();
-    if (ca && ca.authInfo) {
+    if (ca) {
       let ts = this.context.globalState.get<number>("KnowledgeBasesNextUpdateAt") || 0;
       let curTs = new Date().valueOf();
       let oldKb = this.context.globalState.get<KnowledgeBase[]>("KnowledgeBases") || [];
       if (update || (curTs > ts)) {
-        return ca.client.listKnowledgeBase(ca.authInfo, org).then((kb) => {
+        return ca.client.listKnowledgeBase(org).then((kb) => {
           if (JSON.stringify(oldKb) !== JSON.stringify(kb)) {
             this.context.globalState.update("KnowledgeBases", kb);
             this.notifyStateChange({ scope: ["konwledge"] });
@@ -687,7 +652,7 @@ export class RaccoonManager {
   }
 
   public getAuthMethods(): AuthMethod[] {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca) {
       return ca.client.authMethods;
     }
@@ -695,14 +660,14 @@ export class RaccoonManager {
   }
 
   public getUrl(type: UrlType): Uri | undefined {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca) {
       return Uri.parse(ca.client.url(type));
     }
   }
 
   public login(param: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
 
     return window.withProgress({
       location: { viewId: `${extensionNameKebab}.view` }
@@ -735,9 +700,9 @@ export class RaccoonManager {
     return window.withProgress({
       location: { viewId: `${extensionNameKebab}.view` }
     }, async (progress, _cancel) => {
-      let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
-      if (ca && ca.authInfo) {
-        await ca.client.logout(ca.authInfo)
+      let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+      if (ca) {
+        await ca.client.logout()
           .then(
             async (logoutUrl) => {
               if (logoutUrl) {
@@ -826,9 +791,9 @@ export class RaccoonManager {
   }
 
   public async chat(messages: Message[], param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>): Promise<void> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     let opts = ca?.options[ModelCapacity.assistant];
-    if (ca && ca.authInfo && opts) {
+    if (ca && opts) {
       let knowledgeBases: KnowledgeBase[] = [];
       if (this.knowledgeBaseRef) {
         try {
@@ -842,7 +807,8 @@ export class RaccoonManager {
         knowledgeBases
       };
       let org = this.activeOrganization();
-      if (!config.maxNewTokenNum && (org || ca.authInfo.account.pro)) {
+      let authInfo = ca.client.getAuthInfo();
+      if (!config.maxNewTokenNum && (org || authInfo?.account.pro)) {
         config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.assistant) - this.maxInputTokenNum(ModelCapacity.assistant));
       }
       let options: ChatOptions = {
@@ -853,16 +819,9 @@ export class RaccoonManager {
         headers,
         ...callbacks
       };
-      return ca.client.chat(ca.authInfo, options, org).catch(e => {
+      return ca.client.chat(options, org).catch(e => {
         if (e.response?.status === 401) {
           outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
-          if (ca!.authInfo) {
-            outlog.info(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
-            outlog.info(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
-            outlog.info(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
-          } else {
-            outlog.info(`[${ca!.client.robotName}] No auth info`);
-          }
           this.updateToken(ca!.client.robotName);
         }
         return Promise.reject(e);
@@ -875,9 +834,9 @@ export class RaccoonManager {
   }
 
   public async completion(context: CompletionContext, param: RaccoonRequestParam, callbacks: RaccoonRequestCallbacks, headers?: Record<string, string>): Promise<void> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     let opts = ca?.options[ModelCapacity.completion];
-    if (ca && ca.authInfo && opts) {
+    if (ca && opts) {
       let knowledgeBases: KnowledgeBase[] = [];
       if (this.knowledgeBaseRef) {
         try {
@@ -899,16 +858,9 @@ export class RaccoonManager {
         headers,
         ...callbacks
       };
-      return ca.client.completion(ca.authInfo, options, org).catch(e => {
+      return ca.client.completion(options, org).catch(e => {
         if (e.response?.status === 401) {
           outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
-          if (ca!.authInfo) {
-            outlog.info(`[${ca!.client.robotName}] Access Key: ${ca!.authInfo.weaverdKey}`);
-            outlog.info(`[${ca!.client.robotName}] Expired At: ${ca!.authInfo.expiration}`);
-            outlog.info(`[${ca!.client.robotName}] Refresh Key: ${ca!.authInfo.refreshToken}`);
-          } else {
-            outlog.info(`[${ca!.client.robotName}] No auth info`);
-          }
           this.updateToken(ca!.client.robotName);
         }
         return Promise.reject(e);
@@ -921,12 +873,12 @@ export class RaccoonManager {
   }
 
   public sendTelemetry(metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void> {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     let org: Organization | undefined = this.activeOrganization();
-    if (!ca || !ca.authInfo) {
+    if (!ca) {
       return Promise.resolve();
     }
-    return ca.client.sendTelemetry(ca.authInfo, org, metricType, common, metric);
+    return ca.client.sendTelemetry(org, metricType, common, metric);
   }
 
   public get codelens(): boolean {
@@ -978,7 +930,7 @@ export class RaccoonManager {
   }
 
   public maxInputTokenNum(capacity: ModelCapacity): number {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca) {
       return ca.options[capacity]?.maxInputTokenNum || 0;
     }
@@ -986,7 +938,7 @@ export class RaccoonManager {
   }
 
   public totalTokenNum(capacity: ModelCapacity): number {
-    let ca: ClientAndAuthInfo | undefined = this.getActiveClient();
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca) {
       return ca.options[capacity]?.totalTokenNum || 0;
     }

@@ -160,15 +160,5 @@
   "Insert the below code at cursor": "カーソル位置に次のコードを挿入",
   "Active engine not set": "アクティブエンジンは未設定",
   "Help": "ヘルプ",
-  "Generation": "コードを生成",
-  "Generate code according comment message": "コメントメッセージでコードを生成",
-  "Add Test": "テストコードを生成",
-  "Generate unit test code to the following code": "以下のコードに対して、ユニットテストコードを生成",
-  "Code Correction": "コード修正",
-  "Fix any problem in the following code": "以下のコードの問題を修正",
-  "Code Conversion": "コード変換",
-  "Convert the given code to equivalent {0} code": "以下のコードを同様な {0} コードに変換",
-  "Refactoring": "コード再構築",
-  "Refactor the following code to make its structure clearer, easier to read, and maintain": "次のコードを再構築して、構造をより明確にし、読みやすくメンテナンスしやすくする",
   "Show Transpiled Typescript Code": "変換した後の Typescript コードを表示"
 }

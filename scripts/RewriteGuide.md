@@ -3,11 +3,12 @@
 ## Rewrite Script Usage
 
 ```shell
-node ./render_manifest.js --packageValueFile="<PACKAGE_VALUE_FILE>" --packageId="<PACKAGE_ID>" --packageName="<PACKAGE_NAME>" --packageType="<PACKAGE_TYPE>" --apiType="<API_TYPE>" --baseUrl="<BASEURL>"
+node ./render_manifest.js --promptLanguage="<PROMPT_LANGUAGE>" --packageValueFile="<PACKAGE_VALUE_FILE>" --packageId="<PACKAGE_ID>" --packageName="<PACKAGE_NAME>" --packageType="<PACKAGE_TYPE>" --apiType="<API_TYPE>" --baseUrl="<BASEURL>"
 ```
 
 params:
 
+* `promptLanguage` - 预置提示词语言，为 `auto` 时随 UI 语言切换，否则按指定语言固定
 * `packageValueFile` - 扩展配置文件内容，一旦设置，其他参数都将被忽略
 * `packageId` - 扩展id，全小写，无空格，可用 `-` 分割，默认 `raccoon`
 * `packageName` - 显示名称，大写小英文字母，中间可加空格，默认 `Raccoon`

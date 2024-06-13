@@ -15,7 +15,6 @@ export type ClientConfig = {
   robotname: string;
   baseUrl: string;
   authMethod: AuthMethod[];
-  username?: string;
   key?: string | AccessKey;
 };
 
@@ -238,17 +237,21 @@ export interface CodeClient {
 
   login(param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo>;
 
-  logout(auth: AuthInfo): Promise<string | undefined>;
+  restoreAuthInfo(auth: AuthInfo): "SET" | "RESET" | "UPDATE";
 
-  syncUserInfo(auth: AuthInfo, timeoutMs?: number): Promise<AccountInfo>;
+  getAuthInfo(): AuthInfo | undefined;
+
+  logout(): Promise<string | undefined>;
+
+  syncUserInfo(timeoutMs?: number): Promise<AccountInfo>;
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void;
 
-  chat(auth: AuthInfo, options: ChatOptions, org?: Organization): Promise<void>;
+  chat(options: ChatOptions, org?: Organization): Promise<void>;
 
-  completion(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void>;
+  completion(options: CompletionOptions, org?: Organization): Promise<void>;
 
-  listKnowledgeBase(auth: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]>;
+  listKnowledgeBase(org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]>;
 
-  sendTelemetry(auth: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
+  sendTelemetry(org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined): Promise<void>;
 }

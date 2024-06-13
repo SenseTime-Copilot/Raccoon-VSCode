@@ -1,0 +1,78 @@
+[
+  {
+    "label": "Generation",
+    "type": "code generation",
+    "shortcut": "generate",
+    "message": {
+      "role": "user",
+      "content": "Generate code according comment message.\n{{code}}",
+      "brush": true,
+      "icon": "gradient"
+    }
+  },
+  {
+    "label": "Add Test",
+    "type": "test sample generation",
+    "shortcut": "test",
+    "message": {
+      "role": "user",
+      "content": "Generate unit test code to the following code.\n{{code}}",
+      "icon": "science"
+    }
+  },
+  {
+    "label": "Code Conversion",
+    "type": "code language conversion",
+    "shortcut": "translate",
+    "message": {
+      "role": "user",
+      "content": "Convert the given code to equivalent {{language}} code.\n{{code}}"
+    },
+    "args": {
+      "language": {
+        "type": "enum",
+        "options": [
+          "C",
+          "C++",
+          "C#",
+          "Go",
+          "Java",
+          "JavaScript",
+          "Lua",
+          "Objective-C",
+          "PHP",
+          "Perl",
+          "Python",
+          "R",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ]
+      }
+    },
+    "icon": "repeat"
+  },
+  {
+    "label": "Code Correction",
+    "type": "code error correction",
+    "shortcut": "fix",
+    "message": {
+      "role": "user",
+      "content": "Fix any problem in the following code.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "add_task"
+  },
+  {
+    "label": "Refactoring",
+    "type": "code refactoring optimization",
+    "shortcut": "refactor",
+    "message": {
+      "role": "user",
+      "content": "Refactor the following code to make its structure clearer, easier to read, and maintain.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "construction"
+  }
+]

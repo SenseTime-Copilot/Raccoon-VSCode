@@ -1,6 +1,7 @@
 import { outlog } from "../globalEnv";
 import { ClientConfig, RequestParam } from "../raccoonClient/CodeClient";
-import { ExtensionContext, Uri, workspace } from 'vscode';
+import { ExtensionContext, FileStat, Uri, env, workspace } from 'vscode';
+import { RaccoonPrompt } from "./promptTemplates";
 
 const decoder = new TextDecoder();
 
@@ -28,6 +29,7 @@ export type RaccoonClientConfig =
 export class RaccoonConfig {
   protected static instance: RaccoonConfig | undefined = undefined;
   private _value: any = {};
+  private _prompt: RaccoonPrompt[] = [];
 
   private constructor(private context: ExtensionContext) {
   }
@@ -38,6 +40,40 @@ export class RaccoonConfig {
     await workspace.fs.readFile(configFile).then((raw) => {
       this._value = JSON.parse(decoder.decode(raw));
     });
+    let promptFile = Uri.joinPath(this.context.extensionUri, "config/prompt.json");
+    let stat: FileStat | undefined;
+    try {
+      stat = await workspace.fs.stat(promptFile);
+    } catch (e) {
+    };
+    if (stat) {
+      outlog.debug(`Read prompt from ${promptFile.toString()}`);
+    } else {
+      promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.${env.language.toLowerCase()}.json`);
+      try {
+        stat = await workspace.fs.stat(promptFile);
+      } catch (e) {
+      };
+      if (stat) {
+        outlog.debug(`Read prompt from ${promptFile.toString()}`);
+      } else {
+        promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.en.json`);
+        try {
+          stat = await workspace.fs.stat(promptFile);
+        } catch (e) {
+        };
+        if (stat) {
+          outlog.debug(`Read prompt from ${promptFile.toString()}`);
+        } else {
+          outlog.debug(`No prompt file`);
+        }
+      }
+    }
+    if (stat) {
+      await workspace.fs.readFile(promptFile).then((raw) => {
+        this._prompt = JSON.parse(decoder.decode(raw));
+      });
+    }
   }
 
   public static async getInstance(context: ExtensionContext): Promise<RaccoonConfig> {
@@ -54,5 +90,9 @@ export class RaccoonConfig {
 
   public type(): string {
     return this._value.type;
+  }
+
+  public builtinPrompt(): RaccoonPrompt[] {
+    return this._prompt;
   }
 }

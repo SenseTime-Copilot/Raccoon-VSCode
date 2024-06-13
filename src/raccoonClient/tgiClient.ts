@@ -4,6 +4,7 @@ import hbs = require("handlebars");
 
 export class TGIClient implements CodeClient {
   private log?: (message: string, ...args: any[]) => void;
+  private auth?: AuthInfo;
 
   constructor(private readonly clientConfig: ClientConfig) {
   }
@@ -31,16 +32,25 @@ export class TGIClient implements CodeClient {
   public async login(_param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
-        username: this.clientConfig.username || "User",
+        username: "User",
         userId: undefined,
         pro: true
       },
       weaverdKey: "ANY"
     };
+    this.auth = auth;
     return auth;
   }
 
-  public async logout(_auth: AuthInfo): Promise<string | undefined> {
+  public restoreAuthInfo(_auth: AuthInfo): "SET" | "RESET" | "UPDATE" {
+    return "UPDATE";
+  }
+
+  public getAuthInfo(): AuthInfo | undefined {
+    return this.auth;
+  }
+
+  public async logout(): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
     } else {
@@ -48,9 +58,9 @@ export class TGIClient implements CodeClient {
     }
   }
 
-  public async syncUserInfo(_auth: AuthInfo): Promise<AccountInfo> {
+  public async syncUserInfo(): Promise<AccountInfo> {
     return Promise.resolve({
-      username: this.clientConfig.username || "User",
+      username: "User",
       userId: undefined,
       pro: true
     });
@@ -59,15 +69,15 @@ export class TGIClient implements CodeClient {
   public onDidChangeAuthInfo(_handler?: (token: AuthInfo | undefined) => void): void {
   }
 
-  listKnowledgeBase(_auth: AuthInfo, _org?: Organization, _timeoutMs?: number): Promise<KnowledgeBase[]> {
+  listKnowledgeBase(_org?: Organization, _timeoutMs?: number): Promise<KnowledgeBase[]> {
     return Promise.resolve([]);
   }
 
-  sendTelemetry(_auth: AuthInfo, _org: Organization | undefined, _metricType: MetricType, _common: Record<string, any>, _metric: Record<string, any> | undefined): Promise<void> {
+  sendTelemetry(_org: Organization | undefined, _metricType: MetricType, _common: Record<string, any>, _metric: Record<string, any> | undefined): Promise<void> {
     return Promise.resolve();
   }
 
-  async chat(_auth: AuthInfo, options: ChatOptions, _org?: Organization): Promise<void> {
+  async chat(options: ChatOptions, _org?: Organization): Promise<void> {
     let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
@@ -295,7 +305,7 @@ export class TGIClient implements CodeClient {
     }
   }
 
-  async completion(_auth: AuthInfo, options: CompletionOptions, _org?: Organization): Promise<void> {
+  async completion(options: CompletionOptions, _org?: Organization): Promise<void> {
     let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";

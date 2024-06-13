@@ -32,8 +32,22 @@ function encrypt(dataStr: string): string {
 export class RaccoonClient implements CodeClient {
   private onChangeAuthInfo?: (token?: AuthInfo) => void;
   private log?: (message: string, ...args: any[]) => void;
+  private auth?: AuthInfo;
 
   constructor(private readonly clientConfig: ClientConfig) {
+    let k = this.clientConfig.key;
+    if (k && typeof k === "object" && "secretAccessKey" in k) {
+      let kp = k as AccessKey;
+      let auth = {
+        account: {
+          userId: kp.accessKeyId,
+          username: "User",
+          pro: false
+        },
+        weaverdKey: kp.secretAccessKey,
+      };
+      this.auth = { ...auth };
+    }
   }
 
   setLogger(log?: (message: string, ...args: any[]) => void) {
@@ -67,23 +81,17 @@ export class RaccoonClient implements CodeClient {
 
   public async login(param?: AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (!param) {
-      let k = this.clientConfig.key;
-      if (k && typeof k === "object" && "secretAccessKey" in k) {
-        let kp = k as AccessKey;
-        return {
-          account: {
-            userId: kp.accessKeyId,
-            username: this.clientConfig.username || "User",
-            pro: false
-          },
-          weaverdKey: kp.secretAccessKey,
-        };
+      if (this.clientConfig.key && this.auth) {
+        return this.auth;
       }
       return Promise.reject(new Error("No preset auth info"));
     }
     return this._login(param).then((v) => {
-      return this.syncUserInfo(v).then((info) => {
-        return { ...v, account: info };
+      this.auth = { ...v };
+      return this.syncUserInfo().then((info) => {
+        let auth = { ...v, account: info };
+        this.auth = { ...auth };
+        return auth;
       }, () => v);
     });
   }
@@ -91,35 +99,40 @@ export class RaccoonClient implements CodeClient {
   async _login(param: AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (param.type === "browser") {
       let p = param as BrowserLoginParam;
-      let ak = '';
-      let rk = '';
-      let jwtDecoded;
+      let code = '';
       p.callbackParam.trim()
         .split('&')
         .forEach(item => {
           let kv = item.split('=');
-          if (kv[0] === 'access_token') {
-            ak = kv[1];
-            jwtDecoded = jwt_decode(ak);
-          }
-          if (kv[0] === 'refresh_token') {
-            rk = kv[1];
+          if (kv[0] === 'authorization_code') {
+            code = kv[1];
           }
         });
-      if (ak && rk && jwtDecoded) {
-        return {
-          account: {
-            userId: jwtDecoded["iss"],
-            username: jwtDecoded["name"],
-            pro: false
-          },
-          expiration: jwtDecoded["exp"],
-          weaverdKey: ak,
-          refreshToken: rk,
-        };
-      } else {
-        return Promise.reject();
+      if (code) {
+        return axios.post(
+          this.clientConfig.baseUrl + "/api/plugin/auth/v1/login_with_authorization_code",
+          {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "authorization_code": code
+          }
+        ).then((resp) => {
+          if (resp.status === 200 && resp.data.data) {
+            let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
+            return {
+              account: {
+                userId: jwtDecoded["iss"],
+                username: jwtDecoded["name"],
+                pro: false
+              },
+              expiration: jwtDecoded["exp"],
+              weaverdKey: resp.data.data.access_token,
+              refreshToken: resp.data.data.refresh_token
+            };
+          }
+          return Promise.reject();
+        });
       }
+      return Promise.reject();
     } else if (param.type === AuthMethod.accesskey) {
       let p = param as AccessKeyLoginParam;
       return {
@@ -180,24 +193,56 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  public async logout(auth: AuthInfo): Promise<string | undefined> {
+  public restoreAuthInfo(auth?: AuthInfo): "SET" | "RESET" | "UPDATE" {
+    if (this.clientConfig.key) {
+      return "UPDATE";
+    }
+    if (auth) {
+      let set = false;
+      if (!this.auth) {
+        set = true;
+      }
+      this.auth = auth;
+      return set ? "SET" : "UPDATE";
+    } else {
+      let reset = false;
+      if (this.auth) {
+        reset = true;
+      }
+      this.auth = auth;
+      return reset ? "RESET" : "UPDATE";
+    }
+  }
+
+  public getAuthInfo(): AuthInfo | undefined {
+    return this.auth;
+  }
+
+  public async logout(): Promise<string | undefined> {
     if (this.clientConfig.key) {
       return Promise.reject(new Error("Can not clear Access Key from settings"));
+    } else if (!this.auth) {
+      return Promise.reject(new Error("Not login yet"));
     } else {
       //let date = new Date();
       let headers: any = {};
       //headers["Date"] = date.toUTCString();
       headers["Content-Type"] = "application/json";
-      headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
+      headers["Authorization"] = `Bearer ${this.auth.weaverdKey}`;
+      this.auth = undefined;
       return axios.post(`${this.clientConfig.baseUrl}/api/plugin/auth/v1/logout`, {}, { headers }).then(() => {
         return undefined;
       });
     }
   }
 
-  public async syncUserInfo(auth: AuthInfo, timeoutMs?: number): Promise<AccountInfo> {
+  public async syncUserInfo(timeoutMs?: number): Promise<AccountInfo> {
     let url = `${this.clientConfig.baseUrl}/api/plugin/auth/v1/user_info`;
     let ts = new Date();
+    let auth = this.auth;
+    if (!auth) {
+      return Promise.reject();
+    }
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
         this.log?.('syncUserInfo trigger token refresh');
@@ -232,16 +277,19 @@ export class RaccoonClient implements CodeClient {
             }
           }
           let info: AccountInfo = {
-            userId: auth.account.userId,
+            userId: auth?.account.userId || "",
             username,
             pro,
             organizations
           };
+          if (this.auth) {
+            this.auth.account = info;
+          }
           return info;
         }
-        return Promise.resolve(auth.account);
+        return Promise.resolve(auth!.account);
       }, (_err) => {
-        return Promise.resolve(auth.account);
+        return Promise.resolve(auth!.account);
       });
   }
 
@@ -561,8 +609,12 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  async chat(auth: AuthInfo, options: ChatOptions, org?: Organization): Promise<void> {
+  async chat(options: ChatOptions, org?: Organization): Promise<void> {
     let ts = new Date();
+    let auth = this.auth;
+    if (!auth) {
+      return Promise.reject();
+    }
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
         this.log?.('chat trigger token refresh');
@@ -712,8 +764,12 @@ export class RaccoonClient implements CodeClient {
     }
   }
 
-  async completion(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void> {
+  async completion(options: CompletionOptions, org?: Organization): Promise<void> {
     let ts = new Date();
+    let auth = this.auth;
+    if (!auth) {
+      return Promise.reject();
+    }
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
         this.log?.('completion trigger token refresh');
@@ -725,7 +781,11 @@ export class RaccoonClient implements CodeClient {
     return this.completionUsingFetch(auth, options, org);
   }
 
-  public async listKnowledgeBase(auth: AuthInfo, org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
+  public async listKnowledgeBase(org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
+    let auth = this.auth;
+    if (!auth) {
+      return Promise.reject();
+    }
     let listUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
     if (!auth.account.pro && !org) {
       return [];
@@ -753,7 +813,11 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  public async sendTelemetry(auth: AuthInfo, org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
+  public async sendTelemetry(org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
+    let auth = this.auth;
+    if (!auth) {
+      return Promise.reject();
+    }
     let telementryUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/b/v1/m`;
     let metricInfo: any = {};
     metricInfo[metricType] = metric;

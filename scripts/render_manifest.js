@@ -1,6 +1,7 @@
 const args = require('minimist')(process.argv.slice(2));
 const fs = require('node:fs');
 
+let promptLanguage = args.promptLanguage || "auto";
 let packageId = args.packageId.toLowerCase().replaceAll(" ", "-") || "raccoon";
 let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
@@ -10,6 +11,7 @@ let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
 let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
 
 console.log("=============== Rendering Settings ===============");
+console.log(` Prompt Language    : ${promptLanguage}`);
 console.log(` Package ID         : ${packageId}`);
 console.log(` Package Name       : ${packageName}`);
 if (packageValueFile) {
@@ -21,6 +23,10 @@ if (packageValueFile) {
   console.log(` Auth Method        : ${authMethod}`);
 }
 console.log("==================================================");
+
+if (promptLanguage !== "auto") {
+  fs.copyFileSync(`./config/prompt.${promptLanguage}.json`, './config/prompt.json');
+}
 
 fs.readFile('./package-sample.json', 'utf8', (err, data) => {
   if (err) {

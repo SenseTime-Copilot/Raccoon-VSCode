@@ -1,0 +1,78 @@
+[
+  {
+    "label": "註釋生成代碼",
+    "type": "code generation",
+    "shortcut": "generate",
+    "message": {
+      "role": "user",
+      "content": "根據註釋生成相應的代碼.\n{{code}}",
+      "brush": true,
+      "icon": "gradient"
+    }
+  },
+  {
+    "label": "測試代碼生成",
+    "type": "test sample generation",
+    "shortcut": "test",
+    "message": {
+      "role": "user",
+      "content": "為以下代碼生成測試用例代碼.\n{{code}}",
+      "icon": "science"
+    }
+  },
+  {
+    "label": "代碼翻譯",
+    "type": "code language conversion",
+    "shortcut": "translate",
+    "message": {
+      "role": "user",
+      "content": "將以下代碼改寫為等價的 {{language}} 代碼.\n{{code}}"
+    },
+    "args": {
+      "language": {
+        "type": "enum",
+        "options": [
+          "C",
+          "C++",
+          "C#",
+          "Go",
+          "Java",
+          "JavaScript",
+          "Lua",
+          "Objective-C",
+          "PHP",
+          "Perl",
+          "Python",
+          "R",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ]
+      }
+    },
+    "icon": "repeat"
+  },
+  {
+    "label": "代碼修正",
+    "type": "code error correction",
+    "shortcut": "fix",
+    "message": {
+      "role": "user",
+      "content": "修正以下代碼中的問題.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "add_task"
+  },
+  {
+    "label": "代碼重構",
+    "type": "code refactoring optimization",
+    "shortcut": "refactor",
+    "message": {
+      "role": "user",
+      "content": "重構以下代碼, 使其結構更加清晰, 更易於閱讀和維護.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "construction"
+  }
+]

@@ -1,0 +1,78 @@
+[
+  {
+    "label": "注释生成代码",
+    "type": "code generation",
+    "shortcut": "generate",
+    "message": {
+      "role": "user",
+      "content": "根据注释生成相应的代码.\n{{code}}",
+      "brush": true,
+      "icon": "gradient"
+    }
+  },
+  {
+    "label": "测试代码生成",
+    "type": "test sample generation",
+    "shortcut": "test",
+    "message": {
+      "role": "user",
+      "content": "为以下代码生成测试用例代码.\n{{code}}",
+      "icon": "science"
+    }
+  },
+  {
+    "label": "代码翻译",
+    "type": "code language conversion",
+    "shortcut": "translate",
+    "message": {
+      "role": "user",
+      "content": "将以下代码改写为等价的 {{language}} 代码.\n{{code}}"
+    },
+    "args": {
+      "language": {
+        "type": "enum",
+        "options": [
+          "C",
+          "C++",
+          "C#",
+          "Go",
+          "Java",
+          "JavaScript",
+          "Lua",
+          "Objective-C",
+          "PHP",
+          "Perl",
+          "Python",
+          "R",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ]
+      }
+    },
+    "icon": "repeat"
+  },
+  {
+    "label": "代码修正",
+    "type": "code error correction",
+    "shortcut": "fix",
+    "message": {
+      "role": "user",
+      "content": "修正以下代码中的问题.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "add_task"
+  },
+  {
+    "label": "代码重构",
+    "type": "code refactoring optimization",
+    "shortcut": "refactor",
+    "message": {
+      "role": "user",
+      "content": "重构以下代码, 使其结构更加清晰, 更易于阅读和维护.\n{{code}}"
+    },
+    "brush": true,
+    "icon": "construction"
+  }
+]

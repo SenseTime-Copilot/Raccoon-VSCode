@@ -142,7 +142,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
       let redirectUrl = Uri.parse(`${env.uriScheme}://${context.extension.id}/login`).toString();
       views += `<vscode-panel-view id="view-browser" class="login-view flex-col gap-2">
                   <div></div>
-                  <a title="${l10n.t("Login with Browser")}" class="sso-btn" href="${loginUrl.with({ query: `redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
+                  <a title="${l10n.t("Login with Browser")}" class="sso-btn" href="${loginUrl.with({ query: `appname=${encodeURIComponent(env.appName)}&redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
                     <vscode-button style="width: 100%">${l10n.t("Login")}</vscode-button>
                   </a>
                   <div></div>

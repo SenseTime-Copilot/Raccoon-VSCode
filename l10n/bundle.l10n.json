@@ -160,15 +160,5 @@
   "Insert the below code at cursor": "Insert the below code at cursor",
   "Active engine not set": "Active engine not set",
   "Help": "Help",
-  "Generation": "Generation",
-  "Generate code according comment message": "Generate code according comment message",
-  "Add Test": "Add Test",
-  "Generate unit test code to the following code": "Generate unit test code to the following code",
-  "Code Correction": "Code Correction",
-  "Fix any problem in the following code": "Fix any problem in the following code",
-  "Code Conversion": "Code Conversion",
-  "Convert the given code to equivalent {0} code": "Convert the given code to equivalent {0} code",
-  "Refactoring": "Refactoring",
-  "Refactor the following code to make its structure clearer, easier to read, and maintain": "Refactor the following code to make its structure clearer, easier to read, and maintain",
   "Show Transpiled Typescript Code": "Show Transpiled Typescript Code"
 }
