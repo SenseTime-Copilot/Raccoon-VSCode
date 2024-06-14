@@ -540,6 +540,7 @@ const vscode = acquireVsCodeApi();
                           </div>`;
           }
         }
+        list.innerHTML += `<span class="empty-history material-symbols-rounded">pets</span>`;
         list.innerHTML += `<div class='history-seperator' data-text='↓ ${new Date().toLocaleString()} ↓'></div>`;
         list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         break;
@@ -1043,14 +1044,15 @@ const vscode = acquireVsCodeApi();
       if (replace) {
         document.getElementById(`question-${replace}`)?.remove();
         document.getElementById(replace)?.remove();
+        editCache.delete(id);
       }
 
       vscode.postMessage({
         type: "sendQuestion",
+        replace: replace && parseInt(replace),
         prompt: promptTemp,
         values
       });
-      //editCache.delete(id);
     } else {
       showInfoTip({ style: "error", category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }

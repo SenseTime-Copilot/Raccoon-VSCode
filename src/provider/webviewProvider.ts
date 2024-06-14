@@ -226,12 +226,12 @@ export class RaccoonEditor extends Disposable {
         }
         case 'login': {
           if (!data.value) {
-            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: l10n.t("Login failed"), id: new Date().valueOf() });
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: l10n.t("Login failed") + ": Empty Login Info", id: new Date().valueOf() });
             break;
           }
           raccoonManager.login(data.value).then((res) => {
             if (res !== "ok") {
-              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login failed"), id: new Date().valueOf() });
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login failed") + ": " + res.message, id: new Date().valueOf() });
             }
           });
           break;
@@ -250,7 +250,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'deleteQA': {
-          this.cache.removeCacheItem(data.id);
+          await this.cache.removeCacheItem(data.id);
           break;
         }
         case 'addAgent': {
@@ -261,6 +261,9 @@ export class RaccoonEditor extends Disposable {
           let editor = this.lastTextEditor;
           if (window.activeTextEditor && this.isSupportedScheme(window.activeTextEditor.document)) {
             editor = window.activeTextEditor;
+          }
+          if (data.replace) {
+            await this.cache.removeCacheItem(data.replace);
           }
           let prompt: RaccoonPrompt = data.prompt;
           if (prompt.message.role === Role.function) {

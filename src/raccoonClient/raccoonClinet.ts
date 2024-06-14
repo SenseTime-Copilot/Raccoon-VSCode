@@ -325,6 +325,7 @@ export class RaccoonClient implements CodeClient {
             weaverdKey: resp.data.data.access_token,
             refreshToken: resp.data.data.refresh_token,
           };
+          this.auth = newAuth;
           this.onChangeAuthInfo?.(newAuth);
           return newAuth;
         }

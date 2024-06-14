@@ -25,7 +25,7 @@ interface ClientAndConfigInfo {
   options: { [key in ModelCapacity]?: ClientOption };
 }
 
-type ChangeScope = "agent" | "prompt" | "engines" | "active" | "konwledge" | "authorization" | "config";
+type ChangeScope = "agent" | "prompt" | "engines" | "active" | "authorization" | "config";
 const individual = "Individual";
 
 export interface StatusChangeEvent {
@@ -310,7 +310,7 @@ export class RaccoonManager {
     await this.configuration.update("Prompt", undefined, true);
 
     await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
-    this.notifyStateChange({ scope: ["authorization", "active", "konwledge", "engines", "agent", "prompt", "config"] });
+    this.notifyStateChange({ scope: ["authorization", "active", "engines", "agent", "prompt", "config"] });
   }
 
   public update(): void {
@@ -636,7 +636,6 @@ export class RaccoonManager {
         return ca.client.listKnowledgeBase(org).then((kb) => {
           if (JSON.stringify(oldKb) !== JSON.stringify(kb)) {
             this.context.globalState.update("KnowledgeBases", kb);
-            this.notifyStateChange({ scope: ["konwledge"] });
           }
           this.context.globalState.update("KnowledgeBasesNextUpdateAt", curTs + (30 * 60 * 1000));
           return kb;

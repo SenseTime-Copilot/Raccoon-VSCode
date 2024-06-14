@@ -27,9 +27,10 @@ function buildLoginHint() {
 }
 
 function buildDocumentLinkHint() {
+  let robot = extensionDisplayName || "Raccoon";
   return `<a class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);" href="command:${extensionNameKebab}.help">
   <span class="material-symbols-rounded">book</span>
-  <div class="inline-block leading-loose">${l10n.t("Read {robot} document", { robot: extensionDisplayName })}</div>
+  <div class="inline-block leading-loose">${l10n.t("Read {robot} document", { robot })}</div>
   <span class="material-symbols-rounded grow text-right">keyboard_double_arrow_right</span>
 </a>`;
 }
@@ -138,11 +139,12 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   if (methods.includes(AuthMethod.browser)) {
     let loginUrl = raccoonManager.getUrl(UrlType.login);
     if (loginUrl) {
-      tabs += `<vscode-panel-tab id="tab-browser">${l10n.t("Login with Browser")}</vscode-panel-tab>`;
+      tabs += `<vscode-panel-tab id="tab-browser">${l10n.t("Browser")}</vscode-panel-tab>`;
       let redirectUrl = Uri.parse(`${env.uriScheme}://${context.extension.id}/login`).toString();
       views += `<vscode-panel-view id="view-browser" class="login-view flex-col gap-2">
                   <div></div>
-                  <a title="${l10n.t("Login with Browser")}" class="sso-btn" href="${loginUrl.with({ query: `appname=${encodeURIComponent(env.appName)}&redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
+                  <span class="material-symbols-rounded" style="text-align: center;font-size: 80px;opacity: 0.4;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;">laptop_windows</span>
+                  <a title="${l10n.t("Login")}" class="sso-btn" href="${loginUrl.with({ query: `appname=${encodeURIComponent(env.appName)}&redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
                     <vscode-button style="width: 100%">${l10n.t("Login")}</vscode-button>
                   </a>
                   <div></div>
@@ -151,7 +153,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   }
 
   if (methods.includes(AuthMethod.email)) {
-    tabs += `<vscode-panel-tab id="tab-email">${l10n.t("Login with Email")}</vscode-panel-tab>`;
+    tabs += `<vscode-panel-tab id="tab-email">${l10n.t("Email")}</vscode-panel-tab>`;
     views += `<vscode-panel-view id="view-email" class="login-view flex-col gap-2">
                 <div class="flex flex-col gap-2">
                 <div class="flex flex-row">
@@ -180,7 +182,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
               </vscode-panel-view>`;
   }
   if (!isEnterprise && methods.includes(AuthMethod.phone)) {
-    tabs += `<vscode-panel-tab id="tab-pwd">${l10n.t("Login with Password")}</vscode-panel-tab>`;
+    tabs += `<vscode-panel-tab id="tab-pwd">${l10n.t("Phone")}</vscode-panel-tab>`;
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {

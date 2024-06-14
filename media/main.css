@@ -1061,6 +1061,19 @@ button.stopGenerate:hover,
     display: none;
 }
 
+.empty-history.material-symbols-rounded {
+    font-size: 5rem;
+    text-align: center;
+    padding: 2rem 0;
+    width: 100%;
+    opacity: 0.3;
+    display: none;
+}
+
+.empty-history.material-symbols-rounded:first-child {
+    display: block;
+}
+
 .history-seperator:before {
     content: attr(data-text);
     text-align: center;
