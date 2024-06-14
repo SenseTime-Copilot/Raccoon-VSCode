@@ -171,26 +171,26 @@ export class RaccoonManager {
             if (ntfy.sessionId !== env.sessionId) {
               if (evt.scope.includes("authorization")) {
                 context.secrets.get(`${extensionNameCamel}.tokens`).then((tks) => {
-                  if (tks) {
-                    try {
-                      let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks);
-                      let quiet = true;
-                      let activeClientName = this.getActiveClientRobotName();
-                      for (let c in this._clients) {
-                        let ca = this._clients[c];
-                        if (ca) {
-                          let act = ca.client.restoreAuthInfo(authinfos[c]);
-                          if (ca.client.robotName === activeClientName) {
-                            if (act !== "UPDATE") {
-                              quiet = false;
-                            }
+                  try {
+                    let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks || "{}");
+                    let quiet = true;
+                    let activeClientName = this.getActiveClientRobotName();
+                    for (let c in this._clients) {
+                      let ca = this._clients[c];
+                      if (ca) {
+                        let act = ca.client.restoreAuthInfo(authinfos[c]);
+                        if (ca.client.robotName === activeClientName) {
+                          if (act !== "UPDATE") {
+                            quiet = false;
                           }
                         }
                       }
-                      evt.quiet = quiet;
-                      this.changeStatusEmitter.fire(evt);
-                    } catch (_e) { }
-                  }
+                    }
+                    evt.quiet = quiet;
+                  } catch (_e) { }
+                  this.changeStatusEmitter.fire(evt);
+                }, () => {
+                  this.changeStatusEmitter.fire(evt);
                 });
               } else {
                 this.changeStatusEmitter.fire(evt);

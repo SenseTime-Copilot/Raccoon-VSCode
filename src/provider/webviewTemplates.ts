@@ -154,6 +154,17 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
 
   if (methods.includes(AuthMethod.email)) {
     tabs += `<vscode-panel-tab id="tab-email">${l10n.t("Email")}</vscode-panel-tab>`;
+    let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
+    let forgetPwd = '';
+    if (forgetPwdLink) {
+      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString()}">
+                ${l10n.t("Forgot Password")}?
+              </vscode-link>`;
+    } else {
+      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs" href="#">
+                ${l10n.t("Forgot Password")}?
+              </vscode-link>`;
+    }
     views += `<vscode-panel-view id="view-email" class="login-view flex-col gap-2">
                 <div class="flex flex-col gap-2">
                 <div class="flex flex-row">
@@ -172,9 +183,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
                 </div>
                 <div class="flex flex-col">
                   <div class="grow text-right">
-                    <vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}? ${l10n.t("Contact Administrator")}" class="text-xs">
-                      ${l10n.t("Forgot Password")}?
-                    </vscode-link>
+                    ${forgetPwd}
                   </div>
                 </div>
                 </div>
