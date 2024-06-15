@@ -157,7 +157,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {
-      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString()}">
+      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString(true)}">
                 ${l10n.t("Forgot Password")}?
               </vscode-link>`;
     } else {
@@ -195,7 +195,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {
-      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString()}">
+      forgetPwd = `<vscode-link tabindex="-1" title="${l10n.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString(true)}">
                 ${l10n.t("Forgot Password")}?
               </vscode-link>`;
     } else {
@@ -261,7 +261,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   if (!isEnterprise && signupUrl) {
     signupLink = `<span class="self-center grow">
       ${l10n.t("Do not have an account?")}
-      <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl.toString()}">
+      <vscode-link title="${l10n.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl.toString(true)}">
         ${l10n.t("Sign Up")}
       </vscode-link>
     </span>`;

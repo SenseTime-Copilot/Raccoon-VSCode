@@ -71,7 +71,7 @@ export class RaccoonClient implements CodeClient {
       case UrlType.login:
         return this.clientConfig.baseUrl + "/login";
       case UrlType.forgetPassword:
-        return this.clientConfig.baseUrl + "/login?step=forget-password";
+        return this.clientConfig.baseUrl + "/login?step=forgot-password";
     }
   }
 
