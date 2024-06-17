@@ -25,6 +25,9 @@ const config = {
     vscode: "commonjs vscode" // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
   },
   resolve: { // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
+    alias: {
+      'handlebars': 'handlebars/dist/handlebars.js'
+    },
     extensions: ['.ts', '.js']
   },
   module: {
@@ -52,6 +55,9 @@ const webExtensionConfig = {
   resolve: {
     mainFields: ['browser', 'module', 'main'],
     extensions: ['.ts', '.js'], // support ts-files and js-files
+    alias: {
+      'handlebars': 'handlebars/dist/handlebars.js'
+    },
     fallback: {
       // Webpack 5 no longer polyfills Node.js core modules automatically.
       // see https://webpack.js.org/configuration/resolve/#resolvefallback
