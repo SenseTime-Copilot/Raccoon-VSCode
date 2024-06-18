@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit, TextEditorSelectionChangeKind } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand, extensionDisplayName } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -94,7 +94,7 @@ export class RaccoonEditor extends Disposable {
     );
     context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
-        if (this.isSupportedScheme(e.textEditor.document)) {
+        if ((e.kind === TextEditorSelectionChangeKind.Keyboard || e.kind === TextEditorSelectionChangeKind.Mouse) && this.isSupportedScheme(e.textEditor.document)) {
           if (e.selections[0]) {
             let doc = e.textEditor.document;
             let text = doc.getText(e.selections[0]);
@@ -281,7 +281,7 @@ export class RaccoonEditor extends Disposable {
             }
             break;
           }
-          if (editor && !data.values) {
+          if (editor && !data.ignoreCode && !data.values) {
             prompt.code = editor.document.getText(editor.selection);
             if (editor.document.languageId !== "plaintext") {
               prompt.languageid = editor.document.languageId;

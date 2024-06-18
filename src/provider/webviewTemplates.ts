@@ -656,7 +656,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
             <script>
               const l10nForUI = {
                 "Cancel": "${l10n.t("Cancel")}",
-                "Delete": "${l10n.t("Delete this chat entity")}",
+                "Delete": "${l10n.t("Delete")}",
+                "DeleteQA": "${l10n.t("Delete this chat entity")}",
                 "Send": "${l10n.t("Send")}",
                 "ToggleWrap": "${l10n.t("Toggle line wrap")}",
                 "Show graph": "${l10n.t("Show graph")}",

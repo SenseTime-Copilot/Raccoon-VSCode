@@ -131,6 +131,10 @@
                 "id": "raccoon-submenu",
                 "label": "%raccoon.submenu%",
                 "icon": "$(more)"
+            },
+            {
+                "id": "raccoon-editor-submenu",
+                "label": "Raccoon"
             }
         ],
         "menus": {
@@ -139,11 +143,17 @@
                     "command": "raccoon.notebook.new"
                 }
             ],
-            "editor/context": [
+            "raccoon-editor-submenu": [
                 {
                     "command": "raccoon.chat.ask",
-                    "group": "z_commands",
+                    "group": "_raccoon_commands@1",
                     "when": "editorTextFocus"
+                }
+            ],
+            "editor/context": [
+                {
+                    "submenu": "raccoon-editor-submenu",
+                    "group": "_raccoon_commands"
                 }
             ],
             "scm/title": [

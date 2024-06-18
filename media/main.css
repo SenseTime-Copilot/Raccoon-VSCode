@@ -549,7 +549,7 @@ textarea::placeholder {
 
 #question-sizer:before {
     position: fixed;
-    width: calc(100% - 3rem + 1ch);
+    width: calc(100% - 3rem);
     line-height: 2;
     margin-left: 2px;
     opacity: 0.4;
@@ -752,6 +752,12 @@ span.shortcut:after {
 
 .question-element-gnc .pre-code-element code {
     overflow: auto;
+    scrollbar-width: thin;
+}
+
+.question-element-gnc .pre-code-element code::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
 }
 
 .question-element-gnc .pre-code-element.fold code {
@@ -875,13 +881,13 @@ span.shortcut:after {
     display: none;
 }
 
-.answer-element-gnc.responsing .markdown-body pre code::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
+.answer-element-gnc .markdown-body pre code {
+    scrollbar-width: thin;
 }
 
-.answer-element-gnc.responsing .markdown-body pre code {
-    scrollbar-width: thin;
+.answer-element-gnc .markdown-body pre code::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
 }
 
 .progress {

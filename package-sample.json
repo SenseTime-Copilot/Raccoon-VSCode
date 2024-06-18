@@ -16,8 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.72.0",
-    "preview": true,
+    "version": "0.74.0",
     "engines": {
         "vscode": "^1.82.0"
     },
@@ -132,6 +131,10 @@
                 "id": "{extensionId}-submenu",
                 "label": "%raccoon.submenu%",
                 "icon": "$(more)"
+            },
+            {
+                "id": "{extensionId}-editor-contextmenu",
+                "label": "{extensionName}"
             }
         ],
         "menus": {
@@ -140,11 +143,17 @@
                     "command": "{extensionId}.notebook.new"
                 }
             ],
-            "editor/context": [
+            "{extensionId}-editor-contextmenu": [
                 {
                     "command": "{extensionId}.chat.ask",
-                    "group": "z_commands",
+                    "group": "_{extensionId}_editor_contextmenu@1",
                     "when": "editorTextFocus"
+                }
+            ],
+            "editor/context": [
+                {
+                    "submenu": "{extensionId}-editor-contextmenu",
+                    "group": "_{extensionId}_editor_contextmenu"
                 }
             ],
             "scm/title": [

@@ -3,27 +3,28 @@
     "label": "コードを生成",
     "type": "code generation",
     "shortcut": "generate",
+    "icon": "gradient",
     "message": {
       "role": "user",
       "content": "コメントメッセージでコードを生成.\n{{code}}",
-      "brush": true,
-      "icon": "gradient"
+      "brush": true
     }
   },
   {
     "label": "テストコードを生成",
     "type": "test sample generation",
     "shortcut": "test",
+    "icon": "science",
     "message": {
       "role": "user",
-      "content": "以下のコードに対して、ユニットテストコードを生成.\n{{code}}",
-      "icon": "science"
+      "content": "以下のコードに対して、ユニットテストコードを生成.\n{{code}}"
     }
   },
   {
     "label": "コード変換",
     "type": "code language conversion",
     "shortcut": "translate",
+    "icon": "repeat",
     "message": {
       "role": "user",
       "content": "以下のコードを同様な {{language}} コードに変換.\n{{code}}"
@@ -50,29 +51,28 @@
           "TypeScript"
         ]
       }
-    },
-    "icon": "repeat"
+    }
   },
   {
     "label": "コード修正",
     "type": "code error correction",
     "shortcut": "fix",
+    "icon": "add_task",
     "message": {
       "role": "user",
       "content": "以下のコードの問題を修正.\n{{code}}"
     },
-    "brush": true,
-    "icon": "add_task"
+    "brush": true
   },
   {
     "label": "コード再構築",
     "type": "code refactoring optimization",
     "shortcut": "refactor",
+    "icon": "construction",
     "message": {
       "role": "user",
       "content": "次のコードを再構築して、構造をより明確にし、読みやすくメンテナンスしやすくする.\n{{code}}"
     },
-    "brush": true,
-    "icon": "construction"
+    "brush": true
   }
 ]

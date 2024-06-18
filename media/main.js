@@ -87,7 +87,7 @@ const vscode = acquireVsCodeApi();
                                 </span>
                               </span>
                               <div class="-mt-6 ml-1">
-                                <button title="${l10nForUI["Delete"]}" class="delete-element-gnc border-none bg-transparent opacity-60 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
+                                <button title="${l10nForUI["DeleteQA"]}" class="delete-element-gnc border-none bg-transparent opacity-60 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
                                 <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-60 hover:opacity-100">${cancelIcon}</button>
                               </div>
                             </h2>`;
@@ -551,31 +551,40 @@ const vscode = acquireVsCodeApi();
       }
       case 'codeReady': {
         var acc = document.getElementById("attach-code-container");
-        var ct = document.getElementById("code-title");
         if (message.value) {
           if (acc && message.file && message.range) {
-            acc.classList.add("with-code");
-            acc.classList.remove('hidden');
+            acc.innerHTML = "";
+            let ct = document.createElement('div');
+            ct.classList.add("flex", "items-center", "px-1");
             let fl = new URL(message.file);
             let rangetag = `:L${message.range.start.line + 1}`;
             if (message.range.start.line !== message.range.end.line) {
               rangetag = `:L${message.range.start.line + 1}-${message.range.end.line + 1}`;
             }
             ct.innerHTML = '<span class="material-symbols-rounded">file_present</span>'
-              + '<span class="grow whitespace-pre text-ellipsis overflow-hidden">' + fl.pathname.split('/').slice(-1) + rangetag + '</span>'
-              + '<span class="material-symbols-rounded" style="float: right">chevron_right</span>';
-            ct.title = decodeURIComponent(fl.pathname) + rangetag;
+              + '<vscode-link class="grow whitespace-pre text-ellipsis overflow-hidden" style="font-size: inherit;" title="' + decodeURIComponent(fl.pathname) + rangetag + '">' + fl.pathname.split('/').slice(-1) + rangetag + '</vscode-link>';
             ct.onclick = (_event) => {
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
+            let rmBtn = document.createElement('span');
+            rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-125');
+            rmBtn.title = l10nForUI["Delete"];
+            rmBtn.innerText = 'cancel';
+            rmBtn.onclick = (_event) => {
+              acc.classList.remove("with-code");
+              acc.classList.add('hidden', 'ignore');
+              acc.innerHTML = "";
+            };
+            ct.appendChild(rmBtn);
+            acc.appendChild(ct);
+            acc.classList.add("with-code");
+            acc.classList.remove('hidden', 'ignore');
           }
         } else {
           if (acc) {
             acc.classList.remove("with-code");
             acc.classList.add('hidden');
-            ct.innerText = '';
-            ct.title = '';
-            ct.onclick = undefined;
+            acc.innerHTML = "";
           }
         }
         break;
@@ -1047,15 +1056,39 @@ const vscode = acquireVsCodeApi();
         editCache.delete(id);
       }
 
+      var acc = document.getElementById("attach-code-container");
+      let ignoreCode = false;
+      if (acc.classList.contains("ignore")) {
+        ignoreCode = true;
+      }
+
       vscode.postMessage({
         type: "sendQuestion",
         replace: replace && parseInt(replace),
+        ignoreCode,
         prompt: promptTemp,
         values
       });
     } else {
       showInfoTip({ style: "error", category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
+  };
+
+  const sendPrompt = (content) => {
+    var acc = document.getElementById("attach-code-container");
+    let ignoreCode = false;
+    if (acc.classList.contains("ignore")) {
+      ignoreCode = true;
+    }
+    vscode.postMessage({
+      type: "sendQuestion",
+      ignoreCode,
+      prompt: {
+        label: "",
+        type: "free chat",
+        message: { role: 'user', content }
+      }
+    });
   };
 
   function updateHistory(prompt) {
@@ -1451,14 +1484,7 @@ const vscode = acquireVsCodeApi();
         if (document.getElementById("chat-input-box").classList.contains("search")) {
           sendSearchQuery(e.target.value.slice(1).trim());
         } else {
-          vscode.postMessage({
-            type: "sendQuestion",
-            prompt: {
-              label: "",
-              type: "free chat",
-              message: { role: 'user', content: e.target.value }
-            }
-          });
+          sendPrompt(e.target.value);
         }
       } else if (e.key === "ArrowDown" && document.getElementById("chat-input-box").classList.contains("history")) {
         e.preventDefault();
@@ -1639,14 +1665,7 @@ const vscode = acquireVsCodeApi();
       if (list.classList.contains("hidden")) {
         var prompt = document.getElementById("question-input").value.trim();
         if (prompt) {
-          vscode.postMessage({
-            type: "sendQuestion",
-            prompt: {
-              label: "",
-              type: "free chat",
-              message: { role: 'user', content: prompt }
-            }
-          });
+          sendPrompt(prompt);
         } else {
           var readyQuestion = document.getElementsByClassName("editRequired");
           if (readyQuestion.length > 0) {

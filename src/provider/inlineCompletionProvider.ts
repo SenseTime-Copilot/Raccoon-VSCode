@@ -75,18 +75,6 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
               continue;
             }
             let afterCursor = document.lineAt(position.line).text.slice(position.character);
-            let range: vscode.Range | undefined;
-            if (message.endsWith(afterCursor.trimEnd())) {
-              range = new vscode.Range(
-                new vscode.Position(position.line, position.character),
-                new vscode.Position(position.line, position.character + afterCursor.length)
-              );
-            } else {
-              range = new vscode.Range(
-                new vscode.Position(position.line, position.character),
-                new vscode.Position(position.line, position.character)
-              );
-            }
             let resultLines = message.split('\n').length - 1;
             let decoratorRange: vscode.Range | undefined;
             if (resultLines > 1 || !afterCursor.trimEnd()) {
@@ -103,6 +91,10 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
                 decoratorRange
               ]
             };
+            let range = new vscode.Range(
+              new vscode.Position(position.line, position.character),
+              new vscode.Position(position.line, position.character + afterCursor.length)
+            );
             items.push({
               insertText: message,
               range,
