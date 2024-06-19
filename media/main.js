@@ -557,12 +557,14 @@ const vscode = acquireVsCodeApi();
             let ct = document.createElement('div');
             ct.classList.add("flex", "items-center", "px-1");
             let fl = new URL(message.file);
-            let rangetag = `:L${message.range.start.line + 1}`;
-            if (message.range.start.line !== message.range.end.line) {
-              rangetag = `:L${message.range.start.line + 1}-${message.range.end.line + 1}`;
+            let rangetag = ``;
+            if (message.range.start.line === message.range.end.line) {
+              rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-${message.range.end.character + 1}`;
+            } else {
+              rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-L${message.range.end.line + 1}C${message.range.end.character + 1}`;
             }
             ct.innerHTML = '<span class="material-symbols-rounded">file_present</span>'
-              + '<vscode-link class="grow whitespace-pre text-ellipsis overflow-hidden" style="font-size: inherit;" title="' + decodeURIComponent(fl.pathname) + rangetag + '">' + fl.pathname.split('/').slice(-1) + rangetag + '</vscode-link>';
+              + '<vscode-link class="grow whitespace-pre text-ellipsis overflow-hidden" style="font-size: inherit;" title="' + decodeURIComponent(fl.pathname) + rangetag + '">' + fl.pathname.split('/').slice(-1) + '<span class="opacity-75">' + rangetag + '</span></vscode-link>';
             ct.onclick = (_event) => {
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
