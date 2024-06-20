@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType, Capability } from "./CodeClient";
 
 import hbs = require("handlebars");
 import sign = require('jwt-encode');
@@ -73,6 +73,35 @@ export class RaccoonClient implements CodeClient {
       case UrlType.forgetPassword:
         return this.clientConfig.baseUrl + "/login?step=forgot-password";
     }
+  }
+
+  public capabilities(): Promise<Capability[]> {
+    if (!this.auth) {
+      return Promise.resolve([]);
+    }
+    return axios.get(
+      this.clientConfig.baseUrl + "/api/plugin/setting/v1/settings",
+      {
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          Authorization: `Bearer ${this.auth.weaverdKey}`
+        }
+      }
+    ).then((resp) => {
+      let cap: Capability[] = [];
+      if (resp.status === 200 && resp.data.data && resp.data.data.settings) {
+        let capresp: string[] = resp.data.data.settings.capabilities || [];
+        const values = Object.values(Capability);
+        values.forEach((value, _index) => {
+          if (capresp.includes(value)) {
+            cap.push(value);
+          }
+        });
+      }
+      return cap;
+    }).catch((e) => {
+      return [];
+    });
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {

@@ -1,6 +1,6 @@
 import { ExtensionContext, Uri, Webview, env, l10n } from 'vscode';
 import { extensionDisplayName, extensionNameKebab, raccoonConfig, raccoonManager } from "../globalEnv";
-import { AuthMethod, Organization, UrlType } from '../raccoonClient/CodeClient';
+import { AuthMethod, Capability, Organization, UrlType } from '../raccoonClient/CodeClient';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 import { CompletionPreferenceType } from './raccoonManager';
 
@@ -345,7 +345,7 @@ export async function buildSettingPage(): Promise<string> {
   let disableSwitch = (isEnterprise && (raccoonManager.organizationList().length === 1));
 
   let knowledgeBaseSetting = ``;
-  if (!isEnterprise) {
+  if (raccoonManager.capabilities.includes(Capability.fileSearch)) {
     knowledgeBaseSetting = `<vscode-divider style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
     <div class="flex gap-2 items-center ${knowledgeBaseEnable ? "" : "opacity-50"}">
       <b>${l10n.t("Retrieval Argumention")}</b>

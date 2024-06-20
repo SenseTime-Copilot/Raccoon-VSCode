@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, l10n, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
@@ -22,6 +22,7 @@ export enum CompletionPreferenceType {
 
 interface ClientAndConfigInfo {
   client: CodeClient;
+  capabilities: Capability[];
   options: { [key in ModelCapacity]?: ClientOption };
 }
 
@@ -233,19 +234,28 @@ export class RaccoonManager {
         client.onDidChangeAuthInfo(async (ai) => {
           await this.updateToken(e.robotname, ai, !!ai);
         });
+        let capabilities: Capability[] = [];
         if (authinfos[e.robotname]) {
           outlog.debug(`Append client ${e.robotname}: [Authorized - ${authinfos[e.robotname].account.username}]`);
           client.restoreAuthInfo(authinfos[e.robotname]);
+          try {
+            capabilities = await client.capabilities();
+          } catch (_e) {
+          }
         } else {
-          await client.login().then((ai) => {
+          await client.login().then(async (ai) => {
             outlog.debug(`Append client ${e.robotname}: [Authorized - ${ai.account.username}]`);
+            try {
+              capabilities = await client.capabilities();
+            } catch (_e) {
+            }
             return this.updateToken(e.robotname, ai);
           }, (_err) => {
             outlog.debug(`Append client ${e.robotname} [Unauthorized]`);
             return undefined;
           });
         }
-        this._clients[e.robotname] = { client, options: e };
+        this._clients[e.robotname] = { client, capabilities, options: e };
       }
     }
   }
@@ -572,6 +582,11 @@ export class RaccoonManager {
     });
   }
 
+  public get capabilities(): Capability[] {
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    return ca?.capabilities || [];
+  }
+
   public async userInfo(update: boolean = false, timeoutMs?: number): Promise<AccountInfo | undefined> {
     let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     let auth = ca?.client.getAuthInfo();
@@ -675,8 +690,11 @@ export class RaccoonManager {
         return new Error("Invalid Client Handler");
       }
       return ca.client.login(param).then(async (token) => {
-        progress.report({ increment: 100 });
         if (ca && token) {
+          try {
+            ca.capabilities = await ca.client.capabilities();
+          } catch (_e) {
+          }
           let orgs = token.account.organizations;
           if (orgs) {
             let isEnterprise = raccoonConfig.type() === "Enterprise";
@@ -685,6 +703,7 @@ export class RaccoonManager {
             }
           }
           this.updateToken(ca.client.robotName, token);
+          progress.report({ increment: 100 });
           return 'ok';
         } else {
           return new Error(l10n.t("Incorrect username or password"));
@@ -711,6 +730,7 @@ export class RaccoonManager {
           ).finally(async () => {
             if (ca) {
               this.updateToken(ca.client.robotName);
+              ca.capabilities = [];
               await this.context.globalState.update("ActiveOrganization", undefined);
               await this.context.globalState.update("ActiceClient", undefined);
             }

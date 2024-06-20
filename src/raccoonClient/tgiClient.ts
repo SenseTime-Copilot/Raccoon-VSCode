@@ -1,4 +1,4 @@
-import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType } from "./CodeClient";
+import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType, Capability } from "./CodeClient";
 import { EventStreamContentType, fetchEventSource } from "@fortaine/fetch-event-source";
 import hbs = require("handlebars");
 
@@ -23,6 +23,10 @@ export class TGIClient implements CodeClient {
 
   public url(_type: UrlType): string {
     return this.clientConfig.baseUrl;
+  }
+
+  capabilities(): Promise<Capability[]> {
+    return Promise.resolve([]);
   }
 
   public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {

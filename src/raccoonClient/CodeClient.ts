@@ -223,6 +223,14 @@ export enum UrlType {
   forgetPassword = "forgetPassword"
 }
 
+export enum Capability {
+  completion = "completion",
+  chat = "chat",
+  function = "function",
+  codeInterpreter = "code_interpreter",
+  fileSearch = "file_search"
+}
+
 export interface CodeClient {
 
   setLogger(log?: (message: string, ...args: any[]) => void): void;
@@ -232,6 +240,8 @@ export interface CodeClient {
   get authMethods(): AuthMethod[];
 
   url(type: UrlType): string;
+
+  capabilities(): Promise<Capability[]>;
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
