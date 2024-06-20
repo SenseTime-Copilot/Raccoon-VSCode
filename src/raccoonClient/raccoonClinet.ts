@@ -99,7 +99,7 @@ export class RaccoonClient implements CodeClient {
         });
       }
       return cap;
-    }).catch((e) => {
+    }).catch((_e) => {
       return [];
     });
   }
@@ -404,8 +404,8 @@ export class RaccoonClient implements CodeClient {
     let len = 0;
     for (let idx = options.messages.length - 1; idx >= 0; idx--) {
       let v = options.messages[idx];
-      let newLen = len + v.content.length;
-      if (newLen < options.maxInputTokens * 3) {
+      len += v.content.length;
+      if (len < options.maxInputTokens * 3) {
         reversedMessages.push(v);
       } else {
         break;
