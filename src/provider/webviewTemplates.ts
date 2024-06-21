@@ -5,7 +5,7 @@ import { phoneZoneCode } from '../utils/phoneZoneCode';
 import { CompletionPreferenceType } from './raccoonManager';
 
 function buildOrgHint(): string {
-  let isEnterprise = (raccoonConfig.type() === "Enterprise");
+  let isEnterprise = (raccoonConfig.type === "Enterprise");
   let orgs = raccoonManager.organizationList();
   if (orgs.length === 0 || (isEnterprise && (orgs.length === 1))) {
     return "";
@@ -129,7 +129,7 @@ export function makeGuide(isMac: boolean) {
 }
 
 export async function buildLoginPage(context: ExtensionContext, _webview: Webview): Promise<string> {
-  let isEnterprise = (raccoonConfig.type() === "Enterprise");
+  let isEnterprise = (raccoonConfig.type === "Enterprise");
   let methods = raccoonManager.getAuthMethods();
   if (methods.length === 0) {
     return "";
@@ -292,7 +292,8 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   </style>
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-md">
     <div class="immutable fixed top-3 right-4">
-      <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
+      <a class="material-symbols-rounded hidden" href="command:${extensionNameKebab}.displayLanguage">translate</a>
+      <a class="cursor-pointer material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
     </div>
     <div class="immutable flex flex-col mt-4 px-2 gap-2">
       <div class="flex flex-row gap-2 items-center justify-between">
@@ -341,7 +342,7 @@ export async function buildSettingPage(): Promise<string> {
   let trigger = (completionDelay === 3500) ? "opacity-60" : "";
   let activeOrg = raccoonManager.activeOrganization();
   let knowledgeBaseEnable = pro || activeOrg;
-  let isEnterprise = (raccoonConfig.type() === "Enterprise");
+  let isEnterprise = (raccoonConfig.type === "Enterprise");
   let disableSwitch = (isEnterprise && (raccoonManager.organizationList().length === 1));
 
   let knowledgeBaseSetting = ``;
@@ -481,7 +482,8 @@ export async function buildSettingPage(): Promise<string> {
   let settingPage = `
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 max-w-md">
     <div class="immutable fixed top-3 right-4">
-      <span class="cursor-pointer material-symbols-rounded" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</span>
+      <a class="material-symbols-rounded hidden" href="command:${extensionNameKebab}.displayLanguage">translate</a>
+      <a class="cursor-pointer material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
     </div>
     <div class="immutable flex flex-col mt-4 px-2 gap-2">
       <div class="flex flex-row gap-2 items-center justify-between">

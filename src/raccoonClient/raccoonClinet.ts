@@ -158,10 +158,10 @@ export class RaccoonClient implements CodeClient {
               refreshToken: resp.data.data.refresh_token
             };
           }
-          return Promise.reject();
+          return Promise.reject(new Error("Login Failed"));
         });
       }
-      return Promise.reject();
+      return Promise.reject(new Error("Invalid Login URL"));
     } else if (param.type === AuthMethod.accesskey) {
       let p = param as AccessKeyLoginParam;
       return {
@@ -270,7 +270,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     let auth = this.auth;
     if (!auth) {
-      return Promise.reject();
+      return Promise.reject(new Error("Unauthorized"));
     }
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -643,7 +643,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     let auth = this.auth;
     if (!auth) {
-      return Promise.reject();
+      return Promise.reject(new Error("Unauthorized"));
     }
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -798,7 +798,7 @@ export class RaccoonClient implements CodeClient {
     let ts = new Date();
     let auth = this.auth;
     if (!auth) {
-      return Promise.reject();
+      return Promise.reject(new Error("Unauthorized"));
     }
     if (!this.clientConfig.key && auth.expiration && auth.refreshToken && (ts.valueOf() / 1000 + (60)) > auth.expiration) {
       try {
@@ -814,7 +814,7 @@ export class RaccoonClient implements CodeClient {
   public async listKnowledgeBase(org?: Organization, timeoutMs?: number): Promise<KnowledgeBase[]> {
     let auth = this.auth;
     if (!auth) {
-      return Promise.reject();
+      return Promise.reject(new Error("Unauthorized"));
     }
     let listUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/knowledge_base/v1/knowledge_bases`;
     if (!auth.account.pro && !org) {
@@ -846,7 +846,7 @@ export class RaccoonClient implements CodeClient {
   public async sendTelemetry(org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
     let auth = this.auth;
     if (!auth) {
-      return Promise.reject();
+      return Promise.reject(new Error("Unauthorized"));
     }
     let telementryUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/b/v1/m`;
     let metricInfo: any = {};

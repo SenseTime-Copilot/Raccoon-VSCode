@@ -697,7 +697,7 @@ export class RaccoonManager {
           }
           let orgs = token.account.organizations;
           if (orgs) {
-            let isEnterprise = raccoonConfig.type() === "Enterprise";
+            let isEnterprise = (raccoonConfig.type === "Enterprise");
             if (isEnterprise && orgs.length > 0 && !this.activeOrganization()) {
               this.setActiveOrganization(orgs[0].code);
             }

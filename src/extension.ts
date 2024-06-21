@@ -216,6 +216,47 @@ export async function activate(context: vscode.ExtensionContext) {
     RaccoonViewProvider.ask();
   });
 
+  registerCommand(context, "displayLanguage", () => {
+    const quickPick = vscode.window.createQuickPick();
+    let curLang = context.globalState.get("DisplayLanguage", undefined);
+    let items =
+      [
+        {
+          label: (curLang === undefined ? "$(check) " : "$(blank) ") + vscode.l10n.t("Follow VS Code Settings")
+        },
+        {
+          label: "",
+          kind: vscode.QuickPickItemKind.Separator,
+        },
+        {
+          label: (curLang === "en" ? "$(check) " : "$(blank) ") + "English",
+          description: "en",
+        },
+        {
+          label: (curLang === "zh-cn" ? "$(check) " : "$(blank) ") + "中文(简体)",
+          description: "zh-cn",
+        },
+        {
+          label: (curLang === "zh-tw" ? "$(check) " : "$(blank) ") + "中文(繁體)",
+          description: "zh-tw",
+        },
+        {
+          label: (curLang === "ja" ? "$(check) " : "$(blank) ") + "日本語",
+          description: "ja",
+        }
+      ];
+    quickPick.items = items;
+    quickPick.placeholder = "Raccoon: " + vscode.l10n.t("Select Display Language");
+    quickPick.onDidHide(() => quickPick.dispose());
+    quickPick.onDidChangeSelection(selection => {
+      if (selection[0]) {
+        context.globalState.update(`DisplayLanguage`, selection[0].description);
+        quickPick.dispose();
+      }
+    });
+    quickPick.show();
+  });
+
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       [{ scheme: "file" }, { scheme: "vscode-notebook-cell" }, { scheme: "vscode-userdata" }, { scheme: "untitled" }, { scheme: "git" }, { scheme: "vscode-remote" }],

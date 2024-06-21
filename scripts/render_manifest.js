@@ -1,7 +1,7 @@
 const args = require('minimist')(process.argv.slice(2));
 const fs = require('node:fs');
 
-let promptLanguage = args.promptLanguage || "auto";
+let displayLanguage = args.displayLanguage || "auto";
 let packageId = args.packageId.toLowerCase().replaceAll(" ", "-") || "raccoon";
 let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
@@ -11,22 +11,18 @@ let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
 let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
 
 console.log("=============== Rendering Settings ===============");
-console.log(` Prompt Language    : ${promptLanguage}`);
 console.log(` Package ID         : ${packageId}`);
 console.log(` Package Name       : ${packageName}`);
 if (packageValueFile) {
   console.log(` Package Value File : ${packageValueFile}`);
 } else {
   console.log(` Package Type       : ${packageType}`);
+  console.log(` Display Language   : ${displayLanguage}`);
   console.log(` API Type           : ${apiType}`);
   console.log(` Base URL           : ${baseUrl}`);
   console.log(` Auth Method        : ${authMethod}`);
 }
 console.log("==================================================");
-
-if (promptLanguage !== "auto") {
-  fs.copyFileSync(`./config/prompt.${promptLanguage}.json`, './config/prompt.json');
-}
 
 fs.readFile('./package-sample.json', 'utf8', (err, data) => {
   if (err) {
@@ -66,6 +62,9 @@ if (packageValueFile) {
     }
     let cfg = JSON.parse(data);
     cfg.type = packageType;
+    if (displayLanguage !== "auto") {
+      cfg.displayLanguage = displayLanguage;
+    }
     for (let e of cfg.engines) {
       e.robotname = packageName;
       e.apiType = apiType;

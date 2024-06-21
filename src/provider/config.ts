@@ -40,7 +40,8 @@ export class RaccoonConfig {
     await workspace.fs.readFile(configFile).then((raw) => {
       this._value = JSON.parse(decoder.decode(raw));
     });
-    let promptFile = Uri.joinPath(this.context.extensionUri, "config/prompt.json");
+    let lang = this.displayLanguage || this.context.globalState.get(`DisplayLanguage`) || env.language.toLocaleLowerCase();
+    let promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.${lang}.json`);
     let stat: FileStat | undefined;
     try {
       stat = await workspace.fs.stat(promptFile);
@@ -49,7 +50,7 @@ export class RaccoonConfig {
     if (stat) {
       outlog.debug(`Read prompt from ${promptFile.toString()}`);
     } else {
-      promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.${env.language.toLowerCase()}.json`);
+      promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.en.json`);
       try {
         stat = await workspace.fs.stat(promptFile);
       } catch (e) {
@@ -57,16 +58,7 @@ export class RaccoonConfig {
       if (stat) {
         outlog.debug(`Read prompt from ${promptFile.toString()}`);
       } else {
-        promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.en.json`);
-        try {
-          stat = await workspace.fs.stat(promptFile);
-        } catch (e) {
-        };
-        if (stat) {
-          outlog.debug(`Read prompt from ${promptFile.toString()}`);
-        } else {
-          outlog.debug(`No prompt file`);
-        }
+        outlog.debug(`No prompt file`);
       }
     }
     if (stat) {
@@ -88,8 +80,12 @@ export class RaccoonConfig {
     return this._value.engines || [];
   }
 
-  public type(): string {
+  public get type(): string {
     return this._value.type;
+  }
+
+  public get displayLanguage(): string {
+    return this._value.displayLanguage;
   }
 
   public builtinPrompt(): RaccoonPrompt[] {

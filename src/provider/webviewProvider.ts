@@ -348,7 +348,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'switch-org': {
-          raccoonManager.switchOrganization((raccoonConfig.type() !== "Enterprise")).then(() => {
+          raccoonManager.switchOrganization(raccoonConfig.type !== "Enterprise").then(() => {
             this.updateSettingPage();
           });
           break;
