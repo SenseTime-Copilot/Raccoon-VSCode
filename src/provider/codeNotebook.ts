@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
-import { codeNotebookType, extensionNameKebab, raccoonManager, registerCommand } from "../globalEnv";
+import { codeNotebookType, extensionNameKebab, raccoonConfig, raccoonManager, registerCommand } from "../globalEnv";
 import { Message } from "../raccoonClient/CodeClient";
 import { RaccoonRunner } from "./raccoonToolset";
 
@@ -97,7 +97,7 @@ class CodeNotebookCellStatusBarItemProvider implements vscode.NotebookCellStatus
           vscode.Uri.parse(`${extensionNameKebab}://code/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
         ]
       };
-      reg.tooltip = vscode.l10n.t("Show Transpiled Typescript Code");
+      reg.tooltip = raccoonConfig.t("Show Transpiled Typescript Code");
       reg.priority = -1;
       return [reg];
     }
@@ -302,7 +302,7 @@ interface RaccoonContext {
                   });
                 },
                 () => {
-                  vscode.window.showErrorMessage(`Can not craete file ${uri.toString()}`, vscode.l10n.t("Close"));
+                  vscode.window.showErrorMessage(`Can not craete file ${uri.toString()}`, raccoonConfig.t("Close"));
                 }
               );
             }

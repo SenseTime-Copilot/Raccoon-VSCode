@@ -1,0 +1,7 @@
+Here are changes of current codebase:
+
+```diff
+{{changes}}
+```
+
+Write a commit message summarizing these changes, not have to cover erevything, key-points only, limited the message to 40 characters, in plain text format, and without quotation marks.

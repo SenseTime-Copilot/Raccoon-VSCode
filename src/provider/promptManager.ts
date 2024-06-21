@@ -1,6 +1,6 @@
-import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
+import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, } from "vscode";
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
-import { promptEditorViewType, extensionNameKebab, raccoonManager } from "../globalEnv";
+import { promptEditorViewType, extensionNameKebab, raccoonManager, raccoonConfig } from "../globalEnv";
 import { RaccoonManager } from "./raccoonManager";
 
 export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
@@ -245,47 +245,47 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>${l10n.t("Custom Prompt")}</h2>
+      <h2>${raccoonConfig.t("Custom Prompt")}</h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem; flex-flow: wrap">
-          <vscode-text-field id="shortcut" tabindex="1" required pattern="^[a-zA-Z]\\w{0,15}$" maxlength=16 placeholder="${l10n.t("Start with a letter, with a length limit of {0} word characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}
-            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Shortcut")}">
+          <vscode-text-field id="shortcut" tabindex="1" required pattern="^[a-zA-Z]\\w{0,15}$" maxlength=16 placeholder="${raccoonConfig.t("Start with a letter, with a length limit of {{lengthLimit}} word characters", { lengthLimit: "1~16" })}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" ${shortcut && `value="${shortcut}"`}}>${raccoonConfig.t("Shortcut")}
+            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${raccoonConfig.t("Shortcut")}">
               <span class="material-symbols-rounded">pen_size_3</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="label" tabindex="2" required maxlength="16" placeholder="${l10n.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" ${label && `value="${label}"`}>${l10n.t("Label")}
-            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Display label")}">
+          <vscode-text-field id="label" tabindex="2" required maxlength="16" placeholder="${raccoonConfig.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" ${label && `value="${label}"`}>${raccoonConfig.t("Label")}
+            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${raccoonConfig.t("Display label")}">
               <span class="material-symbols-rounded">smart_button</span>
             </vscode-link>
           </vscode-text-field>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
-            <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Custom Prompt")}</label>
+            <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Custom Prompt")}</label>
             <div class="flex gap-1 p-1" style="border-radius: 6px 6px 0 0;background-color: var(--input-background);border-bottom: 1px dashed var(--vscode-dropdown-border);height: 33px;z-index: 1;width: calc(100% - 2px);margin: 0 1px;">
               <span class="material-symbols-rounded opacity-50" style="padding: 4px 5px 0 2px;border-right: 1px solid var(--vscode-dropdown-border);">home_repair_service</span>
-              <vscode-button appearance="icon" onclick="insert_code()" title="${l10n.t("Captured code from editor")}">
+              <vscode-button appearance="icon" onclick="insert_code()" title="${raccoonConfig.t("Captured code from editor")}">
                 <span class="material-symbols-rounded">data_object</span>
               </vscode-button>
-              <vscode-button appearance="icon" onclick="insert_textfield()" title="${l10n.t("Text field")}">
+              <vscode-button appearance="icon" onclick="insert_textfield()" title="${raccoonConfig.t("Text field")}">
                 <span class="material-symbols-rounded">insert_text</span>
               </vscode-button>
-              <vscode-button appearance="icon" onclick="insert_textfield('placeholder')" title="${l10n.t("Text field with placeholder")}">
+              <vscode-button appearance="icon" onclick="insert_textfield('placeholder')" title="${raccoonConfig.t("Text field with placeholder")}">
                 <span class="material-symbols-rounded">glyphs</span>
               </vscode-button>
             </div>
             <textarea tabindex="3" id="prompt" required rows="10" resize="vertical" style="border-radius: 6px;padding: 43px 9px 9px 9px;margin-top: -34px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
           </div>
           <div style="display: flex;flex-direction: column;min-width: 480px;flex-grow: 1;margin-top: 1rem;">
-            <label for="preview" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Preview")}</label>
+            <label for="preview" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Preview")}</label>
             <div id="ask-list" style="position: initial; border-bottom: none; padding: 0;"></div>
             <div id="preview" style="box-sizing: border-box;flex-grow: 1;padding: 1rem;border: 1px solid var(--dropdown-border);margin: 0 3px;border-radius: 6px; background-color: var(--panel-view-background);">
             </div>
           </div>
         </div>
         <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length > 0) ? '' : 'disabled'} onclick="save('${label}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
+          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Cancel")}</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length > 0) ? '' : 'disabled'} onclick="save('${label}')" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Save")}</vscode-button>
         </div>
       </div>
       </div>
@@ -309,14 +309,14 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'add': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/new.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${l10n.t("New")}]` }))}`), promptEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/new.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Prompt")} [${raccoonConfig.t("New")}]` }))}`), promptEditorViewType);
           break;
         }
         case 'edit': {
           let prompt = raccoonManager.getPromptItem(msg.label);
           if (prompt) {
             let info = { label: prompt.label, shortcut: prompt.shortcut || "", origin: prompt.origin || prompt.message.content || "" };
-            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), promptEditorViewType);
+            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), promptEditorViewType);
           }
           break;
         }
@@ -344,30 +344,30 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     let table = `
     <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) 1fr 2fr 120px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("Shortcut")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Label")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Custom Prompt")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="4" style="text-align: right;">${l10n.t("Action")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${raccoonConfig.t("Shortcut")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${raccoonConfig.t("Label")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${raccoonConfig.t("Custom Prompt")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="4" style="text-align: right;">${raccoonConfig.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
     let hiddenPrompts = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
     for (let s of prompts) {
       let invisible = hiddenPrompts.includes(s.label);
       let actions = `<vscode-link ${invisible ? `style="display: none"` : ``}>
-                      <span class="material-symbols-rounded hide-prompt" onclick="hidePrompt('${s.label}')" title="${l10n.t("Hide")}">visibility</span>
+                      <span class="material-symbols-rounded hide-prompt" onclick="hidePrompt('${s.label}')" title="${raccoonConfig.t("Hide")}">visibility</span>
                     </vscode-link>
                     <vscode-link ${invisible ? `` : `style="display: none"`}>
-                      <span class="material-symbols-rounded show-prompt" onclick="showPrompt('${s.label}')" title="${l10n.t("Show")}">visibility_off</span>
+                      <span class="material-symbols-rounded show-prompt" onclick="showPrompt('${s.label}')" title="${raccoonConfig.t("Show")}">visibility_off</span>
                     </vscode-link>`;
       if (s.type === PromptType.customPrompt) {
         actions = `<vscode-link>
-                    <span class="material-symbols-rounded edit-prompt" onclick="editPrompt('${s.label}')" title="${l10n.t("Edit")}">edit</span>
+                    <span class="material-symbols-rounded edit-prompt" onclick="editPrompt('${s.label}')" title="${raccoonConfig.t("Edit")}">edit</span>
                   </vscode-link>
                   <vscode-link>
-                    <span class="material-symbols-rounded delete-prompt" onclick="deleteByShortcut('${s.label}')" title="${l10n.t("Delete")}">delete</span>
+                    <span class="material-symbols-rounded delete-prompt" onclick="deleteByShortcut('${s.label}')" title="${raccoonConfig.t("Delete")}">delete</span>
                   </vscode-link>` + actions;
       }
-      
+
       emptyPlaceholder = '';
       table += `
       <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
@@ -443,9 +443,9 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>${l10n.t("Custom Prompt")} ${l10n.t("List")}</h2>
+      <h2>${raccoonConfig.t("Custom Prompt")} ${raccoonConfig.t("List")}</h2>
       <div style="display: flex; justify-content: flex-end; margin: 0.5rem;">
-        <vscode-button onclick="addPrompt()">${l10n.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
+        <vscode-button onclick="addPrompt()">${raccoonConfig.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
       </div>
       <div style="display: flex;flex-direction: column;">
         ${emptyPlaceholder || table}

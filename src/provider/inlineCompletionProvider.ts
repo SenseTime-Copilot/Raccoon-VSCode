@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
-import { raccoonManager, telemetryReporter, extensionNameKebab } from "../globalEnv";
+import { raccoonManager, telemetryReporter, extensionNameKebab, raccoonConfig } from "../globalEnv";
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
 import { Choice, CompletionContext, MetricType, Reference } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
@@ -36,7 +36,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
     statusBarItem,
     {
       text: "$(loading~spin)",
-      tooltip: vscode.l10n.t("Thinking..."),
+      tooltip: raccoonConfig.t("Thinking..."),
       keep: true
     }
   );
@@ -63,7 +63,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
             statusBarItem,
             {
               text: "$(warning)",
-              tooltip: vscode.l10n.t(err.message?.content || "Unknown error")
+              tooltip: raccoonConfig.t(err.message?.content || "Unknown error")
             }
           );
         },
@@ -117,7 +117,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
             statusBarItem,
             {
               text: items.length > 0 ? "$(pass)" : "$(array)",
-              tooltip: items.length > 0 ? vscode.l10n.t("Done") : vscode.l10n.t("No completion suggestion")
+              tooltip: items.length > 0 ? raccoonConfig.t("Done") : raccoonConfig.t("No completion suggestion")
             }
           );
           resolve(cancel.isCancellationRequested ? [] : items);

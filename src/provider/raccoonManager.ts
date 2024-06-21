@@ -1,4 +1,4 @@
-import { commands, env, ExtensionContext, l10n, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
+import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
@@ -52,18 +52,13 @@ export class RaccoonManager {
         delete RaccoonManager.abortCtrller[targetRepo!.rootUri.toString()];
         return Promise.resolve();
       }
-      const commitMsg = targetRepo.inputBox.value;
       targetRepo.inputBox.value = '';
-      let preComiitMsg = '';
-      if (commitMsg) {
-        preComiitMsg = `\n\n\nsome reference info you must follow: ${commitMsg}`;
-      }
 
       // eslint-disable-next-line @typescript-eslint/naming-convention
       telemetryReporter.logUsage(MetricType.commitMessage, { usage_num: 1 });
 
       return rm.chat(
-        [{ role: Role.user, content: `Here are changes of current codebase:\n\n\`\`\`diff\n${changes}\n\`\`\`\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only, limited the message to 40 characters, in plain text format, and without quotation marks.${preComiitMsg}\n\n\n` }],
+        [{ role: Role.user, content: raccoonConfig.commitTemplate({ changes }) }],
         {
           stream: true,
           maxNewTokenNum: 128,
@@ -75,7 +70,7 @@ export class RaccoonManager {
           },
           onError: (e: Choice) => {
             outlog.error(JSON.stringify(e));
-            window.showErrorMessage(e.message?.content || "", l10n.t("Close"));
+            window.showErrorMessage(e.message?.content || "", raccoonConfig.t("Close"));
           },
           onUpdate: (choice: Choice) => {
             let cmtmsg = choice.message?.content;
@@ -92,7 +87,7 @@ export class RaccoonManager {
         },
         buildHeader(context.extension, "commit-message", `${new Date().valueOf()}`)
       ).catch(e => {
-        window.showErrorMessage(e.message, l10n.t("Close"));
+        window.showErrorMessage(e.message, raccoonConfig.t("Close"));
       });
     }
 
@@ -122,7 +117,7 @@ export class RaccoonManager {
           }
         }
         if (!targetRepo) {
-          window.showErrorMessage("No repository found", l10n.t("Close"));
+          window.showErrorMessage("No repository found", raccoonConfig.t("Close"));
           return;
         }
         changes = await targetRepo.diff(true) || await targetRepo.diff();
@@ -130,10 +125,10 @@ export class RaccoonManager {
           if (raccoonManager.getModelCapacites().includes(ModelCapacity.assistant)) {
             commitMessageByLLM(RaccoonManager.instance, changes, targetRepo);
           } else {
-            window.showErrorMessage("Model capacity not supported yet", l10n.t("Close"));
+            window.showErrorMessage("Model capacity not supported yet", raccoonConfig.t("Close"));
           }
         } else {
-          window.showErrorMessage("There's no any change in stage to commit", l10n.t("Close"));
+          window.showErrorMessage("There's no any change in stage to commit", raccoonConfig.t("Close"));
         }
       });
     }
@@ -413,8 +408,8 @@ export class RaccoonManager {
       writeable = false;
     }
     if (!writeable) {
-      await window.showWarningMessage(l10n.t("The agent already exists, overwrite it?"), l10n.t("Cancel"), l10n.t("Overwrite")).then(res => {
-        if (res === l10n.t("Overwrite")) {
+      await window.showWarningMessage(raccoonConfig.t("The agent already exists, overwrite it?"), raccoonConfig.t("Cancel"), raccoonConfig.t("Overwrite")).then(res => {
+        if (res === raccoonConfig.t("Overwrite")) {
           writeable = true;
         }
       }, () => { });
@@ -459,8 +454,8 @@ export class RaccoonManager {
       }
     }
     if (!writeable) {
-      await window.showWarningMessage(l10n.t("The prompt already exists, overwrite it?"), l10n.t("Cancel"), l10n.t("Overwrite")).then(res => {
-        if (res === l10n.t("Overwrite")) {
+      await window.showWarningMessage(raccoonConfig.t("The prompt already exists, overwrite it?"), raccoonConfig.t("Cancel"), raccoonConfig.t("Overwrite")).then(res => {
+        if (res === raccoonConfig.t("Overwrite")) {
           writeable = true;
         }
       }, () => { });
@@ -706,7 +701,7 @@ export class RaccoonManager {
           progress.report({ increment: 100 });
           return 'ok';
         } else {
-          return new Error(l10n.t("Incorrect username or password"));
+          return new Error(raccoonConfig.t("Incorrect username or password"));
         }
       }, (err) => {
         return new Error(err.response?.data?.details || err.message);
@@ -768,7 +763,7 @@ export class RaccoonManager {
         let additionalItem: OrgInfo[] = [];
         if (includeIndividual) {
           let individualItem: OrgInfo = {
-            label: ao ? `$(blank) ${l10n.t("Individual")}` : `$(check)  ${l10n.t("Individual")}`,
+            label: ao ? `$(blank) ${raccoonConfig.t("Individual")}` : `$(check)  ${raccoonConfig.t("Individual")}`,
             description: `@${username}`,
             id: ""
           };
@@ -779,7 +774,7 @@ export class RaccoonManager {
           };
           additionalItem = [individualItem, separator];
         }
-        return window.showQuickPick<OrgInfo>([...additionalItem, ...orgs], { canPickMany: false, placeHolder: l10n.t("Select Organization") }).then((select) => {
+        return window.showQuickPick<OrgInfo>([...additionalItem, ...orgs], { canPickMany: false, placeHolder: raccoonConfig.t("Select Organization") }).then((select) => {
           progress.report({ increment: 100 });
           if (select) {
             return raccoonManager.setActiveOrganization(select.id).then(() => {
@@ -846,7 +841,7 @@ export class RaccoonManager {
         return Promise.reject(e);
       });
     } else if (ca) {
-      return Promise.reject(Error(l10n.t("Unauthorized")));
+      return Promise.reject(Error(raccoonConfig.t("Unauthorized")));
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }
@@ -885,7 +880,7 @@ export class RaccoonManager {
         return Promise.reject(e);
       });
     } else if (ca) {
-      return Promise.reject(Error(l10n.t("Unauthorized")));
+      return Promise.reject(Error(raccoonConfig.t("Unauthorized")));
     } else {
       return Promise.reject(Error("Invalid client handle"));
     }

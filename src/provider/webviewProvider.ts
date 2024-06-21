@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, l10n, env, TextEditor, Disposable, TextDocument, TextEditorEdit, TextEditorSelectionChangeKind } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit, TextEditorSelectionChangeKind } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand, extensionDisplayName } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -226,12 +226,12 @@ export class RaccoonEditor extends Disposable {
         }
         case 'login': {
           if (!data.value) {
-            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: l10n.t("Login failed") + ": Empty Login Info", id: new Date().valueOf() });
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-invalid', value: raccoonConfig.t("Login failed") + ": Empty Login Info", id: new Date().valueOf() });
             break;
           }
           raccoonManager.login(data.value).then((res) => {
             if (res !== "ok") {
-              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: l10n.t("Login failed") + ": " + res.message, id: new Date().valueOf() });
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: raccoonConfig.t("Login failed") + ": " + res.message, id: new Date().valueOf() });
             }
           });
           break;
@@ -313,7 +313,7 @@ export class RaccoonEditor extends Disposable {
           if (data.languageid && selection && data.value) {
             diffCode(data.languageid, selection, data.value);
           } else {
-            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-diff-content', value: l10n.t("No diff content"), id: new Date().valueOf() });
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-diff-content', value: raccoonConfig.t("No diff content"), id: new Date().valueOf() });
           }
           break;
         }
@@ -339,7 +339,7 @@ export class RaccoonEditor extends Disposable {
             }
           }
           if (!found) {
-            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-active-editor', value: l10n.t("No active editor found"), id: new Date().valueOf() });
+            this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-active-editor', value: raccoonConfig.t("No active editor found"), id: new Date().valueOf() });
           }
           break;
         }
@@ -355,11 +355,11 @@ export class RaccoonEditor extends Disposable {
         }
         case 'logout': {
           window.showWarningMessage(
-            l10n.t("Logout from {0}?", extensionDisplayName),
+            raccoonConfig.t("Logout from {{robotname}}?", { robotname: extensionDisplayName }),
             { modal: true },
-            l10n.t("OK"))
+            raccoonConfig.t("OK"))
             .then((v) => {
-              if (v === l10n.t("OK")) {
+              if (v === raccoonConfig.t("OK")) {
                 raccoonManager.logout();
               }
             });
@@ -397,11 +397,11 @@ export class RaccoonEditor extends Disposable {
         }
         case 'clearAll': {
           window.showWarningMessage(
-            l10n.t("Clear all settings?"),
-            { modal: true, detail: l10n.t("It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n") },
-            l10n.t("OK"))
+            raccoonConfig.t("Clear all settings?"),
+            { modal: true, detail: raccoonConfig.t("It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n") },
+            raccoonConfig.t("OK"))
             .then(v => {
-              if (v === l10n.t("OK")) {
+              if (v === raccoonConfig.t("OK")) {
                 commands.executeCommand("keybindings.editor.resetKeybinding", `${extensionNameKebab}.inlineSuggest.trigger`);
                 HistoryCache.deleteAllCacheFiles(this.context, true);
                 FavoriteCodeEditor.deleteSnippetFiles();
@@ -436,7 +436,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
           break;
         }
         case 'bug-report': {
@@ -596,7 +596,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     let org = raccoonManager.activeOrganization();
     let username = org?.username || userinfo?.username;
     if (!loggedin || !username) {
-      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: l10n.t("Unauthorized"), id });
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: raccoonConfig.t("Unauthorized"), id });
       return;
     }
 
@@ -605,7 +605,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
     let promptHtml = prompt.generatePromptHtml(id, values);
     if (promptHtml.status === RenderStatus.codeMissing) {
-      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-code', value: l10n.t("No code selected"), id });
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-code', value: raccoonConfig.t("No code selected"), id });
       return;
     }
     let el = (instruction.content.length * 2) + (promptHtml.prompt.code?.length ? promptHtml.prompt.code.length / 3 : 0);
@@ -682,7 +682,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let errmsg = err.message?.content || "";
                 switch (err.index) {
                   case -3008: {
-                    errmsg = l10n.t("Connection error. Check your network settings.");
+                    errmsg = raccoonConfig.t("Connection error. Check your network settings.");
                     break;
                   } default: {
                     break;
@@ -710,11 +710,11 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               onUpdate(choice: Choice, thisArg) {
                 let rts = new Date().valueOf();
                 if (choice.finishReason === FinishReason.sensitive) {
-                  thisArg.sendMessage({ type: 'addError', error: l10n.t("Potentially Sensitive Content Encountered"), id, timestamp: rts });
+                  thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Potentially Sensitive Content Encountered"), id, timestamp: rts });
                   return;
                 } else if (choice.finishReason === FinishReason.length) {
                 } else if (choice.finishReason === FinishReason.context) {
-                  thisArg.sendMessage({ type: 'addError', error: l10n.t("Context Too long"), id, timestamp: rts });
+                  thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Context Too long"), id, timestamp: rts });
                   return;
                 }
                 response += choice.message?.content || "";

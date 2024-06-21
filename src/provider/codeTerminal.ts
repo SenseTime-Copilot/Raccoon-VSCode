@@ -2,10 +2,9 @@ import {
   ThemeIcon,
   window,
   EventEmitter,
-  l10n,
   ExtensionContext,
 } from 'vscode';
-import { extensionDisplayName, outlog, raccoonManager, telemetryReporter } from "../globalEnv";
+import { extensionDisplayName, outlog, raccoonConfig, raccoonManager, telemetryReporter } from "../globalEnv";
 import { Choice, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
@@ -313,7 +312,7 @@ export class RaccoonTerminal {
       if (org) {
         ai += ` (${org.name})`;
       }
-      let welcomMsg = l10n.t("Welcome<b>{0}</b>, I'm <b>{1}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", un ? ` @${un}` : "", ai);
+      let welcomMsg = raccoonConfig.t("Welcome<b>{{username}}</b>, I'm <b>{{robotname}}</b>, your code assistant. You can ask me to help you with your code, or ask me any technical question.", { username: un ? ` @${un}` : "", robotname: ai });
       writeEmitter.fire('\x1b[1 q\x1b[1;96m' + ai + ' > \x1b[0;96m' + welcomMsg.replace(/<b>/g, '\x1b[1;96m').replace(/<\/b>/g, '\x1b[0;96m') + '\x1b[0m\r\n');
       writeEmitter.fire('\r\n\x1b[1;34m' + (un || "You") + " > \x1b[0m\r\n");
     }

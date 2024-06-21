@@ -1,5 +1,5 @@
-import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable, l10n, } from "vscode";
-import { agentEditorViewType, extensionNameKebab, raccoonManager } from "../globalEnv";
+import { ExtensionContext, window, Uri, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, Webview, Disposable } from "vscode";
+import { agentEditorViewType, extensionNameKebab, raccoonConfig, raccoonManager } from "../globalEnv";
 import { Tool } from "../raccoonClient/CodeClient";
 
 export interface AgentAbility {
@@ -30,49 +30,49 @@ export class AgentInfo {
 export const builtinAgents: RaccoonAgent[] = [
   {
     id: "小浣熊",
-    label: l10n.t("Raccoon"),
+    label: "Raccoon",
     icon: "pets",
-    systemPrompt: l10n.t(""),
+    systemPrompt: "",
     abilities: [],
     builtin: true
   },
   {
     id: "martin",
-    label: l10n.t("Manager"),
+    label: "Manager",
     icon: "manage_accounts",
-    systemPrompt: l10n.t(""),
+    systemPrompt: (""),
     abilities: [],
     builtin: true
   },
   {
     id: "andy",
-    label: l10n.t("Architect"),
+    label: "Architect",
     icon: "design_services",
-    systemPrompt: l10n.t(""),
+    systemPrompt: (""),
     abilities: [],
     builtin: true
   },
   {
     id: "eason",
-    label: l10n.t("Engineer"),
+    label: "Engineer",
     icon: "build_circle",
-    systemPrompt: l10n.t(""),
+    systemPrompt: "",
     abilities: [],
     builtin: true
   },
   {
     id: "taylor",
-    label: l10n.t("Testing"),
+    label: "Testing",
     icon: "science",
-    systemPrompt: l10n.t(""),
+    systemPrompt: "",
     abilities: [],
     builtin: true
   },
   {
     id: "doris",
-    label: l10n.t("Deployment"),
+    label: "Deployment",
     icon: "deployed_code",
-    systemPrompt: l10n.t(""),
+    systemPrompt: "",
     abilities: [],
     builtin: true
   }
@@ -232,38 +232,38 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>${l10n.t("Custom Agent")}</h2>
+      <h2>${raccoonConfig.t("Custom Agent")}</h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem; flex-flow: wrap">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of {0} word characters", "1~16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.id}"`}}>${l10n.t("ID")}
-            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("ID")}">
+          <vscode-text-field id="shortcut" tabindex="1" placeholder="${raccoonConfig.t("Start with a letter, with a length limit of {{lengthLimit}} word characters", { lengthLimit: "1~16" })}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.id}"`}}>${raccoonConfig.t("ID")}
+            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${raccoonConfig.t("ID")}">
               <span class="material-symbols-rounded">alternate_email</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="label" tabindex="2" placeholder="${l10n.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.label}"`}>${l10n.t("Label")}
-            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${l10n.t("Display label")}">
+          <vscode-text-field id="label" tabindex="2" placeholder="${raccoonConfig.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.label}"`}>${raccoonConfig.t("Label")}
+            <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${raccoonConfig.t("Display label")}">
               <span class="material-symbols-rounded">smart_button</span>
             </vscode-link>
           </vscode-text-field>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
-            <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("System Prompt")}</label>
+            <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("System Prompt")}</label>
             <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 9px 9px 9px 9px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
           </div>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
-            <label for="RAG" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${l10n.t("Retrieval Argumention")}</label>
+            <label for="RAG" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Retrieval Argumention")}</label>
             <div style="display: flex; margin-left: 1rem; grid-gap: 0 1rem; flex-flow: wrap">
-              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${l10n.t("Knowledge Base")}</vscode-checkbox>
-              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${l10n.t("Internet")}</vscode-checkbox>
+              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Knowledge Base")}</vscode-checkbox>
+              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Internet")}</vscode-checkbox>
             </div>
           </div>
         </div>
         <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(agent && agent.id.length > 0) ? '' : 'disabled'} onclick="save('${agent?.id}')" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
+          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Cancel")}</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(agent && agent.id.length > 0) ? '' : 'disabled'} onclick="save('${agent?.id}')" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Save")}</vscode-button>
         </div>
       </div>
       </div>
@@ -287,13 +287,13 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'add': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/new.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Agent")} [${l10n.t("New")}]` }))}`), agentEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/new.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${raccoonConfig.t("New")}]` }))}`), agentEditorViewType);
           break;
         }
         case 'edit': {
           let agent = raccoonManager.agent.get(msg.id);
           if (agent) {
-            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/edit.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Custom Agent")} [${agent.id}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
+            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/edit.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${agent.id}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
           }
           break;
         }
@@ -321,27 +321,27 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     let table = `
     <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) 1fr 2fr 120px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("ID")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Label")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("System Prompt")}</vscode-data-grid-cell>
-      <vscode-data-grid-cell cell-type="columnheader" grid-column="4" style="text-align: right;">${l10n.t("Action")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${raccoonConfig.t("ID")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${raccoonConfig.t("Label")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${raccoonConfig.t("System Prompt")}</vscode-data-grid-cell>
+      <vscode-data-grid-cell cell-type="columnheader" grid-column="4" style="text-align: right;">${raccoonConfig.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
     let hiddenAgents = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenAgents`) || [];
     agents.forEach((s, _id, _m) => {
       let invisible = hiddenAgents.includes(s.id);
       let actions = `<vscode-link ${invisible ? `style="display: none"` : ``}>
-                      <span class="material-symbols-rounded hide-agent" onclick="hideAgent('${s.id}')" title="${l10n.t("Hide")}">visibility</span>
+                      <span class="material-symbols-rounded hide-agent" onclick="hideAgent('${s.id}')" title="${raccoonConfig.t("Hide")}">visibility</span>
                     </vscode-link>
                     <vscode-link ${invisible ? `` : `style="display: none"`}>
-                      <span class="material-symbols-rounded show-agent" onclick="showAgent('${s.id}')" title="${l10n.t("Show")}">visibility_off</span>
+                      <span class="material-symbols-rounded show-agent" onclick="showAgent('${s.id}')" title="${raccoonConfig.t("Show")}">visibility_off</span>
                     </vscode-link>`;
       if (!s.builtin) {
         actions = `<vscode-link>
-                    <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')" title="${l10n.t("Edit")}">edit</span>
+                    <span class="material-symbols-rounded edit-agent" onclick="editAgent('${s.id}')" title="${raccoonConfig.t("Edit")}">edit</span>
                   </vscode-link>
                   <vscode-link>
-                    <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')" title="${l10n.t("Delete")}">delete</span>
+                    <span class="material-symbols-rounded delete-agent" onclick="deleteById('${s.id}')" title="${raccoonConfig.t("Delete")}">delete</span>
                   </vscode-link>` + actions;
       }
       emptyPlaceholder = '';
@@ -419,9 +419,9 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>${l10n.t("Custom Agent")} ${l10n.t("List")}</h2>
+      <h2>${raccoonConfig.t("Custom Agent")} ${raccoonConfig.t("List")}</h2>
       <div style="display: flex; justify-content: flex-end; margin: 0.5rem;">
-        <vscode-button onclick="addAgent()">${l10n.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
+        <vscode-button onclick="addAgent()">${raccoonConfig.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
       </div>
       <div style="display: flex;flex-direction: column;">
         ${emptyPlaceholder || table}

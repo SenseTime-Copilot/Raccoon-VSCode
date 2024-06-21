@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { raccoonEditorProviderViewType, extensionNameKebab, raccoonManager, registerCommand, extensionDisplayName } from "../globalEnv";
+import { raccoonEditorProviderViewType, extensionNameKebab, raccoonManager, registerCommand, extensionDisplayName, raccoonConfig } from "../globalEnv";
 import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -50,7 +50,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       }
       actions.push(
         new vscode.CodeAction(
-          `${extensionDisplayName}: ${vscode.l10n.t("Ask {robot}", { robot: extensionDisplayName })}...`,
+          `${extensionDisplayName}: ${raccoonConfig.t("Ask {{robotname}}", { robotname: extensionDisplayName })}...`,
           vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append("preset")
         )
       );
@@ -59,7 +59,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     for (let diagnostic of diagnostics) {
       if ((diagnostic.severity === vscode.DiagnosticSeverity.Error || diagnostic.severity === vscode.DiagnosticSeverity.Warning) && range.intersection(diagnostic.range)) {
         let diagnosticMsg = diagnostic.message.length > 64 ? diagnostic.message.slice(0, 60) + "..." : diagnostic.message;
-        let a = new vscode.CodeAction(`${extensionDisplayName}: ${vscode.l10n.t("Code Correction")}: ${diagnosticMsg}`, vscode.CodeActionKind.QuickFix.append(`${extensionNameKebab}.diagnostic`));
+        let a = new vscode.CodeAction(`${extensionDisplayName}: ${raccoonConfig.t("Code Correction")}: ${diagnosticMsg}`, vscode.CodeActionKind.QuickFix.append(`${extensionNameKebab}.diagnostic`));
         a.diagnostics = [diagnostic];
         actions.push(a);
       }
@@ -72,7 +72,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       return codeAction;
     }
     if (vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('preset').contains(codeAction.kind)) {
-      if (codeAction.title === `${extensionDisplayName}: ${vscode.l10n.t("Ask {robot}", { robot: extensionDisplayName })}...`) {
+      if (codeAction.title === `${extensionDisplayName}: ${raccoonConfig.t("Ask {{robotname}}", { robotname: extensionDisplayName })}...`) {
         codeAction.command = {
           command: `${extensionNameKebab}.codeaction`,
           title: codeAction.title
@@ -86,13 +86,13 @@ export class RaccoonAction implements vscode.CodeActionProvider {
 
     if (selection && vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('diagnostic').contains(codeAction.kind)) {
       let diagnosticPrompt: RaccoonPrompt = {
-        label: vscode.l10n.t("Code Correction"),
+        label: raccoonConfig.t("Code Correction"),
         type: PromptType.codeErrorCorrection,
         languageid: document?.languageId,
         code: document?.getText(selection) || document?.lineAt(selection.anchor.line).text,
         message: {
           role: Role.user,
-          content: `${vscode.l10n.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`
+          content: `${raccoonConfig.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`
         }
       };
       codeAction.command = {

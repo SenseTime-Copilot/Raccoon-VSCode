@@ -1,5 +1,5 @@
-import { l10n } from "vscode";
-import { Message, Role } from "../raccoonClient/CodeClient";
+import { raccoonConfig } from "../globalEnv";
+import { Message } from "../raccoonClient/CodeClient";
 
 export enum PromptType {
   help = "help",
@@ -150,7 +150,7 @@ export class PromptInfo {
       }
       let btns = `${btnView}${btn1}${btn2}`;
       let safeCode = renderHtml.prompt.code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      codeHtml = `<pre ${langdata} class="${classList}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${l10n.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
+      codeHtml = `<pre ${langdata} class="${classList}" style="margin-top: 1rem;"><div class="code-actions-wrapper"><button title="${raccoonConfig.t("Toggle line wrap")}" class="wrap-element-gnc rounded" tabindex="-1"><span class="material-symbols-rounded">wrap_text</span></button>${codelines > 10 ? btns : ""}</div><code ${langdata} class="${langclass}">${safeCode}</code></pre>`;
     }
     prompthtml = prompthtml.replace(/\{\{code\}\}/g, codeHtml);
     if (prompt.type === PromptType.freeChat || prompt.type === PromptType.customPrompt) {

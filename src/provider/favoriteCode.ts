@@ -1,5 +1,5 @@
-import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, l10n, } from "vscode";
-import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter, extensionDisplayName } from "../globalEnv";
+import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, } from "vscode";
+import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter, extensionDisplayName, raccoonConfig } from "../globalEnv";
 import { supportedLanguages } from "../raccoonClient/getSupportedLanguages";
 import { MetricType } from "../raccoonClient/CodeClient";
 
@@ -48,7 +48,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
 
   static register(context: ExtensionContext) {
     if (!FavoriteCodeEditor.instance) {
-      let dd: string = `<div class="dropdown-container"><label for="lang-dropdown">${l10n.t("Programming Language")}</label><vscode-dropdown id="lang-dropdown">`;
+      let dd: string = `<div class="dropdown-container"><label for="lang-dropdown">${raccoonConfig.t("Programming Language")}</label><vscode-dropdown id="lang-dropdown">`;
       for (let lang in supportedLanguages) {
         dd += `<vscode-option>${supportedLanguages[lang].displayName} (${lang})</vscode-option>`;
       }
@@ -70,7 +70,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
           }
           let item = new CompletionItem(snippet.shortcut, CompletionItemKind.Snippet);
           item.insertText = snippet.code;
-          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(raccoon-icon) _${l10n.t("from {robot} favorite code snippets", { robot: extensionDisplayName })}_`, true);
+          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(raccoon-icon) _${raccoonConfig.t("from {{robotname}} favorite code snippets", { robotname: extensionDisplayName })}_`, true);
           return new CompletionList([item]);
         }
       }
@@ -313,21 +313,21 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>${l10n.t("Favorite Snippet")} <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
+      <h2>${raccoonConfig.t("Favorite Snippet")} <vscode-badge style="opacity: 0.6">${snippet.id}</vscode-badge></h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem;">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="${l10n.t("Start with a letter, with a length limit of {0} word characters", "4-16")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${l10n.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,15}$/">
+          <vscode-text-field id="shortcut" tabindex="1" placeholder="${raccoonConfig.t("Start with a letter, with a length limit of {{lengthLimit}} word characters", { lengthLimit: "4-16" })}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${shortcut && `value="${shortcut}"`}}>${raccoonConfig.t("Shortcut")}<vscode-link slot="end" tabindex="-1" style="cursor: help;" href="#" title="/^[a-zA-Z]\\w{3,15}$/">
               <span class="material-symbols-rounded">regular_expression</span>
             </vscode-link>
           </vscode-text-field>
           ${FavoriteCodeEditor.languageDropDown}
         </div>
         <vscode-text-area tabindex="3" id="codesnippet" rows="20" resize="vertical" style="margin: 1rem 0; font-family: var(--vscode-editor-font-family);">
-        ${l10n.t("Snippet")}
+        ${raccoonConfig.t("Snippet")}
         </vscode-text-area>
         <div style="display: flex; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${l10n.t("Cancel")}</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save()" style="--button-padding-horizontal: 2rem;">${l10n.t("Save")}</vscode-button>
+          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Cancel")}</vscode-button>
+          <vscode-button tabindex="4" id="save" ${(shortcut && shortcut.length >= 4) ? '' : 'disabled'} onclick="save()" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Save")}</vscode-button>
         </div>
       </div>
       </div>
@@ -348,13 +348,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
             id: `${id}`,
             code: ''
           };
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), favoriteCodeEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), favoriteCodeEditorViewType);
           break;
         }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
-              commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${l10n.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), favoriteCodeEditorViewType);
+              commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), favoriteCodeEditorViewType);
             }
           });
           break;
@@ -383,10 +383,10 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     let table = `
     <vscode-data-grid aria-label="Basic" generate-header="sticky" grid-template-columns="calc(20ch + 24px) calc(40ch + 24px) 1fr 84px" style="--font-family: var(--vscode-editor-font-family); border-top: 1px solid; border-bottom: 1px solid; border-color: var(--dropdown-border); min-width: calc( 48ch + 380px);">
       <vscode-data-grid-row row-type="sticky-header">
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${l10n.t("Shortcut")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${l10n.t("Language")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${l10n.t("Snippet")}</vscode-data-grid-cell>
-        <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${l10n.t("Action")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="1">${raccoonConfig.t("Shortcut")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="2">${raccoonConfig.t("Programming Language")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="3">${raccoonConfig.t("Snippet")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell cell-type="columnheader" grid-column="4">${raccoonConfig.t("Action")}</vscode-data-grid-cell>
       </vscode-data-grid-row>
     `;
     for (let id in snippets) {
@@ -455,9 +455,9 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
     </head>
     <body>
     <div class="markdown-body" style="margin: 1rem 4rem;">
-      <h2>${l10n.t("Favorite Snippet")} ${l10n.t("List")}</h2>
+      <h2>${raccoonConfig.t("Favorite Snippet")} ${raccoonConfig.t("List")}</h2>
       <div style="display: flex; justify-content: flex-end; margin: 0.5rem;">
-        <vscode-button onclick="addSnippet()">${l10n.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
+        <vscode-button onclick="addSnippet()">${raccoonConfig.t("Create")}<span slot="start" class="material-symbols-rounded">bookmark_add</span></vscode-button>
       </div>
       <div style="display: flex;flex-direction: column;">
         ${emptyPlaceholder || table}

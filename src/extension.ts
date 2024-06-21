@@ -12,11 +12,12 @@ import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
 import { HistoryCache } from "./utils/historyCache";
-import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, agentEditorViewType } from "./globalEnv";
+import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, agentEditorViewType, raccoonConfig } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
 import { getDocumentSymbols } from "./utils/collectionPromptInfo";
+import { RaccoonConfig } from "./provider/config";
 // import { RaccoonCodelensProvider } from "./provider/codeLensProvider";
 
 export let docSymbolMap: { [key: string]: { languageId: string; symbols: vscode.DocumentSymbol[] } } = {};
@@ -76,15 +77,15 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   registerCommand(context, "favorite.manage", async () => {
-    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Favorite Snippet") }))}`), favoriteCodeEditorViewType);
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Favorite Snippet") }))}`), favoriteCodeEditorViewType);
   });
 
   registerCommand(context, "agent.manage", async () => {
-    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.agent/all.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Custom Agent") }))}`), agentEditorViewType);
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.agent/all.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Custom Agent") }))}`), agentEditorViewType);
   });
 
   registerCommand(context, "prompt.manage", async () => {
-    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.prompt/all.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: vscode.l10n.t("Custom Prompt") }))}`), promptEditorViewType);
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.prompt/all.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Custom Prompt") }))}`), promptEditorViewType);
   });
 
   registerCommand(context, "terminal", async () => {
@@ -222,7 +223,7 @@ export async function activate(context: vscode.ExtensionContext) {
     let items =
       [
         {
-          label: (curLang === undefined ? "$(check) " : "$(blank) ") + vscode.l10n.t("Follow VS Code Settings")
+          label: (curLang === undefined ? "$(check) " : "$(blank) ") + raccoonConfig.t("Follow VS Code Settings")
         },
         {
           label: "",
@@ -246,11 +247,32 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       ];
     quickPick.items = items;
-    quickPick.placeholder = "Raccoon: " + vscode.l10n.t("Select Display Language");
+    quickPick.placeholder = "Raccoon: " + raccoonConfig.t("Select Display Language");
     quickPick.onDidHide(() => quickPick.dispose());
     quickPick.onDidChangeSelection(selection => {
       if (selection[0]) {
-        context.globalState.update(`DisplayLanguage`, selection[0].description);
+        if (selection[0].description === curLang) {
+          return;
+        } else {
+          const warn: { [key: string]: string } = {
+            "en": "Changing the display language settings will take effect after VS Code restarts, do you still continue?",
+            "zh-cn": "更改显示语言设置将会在 VS Code 重启后生效, 确认更改吗?",
+            "zh-tw": "更改顯示語言設置將在 VSCode 重啟後生效，確認更改嗎？",
+            "ja": "表示言語設定の変更は、VS Code の再起動後に有効になりますが、変更は確認されていますか?"
+          };
+          let detail = '';
+          if (selection[0].description) {
+            detail += warn[selection[0].description] + "\n";
+          }
+          if (curLang) {
+            detail += warn[curLang] + "\n";
+          }
+          vscode.window.showInformationMessage("", { modal: true, detail }, "✔️ OK").then((v) => {
+            if (v === "✔️ OK") {
+              context.globalState.update(`DisplayLanguage`, selection[0].description);
+            }
+          })
+        }
         quickPick.dispose();
       }
     });

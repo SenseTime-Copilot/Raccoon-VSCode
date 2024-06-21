@@ -1,7 +1,7 @@
-import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, l10n, TextDocument } from 'vscode';
+import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, TextDocument } from 'vscode';
 import { RaccoonEditorProvider } from '../provider/assitantEditorProvider';
 import { RaccoonViewProvider } from '../provider/webviewProvider';
-import { registerCommand } from '../globalEnv';
+import { raccoonConfig, registerCommand } from '../globalEnv';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -39,19 +39,19 @@ export class HistoryCache {
                 buttons: [
                   {
                     iconPath: new ThemeIcon("go-to-file"),
-                    tooltip: l10n.t("Preview")
+                    tooltip: raccoonConfig.t("Preview")
                   },
                   /*{
                     iconPath: new ThemeIcon("play"),
-                    tooltip: l10n.t("Replay")
+                    tooltip: raccoonConfig.t("Replay")
                   },*/
                   {
                     iconPath: new ThemeIcon("edit"),
-                    tooltip: l10n.t("Rename")
+                    tooltip: raccoonConfig.t("Rename")
                   },
                   {
                     iconPath: new ThemeIcon("trash"),
-                    tooltip: l10n.t("Delete")
+                    tooltip: raccoonConfig.t("Delete")
                   }]
               }
             });
@@ -63,25 +63,25 @@ export class HistoryCache {
         const quickPick = window.createQuickPick();
         if (fl.length > 0) {
           action = [
-            { label: '$(close-all) ' + l10n.t('Clear All History') },
+            { label: '$(close-all) ' + raccoonConfig.t('Clear All History') },
             { label: '', kind: QuickPickItemKind.Separator }
           ];
           quickPick.activeItems = [];
         }
         quickPick.items = fl.length > 0 ? [...action, ...fl] : [];
-        quickPick.title = l10n.t("Manage history");
-        quickPick.placeholder = l10n.t("Select a history to restore");
+        quickPick.title = raccoonConfig.t("Manage history");
+        quickPick.placeholder = raccoonConfig.t("Select a history to restore");
         quickPick.onDidHide(() => quickPick.dispose());
         quickPick.onDidTriggerItemButton((e) => {
           let fid = e.item.label.replace('$(git-commit) ', '');
-          if (e.button.tooltip === l10n.t('Delete')) {
+          if (e.button.tooltip === raccoonConfig.t('Delete')) {
             let uri = Uri.joinPath(cacheDir, fid + ".json");
             workspace.fs.delete(uri);
             quickPick.items = quickPick.items.filter(item => item.label !== e.item.label);
             if (quickPick.items.length === 2) {
               quickPick.items = [];
             }
-          } else if (e.button.tooltip === l10n.t('Rename')) {
+          } else if (e.button.tooltip === raccoonConfig.t('Rename')) {
             quickPick.dispose();
             let oldName = fid;
             function validateInput(value: string) {
@@ -95,12 +95,12 @@ export class HistoryCache {
                 }
                 let newUri = Uri.joinPath(cacheDir, value + ".json");
                 return workspace.fs.stat(newUri).then((_stat) => {
-                  return l10n.t("File already exists");
+                  return raccoonConfig.t("File already exists");
                 }, () => {
                   return undefined;
                 });
               } else {
-                return l10n.t("Invalid filename");
+                return raccoonConfig.t("Invalid filename");
               }
             }
             window.showInputBox({ value: oldName, validateInput }).then(newName => {
@@ -114,11 +114,11 @@ export class HistoryCache {
                 commands.executeCommand('raccoon.restoreHistory', ...args);
               }
             });
-          } else if (e.button.tooltip === l10n.t('Preview')) {
+          } else if (e.button.tooltip === raccoonConfig.t('Preview')) {
             workspace.openTextDocument(Uri.joinPath(context.globalStorageUri, 'history', fid + ".json")).then((doc: TextDocument) => {
               window.showTextDocument(doc);
             });
-          } else if (e.button.tooltip === l10n.t('Replay')) {
+          } else if (e.button.tooltip === raccoonConfig.t('Replay')) {
             if (args[0]) {
               let editor = RaccoonEditorProvider.getEditor(args[0]);
               editor?.loadHistory(fid, true);
@@ -129,7 +129,7 @@ export class HistoryCache {
         });
         quickPick.onDidChangeSelection(selection => {
           if (selection[0]) {
-            if (selection[0].label === '$(close-all) ' + l10n.t('Clear All History')) {
+            if (selection[0].label === '$(close-all) ' + raccoonConfig.t('Clear All History')) {
               HistoryCache.deleteAllCacheFiles(context);
               quickPick.dispose();
             } else {
@@ -178,14 +178,14 @@ export class HistoryCache {
         resolve();
       } else {
         window.showWarningMessage(
-          l10n.t('Clear All History'),
+          raccoonConfig.t('Clear All History'),
           {
             modal: true,
-            detail: l10n.t("Are you sure you want to permanently delete all history files? This action is irreversible!")
+            detail: raccoonConfig.t("Are you sure you want to permanently delete all history files? This action is irreversible!")
           },
-          l10n.t("Delete")
+          raccoonConfig.t("Delete")
         ).then(async answer => {
-          if (answer === l10n.t("Delete")) {
+          if (answer === raccoonConfig.t("Delete")) {
             let files = await workspace.fs.readDirectory(cacheDir);
             files.forEach(async file => {
               await workspace.fs.delete(Uri.joinPath(cacheDir, file[0])).then(() => { }, () => { });
