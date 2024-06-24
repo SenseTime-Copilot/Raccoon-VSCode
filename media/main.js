@@ -569,7 +569,7 @@ const vscode = acquireVsCodeApi();
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
             let rmBtn = document.createElement('span');
-            rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-125');
+            rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
             rmBtn.title = l10nForUI["Delete"];
             rmBtn.innerText = 'cancel';
             rmBtn.onclick = (_event) => {

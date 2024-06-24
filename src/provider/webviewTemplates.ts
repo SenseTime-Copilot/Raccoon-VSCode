@@ -65,7 +65,7 @@ export function makeGuide(isMac: boolean) {
   <ol>
   <li>
     ${raccoonConfig.t("Stop typing or press hotkey (default: <code>{{hotkey}}</code>) to starts {{robotname}} thinking", { hotkey: isMac ? "⌥/" : "Alt+/", robotname: extensionDisplayName })}:
-    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-welcomePage-tileBorder); line-height: 1.2;">
       <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
       <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
       <span style="color: var(--foreground); opacity: 0.4;">("hello world");</span>
@@ -73,7 +73,7 @@ export function makeGuide(isMac: boolean) {
   </li>
   <li>
   ${raccoonConfig.t("When multi candidates generated, use <code>{{prev}}</code> or <code>{{next}}</code> to switch between them", { prev: isMac ? "⌥[" : "Alt+[", next: isMac ? "⌥]" : "Alt+]" })}:
-    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-welcomePage-tileBorder); line-height: 1.2;">
       <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
       <span style="border-left: 2px solid var(--vscode-editorCursor-foreground);animation: pulse 1s step-start infinite;" class="animate-pulse"></span>
       <span style="color: var(--foreground); opacity: 0.4;">("hello", "world");</span>
@@ -81,7 +81,7 @@ export function makeGuide(isMac: boolean) {
   </li>
   <li>
   ${raccoonConfig.t("Accept the chosen code snippet with <code>Tab</code> key")}:
-    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
+    <code style="display: flex; padding: 0.5rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-welcomePage-tileBorder); line-height: 1.2;">
       <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
       <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
       <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
@@ -98,8 +98,8 @@ export function makeGuide(isMac: boolean) {
   <ol>
   <li>
   ${raccoonConfig.t("Select code in editor (if necessary)")}:
-    <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-editor-lineHighlightBorder); border-radius: 0.25rem; line-height: 1.2;">
-    <div class="flex" style="display: flex; padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
+    <code style="display: flex; padding: 0.1rem; margin: 0.5rem; background-color: var(--vscode-editor-background); border: 1px solid var(--vscode-welcomePage-tileBorder); line-height: 1.2;">
+    <div class="flex rounded-sm" style="padding: 0.2rem; margin: 0.3rem; width: fit-content;background-color: var(--vscode-editor-selectionBackground);">
       <span style="color: var(--vscode-symbolIcon-functionForeground);">print</span>
       <span style="color: var(--vscode-symbolIcon-colorForeground);">(</span>
       <span style="color: var(--vscode-symbolIcon-enumeratorForeground);">"hello"</span>
@@ -112,7 +112,7 @@ export function makeGuide(isMac: boolean) {
   <li>
   ${raccoonConfig.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask {{robotname}}", { robotname: extensionDisplayName })}:
       <a onclick="document.getElementById('question-input').focus();document.getElementById('chat-input-box').classList.remove('flash');void document.getElementById('chat-input-box').offsetHeight;document.getElementById('chat-input-box').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
-        <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse" style="border: 1px solid var(--panel-view-border);background-color: var(--input-background);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
+        <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse rounded-md" style="border: 1px solid var(--checkbox-border);background-color: var(--input-background);box-shadow: 0 0 2px inset var(--vscode-panelStickyScroll-shadow);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
       </a>
   </li>
   <li>
