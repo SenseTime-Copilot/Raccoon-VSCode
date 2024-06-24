@@ -472,7 +472,7 @@ export class RaccoonManager {
     let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let customPrompts: { [key: string]: string | any } = {};
     if (cfg) {
-      customPrompts = cfg.get("Prompt", {});
+      customPrompts = cfg.get<{ [key: string]: string | any }>("Prompt", {});
       for (let labelName in customPrompts) {
         if (labelName === label) {
           customPrompts[labelName] = undefined;
@@ -501,7 +501,8 @@ export class RaccoonManager {
   }
 
   public checkPromptVisibility(label: string) {
-    let p = this.prompt.filter((v) => v.label === label);
+    let ps = this.prompt;
+    let p = ps.filter((v) => v.label === label);
     if (p[0]) {
       let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
       return !as.includes(label);
@@ -510,8 +511,8 @@ export class RaccoonManager {
   }
 
   public get prompt(): RaccoonPrompt[] {
-    let customPrompts: { [key: string]: string | any } = this.configuration.get("Prompt", {});
-    let prompts: RaccoonPrompt[] = raccoonConfig.builtinPrompt();
+    let customPrompts = this.configuration.get<{ [key: string]: string | any }>("Prompt", {});
+    let prompts: RaccoonPrompt[] = [...raccoonConfig.builtinPrompt()];
     for (let label in customPrompts) {
       if (typeof customPrompts[label] === 'string') {
         prompts.push(RaccoonManager.parseStringPrompt(label, customPrompts[label] as string));
