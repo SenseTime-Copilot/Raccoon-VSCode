@@ -278,7 +278,9 @@ export async function activate(context: vscode.ExtensionContext) {
           }
           vscode.window.showWarningMessage(title[selection[0].description || curLang || "en"], { modal: true, detail }, "✔️ OK").then((v) => {
             if (v === "✔️ OK") {
-              context.globalState.update(`DisplayLanguage`, selection[0].description);
+              context.globalState.update(`DisplayLanguage`, selection[0].description).then(() => {
+                vscode.commands.executeCommand("workbench.action.reloadWindow");
+              });
             }
           });
         }
