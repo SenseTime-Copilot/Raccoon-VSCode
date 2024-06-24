@@ -17,7 +17,6 @@ import { PromptEditor } from "./provider/promptManager";
 import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
 import { getDocumentSymbols } from "./utils/collectionPromptInfo";
-import { RaccoonConfig } from "./provider/config";
 // import { RaccoonCodelensProvider } from "./provider/codeLensProvider";
 
 export let docSymbolMap: { [key: string]: { languageId: string; symbols: vscode.DocumentSymbol[] } } = {};
@@ -254,9 +253,19 @@ export async function activate(context: vscode.ExtensionContext) {
         if (selection[0].description === curLang) {
           return;
         } else {
+          const title: { [key: string]: string } = {
+            "en": "Changing Display Language to English",
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "zh-cn": "更改显示语言为简体中文",
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "zh-tw": "更改顯示語言為繁體中文",
+            "ja": "表示言語を日本語に変更する"
+          };
           const warn: { [key: string]: string } = {
             "en": "Changing the display language settings will take effect after VS Code restarts, do you still continue?",
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             "zh-cn": "更改显示语言设置将会在 VS Code 重启后生效, 确认更改吗?",
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             "zh-tw": "更改顯示語言設置將在 VSCode 重啟後生效，確認更改嗎？",
             "ja": "表示言語設定の変更は、VS Code の再起動後に有効になりますが、変更は確認されていますか?"
           };
@@ -267,11 +276,11 @@ export async function activate(context: vscode.ExtensionContext) {
           if (curLang) {
             detail += warn[curLang] + "\n";
           }
-          vscode.window.showInformationMessage("", { modal: true, detail }, "✔️ OK").then((v) => {
+          vscode.window.showWarningMessage(title[selection[0].description || curLang || "en"], { modal: true, detail }, "✔️ OK").then((v) => {
             if (v === "✔️ OK") {
               context.globalState.update(`DisplayLanguage`, selection[0].description);
             }
-          })
+          });
         }
         quickPick.dispose();
       }

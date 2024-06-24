@@ -79,7 +79,6 @@
   "No code selected": "有効なコードを選んでいません",
   "No active editor found": "アクティブなエディターをみつかっていません",
   "It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n": "これにより、次のようなキャッシュ情報がすべてクリアされます。\n\n\t•アカウント認証情報\n\t• ローカルのキャッシュ履歴\n\t• お気に入りのコード\n\t• カスタマイズしたプロンプトテンプレート\n\n\tすべての設定はデフォルトの値に設定されます。\n",
-  "Unknown": "未登録",
   "Login failed": "登録失敗",
   "Unauthorized": "認証失敗",
   "Empty prompt": "プロンプトがありません",

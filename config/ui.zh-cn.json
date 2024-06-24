@@ -79,7 +79,6 @@
   "No code selected": "未选择有效的代码段",
   "No active editor found": "未找到活动的编辑器",
   "It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n": "这将清除您的所有缓存信息, 包括:\n\n\t• 账号认证信息\n\t• 本地历史缓存\n\t• 代码片段收藏\n\t• 自定义提示模板\n\n\t并将重置所有设置为默认值.\n",
-  "Unknown": "未登录",
   "Login failed": "登录失败",
   "Unauthorized": "未登录",
   "Empty prompt": "提示信息为空",

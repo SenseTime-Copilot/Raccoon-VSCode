@@ -143,7 +143,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
       let redirectUrl = Uri.parse(`${env.uriScheme}://${context.extension.id}/login`).toString();
       views += `<vscode-panel-view id="view-browser" class="login-view flex-col gap-2">
                   <div></div>
-                  <span class="material-symbols-rounded" style="text-align: center;font-size: 80px;opacity: 0.4;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;">laptop_windows</span>
+                  <span class="material-symbols-rounded" style="text-align: center;font-size: 80px;opacity: 0.4;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;">cloud_sync</span>
                   <a title="${raccoonConfig.t("Login")}" class="sso-btn" href="${loginUrl.with({ query: `appname=${encodeURIComponent(env.appName)}&redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
                     <vscode-button style="width: 100%">${raccoonConfig.t("Login")}</vscode-button>
                   </a>
@@ -238,16 +238,6 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
               <vscode-button id="login-phone-btn" class="login-btn" disabled tabindex="0">${raccoonConfig.t("Login")}</vscode-button>
             </vscode-panel-view>`;
   }
-  let accountInfo = `
-  <div class="flex gap-2 items-center w-full">
-    <span class="material-symbols-rounded" style="font-size: 40px;">person_pin</span>
-    <div class="grow flex flex-col">
-      <div class="flex">
-        <span class="font-bold text-base"}>${raccoonConfig.t("Unknown")}</span>
-      </div>
-    </div>
-  </div>
-  `;
 
   let esList = `<vscode-dropdown id="engineDropdown" class="w-full" value="${raccoonManager.getActiveClientRobotName()}">`;
   let es = raccoonManager.robotNames;
@@ -292,15 +282,13 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   </style>
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 pt-0 max-w-md">
     <div class="immutable flex gap-2 py-2 px-2 justify-between -mx-2 mb-2 rounded-xl" style="border-bottom: 1px solid var(--panel-view-border);">
-      <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">undo</a>
-      <span>
+      <a href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
+        <span class="material-symbols-rounded">undo</span>
+      </a>
+      <span class="flex gap-2">
         <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage">translate</a>
+        <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
       </span>
-    </div>
-    <div class="immutable flex flex-col px-2 gap-2">
-      <div class="flex flex-row gap-2 items-center justify-between">
-        ${accountInfo}
-      </div>
     </div>
     <vscode-divider class="${es.length === 1 ? "hidden" : ""}" style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
     <b class="${es.length === 1 ? "hidden" : ""}">${raccoonConfig.t("Service")}</b>
@@ -368,7 +356,7 @@ export async function buildSettingPage(): Promise<string> {
   <div class="flex gap-2 items-center w-full">
     ${avatarEle}
     ${(activeOrg) ? `<div class="grow flex flex-col">
-    <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || raccoonConfig.t("Unknown")}</span>
+    <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || "User"}</span>
     <div class="flex w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
       <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">
         <span id="switch-org" class="material-symbols-rounded">sync_alt</span>
@@ -379,7 +367,7 @@ export async function buildSettingPage(): Promise<string> {
     </div>
   </div>` : `<div class="grow flex flex-col">
     <div class="flex">
-      <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || raccoonConfig.t("Unknown")}</span>
+      <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || "User"}</span>
       ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
     </div>
     <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
@@ -484,9 +472,12 @@ export async function buildSettingPage(): Promise<string> {
   let settingPage = `
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 pt-0 max-w-md">
     <div class="immutable flex gap-2 py-2 px-2 justify-between -mx-2 mb-2 rounded-xl" style="border-bottom: 1px solid var(--panel-view-border);">
-      <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">undo</a>
-      <span>
+      <a href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
+        <span class="material-symbols-rounded">undo</span>
+      </a>
+      <span class="flex gap-2">
         <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage">translate</a>
+        <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
       </span>
     </div>
     <div class="immutable flex flex-col px-2 gap-2">

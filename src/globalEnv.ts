@@ -70,9 +70,10 @@ export async function initEnv(context: vscode.ExtensionContext) {
           machine_id: vscode.env.machineId
         };
         try {
-          raccoonManager.sendTelemetry(<MetricType>event, common, data);
-        } catch (e) {
-          console.error(e);
+          raccoonManager.sendTelemetry(<MetricType>event, common, data).catch((e) => {
+            console.error(e.message);
+          });
+        } catch (_e: any) {
         }
       }
     },

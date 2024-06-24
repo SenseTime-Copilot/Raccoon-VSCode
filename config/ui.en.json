@@ -79,7 +79,6 @@
   "No code selected": "No code selected",
   "No active editor found": "No active editor found",
   "It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n": "It will clear all your cached information, including:\n\n\t• Account authorization\n\t• Chace history\n\t• Code snippets in favorites\n\t• Custom prompts\n\n\tAnd reset all other settings to default.\n",
-  "Unknown": "Unknown",
   "Login failed": "Login failed",
   "Unauthorized": "Unauthorized",
   "Empty prompt": "Empty prompt",

@@ -846,7 +846,7 @@ export class RaccoonClient implements CodeClient {
   public async sendTelemetry(org: Organization | undefined, metricType: MetricType, common: Record<string, any>, metric: Record<string, any> | undefined) {
     let auth = this.auth;
     if (!auth) {
-      return Promise.reject(new Error("Unauthorized"));
+      return Promise.reject(new Error("Skip Telemetry Sending: Unauthorized"));
     }
     let telementryUrl = `${this.clientConfig.baseUrl}/api/plugin${org ? "/org" : ""}/b/v1/m`;
     let metricInfo: any = {};
