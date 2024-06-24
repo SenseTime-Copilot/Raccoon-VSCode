@@ -50,7 +50,9 @@ if (packageValueFile) {
       if (writeErr) {
         console.error(writeErr);
       } else {
-        // file written successfully
+        console.log(`Configuration:\n`);
+        console.log(`${JSON.parse(data)}`);
+        console.log("==================================================");
       }
     });
   });
