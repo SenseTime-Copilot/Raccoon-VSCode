@@ -16,9 +16,9 @@ export interface RaccoonPrompt {
   label: string;
   type: PromptType;
   message: Message;
-  inputRequired?: boolean;
+  shortcut: string;
   origin?: string;
-  shortcut?: string;
+  inputRequired?: boolean;
   code?: string;
   languageid?: string;
   args?: any;

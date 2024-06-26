@@ -675,11 +675,13 @@ const vscode = acquireVsCodeApi();
         var first = true;
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
+          p.origin = p.origin?.replaceAll("'", "\\'");
+          p.message.content = p.message.content.replaceAll("'", "\\'");
           shortcuts += `  <button class="flex flex-row-reverse gap-2 items-center ${first ? "selected" : ""}"
                                  ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}
                                         onclick='vscode.postMessage({
                                             type: "sendQuestion",
-                                            prompt: ${JSON.stringify(p)}
+                                            template: "${p.shortcut}"
                                         });
                           '>
                             <span class="material-symbols-rounded">${icon}</span>
@@ -1061,7 +1063,7 @@ const vscode = acquireVsCodeApi();
 
       var acc = document.getElementById("attach-code-container");
       let ignoreCode = false;
-      if (acc.classList.contains("ignore")) {
+      if (acc.classList.contains("hidden") || acc.classList.contains("ignore")) {
         ignoreCode = true;
       }
 

@@ -265,7 +265,18 @@ export class RaccoonEditor extends Disposable {
           if (data.replace) {
             await this.cache.removeCacheItem(data.replace);
           }
-          let prompt: RaccoonPrompt = data.prompt;
+          let prompt: RaccoonPrompt | undefined = data.prompt;
+          if (!prompt && data.template) {
+            let p = raccoonManager.prompt.filter((v, _idx, _arr) => {
+              return v.shortcut === data.template;
+            });
+            if (p && p[0]) {
+              prompt = p[0];
+            }
+          }
+          if (!prompt) {
+            break;
+          }
           if (prompt.message.role === Role.function) {
             switch (prompt.type) {
               case PromptType.help: {

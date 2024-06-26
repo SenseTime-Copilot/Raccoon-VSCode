@@ -470,9 +470,9 @@ export class RaccoonManager {
 
   public async removePromptItem(label: string) {
     let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
-    let customPrompts: { [key: string]: string | any } = {};
+    let customPrompts: { [key: string]: any } = {};
     if (cfg) {
-      customPrompts = cfg.get<{ [key: string]: string | any }>("Prompt", {});
+      customPrompts = cfg.get<{ [key: string]: any }>("Prompt", {});
       for (let labelName in customPrompts) {
         if (labelName === label) {
           customPrompts[labelName] = undefined;
@@ -514,23 +514,19 @@ export class RaccoonManager {
     let customPrompts = this.configuration.get<{ [key: string]: string | any }>("Prompt", {});
     let prompts: RaccoonPrompt[] = [...raccoonConfig.builtinPrompt()];
     for (let label in customPrompts) {
-      if (typeof customPrompts[label] === 'string') {
-        prompts.push(RaccoonManager.parseStringPrompt(label, customPrompts[label] as string));
-      } else {
-        let p: RaccoonPrompt = {
-          label: label,
-          type: PromptType.customPrompt,
-          icon: customPrompts[label].icon,
-          shortcut: customPrompts[label].shortcut,
-          origin: customPrompts[label].origin,
-          message: {
-            role: Role.user,
-            content: `${customPrompts[label].prompt}`
-          },
-          args: customPrompts[label].args
-        };
-        prompts.push(p);
-      }
+      let p: RaccoonPrompt = {
+        label: label,
+        type: PromptType.customPrompt,
+        icon: customPrompts[label].icon,
+        shortcut: customPrompts[label].shortcut,
+        origin: customPrompts[label].origin,
+        message: {
+          role: Role.user,
+          content: `${customPrompts[label].prompt}`
+        },
+        args: customPrompts[label].args
+      };
+      prompts.push(p);
     }
     for (let p of prompts) {
       if (p.args && Object.keys(p.args).length > 0) {
@@ -540,7 +536,7 @@ export class RaccoonManager {
     return prompts;
   }
 
-  public static parseStringPrompt(label: string, prompt: string, shortcut?: string): RaccoonPrompt {
+  public static parseStringPrompt(label: string, prompt: string, shortcut: string): RaccoonPrompt {
     let promptProcessed = prompt;
     let regex = /(\{\{)input(:.*?)?(\}\})/g;
     let m;

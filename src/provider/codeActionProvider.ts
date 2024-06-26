@@ -5,6 +5,7 @@ import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { Role } from '../raccoonClient/CodeClient';
+import { RaccoonManager } from './raccoonManager';
 
 export class RaccoonAction implements vscode.CodeActionProvider {
   constructor(context: vscode.ExtensionContext) {
@@ -85,16 +86,10 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     let document = vscode.window.activeTextEditor?.document;
 
     if (selection && vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('diagnostic').contains(codeAction.kind)) {
-      let diagnosticPrompt: RaccoonPrompt = {
-        label: raccoonConfig.t("Code Correction"),
-        type: PromptType.codeErrorCorrection,
-        languageid: document?.languageId,
-        code: document?.getText(selection) || document?.lineAt(selection.anchor.line).text,
-        message: {
-          role: Role.user,
-          content: `${raccoonConfig.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`
-        }
-      };
+      let diagnosticPrompt: RaccoonPrompt = RaccoonManager.parseStringPrompt(raccoonConfig.t("Code Correction"), `${raccoonConfig.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`, "fix");
+      diagnosticPrompt.type = PromptType.codeErrorCorrection;
+      diagnosticPrompt.code = document?.getText(selection) || document?.lineAt(selection.anchor.line).text;
+      diagnosticPrompt.languageid = document?.languageId;
       codeAction.command = {
         command: `${extensionNameKebab}.codeaction`,
         arguments: [diagnosticPrompt],
