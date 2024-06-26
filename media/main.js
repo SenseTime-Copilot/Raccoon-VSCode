@@ -294,7 +294,7 @@ const vscode = acquireVsCodeApi();
                               <span class="flex flex-col gap-1 text-xs">
                                 <b>${item.name}</b>
                                 <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                  <span class="material-symbols-rounded">more_horiz</span>
+                                  --/--/----, --:--:--
                                 </div>
                               </span>
                             </span>
@@ -529,7 +529,7 @@ const vscode = acquireVsCodeApi();
                                 <span class="flex flex-col gap-1 text-xs">
                                   <b>${item.name}</b>
                                   <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                    ${new Date(item.timestamp).toLocaleString() || `<span class="material-symbols-rounded">more_horiz</span>`}
+                                    ${new Date(item.timestamp).toLocaleString() || `--/--/----, --:--:--`}
                                   </div>
                                 </span>
                               </span>
@@ -635,7 +635,7 @@ const vscode = acquireVsCodeApi();
       }
       case "agentList": {
         agents = message.value;
-        var agentnames = `<div class="toolbar w-full text-end p-1">
+        var agentnames = `<div class="toolbar w-full text-end px-1">
                             <vscode-link><span id="agent-manage" class="material-symbols-rounded">edit_note</span></vscode-link>
                           </div>`;
         agents.forEach((p, idx, _m) => {
@@ -655,20 +655,23 @@ const vscode = acquireVsCodeApi();
       case "addAgent": {
         var inputText = document.getElementById("question-input").value;
         var cursorPos = document.getElementById("question-input").selectionStart;
-        var preVa = inputText.slice(0, cursorPos - 1);
+        var preVa = inputText.slice(0, cursorPos);
         var postVa = inputText.slice(cursorPos);
-        var va = preVa + "@" + message.value;
+        var va = preVa.replace(/@\S*$/, "@" + message.value + " ");// + "@" + message.value + " ";
+        var newPos = va.length;
         if (postVa) {
-          va = va + " " + postVa;
+          va = va + postVa;
         }
         document.getElementById("question-input").value = va;
+        document.getElementById("question-input").selectionStart = newPos;
+        document.getElementById("question-input").selectionEnd = newPos;
         document.getElementById("question-sizer").dataset.value = va;
         _toggleAgentList();
         break;
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<div class="toolbar w-full text-end p-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link></div>';
+        var shortcuts = '<div class="toolbar w-full text-end px-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link></div>';
         var first = true;
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
@@ -795,9 +798,7 @@ const vscode = acquireVsCodeApi();
                                       <span class="flex flex-col gap-1 text-xs">
                                         <b>${message.robot}</b>
                                         <div class="message-ts opacity-60 text-[0.6rem] leading-[0.6rem]">
-                                          <span class="material-symbols-rounded">
-                                            more_horiz
-                                          </span>
+                                          --/--/----, --:--:--
                                         </div>
                                       </span>
                                     </span>
@@ -1711,7 +1712,7 @@ const vscode = acquireVsCodeApi();
     }
 
     if (e.target.id === "switch-org") {
-      vscode.postMessage({ type: "switch-org" });
+      vscode.postMessage({ type: "switchOrg" });
       return;
     }
 
@@ -1778,7 +1779,7 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.classList?.contains('bug') || targetButton?.classList?.contains('correct') || e.target.id === "report-issue") {
       const id = targetButton?.dataset?.id;
-      vscode.postMessage({ type: 'bug-report', id: id ? parseInt(id) : undefined, ts });
+      vscode.postMessage({ type: 'bugReport', id: id ? parseInt(id) : undefined, ts });
       return;
     }
 

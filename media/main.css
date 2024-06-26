@@ -187,14 +187,17 @@ textarea::placeholder {
     user-select: none;
 }
 
-.robot-avatar {
-    background: transparent;
-    background-size: contain;
-    background-position-y: 50%;
-}
-
 .vscode-high-contrast .avatar {
     color: var(--vscode-button-border);
+}
+
+.robot-avatar {
+    mask-size: contain;
+    background-color: var(--vscode-icon-foreground);
+}
+
+.vscode-high-contrast .robot-avatar {
+    background-color: var(--vscode-button-border);
 }
 
 .question-element-gnc.responsing .delete-element-gnc {
@@ -304,16 +307,20 @@ textarea::placeholder {
     margin: 0;
 }
 
+.chat-box {
+    background-color: var(--input-background);
+    border: 1px solid var(--checkbox-border);
+    box-shadow: 0 0 2px inset var(--vscode-inlineChat-border);
+}
+
 #chat-input-box {
     border-radius: 6px;
     user-select: none;
     position: sticky;
     bottom: 0px;
     margin: 2px 3px;
+    padding: 2px;
     width: calc(100% - 6px);
-    background-color: var(--input-background);
-    border: 1px solid var(--checkbox-border);
-    box-shadow: 0 0 2px inset var(--vscode-panelStickyScroll-shadow);
 }
 
 #msg-wrapper {
@@ -466,6 +473,7 @@ textarea::placeholder {
     position: absolute;
     padding: 0.25em;
     background-color: transparent;
+    color: transparent;
     z-index: 0;
     overflow: auto;
     pointer-events: none;
@@ -657,10 +665,6 @@ button.disabled,
 
 #search-list vscode-checkbox.selected {
     background: var(--button-icon-hover-background) !important;
-}
-
-.vscode-high-contrast #ask-list {
-    border: 1px solid var(--vscode-button-border);
 }
 
 .toolbar {

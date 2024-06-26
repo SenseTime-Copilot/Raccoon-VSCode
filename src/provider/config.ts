@@ -170,7 +170,7 @@ export class RaccoonConfig {
     return hbs.compile(this._commitTemplate, { noEscape: true })(args);
   }
 
-  public builtinPrompt(): RaccoonPrompt[] {
+  public builtinPrompt(): ReadonlyArray<RaccoonPrompt> {
     return this._prompt;
   }
 }

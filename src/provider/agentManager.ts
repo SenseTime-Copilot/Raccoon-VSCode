@@ -35,7 +35,7 @@ export const builtinAgents: RaccoonAgent[] = [
     systemPrompt: "",
     abilities: [],
     builtin: true
-  },
+  }/*,
   {
     id: "martin",
     label: "Manager",
@@ -75,7 +75,7 @@ export const builtinAgents: RaccoonAgent[] = [
     systemPrompt: "",
     abilities: [],
     builtin: true
-  }
+  }*/
 ];
 
 export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {

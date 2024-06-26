@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit, TextEditorSelectionChangeKind } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand, extensionDisplayName } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -94,7 +94,7 @@ export class RaccoonEditor extends Disposable {
     );
     context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
-        if ((e.kind === TextEditorSelectionChangeKind.Keyboard || e.kind === TextEditorSelectionChangeKind.Mouse) && this.isSupportedScheme(e.textEditor.document)) {
+        if (this.isSupportedScheme(e.textEditor.document)) {
           if (e.selections[0]) {
             let doc = e.textEditor.document;
             let text = doc.getText(e.selections[0]);
@@ -347,7 +347,7 @@ export class RaccoonEditor extends Disposable {
           raccoonManager.setActiveClient(data.value);
           break;
         }
-        case 'switch-org': {
+        case 'switchOrg': {
           raccoonManager.switchOrganization(raccoonConfig.type !== "Enterprise").then(() => {
             this.updateSettingPage();
           });
@@ -439,7 +439,7 @@ export class RaccoonEditor extends Disposable {
           commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
           break;
         }
-        case 'bug-report': {
+        case 'bugReport': {
           let issueTitle;
           let issueBody;
           let hinfos = await this.cache.getCacheItemWithId(data.id);

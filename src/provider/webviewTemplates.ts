@@ -112,7 +112,7 @@ export function makeGuide(isMac: boolean) {
   <li>
   ${raccoonConfig.t("Select prompt (by typing <code>/</code>)/write your question in input box at bottom, complete the prompt (if necessary), click send button (or press <code>Enter</code>) to ask {{robotname}}", { robotname: extensionDisplayName })}:
       <a onclick="document.getElementById('question-input').focus();document.getElementById('chat-input-box').classList.remove('flash');void document.getElementById('chat-input-box').offsetHeight;document.getElementById('chat-input-box').classList.add('flash');" style="text-decoration: none;cursor: pointer;">
-        <div class="flex p-1 px-2 m-2 text-xs flex-row-reverse rounded-md" style="border: 1px solid var(--checkbox-border);background-color: var(--input-background);box-shadow: 0 0 2px inset var(--vscode-panelStickyScroll-shadow);"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
+        <div class="chat-box flex p-1 px-2 m-2 text-xs flex-row-reverse rounded-md"><span style="color: var(--input-placeholder-foreground);" class="material-symbols-rounded">send</span></div>
       </a>
   </li>
   <li>
@@ -286,7 +286,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
         <span class="material-symbols-rounded">undo</span>
       </a>
       <span class="flex gap-2">
-        <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage">translate</a>
+        <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage" title="${raccoonConfig.t("Switch Display Language")}">translate</a>
         <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
       </span>
     </div>
@@ -476,7 +476,7 @@ export async function buildSettingPage(): Promise<string> {
         <span class="material-symbols-rounded">undo</span>
       </a>
       <span class="flex gap-2">
-        <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage">translate</a>
+        <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage" title="${raccoonConfig.t("Switch Display Language")}">translate</a>
         <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
       </span>
     </div>
@@ -510,7 +510,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
   const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
   const toolkitUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, "media", "vendor", "toolkit.js"));
   const iconUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
-  const avatarUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-logo.png'));
+  const avatarDarkUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-dark.svg'));
+  const avatarLightUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-light.svg'));
 
   return `<!DOCTYPE html>
           <html lang="en">
@@ -526,10 +527,13 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               <script src="${vendorTailwindJs}"></script>
               <script type="module" src="${toolkitUri}"></script>
               <style>
-              .robot-avatar {
-                background-image: url("${avatarUri}");
-                -webkit-mask: url("${avatarUri}");
-                -webkit-mask-size: contain;
+              .vscode-high-contrast .robot-avatar,
+              .vscode-dark .robot-avatar {
+                mask-image: url("${avatarDarkUri}");
+              }
+              .vscode-high-contrast-light .robot-avatar,
+              .vscode-light .robot-avatar {
+                mask-image: url("${avatarLightUri}");
               }
               </style>
           </head>
@@ -543,7 +547,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               </vscode-panel-view>
               <div id="msg-wrapper">
               </div>
-              <div id="chat-input-box" class="w-full flex flex-col justify-center items-center px-1">
+              <div id="chat-input-box" class="chat-box w-full flex flex-col justify-center items-center px-1">
                 <div id="search-list" class="flex flex-col w-full py-2 hidden">
                   <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://raccoon.search/stackoverflow.search?\${query}'>
                     StackOverflow
@@ -586,7 +590,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                         data-tip3="${raccoonConfig.t("Press [Esc] to stop responding")}"
                   >
                     <div id="backdrop">
-                      <div id="highlight-anchor">
+                      <div id="highlight-anchor" class="whitespace-pre-wrap">
                       </div>
                     </div>
                     <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
@@ -623,7 +627,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <vscode-badge class="prompt-hint items-center">
                       <span class="key">?</span>${raccoonConfig.t("Search")}
                     </vscode-badge>
-                    <vscode-badge class="agent-hint items-center hidden">
+                    <vscode-badge class="agent-hint items-center">
                       <span class="key">↑↓</span>${raccoonConfig.t("Switch")}
                     </vscode-badge>
                     <vscode-badge class="agent-hint items-center">
