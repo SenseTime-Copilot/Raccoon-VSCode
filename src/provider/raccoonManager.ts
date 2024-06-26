@@ -511,8 +511,22 @@ export class RaccoonManager {
   }
 
   public get prompt(): RaccoonPrompt[] {
+    let prompts: RaccoonPrompt[] = [];
+    let builtinPrompt: ReadonlyArray<RaccoonPrompt> = raccoonConfig.builtinPrompt();
+    for (let idx in builtinPrompt) {
+      let p: RaccoonPrompt = {
+        label: builtinPrompt[idx].label,
+        type: builtinPrompt[idx].type,
+        icon: builtinPrompt[idx].icon,
+        shortcut: builtinPrompt[idx].shortcut,
+        message: {
+          role: Role.user,
+          content: `${builtinPrompt[idx].message.content}`
+        }
+      };
+      prompts.push(p);
+    }
     let customPrompts = this.configuration.get<{ [key: string]: string | any }>("Prompt", {});
-    let prompts: RaccoonPrompt[] = [...raccoonConfig.builtinPrompt()];
     for (let label in customPrompts) {
       let p: RaccoonPrompt = {
         label: label,

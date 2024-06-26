@@ -4,7 +4,6 @@ import { raccoonEditorProviderViewType, extensionNameKebab, raccoonManager, regi
 import { RaccoonEditor, RaccoonViewProvider } from './webviewProvider';
 import { PromptInfo, PromptType, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
-import { Role } from '../raccoonClient/CodeClient';
 import { RaccoonManager } from './raccoonManager';
 
 export class RaccoonAction implements vscode.CodeActionProvider {
