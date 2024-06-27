@@ -6,6 +6,7 @@ import { MetricType } from "./raccoonClient/CodeClient";
 export let extensionDisplayName: string;
 export let extensionNameKebab: string;
 export let extensionNameCamel: string;
+export let extensionVersion: string;
 export let raccoonEditorProviderViewType: string;
 export let favoriteCodeEditorViewType: string;
 export let promptEditorViewType: string;
@@ -27,6 +28,7 @@ export async function initEnv(context: vscode.ExtensionContext) {
   extensionNameKebab = context.extension.packageJSON['name'];
   extensionDisplayName = context.extension.packageJSON['displayName'];
   extensionNameCamel = context.extension.packageJSON['displayName'].replaceAll(' ', '');
+  extensionVersion = context.extension.packageJSON['version'];
 
   raccoonEditorProviderViewType = `${extensionNameKebab}.editor`;
   favoriteCodeEditorViewType = `${extensionNameKebab}.favorites`;

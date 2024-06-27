@@ -25,6 +25,16 @@ export type Organization = {
   status: string;
 };
 
+export type OrganizationSettings = {
+  productName: string;
+  productVersion: string;
+  licenseExpiredAt: string;
+  pluginInfo: {
+    fileName: string;
+    version: string;
+  };
+};
+
 export type AccountInfo = {
   username: string;
   pro: boolean;
@@ -252,6 +262,10 @@ export interface CodeClient {
   getAuthInfo(): AuthInfo | undefined;
 
   logout(): Promise<string | undefined>;
+
+  getOrgSettings(org: Organization): Promise<OrganizationSettings>;
+
+  getFile(org: Organization, fileName: string): Promise<Buffer>;
 
   syncUserInfo(timeoutMs?: number): Promise<AccountInfo>;
 

@@ -1,7 +1,7 @@
-import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind } from "vscode";
+import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind, ProgressLocation } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
-import { extensionNameCamel, extensionNameKebab, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
+import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { GitUtils } from "../utils/gitUtils";
@@ -10,6 +10,7 @@ import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity } from "./config";
 import { RaccoonAgent, builtinAgents } from "./agentManager";
 import { TGIClient } from "../raccoonClient/tgiClient";
+import { compareVersion } from "../utils/versionCompare";
 
 export type RaccoonRequestParam = Pick<RequestParam, "stream" | "n" | "maxNewTokenNum" | "stop" | "tools" | "toolChoice">;
 export type RaccoonRequestCallbacks = Pick<ChatOptions, "thisArg" | "onHeader" | "onError" | "onFinish" | "onUpdate" | "onController">;
@@ -582,6 +583,50 @@ export class RaccoonManager {
     };
   }
 
+  private checkUpdate(organization?: Organization) {
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    if (organization && ca) {
+      let org = organization;
+      let client = ca.client;
+      ca.client.getOrgSettings(org).then(info => {
+        let remoteFilename = info.pluginInfo.fileName;
+        let remotePluginVersion = info.pluginInfo.version;
+        if (remotePluginVersion) {
+          if (compareVersion(remotePluginVersion, extensionVersion) < 0) {
+            window.showInformationMessage("New version available, Update now?", raccoonConfig.t("Update")).then((v) => {
+              if (v === raccoonConfig.t("Update")) {
+                window.withProgress(
+                  {
+                    location: ProgressLocation.Notification,
+                    cancellable: true
+                  },
+                  async (progress, _cancel) => {
+                    progress.report({ message: raccoonConfig.t("Downloading...") });
+                    return client.getFile(org, remoteFilename).then(buffer => {
+                      let downloadUri = Uri.joinPath(this.context.globalStorageUri, remoteFilename);
+                      return workspace.fs.writeFile(downloadUri, new Uint8Array(buffer))
+                        .then(() => {
+                          progress.report({ message: raccoonConfig.t("Installing...") });
+                          return commands.executeCommand("workbench.extensions.command.installFromVSIX", downloadUri).then(() => {
+                            progress.report({ message: raccoonConfig.t("New extension updated"), increment: 100 });
+                            return workspace.fs.delete(downloadUri);
+                          }, (reason) => {
+                            console.log(reason);
+                            return workspace.fs.delete(downloadUri);
+                          });
+                        }
+                        );
+                    });
+                  }
+                );
+              }
+            });
+          }
+        }
+      });
+    }
+  }
+
   public get robotNames(): string[] {
     return raccoonConfig.builtinEngines.map((v, _idx, _arr) => {
       return v.robotname;
@@ -831,9 +876,7 @@ export class RaccoonManager {
         ...param,
         knowledgeBases
       };
-      let org = this.activeOrganization();
-      let authInfo = ca.client.getAuthInfo();
-      if (!config.maxNewTokenNum && (org || authInfo?.account.pro)) {
+      if (!config.maxNewTokenNum) {
         config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.assistant) - this.maxInputTokenNum(ModelCapacity.assistant));
       }
       let options: ChatOptions = {
@@ -844,6 +887,8 @@ export class RaccoonManager {
         headers,
         ...callbacks
       };
+
+      let org = this.activeOrganization();
       return ca.client.chat(options, org).catch(e => {
         if (e.response?.status === 401) {
           outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);

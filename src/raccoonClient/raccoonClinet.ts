@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType, Capability } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType, Capability, OrganizationSettings } from "./CodeClient";
 
 import hbs = require("handlebars");
 import sign = require('jwt-encode');
@@ -840,6 +840,68 @@ export class RaccoonClient implements CodeClient {
       timeout: timeoutMs || 2000
     }).then((response) => {
       return response.data?.data?.knowledge_bases || [];
+    });
+  }
+
+  public async getFile(org: Organization, fileName: string): Promise<Buffer> {
+    if (!this.auth) {
+      return Promise.reject();
+    }
+    return axios.get(
+      this.clientConfig.baseUrl + "/api/plugin/org/common/v1/files/" + fileName,
+      {
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          Authorization: `Bearer ${this.auth.weaverdKey}`,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "x-org-code": org.code
+        }
+      }
+    ).then((resp) => {
+      if (resp.status === 200 && resp.data) {
+        return resp.data as Buffer;
+      }
+      return Promise.reject(new Error("Get file failed"));
+    });
+  }
+
+  public async getOrgSettings(org: Organization): Promise<OrganizationSettings> {
+    if (!this.auth) {
+      return Promise.reject();
+    }
+    return axios.get(
+      this.clientConfig.baseUrl + "/api/plugin/org/setting/v1/settings",
+      {
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          Authorization: `Bearer ${this.auth.weaverdKey}`,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "x-org-code": org.code
+        }
+      }
+    ).then((resp) => {
+      if (resp.status === 200 && resp.data.data && resp.data.data.settings) {
+        let settings: any = resp.data.data.settings;
+        let plugins: any[] | undefined = settings.plugins;
+        let vscodePlugin = plugins?.filter((v, _idx, _arr) => v.key === 'vscode_plugin');
+        let pluginInfo = { fileName: '', version: '' };
+        if (vscodePlugin && vscodePlugin[0]) {
+          pluginInfo = {
+            fileName: vscodePlugin[0].file_name,
+            version: vscodePlugin[0].version
+          };
+        }
+        let ret: OrganizationSettings = {
+          productName: settings.product_name,
+          productVersion: settings.product_version,
+          licenseExpiredAt: settings.license_expired_at,
+          pluginInfo
+        };
+        return ret;
+      }
+      return Promise.reject(new Error("Get Organization Settings Failed"));
+    }).catch((_e) => {
+      return Promise.reject(new Error("Get Organization Settings Failed"));
     });
   }
 
