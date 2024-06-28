@@ -691,6 +691,18 @@ export class RaccoonManager {
     }
   }
 
+  private async updateSettings(): Promise<KnowledgeBase[] | undefined> {
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    if (ca) {
+      return ca.client.capabilities().then(caps => {
+        ca!.capabilities = [...caps];
+        if (caps.includes(Capability.fileSearch)) {
+          return this.listKnowledgeBase(true);
+        }
+      })
+    }
+  }
+
   public async listKnowledgeBase(update?: boolean): Promise<KnowledgeBase[]> {
     let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     let org: Organization | undefined = this.activeOrganization();
@@ -834,7 +846,7 @@ export class RaccoonManager {
           progress.report({ increment: 100 });
           if (select) {
             return raccoonManager.setActiveOrganization(select.id).then(() => {
-              return this.listKnowledgeBase(true);
+              return this.updateSettings();
             });
           }
         });
@@ -1026,7 +1038,12 @@ export class RaccoonManager {
   }
 
   public get knowledgeBaseRef(): boolean {
-    return this.context.globalState.get("KnowledgeBaseRef", false);
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    if (ca && ca.capabilities.includes(Capability.fileSearch)) {
+      return this.context.globalState.get("KnowledgeBaseRef", false);
+    } else {
+      return false;
+    }
   }
 
   public set knowledgeBaseRef(value: boolean) {
@@ -1039,7 +1056,12 @@ export class RaccoonManager {
   }
 
   public get workspaceRef(): boolean {
-    return this.context.globalState.get("workspaceRef", false);
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    if (ca && ca.capabilities.includes(Capability.fileSearch)) {
+      return this.context.globalState.get("workspaceRef", false);
+    } else {
+      return false;
+    }
   }
 
   public set workspaceRef(value: boolean) {

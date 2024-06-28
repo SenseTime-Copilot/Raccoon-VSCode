@@ -192,6 +192,7 @@ textarea::placeholder {
 }
 
 .robot-avatar {
+    -webkit-mask-size: contain;
     mask-size: contain;
     background-color: var(--vscode-icon-foreground);
 }

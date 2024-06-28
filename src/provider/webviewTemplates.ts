@@ -529,10 +529,12 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               <style>
               .vscode-high-contrast .robot-avatar,
               .vscode-dark .robot-avatar {
+                -webkit-mask-image: url("${avatarDarkUri}");
                 mask-image: url("${avatarDarkUri}");
               }
               .vscode-high-contrast-light .robot-avatar,
               .vscode-light .robot-avatar {
+                -webkit-mask-image: url("${avatarLightUri}");
                 mask-image: url("${avatarLightUri}");
               }
               </style>
