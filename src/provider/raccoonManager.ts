@@ -888,7 +888,9 @@ export class RaccoonManager {
         ...param,
         knowledgeBases
       };
-      if (!config.maxNewTokenNum) {
+      let authInfo = ca.client.getAuthInfo();
+      let org = this.activeOrganization();
+      if (!config.maxNewTokenNum && (org || authInfo?.account.pro)) {
         config.maxNewTokenNum = (this.totalTokenNum(ModelCapacity.assistant) - this.maxInputTokenNum(ModelCapacity.assistant));
       }
       let options: ChatOptions = {
@@ -900,7 +902,6 @@ export class RaccoonManager {
         ...callbacks
       };
 
-      let org = this.activeOrganization();
       return ca.client.chat(options, org).catch(e => {
         if (e.response?.status === 401) {
           outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
