@@ -520,6 +520,7 @@ export class RaccoonManager {
         type: builtinPrompt[idx].type,
         icon: builtinPrompt[idx].icon,
         shortcut: builtinPrompt[idx].shortcut,
+        args: builtinPrompt[idx].args,
         message: {
           role: Role.user,
           content: `${builtinPrompt[idx].message.content}`
