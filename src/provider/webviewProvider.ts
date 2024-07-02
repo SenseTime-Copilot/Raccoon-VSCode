@@ -75,7 +75,7 @@ export class RaccoonEditor extends Disposable {
         } else if (this.isSupportedScheme(doc)) {
           this.lastTextEditor = e;
           if (e && this.checkCodeReady(e)) {
-            this.sendMessage({ type: 'codeReady', value: true, file: e.document.uri.toString(), range: e.selections[0] });
+            this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(e.document.uri), file: e.document.uri.toString(), range: e.selections[0] });
           } else {
             this.sendMessage({ type: 'codeReady', value: false });
           }
@@ -99,7 +99,7 @@ export class RaccoonEditor extends Disposable {
             let doc = e.textEditor.document;
             let text = doc.getText(e.selections[0]);
             if (text.trim()) {
-              this.sendMessage({ type: 'codeReady', value: true, file: doc.uri.toString(), range: e.selections[0] });
+              this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(doc.uri), file: doc.uri.toString(), range: e.selections[0] });
               return;
             }
           }
@@ -251,6 +251,26 @@ export class RaccoonEditor extends Disposable {
         }
         case 'deleteQA': {
           await this.cache.removeCacheItem(data.id);
+          break;
+        }
+        case 'selectFile': {
+          let files: Array<{ label: string, uri: Uri }> = [];
+          let allTabGroups = window.tabGroups.all;
+          for (let tg of allTabGroups) {
+            for (let tab of tg.tabs) {
+              if (tab.input instanceof TabInputText) {
+                let label = workspace.asRelativePath(tab.input.uri);
+                if (label !== tab.input.uri.fsPath) {
+                  files.push({ label, uri: tab.input.uri });
+                }
+              }
+            }
+          }
+          window.showQuickPick<{ label: string, uri: Uri }>(files).then((item) => {
+            if (item) {
+              this.sendMessage({ type: 'attachFile', label: item.label, file: item.uri.toString() });
+            }
+          });
           break;
         }
         case 'addAgent': {
@@ -575,7 +595,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     const editor = window.activeTextEditor || this.lastTextEditor;
     if (editor && this.checkCodeReady(editor)) {
       setTimeout(() => {
-        this.sendMessage({ type: 'codeReady', value: true, file: editor.document.uri.toString(), range: editor.selections[0] });
+        this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(editor.document.uri), file: editor.document.uri.toString(), range: editor.selections[0] });
       }, 1000);
     }
   }

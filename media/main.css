@@ -381,15 +381,6 @@ textarea::placeholder {
     display: none;
 }
 
-#attach-code-container #code-title {
-    display: flex;
-    background-color: var(--input-background);
-    font-family: var(--vscode-editor-font-family);
-    color: var(--panel-tab-foreground);
-    cursor: pointer;
-    padding: 1px;
-}
-
 #question-input {
     width: auto;
     min-width: 1em;
@@ -449,6 +440,10 @@ textarea::placeholder {
     }
 }
 
+#question:has(#question-input[disabled]) #attach-button {
+    display: none;
+}
+
 #question-sizer:has(#question-input[disabled]) {
     cursor: not-allowed;
 }
@@ -457,12 +452,6 @@ textarea::placeholder {
     color: var(--vscode-input-placeholderForeground);
     opacity: 0.5;
 }
-
-/* #question-sizer #highlight-anchor {
-    color: transparent;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-} */
 
 #question-sizer mark {
     color: transparent;
@@ -559,7 +548,7 @@ textarea::placeholder {
 
 #question-sizer:before {
     position: fixed;
-    width: calc(100% - 3rem);
+    width: calc(100% - 4rem);
     line-height: 2;
     margin-left: 2px;
     opacity: 0.4;
@@ -597,6 +586,10 @@ textarea::placeholder {
     display: none;
 }
 
+#attach-button {
+    display: flex;
+}
+
 #send-button {
     display: flex;
     color: var(--progress-background);
@@ -622,10 +615,12 @@ textarea::placeholder {
     opacity: 1;
 }
 
+#chat-input-box.prompt-ready.search #question #attach-button,
 #chat-input-box.prompt-ready.search #question #send-button {
     display: none;
 }
 
+#chat-input-box.responsing #attach-file-container,
 #chat-input-box.responsing #attach-code-container,
 #chat-input-box.responsing button#send-button {
     display: none !important;
@@ -650,6 +645,7 @@ button.disabled,
     z-index: 99999;
 }
 
+#attach-file-container,
 #attach-code-container {
     display: flex;
     flex-direction: column;
@@ -658,10 +654,6 @@ button.disabled,
     color: var(--input-placeholder-foreground);
     border-bottom: 1px dashed var(--checkbox-border);
     z-index: 99999;
-}
-
-#attach-code-container.with-code+#chat-input-box {
-    border-radius: 0 0 6px 6px;
 }
 
 #search-list vscode-checkbox.selected {

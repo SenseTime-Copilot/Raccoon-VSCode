@@ -597,6 +597,9 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     </div>
                     <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                   </label>
+                  <button id="attach-button" class="hidden" title="${raccoonConfig.t("Attach File")}">
+                    <span class="material-symbols-rounded">attach_file</span>
+                  </button>
                   <button id="send-button" title="${raccoonConfig.t("Send")} [Enter]">
                     <span class="material-symbols-rounded">send</span>
                   </button>
@@ -607,9 +610,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <span class="material-symbols-rounded">search</span>
                   </button>
                 </div>
-                <div id="attach-code-container" class="hidden" title="${raccoonConfig.t("Code attached")}">
-                  <div id="code-title"></div>
-                </div>
+                <div id="attach-code-container" class="hidden"></div>
+                <div id="attach-file-container" class="hidden"></div>
                 <div class="op-hint">
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Send")}

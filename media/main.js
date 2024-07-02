@@ -549,14 +549,54 @@ const vscode = acquireVsCodeApi();
         showInfoTip(message);
         break;
       }
+      case "attachFile": {
+        var afc = document.getElementById("attach-file-container");
+        if (afc && message.file) {
+          for (let item of afc.children) {
+            if (item.dataset['file'] === message.file) {
+              return;
+            }
+          }
+          let ct = document.createElement('div');
+          ct.classList.add("flex", "items-end", "px-1");
+          ct.dataset['file'] = message.file;
+          let icon = document.createElement('span');
+          icon.classList.add("material-symbols-rounded");
+          icon.innerText = "file_present";
+          let link = document.createElement('vscode-link');
+          link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
+          link.title = message.file;
+          link.onclick = (_event) => {
+            vscode.postMessage({ type: "openDoc", file: message.file });
+          };
+          link.innerHTML = message.label;
+          let rmBtn = document.createElement('span');
+          rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
+          rmBtn.title = l10nForUI["Delete"];
+          rmBtn.innerText = 'cancel';
+          rmBtn.onclick = (_event) => {
+            ct.remove();
+            if (afc.children.length === 0) {
+              afc.classList.add("hidden");
+            }
+          };
+          ct.appendChild(icon);
+          ct.appendChild(link);
+          ct.appendChild(rmBtn);
+          afc.appendChild(ct);
+          afc.classList.remove("hidden");
+        }
+        break;
+      }
       case 'codeReady': {
         var acc = document.getElementById("attach-code-container");
         if (message.value) {
           if (acc && message.file && message.range) {
             acc.innerHTML = "";
             let ct = document.createElement('div');
+            ct.dataset['file'] = message.file;
+            ct.dataset['range'] = JSON.stringify(message.range);
             ct.classList.add("flex", "items-end", "px-1");
-            let fl = new URL(message.file);
             let rangetag = ``;
             if (message.range.start.line === message.range.end.line) {
               rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-${message.range.end.character + 1}`;
@@ -565,14 +605,14 @@ const vscode = acquireVsCodeApi();
             }
             let icon = document.createElement('span');
             icon.classList.add("material-symbols-rounded");
-            icon.innerText = "file_present";
+            icon.innerText = "segment";
             let link = document.createElement('vscode-link');
             link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
-            link.title = decodeURIComponent(fl.pathname) + rangetag;
+            link.title = message.file + rangetag;
             link.onclick = (_event) => {
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
-            link.innerHTML = fl.pathname.split('/').slice(-1) + '<span class="opacity-75">' + rangetag + '</span>';
+            link.innerHTML = message.label + '<span class="opacity-75">' + rangetag + '</span>';
             let rmBtn = document.createElement('span');
             rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
             rmBtn.title = l10nForUI["Delete"];
@@ -727,7 +767,14 @@ const vscode = acquireVsCodeApi();
         document.getElementById('question-input').blur();
         var c = document.getElementById("attach-code-container");
         if (c) {
+          c.innerHTML = "";
+          c.classList.remove("with-code");
           c.classList.add("hidden");
+        }
+        var f = document.getElementById("attach-file-container");
+        if (f) {
+          f.innerHTML = "";
+          f.classList.add("hidden");
         }
 
         editCache.set(`${id}`, promptInfo.prompt);
@@ -1669,6 +1716,11 @@ const vscode = acquireVsCodeApi();
 
     if (targetButton?.id === "search-button") {
       sendSearchQuery(document.getElementById("question-input").value.slice(1).trim());
+      return;
+    }
+
+    if (targetButton?.id === "attach-button") {
+      vscode.postMessage({ type: 'selectFile' });
       return;
     }
 
