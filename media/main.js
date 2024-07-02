@@ -555,7 +555,7 @@ const vscode = acquireVsCodeApi();
           if (acc && message.file && message.range) {
             acc.innerHTML = "";
             let ct = document.createElement('div');
-            ct.classList.add("flex", "items-center", "px-1");
+            ct.classList.add("flex", "items-end", "px-1");
             let fl = new URL(message.file);
             let rangetag = ``;
             if (message.range.start.line === message.range.end.line) {
@@ -563,11 +563,16 @@ const vscode = acquireVsCodeApi();
             } else {
               rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-L${message.range.end.line + 1}C${message.range.end.character + 1}`;
             }
-            ct.innerHTML = '<span class="material-symbols-rounded">file_present</span>'
-              + '<vscode-link class="grow whitespace-pre text-ellipsis overflow-hidden" style="font-size: inherit;" title="' + decodeURIComponent(fl.pathname) + rangetag + '">' + fl.pathname.split('/').slice(-1) + '<span class="opacity-75">' + rangetag + '</span></vscode-link>';
-            ct.onclick = (_event) => {
+            let icon = document.createElement('span');
+            icon.classList.add("material-symbols-rounded");
+            icon.innerText = "file_present";
+            let link = document.createElement('vscode-link');
+            link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
+            link.title = decodeURIComponent(fl.pathname) + rangetag;
+            link.onclick = (_event) => {
               vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
             };
+            link.innerHTML = fl.pathname.split('/').slice(-1) + '<span class="opacity-75">' + rangetag + '</span>';
             let rmBtn = document.createElement('span');
             rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
             rmBtn.title = l10nForUI["Delete"];
@@ -577,6 +582,8 @@ const vscode = acquireVsCodeApi();
               acc.classList.add('hidden', 'ignore');
               acc.innerHTML = "";
             };
+            ct.appendChild(icon);
+            ct.appendChild(link);
             ct.appendChild(rmBtn);
             acc.appendChild(ct);
             acc.classList.add("with-code");

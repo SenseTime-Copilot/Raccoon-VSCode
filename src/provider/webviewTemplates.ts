@@ -91,7 +91,7 @@ export function makeGuide(isMac: boolean) {
     </code>
   </li>
   <li>
-  ${raccoonConfig.t("Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>")}:
+  ${raccoonConfig.t("Or, accept signle word by <code>Ctrl+→</code>, accept single line by <code>Ctrl+↓</code>")}.
   </li>
   </ol>
   <h3>${raccoonConfig.t("Ask {{robotname}}", { robotname: extensionDisplayName })}</h3>
@@ -576,7 +576,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 <div id="agent-list" class="flex flex-col hidden">
                 </div>
                 <div id="ask-list" class="flex flex-col hidden">
-                </div>
+                                </div>
                 <div id="question" class="w-full flex justify-center items-center">
                   <span class="material-symbols-rounded opacity-60 history-icon">
                     history
@@ -584,7 +584,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                   <label id="question-sizer" data-value
                         data-placeholder="${raccoonConfig.t("Ask {{robotname}} a question", { robotname: extensionDisplayName })}"
                         data-action-hint="${raccoonConfig.t("Pick one prompt to send")} [Enter]"
-                        data-agent-hint="${raccoonConfig.t("Pick one agent")} [Enter]"
+                                                data-agent-hint="${raccoonConfig.t("Pick one agent")} [Enter]"
                         data-search-hint="${raccoonConfig.t("Type anything to search")} [Enter]"
                         data-tip="${raccoonConfig.t("Ask {{robotname}} a question", { robotname: extensionDisplayName })}"
                         data-tip1="${raccoonConfig.t("Double-pressing {{hotkey}} to summon me at any time.", { hotkey: "[Ctrl]" })}"
@@ -623,7 +623,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <vscode-badge class="prompt-hint items-center">
                       <span class="key">/</span>${raccoonConfig.t("Prompt")}
                     </vscode-badge>
-                    <vscode-badge class="prompt-hint items-center">
+                                        <vscode-badge class="prompt-hint items-center">
                       <span class="key">↑↓</span>${raccoonConfig.t("History")}
                     </vscode-badge>
                     <vscode-badge class="prompt-hint items-center">

@@ -615,7 +615,7 @@ textarea::placeholder {
     color: var(--progress-background);
 }
 
-#chat-input-box.prompt-ready #qestion #send-button,
+#chat-input-box.prompt-ready #question #send-button,
 #chat-input-box.prompt-ready.search #question #search-button {
     display: flex;
     color: var(--progress-background);
