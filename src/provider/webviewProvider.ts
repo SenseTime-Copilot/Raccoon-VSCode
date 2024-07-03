@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit, Range } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand, extensionDisplayName } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -254,19 +254,20 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'selectFile': {
-          let files: Array<{ label: string, uri: Uri }> = [];
+          let files: Array<{ label: string, uri: Uri, languageId: string }> = [];
           let allTabGroups = window.tabGroups.all;
           for (let tg of allTabGroups) {
             for (let tab of tg.tabs) {
               if (tab.input instanceof TabInputText) {
                 let label = workspace.asRelativePath(tab.input.uri);
                 if (label !== tab.input.uri.fsPath) {
-                  files.push({ label, uri: tab.input.uri });
+                  let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
+                  files.push({ label, uri: tab.input.uri, languageId });
                 }
               }
             }
           }
-          window.showQuickPick<{ label: string, uri: Uri }>(files).then((item) => {
+          window.showQuickPick<{ label: string, uri: Uri, languageId: string }>(files).then((item) => {
             if (item) {
               this.sendMessage({ type: 'attachFile', label: item.label, file: item.uri.toString() });
             }
@@ -278,10 +279,6 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'sendQuestion': {
-          let editor = this.lastTextEditor;
-          if (window.activeTextEditor && this.isSupportedScheme(window.activeTextEditor.document)) {
-            editor = window.activeTextEditor;
-          }
           if (data.replace) {
             await this.cache.removeCacheItem(data.replace);
           }
@@ -312,10 +309,12 @@ export class RaccoonEditor extends Disposable {
             }
             break;
           }
-          if (editor && !data.ignoreCode && !data.values) {
-            prompt.code = editor.document.getText(editor.selection);
-            if (editor.document.languageId !== "plaintext") {
-              prompt.languageid = editor.document.languageId;
+          if (data.attachCode && data.attachCode[0]) {
+            let d = await workspace.openTextDocument(Uri.parse(data.attachCode[0].file));
+            let r = data.attachCode[0].range;
+            prompt.code = d.getText(new Range(r.start.line, r.start.character, r.end.line, r.end.character));
+            if (d.languageId !== "plaintext") {
+              prompt.languageid = d.languageId;
             }
           }
           if (prompt.type === PromptType.freeChat) {
@@ -325,7 +324,7 @@ export class RaccoonEditor extends Disposable {
           }
           let promptInfo = new PromptInfo(prompt);
           let history = await this.cache.getCacheItems();
-          this.sendApiRequest(promptInfo, data.values, history);
+          this.sendApiRequest(promptInfo, data.values, history, data.attachFile);
           break;
         }
         case 'stopGenerate': {
@@ -616,7 +615,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     return false;
   }
 
-  public async sendApiRequest(prompt: PromptInfo, values?: any, history?: CacheItem[]) {
+  public async sendApiRequest(prompt: PromptInfo, values?: any, history?: CacheItem[], attachFile?: Array<{ file: string }>) {
     let ts = new Date();
     let id = ts.valueOf();
     let response = "";
@@ -813,6 +812,17 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
         }
         this.sendMessage({ type: 'addError', error, id });
       }
+    }
+
+    if (attachFile && attachFile[0]) {
+      this.sendMessage({
+        type: 'addReference',
+        files: attachFile.map((f: any) => {
+          let uri = Uri.parse(f.file);
+          return workspace.asRelativePath(uri);
+        }),
+        id
+      });
     }
   }
 

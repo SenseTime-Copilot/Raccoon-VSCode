@@ -440,7 +440,16 @@ textarea::placeholder {
     }
 }
 
-#question:has(#question-input[disabled]) #attach-button {
+#question:has(#question-input[disabled]) #attach-button,
+#question:has(#question-input[disabled]) #send-button {
+    display: none;
+}
+
+#question:has(#question-input[disabled]) #cancel-button {
+    display: flex;
+}
+
+#chat-input-box.responsing #question:has(#question-input[disabled]) #cancel-button {
     display: none;
 }
 
@@ -581,13 +590,10 @@ textarea::placeholder {
 }
 
 #send-button,
+#cancel-button,
 #stop-button,
 #search-button {
     display: none;
-}
-
-#attach-button {
-    display: flex;
 }
 
 #send-button {

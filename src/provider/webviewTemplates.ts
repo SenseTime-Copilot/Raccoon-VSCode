@@ -603,6 +603,9 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                   <button id="send-button" title="${raccoonConfig.t("Send")} [Enter]">
                     <span class="material-symbols-rounded">send</span>
                   </button>
+                  <button id="cancel-button" title="${raccoonConfig.t("Cancel")} [Esc]">
+                    <span class="material-symbols-rounded">undo</span>
+                  </button>
                   <button id="stop-button" title="${raccoonConfig.t("Stop")} [Esc]">
                     <span class="material-symbols-rounded">stop</span>
                   </button>
