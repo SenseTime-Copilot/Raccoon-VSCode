@@ -894,7 +894,8 @@ const sendAction = (template) => {
                                       </span>
                                     </span>
                                   </h2>
-                                  <div id="reference-${id}" class="reference flex gap-2 items-center"></div>
+                                  <div id="attachment-${id}" class="attachment flex flex-col gap-1 items-center"></div>
+                                  <div id="reference-${id}" class="reference flex flex-col gap-1 items-center"></div>
                                   <div id="response-${id}" class="response ${promptInfo.prompt?.code ? 'with-code' : ''} empty flex flex-col gap-1 markdown-body"></div>
                                   ${progress}
                                   <div id="feedback-${id}" class="feedback pt-6 flex justify-between items-center hidden">
@@ -1080,7 +1081,19 @@ const sendAction = (template) => {
         const reference = document.getElementById(`reference-${message.id}`);
         if (reference) {
           reference.innerHTML = message.files.map((v) => {
-            return `<span class="opacity-50 max-w-full break-all"><span class="material-symbols-rounded">quick_reference_all</span><span class="align-middle">${decodeURIComponent(v)}</span></span>`;
+            return `<span class="flex opacity-50 max-w-full self-start overflow-hidden"><span class="material-symbols-rounded">quick_reference_all</span><span class="align-middle">${decodeURIComponent(v)}</span></span>`;
+          }).join("");
+        }
+        break;
+      }
+      case 'addFileAttachment': {
+        if (!list.innerHTML) {
+          return;
+        }
+        const attachment = document.getElementById(`attachment-${message.id}`);
+        if (attachment) {
+          attachment.innerHTML = message.files.map((v) => {
+            return `<span class="flex opacity-50 max-w-full self-start overflow-hidden"><span class="material-symbols-rounded">quick_reference_all</span><span class="align-middle">${decodeURIComponent(v)}</span></span>`;
           }).join("");
         }
         break;

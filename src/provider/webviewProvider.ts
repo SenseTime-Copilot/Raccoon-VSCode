@@ -816,7 +816,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
     if (attachFile && attachFile[0]) {
       this.sendMessage({
-        type: 'addReference',
+        type: 'addFileAttachment',
         files: attachFile.map((f: any) => {
           let uri = Uri.parse(f.file);
           return workspace.asRelativePath(uri);
