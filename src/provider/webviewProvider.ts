@@ -714,7 +714,11 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   case -3008: {
                     errmsg = raccoonConfig.t("Connection error. Check your network settings.");
                     break;
-                  } default: {
+                  }
+                  case 401: {
+                    errmsg = raccoonConfig.t("Authentication expired, please login again");
+                    break;
+                  }  default: {
                     break;
                   }
                 }

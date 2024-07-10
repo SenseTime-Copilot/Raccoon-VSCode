@@ -359,6 +359,7 @@ export class RaccoonClient implements CodeClient {
           return newAuth;
         }
         if (resp && resp.status === 401) {
+          this.auth = undefined;
           this.onChangeAuthInfo?.();
           throw new Error("Authentication expired");
         }
@@ -421,6 +422,7 @@ export class RaccoonClient implements CodeClient {
     options.onController?.(controller, options.thisArg);
 
     let tokenRevoke = (() => {
+      this.auth = undefined;
       this.onChangeAuthInfo?.();
     }).bind(this);
 
@@ -754,6 +756,7 @@ export class RaccoonClient implements CodeClient {
         const resJson = await res.json();
         if (!res.ok) {
           if (res.status === 401) {
+            this.auth = undefined;
             this.onChangeAuthInfo?.();
           }
           let error: Choice = {

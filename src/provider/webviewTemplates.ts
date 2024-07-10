@@ -40,7 +40,7 @@ export async function buildWelcomeMessage(robotname: string, org?: Organization)
   let detail = '';
   let name = org?.username || userinfo?.username;
   let username = '';
-  if (name) {
+  if (raccoonManager.isClientLoggedin()) {
     username = ` @${name}`;
     if (org) {
       username += ` (${org.name})`;
@@ -598,7 +598,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                   </label>
                   <button id="attach-button" class="hidden" title="${raccoonConfig.t("Attach File")}">
-                    <span class="material-symbols-rounded">attach_file</span>
+                    <span class="material-symbols-rounded">attach_file_add</span>
                   </button>
                   <button id="send-button" title="${raccoonConfig.t("Send")} [Enter]">
                     <span class="material-symbols-rounded">send</span>
@@ -613,8 +613,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <span class="material-symbols-rounded">search</span>
                   </button>
                 </div>
-                <div id="attach-code-container" class="hidden"></div>
-                <div id="attach-file-container" class="hidden"></div>
+                <div id="attach-code-container" class="flex hidden"></div>
+                <div id="attach-file-container" class="flex hidden"></div>
                 <div class="op-hint">
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Send")}

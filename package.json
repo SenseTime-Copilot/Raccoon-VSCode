@@ -16,7 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.76.3",
+    "version": "0.76.4",
     "engines": {
         "vscode": "^1.82.0"
     },

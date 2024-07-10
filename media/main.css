@@ -653,7 +653,6 @@ button.disabled,
 
 #attach-file-container,
 #attach-code-container {
-    display: flex;
     flex-direction: column;
     font-size: 0.8em;
     width: 100%;
