@@ -720,7 +720,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   case 401: {
                     errmsg = raccoonConfig.t("Authentication expired, please login again");
                     break;
-                  }  default: {
+                  } default: {
                     break;
                   }
                 }
@@ -749,6 +749,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Sorry, I don't know the relevant information for this question. Please change the question and I will continue to work hard to answer it for you."), id, timestamp: rts });
                   return;
                 } else if (choice.finishReason === FinishReason.length) {
+                  thisArg.sendMessage({ type: 'needContinue', id });
                 } else if (choice.finishReason === FinishReason.context) {
                   thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Context Too long"), id, timestamp: rts });
                   return;
@@ -794,7 +795,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   case 401: {
                     errmsg = raccoonConfig.t("Authentication expired, please login again");
                     break;
-                  }  default: {
+                  } default: {
                     break;
                   }
                 }
@@ -815,6 +816,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
                 }
                 h.sendMessage({ type: 'updateResponse', id, value: choices[0].message?.content, timestamp: rts });
+                if (choices[0].finishReason === FinishReason.length) {
+                  h.sendMessage({ type: 'needContinue', id });
+                }
                 delete h.stopList[id];
                 h.sendMessage({ type: 'stopResponse', id });
               }

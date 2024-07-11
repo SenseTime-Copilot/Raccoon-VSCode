@@ -54,6 +54,7 @@ const sendAction = (template) => {
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const sendSlotIcon = `<span slot="start" class="material-symbols-rounded">send</span>`;
   const deleteSlotIcon = `<span slot="start" class="material-symbols-rounded">undo</span>`;
+  const continueIcon = `<span slot="start" class="material-symbols-rounded">resume</span>`;
   const favIcon = `<span class="material-symbols-rounded">heart_plus</span>`;
   const viewIcon = `<span class="material-symbols-rounded">visibility</span>`;
   const viewOffIcon = `<span class="material-symbols-rounded">visibility_off</span>`;
@@ -921,6 +922,10 @@ const sendAction = (template) => {
                                       </button>
                                     </span>
                                     <span class="flex items-center gap-2">
+                                      <button class="continue-element-gnc hidden flex items-stretch" data-id=${id}>
+                                        <span class="material-symbols-rounded">rotate_right</span>
+                                        <p class="mx-1">${l10nForUI["Continue"]}</p>
+                                      </button>
                                       <button class="regenerate flex items-stretch" data-id=${id}>
                                         <span class="material-symbols-rounded">refresh</span>
                                         <p class="mx-1">${l10nForUI["Regenerate"]}</p>
@@ -1025,6 +1030,14 @@ const sendAction = (template) => {
         lasttimestamps.delete(message.id);
         renderers.delete(message.id);
         contents.delete(message.id);
+        break;
+      }
+      case "needContinue": {
+        const respElem = document.getElementById(`${message.id}`);
+        if (!respElem) {
+          break;
+        }
+        respElem.classList.add("need-continue");
         break;
       }
       case "addMessage": {
@@ -1891,6 +1904,20 @@ const sendAction = (template) => {
 
     if (targetButton?.classList?.contains('stopGenerate')) {
       vscode.postMessage({ type: 'stopGenerate', id: targetButton.dataset.id });
+      return;
+    }
+
+    if (targetButton?.classList?.contains('continue-element-gnc')) {
+      const id = targetButton.dataset.id;
+      document.getElementById(`${id}`)?.classList.remove("need-continue");
+      vscode.postMessage({
+        type: "sendQuestion",
+        prompt: {
+          label: "",
+          type: "free chat",
+          message: { role: 'user', content: `${l10nForUI["Continue"]}` }
+        }
+      });
       return;
     }
 

@@ -616,6 +616,7 @@ export class RaccoonClient implements CodeClient {
           for (let i = 0; i < choices.length; i++) {
             c.push({
               index: choices[i].index,
+              finishReason: choices[i].finish_reason,
               message: {
                 role: choices[i].role as Role,
                 content: choices[i].message

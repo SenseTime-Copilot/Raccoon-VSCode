@@ -677,6 +677,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 "Thinking...": "${raccoonConfig.t("Thinking...")}",
                 "Connecting...": "${raccoonConfig.t("Connecting...")}",
                 "Typing...": "${raccoonConfig.t("Typing...")}",
+                "Continue": "${raccoonConfig.t("Continue")}",
                 "Stop responding": "${raccoonConfig.t("Stop responding")}",
                 "Regenerate": "${raccoonConfig.t("Regenerate")}",
                 "Empty prompt": "${raccoonConfig.t("Empty prompt")}"

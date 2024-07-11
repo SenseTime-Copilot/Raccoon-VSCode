@@ -131,6 +131,7 @@
   "Sorry, I don't know the relevant information for this question. Please change the question and I will continue to work hard to answer it for you.": "申し訳ありませんが、この問題に関する情報はわかりません。別の質問をしてください。引き続き最善を尽くして回答します。",
   "Context Too long": "コンテキストが長すぎます",
   "Connection error, check your network settings": "接続エラー。ネットワーク設定を確認してください",
+  "Continue": "続行",
   "Regenerate": "再回答",
   "Stop responding": "回答停止",
   "Done": "完成",
