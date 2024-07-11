@@ -781,8 +781,21 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().valueOf();
-                h.sendMessage({ type: 'addError', error: err.message?.content || "", id, timestamp: rts });
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: err.message?.content || "" });
+                let errmsg = err.message?.content || "";
+                switch (err.index) {
+                  case -3008: {
+                    errmsg = raccoonConfig.t("Connection error. Check your network settings.");
+                    break;
+                  }
+                  case 401: {
+                    errmsg = raccoonConfig.t("Authentication expired, please login again");
+                    break;
+                  }  default: {
+                    break;
+                  }
+                }
+                h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
                 errorFlag = true;
               },
               onFinish(choices, thisArg) {
