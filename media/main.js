@@ -50,6 +50,7 @@ const sendAction = (template) => {
   const questionIcon = `<span class="material-symbols-rounded w-8 h-8 text-center">live_help</span>`;
   const clipboardIcon = `<span class="material-symbols-rounded">content_paste</span>`;
   const checkIcon = `<span class="material-symbols-rounded">inventory</span>`;
+  const requestIdIcon = `<span class="material-symbols-rounded">tag</span>`;
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const sendSlotIcon = `<span slot="start" class="material-symbols-rounded">send</span>`;
   const deleteSlotIcon = `<span slot="start" class="material-symbols-rounded">undo</span>`;
@@ -113,7 +114,7 @@ const sendAction = (template) => {
                                   </div>
                                 </span>
                               </span>
-                              <div class="-mt-6 ml-1">
+                              <div class="flex self-start">
                                 <button title="${l10nForUI["DeleteQA"]}" class="delete-element-gnc border-none bg-transparent opacity-60 hover:opacity-100" data-id=${id}>${cancelIcon}</button>
                                 <button title="${l10nForUI["Cancel"]} [Esc]" class="cancel-element-gnc  border-none bg-transparent opacity-60 hover:opacity-100">${cancelIcon}</button>
                               </div>
@@ -883,7 +884,7 @@ const sendAction = (template) => {
               </button>
             </div>`;
             }
-            chat.innerHTML = `  <h2 class="avatar mb-2 -ml-1 flex gap-1">
+            chat.innerHTML = `  <h2 class="avatar mb-2 -ml-1 flex justify-between gap-1">
                                     <span class="flex gap-2 flex text-xl items-center">
                                       ${aiIcon}
                                       <span class="flex flex-col gap-1 text-xs">
@@ -893,6 +894,9 @@ const sendAction = (template) => {
                                         </div>
                                       </span>
                                     </span>
+                                    <button id="request-id-${id}" class="hidden request-id-element-gnc flex self-start opacity-50 text-transparent	hover:text-inherit">
+                                      ${requestIdIcon}
+                                    </button>
                                   </h2>
                                   <div id="attachment-${id}" class="attachment flex flex-col gap-1 items-center"></div>
                                   <div id="reference-${id}" class="reference flex flex-col gap-1 items-center"></div>
@@ -1072,6 +1076,18 @@ const sendAction = (template) => {
         progText?.classList.add("started");
         contents.set(message.id, message.value);
         timestamps.set(message.id, message.timestamp);
+        break;
+      }
+      case "addRequestId": {
+        if (!list.innerHTML) {
+          return;
+        }
+        const ridElem = document.getElementById(`request-id-${message.id}`);
+        if (ridElem) {
+          ridElem.title = message.requestId;
+          ridElem.dataset["requestId"] = message.requestId;
+          ridElem.classList.remove("hidden");
+        }
         break;
       }
       case "addReference": {
@@ -2016,6 +2032,20 @@ const sendAction = (template) => {
 
         setTimeout(() => {
           targetButton.innerHTML = clipboardIcon;
+        }, 1500);
+      });
+
+      return;
+    }
+
+    if (targetButton?.classList?.contains("request-id-element-gnc")) {
+      e.preventDefault();
+      let rid = targetButton.dataset["requestId"];
+      navigator.clipboard.writeText(rid).then(() => {
+        targetButton.innerHTML = checkIcon;
+
+        setTimeout(() => {
+          targetButton.innerHTML = requestIdIcon;
         }, 1500);
       });
 

@@ -25,7 +25,7 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
   let maxLength = raccoonManager.maxInputTokenNum(ModelCapacity.completion) * 2;
   let codeSnippets = await captureCode(document, position, maxLength);
 
-  if ((codeSnippets.beforeLines + codeSnippets.beforeLines).trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
+  if ((codeSnippets.input.prefix + codeSnippets.input.suffix).trim().replace(/[\s\/\\,?_#@!~$%&*]/g, "").length < 4) {
     updateStatusBarItem(statusBarItem);
     return [];
   }
@@ -200,8 +200,8 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
         if (name === n.name) {
           refs.push({
             languageId: rs.languageId,
-            label: r,
-            snippet: (await vscode.workspace.openTextDocument(vscode.Uri.parse(r))).getText(n.range)
+            fileName: r,
+            fileChunk: (await vscode.workspace.openTextDocument(vscode.Uri.parse(r))).getText(n.range)
           });
         }
         for (let nn of n.children) {
@@ -231,20 +231,20 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
     return a - b;
   });
   let pos = 0;
-  let prefix = document.getText(new vscode.Selection(
+  let _prefix = document.getText(new vscode.Selection(
     0,
     0,
     cursorY,
     cursorX
   ));
-  let suffix = document.getText(new vscode.Selection(
+  let _suffix = document.getText(new vscode.Selection(
     cursorY,
     cursorX,
     document.lineCount - 1,
     document.lineAt(document.lineCount - 1).text.length
   ));
   let folding = foldingPoints[pos];
-  while ((prefix.length + suffix.length) > maxLength) {
+  while ((_prefix.length + _suffix.length) > maxLength) {
     if (foldingPoints.length > pos) {
       folding = foldingPoints[pos];
       pos++;
@@ -261,7 +261,7 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
           break;
         }
       }
-      if (prefix.length > suffix.length) {
+      if (_prefix.length > _suffix.length) {
         if (preIdx < preCutLines.length) {
           folding.start = preCutLines[preIdx];
         } else {
@@ -275,13 +275,13 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
         }
       }
     }
-    prefix = document.getText(new vscode.Selection(
+    _prefix = document.getText(new vscode.Selection(
       folding.start,
       0,
       cursorY,
       cursorX
     ));
-    suffix = document.getText(new vscode.Selection(
+    _suffix = document.getText(new vscode.Selection(
       cursorY,
       cursorX,
       folding.end,
@@ -357,8 +357,8 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
     await filterSymbol(names);
   }
 
-  let _prefix = prefix.replace(/\r\n/g, '\n');
-  let _suffix = suffix?.replace(/\r\n/g, '\n') || "";
+  let prefix = _prefix.replace(/\r\n/g, '\n');
+  let suffix = _suffix?.replace(/\r\n/g, '\n') || "";
   let beforeLines = '';
   let beforeCursor = '';
   let _prefixLines = _prefix.split('\n') || [];
@@ -377,11 +377,11 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
   }
 
   return {
-    languageId: document.languageId,
-    beforeLines,
-    beforeCursor,
-    afterCursor,
-    afterLines,
-    reference: refs
+    input: {
+      languageId: document.languageId,
+      prefix,
+      suffix
+    },
+    localKnows: refs
   };
 }

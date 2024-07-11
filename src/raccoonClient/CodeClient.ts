@@ -163,19 +163,21 @@ export interface ChatOptions {
   onController?: (controller: AbortController, thisArg?: any) => void;
 }
 
+export type completionContext = {
+  languageId: string;
+  prefix: string;
+  suffix: string;
+};
+
 export type Reference = {
   languageId: string;
-  label: string;
-  snippet: string;
+  fileName: string;
+  fileChunk: string;
 };
 
 export type CompletionContext = {
-  languageId: string;
-  beforeLines: string;
-  beforeCursor: string;
-  afterCursor: string;
-  afterLines: string;
-  reference: Reference[];
+  input: completionContext;
+  localKnows: Reference[];
 };
 
 export interface CompletionOptions {

@@ -7,9 +7,7 @@ import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
 import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType, Capability, OrganizationSettings } from "./CodeClient";
 
-import hbs = require("handlebars");
 import sign = require('jwt-encode');
-import { supportedLanguages } from "./getSupportedLanguages";
 
 function generateSignature(ak: string, sk: string, date: Date) {
   let t = date.valueOf();
@@ -678,39 +676,19 @@ export class RaccoonClient implements CodeClient {
       headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
     }
 
-    let inputLen = options.context.languageId.length + options.context.beforeLines.length + options.context.beforeCursor.length + options.context.afterLines.length + options.context.afterCursor.length;
-    if (inputLen > options.maxInputTokens * 3) {
-      let shrinkRatio = options.maxInputTokens * 3 / inputLen;
-      let beforeLen = Math.floor(options.context.beforeLines.length * shrinkRatio);
-      options.context.beforeLines = options.context.beforeLines.slice(-1 * beforeLen);
-      let afterLen = Math.floor(options.context.afterLines.length * shrinkRatio);
-      options.context.afterLines = options.context.afterLines.slice(0, afterLen);
-    } else {
-      let len = inputLen;
-      let refs: Reference[] = [];
-      for (let ref of options.context.reference) {
-        let commentPrefix = supportedLanguages[ref.languageId]?.singleLineCommentPrefix;
-        if (!commentPrefix) {
-          continue;
-        }
-        let label = `${commentPrefix} ${ref.label};`;
-        let snippet = ref.snippet.split("\n").map(((line, _idx, _arr) => {
-          return `${commentPrefix} ${line}`;
-        })).join("\n");
-        let r = { languageId: ref.languageId, label, snippet };
-        if ((len + r.label.length + r.languageId.length + r.snippet.length) < options.maxInputTokens * 3) {
-          len += r.label.length + r.languageId.length + r.snippet.length;
-          refs.push(r);
-        } else {
-          continue;
-        }
-      }
-      options.context.reference = refs;
-    }
-
     let config: any = {};
-    let template = hbs.compile(options.template, { noEscape: true });
-    config.prompt = template(options.context);
+    config.input = {
+      language_id: options.context.input.languageId,
+      prefix: options.context.input.prefix,
+      suffix: options.context.input.suffix
+    };
+    config.local_knows = options.context.localKnows.map(r => {
+      return {
+        language_id: r.languageId,
+        file_name: r.fileName,
+        file_chunk: r.fileChunk
+      }
+    });
     config.model = options.config.model;
     config.stop = options.config.stop ? options.config.stop[0] : undefined;
     config.temperature = options.config.temperature;

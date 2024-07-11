@@ -700,6 +700,8 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 if (fs) {
                   this.sendMessage({ type: 'addReference', files: fs.split(","), id });
                 }
+                let requestId = headers.get("x-request-id");
+                this.sendMessage({ type: 'addRequestId', requestId, id });
               },
               onController(controller, thisArg) {
                 let h = <RaccoonEditor>thisArg;
@@ -772,6 +774,8 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 if (fs) {
                   this.sendMessage({ type: 'addReference', files: fs.split(","), id });
                 }
+                let requestId = headers.get("x-request-id");
+                this.sendMessage({ type: 'addRequestId', requestId, id });
               },
               onController(controller, thisArg) {
                 let h = <RaccoonEditor>thisArg;

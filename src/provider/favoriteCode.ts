@@ -1,6 +1,6 @@
 import { ExtensionContext, languages, TextDocument, Position, MarkdownString, CompletionItem, CompletionItemKind, window, Uri, workspace, CustomReadonlyEditorProvider, CancellationToken, CustomDocument, CustomDocumentOpenContext, WebviewPanel, commands, RelativePattern, FileSystemWatcher, Webview, Disposable, CompletionList, } from "vscode";
 import { favoriteCodeEditorViewType, extensionNameKebab, telemetryReporter, extensionDisplayName, raccoonConfig } from "../globalEnv";
-import { supportedLanguages } from "../raccoonClient/getSupportedLanguages";
+import { supportedLanguages } from "../utils/getSupportedLanguages";
 import { MetricType } from "../raccoonClient/CodeClient";
 
 const encoder = new TextEncoder();
