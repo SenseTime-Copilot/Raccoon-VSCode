@@ -128,7 +128,7 @@
   "Out of service": "无法使用",
   "Connecting...": "连接中...",
   "Typing...": "正在输出...",
-  "Potentially Sensitive Content Encountered": "检测到敏感内容",
+  "Sorry, I don't know the relevant information for this question. Please change the question and I will continue to work hard to answer it for you.": "抱歉, 这个问题我不了解相关信息. 请换个问题吧, 我将继续努力为您解答.",
   "Context Too long": "上下文过长",
   "Connection error, check your network settings": "连接失败, 请检查你的网络配置",
   "Regenerate": "重新回答",

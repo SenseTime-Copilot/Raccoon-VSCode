@@ -746,7 +746,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               onUpdate(choice: Choice, thisArg) {
                 let rts = new Date().valueOf();
                 if (choice.finishReason === FinishReason.sensitive) {
-                  thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Potentially Sensitive Content Encountered"), id, timestamp: rts });
+                  thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Sorry, I don't know the relevant information for this question. Please change the question and I will continue to work hard to answer it for you."), id, timestamp: rts });
                   return;
                 } else if (choice.finishReason === FinishReason.length) {
                 } else if (choice.finishReason === FinishReason.context) {
