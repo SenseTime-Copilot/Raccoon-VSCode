@@ -327,6 +327,12 @@ export class RaccoonEditor extends Disposable {
           this.sendApiRequest(promptInfo, data.values, history, data.attachFile);
           break;
         }
+        case 'continueAnswer': {
+          if (data.id) {
+            this.contineAnswer(data.id);
+          }
+          break;
+        }
         case 'stopGenerate': {
           if (data.id) {
             this.stopList[data.id]?.abort();
@@ -613,6 +619,194 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
       }
     }
     return false;
+  }
+
+  private async contineAnswer(id: number) {
+    let loggedin = raccoonManager.isClientLoggedin();
+    let userinfo = await raccoonManager.userInfo();
+    let org = raccoonManager.activeOrganization();
+    let username = org?.username || userinfo?.username;
+    if (!loggedin || !username) {
+      this.sendMessage({ type: 'showInfoTip', style: "error", category: 'unauthorized', value: raccoonConfig.t("Unauthorized"), id });
+      return;
+    }
+    let history = await this.cache.getCacheItems();
+    let qa = await this.cache.getCacheItemWithId(id);
+    await this.cache.removeCacheItem(id).then(() => {
+      return this.cache.appendCacheItem(qa[0]);
+    });
+    let instruction: Message = { role: Role.user, content: raccoonConfig.t("Continue") };
+    let response = qa[1].value;
+    let streaming = raccoonManager.streamResponse;
+    let historyMsgs: Message[] = [];
+    let el = 4;
+    let maxTokens = raccoonManager.maxInputTokenNum(ModelCapacity.assistant);
+
+    if (history) {
+      let hs = Array.from(history).reverse();
+      for (let h of hs) {
+        let role = Role.user;
+        if (h.type !== CacheItemType.question) {
+          role = Role.assistant;
+        }
+        let aLen = (h.value.length) * 2 + 12;
+        if ((el + aLen) > maxTokens) {
+          break;
+        }
+        el += aLen;
+        historyMsgs.push({
+          role,
+          content: h.value
+        });
+      }
+    }
+
+    historyMsgs = historyMsgs.reverse();
+
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { user_question_num: 1 } });
+
+    let errorFlag = false;
+    let msgs = [...historyMsgs, instruction];
+    if (streaming) { 
+      raccoonManager.chat(
+        msgs,
+        {
+          stream: true,
+          n: 1
+        },
+        {
+          thisArg: this,
+          onHeader: (headers: Headers) => {
+            let fs = headers.get("x-raccoon-know-files");
+            if (fs) {
+              this.sendMessage({ type: 'addReference', files: fs.split(","), id });
+            }
+            let requestId = headers.get("x-request-id");
+            this.sendMessage({ type: 'addRequestId', requestId, id });
+          },
+          onController(controller, thisArg) {
+            let h = <RaccoonEditor>thisArg;
+            h.stopList[id] = controller;
+          },
+          onError(err: Choice, thisArg) {
+            let h = <RaccoonEditor>thisArg;
+            outlog.error(JSON.stringify(err));
+            let rts = new Date().valueOf();
+            let errmsg = err.message?.content || "";
+            switch (err.index) {
+              case -3008: {
+                errmsg = raccoonConfig.t("Connection error. Check your network settings.");
+                break;
+              }
+              case 401: {
+                errmsg = raccoonConfig.t("Authentication expired, please login again");
+                break;
+              } default: {
+                break;
+              }
+            }
+            h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+            h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
+            errorFlag = true;
+          },
+          onFinish(choices: Choice[], thisArg) {
+            let h = <RaccoonEditor>thisArg;
+            if (!errorFlag) {
+              let rts = new Date().valueOf();
+              if (response) {
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
+              } else {
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+              }
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+            }
+            delete h.stopList[id];
+            h.sendMessage({ type: 'stopResponse', id });
+          },
+          onUpdate(choice: Choice, thisArg) {
+            let rts = new Date().valueOf();
+            if (choice.finishReason === FinishReason.sensitive) {
+              thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Sorry, I don't know the relevant information for this question. Please change the question and I will continue to work hard to answer it for you."), id, timestamp: rts });
+              return;
+            } else if (choice.finishReason === FinishReason.length) {
+              thisArg.sendMessage({ type: 'needContinue', id });
+            } else if (choice.finishReason === FinishReason.context) {
+              thisArg.sendMessage({ type: 'addError', error: raccoonConfig.t("Context Too long"), id, timestamp: rts });
+              return;
+            }
+            response += choice.message?.content || "";
+            thisArg.sendMessage({ type: 'updateResponse', id, value: response, timestamp: rts });
+          }
+        },
+        buildHeader(this.context.extension, PromptType.freeChat, `${id}`)
+      ).catch((e) => {
+        this.sendMessage({ type: 'addError', error: e.message, id, timestamp: new Date().valueOf() });
+      });
+    } else {
+      await raccoonManager.chat(
+        msgs,
+        {
+          n: 1
+        },
+        {
+          thisArg: this,
+          onHeader: (headers: Headers) => {
+            let fs = headers.get("x-raccoon-know-files");
+            if (fs) {
+              this.sendMessage({ type: 'addReference', files: fs.split(","), id });
+            }
+            let requestId = headers.get("x-request-id");
+            this.sendMessage({ type: 'addRequestId', requestId, id });
+          },
+          onController(controller, thisArg) {
+            let h = <RaccoonEditor>thisArg;
+            h.stopList[id] = controller;
+          },
+          onError(err, thisArg) {
+            let h = <RaccoonEditor>thisArg;
+            outlog.error(JSON.stringify(err));
+            let rts = new Date().valueOf();
+            let errmsg = err.message?.content || "";
+            switch (err.index) {
+              case -3008: {
+                errmsg = raccoonConfig.t("Connection error. Check your network settings.");
+                break;
+              }
+              case 401: {
+                errmsg = raccoonConfig.t("Authentication expired, please login again");
+                break;
+              } default: {
+                break;
+              }
+            }
+            h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
+            h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+            errorFlag = true;
+          },
+          onFinish(choices, thisArg) {
+            let h = <RaccoonEditor>thisArg;
+            let rts = new Date().valueOf();
+            if (!errorFlag) {
+              if (choices[0].message?.content) {
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content });
+              } else {
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+              }
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
+            }
+            h.sendMessage({ type: 'updateResponse', id, value: response + (choices[0].message?.content || ""), timestamp: rts });
+            if (choices[0].finishReason === FinishReason.length) {
+              h.sendMessage({ type: 'needContinue', id });
+            }
+            delete h.stopList[id];
+            h.sendMessage({ type: 'stopResponse', id });
+          }
+        },
+        buildHeader(this.context.extension, PromptType.freeChat, `${id}`));
+    }
   }
 
   public async sendApiRequest(prompt: PromptInfo, values?: any, history?: CacheItem[], attachFile?: Array<{ file: string }>) {

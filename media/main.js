@@ -54,7 +54,7 @@ const sendAction = (template) => {
   const cancelIcon = `<span class="material-symbols-rounded">close</span>`;
   const sendSlotIcon = `<span slot="start" class="material-symbols-rounded">send</span>`;
   const deleteSlotIcon = `<span slot="start" class="material-symbols-rounded">undo</span>`;
-  const continueIcon = `<span slot="start" class="material-symbols-rounded">resume</span>`;
+  const continueIcon = `<span class="material-symbols-rounded">rotate_right</span>`;
   const favIcon = `<span class="material-symbols-rounded">heart_plus</span>`;
   const viewIcon = `<span class="material-symbols-rounded">visibility</span>`;
   const viewOffIcon = `<span class="material-symbols-rounded">visibility_off</span>`;
@@ -923,7 +923,7 @@ const sendAction = (template) => {
                                     </span>
                                     <span class="flex items-center gap-2">
                                       <button class="continue-element-gnc hidden flex items-stretch" data-id=${id}>
-                                        <span class="material-symbols-rounded">rotate_right</span>
+                                        ${continueIcon}
                                         <p class="mx-1">${l10nForUI["Continue"]}</p>
                                       </button>
                                       <button class="regenerate flex items-stretch" data-id=${id}>
@@ -1909,15 +1909,16 @@ const sendAction = (template) => {
 
     if (targetButton?.classList?.contains('continue-element-gnc')) {
       const id = targetButton.dataset.id;
-      document.getElementById(`${id}`)?.classList.remove("need-continue");
-      vscode.postMessage({
-        type: "sendQuestion",
-        prompt: {
-          label: "",
-          type: "free chat",
-          message: { role: 'user', content: `${l10nForUI["Continue"]}` }
-        }
-      });
+      const respElem = document.getElementById(`${id}`);
+      const chatText = document.getElementById(`response-${id}`);
+      const progText = document.getElementById(`progress-${id}`);
+      if (!respElem || !chatText) {
+        return;
+      }
+      respElem.classList.remove("need-continue");
+      chatText.classList.add("empty");
+      progText?.classList.remove("started");
+      vscode.postMessage({ type: "continueAnswer", id: parseInt(id) });
       return;
     }
 
@@ -1981,6 +1982,16 @@ const sendAction = (template) => {
       document.getElementById("question-input").focus();
       const question = targetButton.closest(".question-element-gnc");
       sendQuestion(question);
+      return;
+    }
+
+    if (targetButton?.id === "cancel-button") {
+      e.preventDefault();
+      const question = document.getElementsByClassName("editRequired");
+      if (question && question[0]) {
+        question[0].remove();
+      }
+      document.getElementById("question-input").disabled = false;
       return;
     }
 
