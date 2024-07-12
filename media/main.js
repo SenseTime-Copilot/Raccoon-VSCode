@@ -1422,11 +1422,11 @@ const sendAction = (template) => {
     }
   });
 
-  document.getElementById("question").addEventListener("dragover", (event) => {
+  document.addEventListener("dragover", (event) => {
     event.preventDefault();
   });
 
-  document.getElementById("question").addEventListener("drop", (event) => {
+  document.addEventListener("drop", (event) => {
     event.preventDefault();
     const data = event.dataTransfer.getData("text/plain");
     document.getElementById("question-input").value = data;

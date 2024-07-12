@@ -40,6 +40,7 @@
     "raccoon.command.commit-msg": "Raccoonに commit messageを作成してもらう",
     "raccoon.command.openEditor": "新し Raccoon コーディングアシスタント",
     "raccoon.command.ask": "Raccoon に質問...",
+    "raccoon.command.send-file": "にファイルを送る",
     "raccoon.command.settings": "設定",
     "raccoon.command.settingsReset": "すべての設定項目をリセット",
     "raccoon.command.completionTrigger": "コード補完を行う",

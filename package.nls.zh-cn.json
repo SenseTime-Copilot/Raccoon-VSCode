@@ -40,6 +40,7 @@
     "raccoon.command.commit-msg": "由 Raccoon 撰写 commit message",
     "raccoon.command.openEditor": "新建 Raccoon 代码助手",
     "raccoon.command.ask": "向 Raccoon 提问...",
+    "raccoon.command.send-file": "发送文件",
     "raccoon.command.settings": "设置",
     "raccoon.command.settingsReset": "重置所有配置项",
     "raccoon.command.completionTrigger": "触发代码补全",

@@ -71,8 +71,19 @@ export class RaccoonAction implements vscode.CodeActionProvider {
     if (!codeAction.kind) {
       return codeAction;
     }
+    let selection = vscode.window.activeTextEditor?.selection;
+    let textEditor = vscode.window.activeTextEditor;
+    let document = vscode.window.activeTextEditor?.document;
     if (vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('preset').contains(codeAction.kind)) {
       if (codeAction.title === `${extensionDisplayName}: ${raccoonConfig.t("Ask {{robotname}}", { robotname: extensionDisplayName })}...`) {
+        if (textEditor) {
+          let editor: RaccoonEditor | undefined = this.getEditor();
+          if (editor) {
+            editor.sendCode(textEditor);
+          } else {
+            RaccoonViewProvider.sendCode(textEditor);
+          }
+        }
         codeAction.command = {
           command: `${extensionNameKebab}.codeaction`,
           title: codeAction.title
@@ -80,9 +91,6 @@ export class RaccoonAction implements vscode.CodeActionProvider {
         return codeAction;
       }
     }
-
-    let selection = vscode.window.activeTextEditor?.selection;
-    let document = vscode.window.activeTextEditor?.document;
 
     if (selection && vscode.CodeActionKind.QuickFix.append(extensionNameKebab).append('diagnostic').contains(codeAction.kind)) {
       let diagnosticPrompt: RaccoonPrompt = RaccoonManager.parseStringPrompt(raccoonConfig.t("Code Correction"), `${raccoonConfig.t("Fix any problem in the following code")}, ${codeAction.diagnostics![0].message}\n{{code}}`, "fix");

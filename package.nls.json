@@ -39,6 +39,7 @@
     "raccoon.command.notebook.register": "Register as Raccoon Action",
     "raccoon.command.openEditor": "New Raccoon Code Assistant",
     "raccoon.command.ask": "Ask Raccoon...",
+    "raccoon.command.send-file": "Send File",
     "raccoon.command.commit-msg": "Ask Raccoon to write a commit message",
     "raccoon.command.settings": "Settings",
     "raccoon.command.settingsReset": "Reset all settings",

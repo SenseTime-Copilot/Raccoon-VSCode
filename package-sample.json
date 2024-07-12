@@ -16,7 +16,7 @@
         "theme": "dark"
     },
     "icon": "media/raccoon-logo.png",
-    "version": "0.76.3",
+    "version": "0.76.4",
     "engines": {
         "vscode": "^1.82.0"
     },
@@ -33,6 +33,7 @@
         "co-pilot",
         "autocomplete",
         "inline completion",
+        "小浣熊",
         "代码小浣熊"
     ],
     "activationEvents": [
@@ -130,10 +131,6 @@
                 "id": "{extensionId}-submenu",
                 "label": "%raccoon.submenu%",
                 "icon": "$(more)"
-            },
-            {
-                "id": "{extensionId}-editor-contextmenu",
-                "label": "{extensionName}"
             }
         ],
         "menus": {
@@ -142,17 +139,11 @@
                     "command": "{extensionId}.notebook.new"
                 }
             ],
-            "{extensionId}-editor-contextmenu": [
-                {
-                    "command": "{extensionId}.chat.ask",
-                    "group": "_{extensionId}_editor_contextmenu@1",
-                    "when": "editorTextFocus"
-                }
-            ],
             "editor/context": [
                 {
-                    "submenu": "{extensionId}-editor-contextmenu",
-                    "group": "_{extensionId}_editor_contextmenu"
+                    "command": "{extensionId}.chat.ask",
+                    "group": "_{extensionId}_commands@1",
+                    "when": "editorTextFocus"
                 }
             ],
             "scm/title": [

@@ -1,4 +1,4 @@
-import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit, Range } from 'vscode';
+import { window, workspace, WebviewViewProvider, TabInputText, TabInputNotebook, WebviewView, ExtensionContext, WebviewViewResolveContext, CancellationToken, commands, Webview, Uri, env, TextEditor, Disposable, TextDocument, TextEditorEdit, Range, QuickPickItemKind, QuickPickItem, RelativePattern } from 'vscode';
 import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, raccoonConfig, registerCommand, extensionDisplayName } from "../globalEnv";
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
@@ -170,6 +170,15 @@ export class RaccoonEditor extends Disposable {
     }
   }
 
+  public sendCode(e: TextEditor) {
+    this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(e.document.uri), file: e.document.uri.toString(), range: e.selections[0] });
+  }
+
+  public sendFile(uri: Uri) {
+    let label = workspace.asRelativePath(uri);
+    this.sendMessage({ type: 'attachFile', label, file: uri.toString() });
+  }
+
   public async showPage(
   ) {
     this.webview.options = {
@@ -254,8 +263,9 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'selectFile': {
-          let files: Array<{ label: string, uri: Uri, languageId: string }> = [];
+          let files: Array<QuickPickItem & { uri?: Uri, languageId?: string }> = [];
           let allTabGroups = window.tabGroups.all;
+          files.push({ label: "Opened", kind: QuickPickItemKind.Separator });
           for (let tg of allTabGroups) {
             for (let tab of tg.tabs) {
               if (tab.input instanceof TabInputText) {
@@ -267,9 +277,26 @@ export class RaccoonEditor extends Disposable {
               }
             }
           }
-          window.showQuickPick<{ label: string, uri: Uri, languageId: string }>(files).then((item) => {
-            if (item) {
-              this.sendMessage({ type: 'attachFile', label: item.label, file: item.uri.toString() });
+
+          if (workspace.workspaceFolders) {
+            for (let wf of workspace.workspaceFolders) {
+              files.push({ label: wf.name, kind: QuickPickItemKind.Separator });
+              await workspace.findFiles(new RelativePattern(wf, '**/*.*')).then((uris) => {
+                for (let uri of uris) {
+                  let label = workspace.asRelativePath(uri);
+                  if (label !== uri.fsPath) {
+                    files.push({ label, uri });
+                  }
+                }
+              });
+            }
+          }
+
+          window.showQuickPick<QuickPickItem & { uri?: Uri, languageId?: string }>(files, {
+            placeHolder: "Select a file to attach",
+          }).then((item) => {
+            if (item && item.uri) {
+              this.sendFile(item.uri);
             }
           });
           break;
@@ -668,7 +695,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
     let errorFlag = false;
     let msgs = [...historyMsgs, instruction];
-    if (streaming) { 
+    if (streaming) {
       raccoonManager.chat(
         msgs,
         {
@@ -1126,9 +1153,22 @@ export class RaccoonViewProvider implements WebviewViewProvider {
         await new Promise((f) => setTimeout(f, 1000));
         return RaccoonViewProvider.editor.sendApiRequest(prompt);
       } else {
+        let textEditor = window.activeTextEditor;
         await new Promise((f) => setTimeout(f, 300));
+        if (textEditor) {
+          RaccoonViewProvider.sendCode(textEditor);
+        }
         RaccoonViewProvider.editor?.sendMessage({ type: 'focus' });
       }
     }
+  }
+
+  public static sendCode(e: TextEditor) {
+    RaccoonViewProvider.editor?.sendCode(e);
+  }
+
+  public static sendFile(uri: Uri) {
+    let label = workspace.asRelativePath(uri);
+    RaccoonViewProvider.editor?.sendMessage({ type: 'attachFile', label, file: uri.toString() });
   }
 }

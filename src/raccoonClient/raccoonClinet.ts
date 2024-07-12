@@ -611,6 +611,10 @@ export class RaccoonClient implements CodeClient {
           log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
         } else {
+          if (options.onHeader) {
+            options.onHeader(res.headers);
+          }
+
           let choices = resJson.data.choices;
           let c: Choice[] = [];
           for (let i = 0; i < choices.length; i++) {
