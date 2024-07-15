@@ -617,10 +617,13 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 <div id="attach-file-container" class="flex hidden"></div>
                 <div class="op-hint">
                     <vscode-badge class="prompt-ready-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Send")}
+                      <span class="key">Shift+<span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("New Line")}
+                    </vscode-badge>
+                    <vscode-badge class="prompt-ready-hint items-center">
+                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Send")}
                     </vscode-badge>
                     <vscode-badge class="stop-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${raccoonConfig.t("Stop")}
+                      <span class="key">Esc</span>${raccoonConfig.t("Stop")}
                     </vscode-badge>
                     <vscode-badge class="prompt-hint items-center hidden">
                       <span class="key">@</span>${raccoonConfig.t("Agent")}
@@ -628,7 +631,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <vscode-badge class="prompt-hint items-center">
                       <span class="key">/</span>${raccoonConfig.t("Prompt")}
                     </vscode-badge>
-                                        <vscode-badge class="prompt-hint items-center">
+                    <vscode-badge class="prompt-hint items-center">
                       <span class="key">↑↓</span>${raccoonConfig.t("History")}
                     </vscode-badge>
                     <vscode-badge class="prompt-hint items-center">
@@ -638,25 +641,25 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                       <span class="key">↑↓</span>${raccoonConfig.t("Switch")}
                     </vscode-badge>
                     <vscode-badge class="agent-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Select")}
+                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Select")}
                     </vscode-badge>
                     <vscode-badge class="action-hint items-center">
                       <span class="key">↑↓</span>${raccoonConfig.t("Switch")}
                     </vscode-badge>
                     <vscode-badge class="action-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Select")}
+                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Select")}
                     </vscode-badge>
                     <vscode-badge class="search-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Search")}
+                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Search")}
                     </vscode-badge>
                     <vscode-badge class="history-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span>Enter</span>${raccoonConfig.t("Send")}
+                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Send")}
                     </vscode-badge>
                     <vscode-badge class="history-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">keyboard_tab</span>Tab</span>${raccoonConfig.t("Revise")}
+                      <span class="key"><span class="material-symbols-rounded">keyboard_tab</span></span>${raccoonConfig.t("Revise")}
                     </vscode-badge>
                     <vscode-badge class="history-hint items-center">
-                      <span class="key"><span class="material-symbols-rounded">first_page</span>Esc</span>${raccoonConfig.t("Clear")}
+                      <span class="key">Esc</span>${raccoonConfig.t("Clear")}
                     </vscode-badge>
                   </div>
               </div>

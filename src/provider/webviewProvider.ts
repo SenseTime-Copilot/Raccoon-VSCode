@@ -171,7 +171,9 @@ export class RaccoonEditor extends Disposable {
   }
 
   public sendCode(e: TextEditor) {
-    this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(e.document.uri), file: e.document.uri.toString(), range: e.selections[0] });
+    if (!e.selection.isEmpty) {
+      this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(e.document.uri), file: e.document.uri.toString(), range: e.selection });
+    }
   }
 
   public sendFile(uri: Uri) {

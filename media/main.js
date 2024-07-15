@@ -164,6 +164,15 @@ const sendAction = (template) => {
     const preCodeList = markedResponse.querySelectorAll("pre > code");
     preCodeList.forEach((preCode, _index) => {
       preCode.parentElement.classList.add("pre-code-element", "flex", "flex-col");
+      const buttonWrapper = document.createElement("div");
+      buttonWrapper.classList.add("code-actions-wrapper");
+      preCode.parentElement.prepend(buttonWrapper);
+      preCode.classList.forEach((cls, _idx, _arr) => {
+        if (cls.startsWith('language-')) {
+          langTag = cls.slice(9);
+          preCode.parentElement.dataset.lang = langTag;
+        }
+      });
     });
     responseElem.innerHTML = markedResponse.documentElement.innerHTML;
     if (scroll) {
@@ -972,8 +981,12 @@ const sendAction = (template) => {
               preCode.parentElement.classList.add("mb-8");
             }
 
-            const buttonWrapper = document.createElement("div");
-            buttonWrapper.classList.add("code-actions-wrapper");
+            var buttonWrapper = preCode.parentElement.querySelector(".code-actions-wrapper");
+            if (!buttonWrapper) {
+              const buttonWrapper = document.createElement("div");
+              buttonWrapper.classList.add("code-actions-wrapper");
+              preCode.parentElement.prepend(buttonWrapper);
+            }
 
             const fav = document.createElement("button");
             fav.dataset.id = message.id;
@@ -1018,8 +1031,6 @@ const sendAction = (template) => {
             insert.classList.add("edit-element-gnc", "rounded");
 
             buttonWrapper.append(wrapButton, fav, diff, copyButton, insert);
-
-            preCode.parentElement.prepend(buttonWrapper);
           });
           if (scroll) {
             list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
