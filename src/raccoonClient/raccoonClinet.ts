@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, Reference, UrlType, Capability, OrganizationSettings } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, UrlType, Capability, OrganizationSettings } from "./CodeClient";
 
 import sign = require('jwt-encode');
 
@@ -683,16 +683,20 @@ export class RaccoonClient implements CodeClient {
 
     let config: any = {};
     config.input = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       language_id: options.context.input.languageId,
       prefix: options.context.input.prefix,
       suffix: options.context.input.suffix
     };
     config.local_knows = options.context.localKnows.map(r => {
       return {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         language_id: r.languageId,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         file_name: r.fileName,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         file_chunk: r.fileChunk
-      }
+      };
     });
     config.model = options.config.model;
     config.stop = options.config.stop ? options.config.stop[0] : undefined;
@@ -736,7 +740,6 @@ export class RaccoonClient implements CodeClient {
           });
           this.log(JSON.stringify(hh, undefined, 2));
         }
-        const resJson = await res.json();
         if (!res.ok) {
           if (res.status === 401) {
             this.auth = undefined;
@@ -746,12 +749,13 @@ export class RaccoonClient implements CodeClient {
             index: res.status,
             message: {
               role: Role.assistant,
-              content: JSON.stringify(resJson)
+              content: await res.text()
             }
           };
           this.log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
         } else {
+          const resJson = await res.json();
           let choices = resJson.data.choices;
           let c: Choice[] = [];
           for (let i = 0; i < choices.length; i++) {

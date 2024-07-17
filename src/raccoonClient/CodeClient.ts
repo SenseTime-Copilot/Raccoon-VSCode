@@ -150,7 +150,6 @@ export type ResponseData = {
 
 export interface ChatOptions {
   messages: Array<Message>;
-  template?: string;
   maxInputTokens: number;
   config: RequestParam;
   headers?: Record<string, string>;
@@ -163,7 +162,7 @@ export interface ChatOptions {
   onController?: (controller: AbortController, thisArg?: any) => void;
 }
 
-export type completionContext = {
+export type CompletionInput = {
   languageId: string;
   prefix: string;
   suffix: string;
@@ -176,13 +175,12 @@ export type Reference = {
 };
 
 export type CompletionContext = {
-  input: completionContext;
+  input: CompletionInput;
   localKnows: Reference[];
 };
 
 export interface CompletionOptions {
   context: CompletionContext;
-  template: string;
   maxInputTokens: number;
   config: RequestParam;
   headers?: Record<string, string>;

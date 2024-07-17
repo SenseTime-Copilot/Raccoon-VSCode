@@ -232,8 +232,10 @@ export class RaccoonManager {
         });
         let capabilities: Capability[] = [];
         if (authinfos[e.robotname]) {
-          outlog.debug(`Append client ${e.robotname}: [Authorized - ${authinfos[e.robotname].account.username}]`);
-          client.restoreAuthInfo(authinfos[e.robotname]);
+          let auth = authinfos[e.robotname] as AuthInfo;
+          outlog.debug(`Append client ${e.robotname}: [Authorized - ${auth.account.username}]`);
+          client.restoreAuthInfo(auth);
+          // this.checkUpdate(client);
           try {
             capabilities = await client.capabilities();
           } catch (_e) {
@@ -241,6 +243,7 @@ export class RaccoonManager {
         } else {
           await client.login().then(async (ai) => {
             outlog.debug(`Append client ${e.robotname}: [Authorized - ${ai.account.username}]`);
+            // this.checkUpdate(client);
             try {
               capabilities = await client.capabilities();
             } catch (_e) {
@@ -584,48 +587,51 @@ export class RaccoonManager {
     };
   }
 
-  private checkUpdate(organization?: Organization) {
-    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
-    if (organization && ca) {
-      let org = organization;
-      let client = ca.client;
-      ca.client.getOrgSettings(org).then(info => {
-        let remoteFilename = info.pluginInfo.fileName;
-        let remotePluginVersion = info.pluginInfo.version;
-        if (remotePluginVersion) {
-          if (compareVersion(remotePluginVersion, extensionVersion) < 0) {
-            window.showInformationMessage("New version available, Update now?", raccoonConfig.t("Update")).then((v) => {
-              if (v === raccoonConfig.t("Update")) {
-                window.withProgress(
-                  {
-                    location: ProgressLocation.Notification,
-                    cancellable: true
-                  },
-                  async (progress, _cancel) => {
-                    progress.report({ message: raccoonConfig.t("Downloading...") });
-                    return client.getFile(org, remoteFilename).then(buffer => {
-                      let downloadUri = Uri.joinPath(this.context.globalStorageUri, remoteFilename);
-                      return workspace.fs.writeFile(downloadUri, new Uint8Array(buffer))
-                        .then(() => {
-                          progress.report({ message: raccoonConfig.t("Installing...") });
-                          return commands.executeCommand("workbench.extensions.command.installFromVSIX", downloadUri).then(() => {
-                            progress.report({ message: raccoonConfig.t("New extension updated"), increment: 100 });
-                            return workspace.fs.delete(downloadUri);
-                          }, (reason) => {
-                            console.log(reason);
-                            return workspace.fs.delete(downloadUri);
-                          });
-                        }
-                        );
-                    });
-                  }
-                );
-              }
-            });
-          }
-        }
-      });
+  private checkUpdate(client: CodeClient) {
+    if (raccoonConfig.type !== "Enterprise") {
+      return;
     }
+    let ai = client.getAuthInfo();
+    if (!ai || !ai.account.organizations || !ai.account.organizations[0]) {
+      return;
+    }
+    let org = ai.account.organizations[0];
+    client.getOrgSettings(org).then(info => {
+      let remoteFilename = info.pluginInfo.fileName;
+      let remotePluginVersion = info.pluginInfo.version;
+      if (remotePluginVersion) {
+        if (compareVersion(remotePluginVersion, extensionVersion) < 0) {
+          window.showInformationMessage(raccoonConfig.t("New version available, Update now?"), raccoonConfig.t("Update")).then((v) => {
+            if (v === raccoonConfig.t("Update")) {
+              window.withProgress(
+                {
+                  location: ProgressLocation.Notification,
+                  cancellable: true
+                },
+                async (progress, _cancel) => {
+                  progress.report({ message: raccoonConfig.t("Downloading...") });
+                  return client.getFile(org, remoteFilename).then(buffer => {
+                    let downloadUri = Uri.joinPath(this.context.globalStorageUri, remoteFilename);
+                    return workspace.fs.writeFile(downloadUri, new Uint8Array(buffer))
+                      .then(() => {
+                        progress.report({ message: raccoonConfig.t("Installing...") });
+                        return commands.executeCommand("workbench.extensions.command.installFromVSIX", [downloadUri]).then(() => {
+                          progress.report({ message: raccoonConfig.t("New extension updated"), increment: 100 });
+                          return workspace.fs.delete(downloadUri);
+                        }, (reason) => {
+                          console.log(reason);
+                          return workspace.fs.delete(downloadUri);
+                        });
+                      }
+                      );
+                  });
+                }
+              );
+            }
+          });
+        }
+      }
+    });
   }
 
   public get robotNames(): string[] {
@@ -700,7 +706,7 @@ export class RaccoonManager {
         if (caps.includes(Capability.fileSearch)) {
           return this.listKnowledgeBase(true);
         }
-      })
+      });
     }
   }
 
@@ -775,6 +781,11 @@ export class RaccoonManager {
       }, (err) => {
         return new Error(err.response?.data?.details || err.message);
       });
+    }).then((v)=>{
+      if (ca && v === "ok") {
+        // this.checkUpdate(ca.client);
+      }
+      return v;
     });
   }
 
@@ -896,7 +907,6 @@ export class RaccoonManager {
       }
       let options: ChatOptions = {
         messages,
-        template: opts.template,
         maxInputTokens: this.maxInputTokenNum(ModelCapacity.assistant),
         config,
         headers,
@@ -936,7 +946,6 @@ export class RaccoonManager {
       let org = this.activeOrganization();
       let options: CompletionOptions = {
         context,
-        template: opts.template,
         maxInputTokens: this.maxInputTokenNum(ModelCapacity.completion),
         config,
         headers,

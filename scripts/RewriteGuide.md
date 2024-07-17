@@ -37,7 +37,6 @@ Package Value File 是扩展配置文件
         "phone" // 手机号登录
       ],
       "completion": { // 补全配置
-        "template": "<LANG>{{languageId}}<SUF>{{afterLines}}<PRE>{{#each reference}}{{this.label}}\n{{this.snippet}}\n{{/each}}\n{{beforeLines}}<COVER>{{afterCursor}}<MID>{{beforeCursor}}", // 补全模板，支持 handlebars 语法
         "parameters": { // 补全参数
           "stop": [
             "<EOT>"
@@ -48,7 +47,6 @@ Package Value File 是扩展配置文件
         "totalTokenNum": 16384 // 模型单个请求最大总 token 数
       },
       "assistant": { // 对话配置
-        "template": "", // 对话模板，一般 apiType 为 "Raccoon" 时不需要配置，支持 handlebars 语法
         "parameters": { // 对话参数
           "stop": [
             "<|endofmessage|>"

@@ -1,29 +1,31 @@
 /* eslint-disable no-redeclare */
 const vscode = acquireVsCodeApi();
 
-const sendAction = (template) => {
+const sendAction = (shortcut) => {
   var acc = document.getElementById("attach-code-container");
   let attachCode = [];
   for (let c of acc.children) {
-    if (c.dataset['file'] && c.dataset['range'])
+    if (c.dataset['file'] && c.dataset['range']) {
       attachCode.push({
         file: c.dataset['file'],
         range: JSON.parse(c.dataset['range'])
       });
+    }
   }
   var afc = document.getElementById("attach-file-container");
   let attachFile = [];
   for (let f of afc.children) {
-    if (f.dataset['file'])
+    if (f.dataset['file']) {
       attachFile.push({
         file: f.dataset['file']
       });
+    }
   }
   vscode.postMessage({
     type: "sendQuestion",
     attachCode,
     attachFile,
-    template
+    shortcut
   });
 };
 
@@ -569,8 +571,14 @@ const sendAction = (template) => {
 
               preCode.parentElement.prepend(buttonWrapper);
             });
+            let reqIdIcon = ``;
+            if (item.requestId) {
+              reqIdIcon = `<button id="request-id-${item.id}" class="request-id-element-gnc flex self-start opacity-50 text-transparent hover:text-inherit" title="x-raccoon-request-id: ${item.requestId}" data-request-id="${item.requestId}">
+                            ${requestIdIcon}
+                          </button>`;
+            }
             list.innerHTML += `<div id="${item.id}" data-name="${item.name}" class="p-4 answer-element-gnc">
-                            <h2 class="avatar mb-2 -ml-1 flex gap-1">
+                            <h2 class="avatar mb-2 -ml-1 flex justify-between gap-1">
                               <span class="flex gap-2 flex text-xl items-center">
                                 ${aiIcon}
                                 <span class="flex flex-col gap-1 text-xs">
@@ -580,6 +588,7 @@ const sendAction = (template) => {
                                   </div>
                                 </span>
                               </span>
+                              ${reqIdIcon}
                             </h2>
                             <div id="response-${item.id}" class="response flex flex-col gap-1 markdown-body">
                               ${markedResponse.documentElement.innerHTML}
@@ -983,7 +992,7 @@ const sendAction = (template) => {
 
             var buttonWrapper = preCode.parentElement.querySelector(".code-actions-wrapper");
             if (!buttonWrapper) {
-              const buttonWrapper = document.createElement("div");
+              buttonWrapper = document.createElement("div");
               buttonWrapper.classList.add("code-actions-wrapper");
               preCode.parentElement.prepend(buttonWrapper);
             }
@@ -1108,7 +1117,7 @@ const sendAction = (template) => {
         }
         const ridElem = document.getElementById(`request-id-${message.id}`);
         if (ridElem) {
-          ridElem.title = message.requestId;
+          ridElem.title = `x-raccoon-request-id: ${message.requestId}`;
           ridElem.dataset["requestId"] = message.requestId;
           ridElem.classList.remove("hidden");
         }
@@ -1206,19 +1215,21 @@ const sendAction = (template) => {
       var acc = document.getElementById("attach-code-container");
       let attachCode = [];
       for (let c of acc.children) {
-        if (c.dataset['file'] && c.dataset['range'])
+        if (c.dataset['file'] && c.dataset['range']) {
           attachCode.push({
             file: c.dataset['file'],
             range: JSON.parse(c.dataset['range'])
           });
+        }
       }
       var afc = document.getElementById("attach-file-container");
       let attachFile = [];
       for (let f of afc.children) {
-        if (f.dataset['file'])
+        if (f.dataset['file']) {
           attachFile.push({
             file: f.dataset['file']
           });
+        }
       }
 
       vscode.postMessage({
@@ -1238,19 +1249,21 @@ const sendAction = (template) => {
     var acc = document.getElementById("attach-code-container");
     let attachCode = [];
     for (let c of acc.children) {
-      if (c.dataset['file'] && c.dataset['range'])
+      if (c.dataset['file'] && c.dataset['range']) {
         attachCode.push({
           file: c.dataset['file'],
           range: JSON.parse(c.dataset['range'])
         });
+      }
     }
     var afc = document.getElementById("attach-file-container");
     let attachFile = [];
     for (let f of afc.children) {
-      if (f.dataset['file'])
+      if (f.dataset['file']) {
         attachFile.push({
           file: f.dataset['file']
         });
+      }
     }
     vscode.postMessage({
       type: "sendQuestion",

@@ -265,7 +265,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'selectFile': {
-          let files: Array<QuickPickItem & { uri?: Uri, languageId?: string }> = [];
+          let files: Array<QuickPickItem & { uri?: Uri; languageId?: string }> = [];
           let allTabGroups = window.tabGroups.all;
           files.push({ label: "Opened", kind: QuickPickItemKind.Separator });
           for (let tg of allTabGroups) {
@@ -294,7 +294,7 @@ export class RaccoonEditor extends Disposable {
             }
           }
 
-          window.showQuickPick<QuickPickItem & { uri?: Uri, languageId?: string }>(files, {
+          window.showQuickPick<QuickPickItem & { uri?: Uri; languageId?: string }>(files, {
             placeHolder: "Select a file to attach",
           }).then((item) => {
             if (item && item.uri) {
@@ -312,9 +312,9 @@ export class RaccoonEditor extends Disposable {
             await this.cache.removeCacheItem(data.replace);
           }
           let prompt: RaccoonPrompt | undefined = data.prompt;
-          if (!prompt && data.template) {
+          if (!prompt && data.shortcut) {
             let p = raccoonManager.prompt.filter((v, _idx, _arr) => {
-              return v.shortcut === data.template;
+              return v.shortcut === data.shortcut;
             });
             if (p && p[0]) {
               prompt = p[0];
@@ -697,6 +697,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
     let errorFlag = false;
     let msgs = [...historyMsgs, instruction];
+    let requestId: string | undefined;
     if (streaming) {
       raccoonManager.chat(
         msgs,
@@ -711,7 +712,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             if (fs) {
               this.sendMessage({ type: 'addReference', files: fs.split(","), id });
             }
-            let requestId = headers.get("x-request-id");
+            requestId = headers.get("x-raccoon-request-id") || undefined;
             this.sendMessage({ type: 'addRequestId', requestId, id });
           },
           onController(controller, thisArg) {
@@ -735,7 +736,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 break;
               }
             }
-            h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+            h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg, requestId });
             h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
             errorFlag = true;
           },
@@ -744,9 +745,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             if (!errorFlag) {
               let rts = new Date().valueOf();
               if (response) {
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response, requestId });
               } else {
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response", requestId });
               }
               // eslint-disable-next-line @typescript-eslint/naming-convention
               telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
@@ -786,7 +787,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             if (fs) {
               this.sendMessage({ type: 'addReference', files: fs.split(","), id });
             }
-            let requestId = headers.get("x-request-id");
+            requestId = headers.get("x-raccoon-request-id") || undefined;
             this.sendMessage({ type: 'addRequestId', requestId, id });
           },
           onController(controller, thisArg) {
@@ -811,7 +812,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               }
             }
             h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
-            h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+            h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg, requestId });
             errorFlag = true;
           },
           onFinish(choices, thisArg) {
@@ -819,9 +820,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             let rts = new Date().valueOf();
             if (!errorFlag) {
               if (choices[0].message?.content) {
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content, requestId });
               } else {
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response", requestId });
               }
               // eslint-disable-next-line @typescript-eslint/naming-convention
               telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
@@ -909,6 +910,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
         let errorFlag = false;
         let msgs = [...historyMsgs, instruction];
+        let requestId: string|undefined;
         if (streaming) {
           raccoonManager.chat(
             msgs,
@@ -923,7 +925,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 if (fs) {
                   this.sendMessage({ type: 'addReference', files: fs.split(","), id });
                 }
-                let requestId = headers.get("x-request-id");
+                requestId = headers.get("x-raccoon-request-id") || undefined;
                 this.sendMessage({ type: 'addRequestId', requestId, id });
               },
               onController(controller, thisArg) {
@@ -947,7 +949,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                     break;
                   }
                 }
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg, requestId });
                 h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
                 errorFlag = true;
               },
@@ -956,9 +958,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 if (!errorFlag) {
                   let rts = new Date().valueOf();
                   if (response) {
-                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response });
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: response, requestId });
                   } else {
-                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response", requestId });
                   }
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });
@@ -998,7 +1000,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 if (fs) {
                   this.sendMessage({ type: 'addReference', files: fs.split(","), id });
                 }
-                let requestId = headers.get("x-request-id");
+                requestId = headers.get("x-raccoon-request-id") || undefined;
                 this.sendMessage({ type: 'addRequestId', requestId, id });
               },
               onController(controller, thisArg) {
@@ -1023,7 +1025,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                   }
                 }
                 h.sendMessage({ type: 'addError', error: errmsg, id, timestamp: rts });
-                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg });
+                h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: errmsg, requestId });
                 errorFlag = true;
               },
               onFinish(choices, thisArg) {
@@ -1031,9 +1033,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let rts = new Date().valueOf();
                 if (!errorFlag) {
                   if (choices[0].message?.content) {
-                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content });
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.answer, value: choices[0].message?.content, requestId });
                   } else {
-                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response" });
+                    h.cache.appendCacheItem({ id, name: extensionDisplayName || "Raccoon", timestamp: rts, type: CacheItemType.error, value: "Empty Response", requestId });
                   }
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { model_answer_num: 1 } });

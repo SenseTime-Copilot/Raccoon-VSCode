@@ -1,6 +1,5 @@
 import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType, Capability, OrganizationSettings } from "./CodeClient";
 import { EventStreamContentType, fetchEventSource } from "@fortaine/fetch-event-source";
-import hbs = require("handlebars");
 
 export class TGIClient implements CodeClient {
   private log?: (message: string, ...args: any[]) => void;
@@ -95,20 +94,7 @@ export class TGIClient implements CodeClient {
     headers["Content-Type"] = "application/json";
 
     let config: any = {};
-    if (options.template) {
-      let template = hbs.compile(options.template);
-      let inputs: Array<{ [key: string]: { content: string } }> = [];
-      options.messages.map(
-        (v, _idx, _arr) => {
-          let item: { [key: string]: { content: string } } = {};
-          item[v.role] = { content: v.content };
-          inputs.push(item);
-        }
-      );
-      config.inputs = template({ inputs });
-    } else {
-      config.inputs = options.messages;
-    }
+    config.inputs = options.messages;
     config.stream = !!options.config.stream;
     config.parameters = {
       temperature: options.config.temperature,
@@ -323,8 +309,7 @@ export class TGIClient implements CodeClient {
     headers["Content-Type"] = "application/json";
 
     let config: any = {};
-    let template = hbs.compile(options.template);
-    config.inputs = template(options.context);
+    config.inputs = options.context;
     config.stream = false;
     config.parameters = {
       temperature: options.config.temperature,

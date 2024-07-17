@@ -11,7 +11,6 @@
         "phone"
       ],
       "completion": {
-        "template": "<LANG>{{languageId}}<SUF>{{afterLines}}<PRE>{{#each reference}}{{this.label}}\n{{this.snippet}}\n{{/each}}\n{{beforeLines}}<COVER>{{afterCursor}}<MID>{{beforeCursor}}",
         "parameters": {
           "stop": [
             "<EOT>"

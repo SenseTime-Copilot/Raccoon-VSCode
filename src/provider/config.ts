@@ -12,7 +12,6 @@ export enum ModelCapacity {
 }
 
 export interface ClientOption {
-  template: string;
   parameters: RequestParam;
   maxInputTokenNum: number;
   totalTokenNum: number;
