@@ -306,7 +306,7 @@
                 "command": "raccoon.inlineSuggest.trigger",
                 "category": "Raccoon",
                 "title": "%raccoon.command.completionTrigger%",
-                "enablement": "editorTextFocus && !editorReadonly && !suggestWidgetVisible"
+                "enablement": "editorTextFocus && !editorReadonly && !inlineSuggestionVisible"
             },
             {
                 "command": "raccoon.inlineSuggest.acceptLine",

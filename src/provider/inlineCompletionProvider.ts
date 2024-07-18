@@ -146,10 +146,6 @@ export function inlineCompletionProvider(
         return;
       }
 
-      if (context.selectedCompletionInfo) {
-        return;
-      }
-
       let loggedin = raccoonManager.isClientLoggedin();
       if (!loggedin) {
         return;
@@ -359,21 +355,13 @@ export async function captureCode(document: vscode.TextDocument, position: vscod
 
   let prefix = _prefix.replace(/\r\n/g, '\n');
   let suffix = _suffix?.replace(/\r\n/g, '\n') || "";
-  let beforeLines = '';
-  let beforeCursor = '';
   let _prefixLines = _prefix.split('\n') || [];
   if (_prefixLines.length > 0) {
-    beforeCursor = _prefixLines[_prefixLines.length - 1];
     delete _prefixLines[_prefixLines.length - 1];
-    beforeLines = _prefixLines.join('\n');
   }
-  let afterLines = '';
-  let afterCursor = '';
   let _suffixLines = _suffix.split('\n') || [];
   if (_suffixLines.length > 0) {
-    afterCursor = _suffixLines[0];
     delete _suffixLines[0];
-    afterLines = _suffixLines.join('\n');
   }
 
   return {
