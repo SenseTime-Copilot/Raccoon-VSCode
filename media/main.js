@@ -573,7 +573,7 @@ const sendAction = (shortcut) => {
             });
             let reqIdIcon = ``;
             if (item.requestId) {
-              reqIdIcon = `<button id="request-id-${item.id}" class="request-id-element-gnc flex self-start opacity-50 text-transparent hover:text-inherit" title="x-raccoon-request-id: ${item.requestId}" data-request-id="${item.requestId}">
+              reqIdIcon = `<button id="request-id-${item.id}" class="request-id-element-gnc flex self-start opacity-50 text-transparent" title="x-raccoon-request-id: ${item.requestId}" data-request-id="${item.requestId}">
                             ${requestIdIcon}
                           </button>`;
             }
@@ -913,7 +913,7 @@ const sendAction = (shortcut) => {
                                         </div>
                                       </span>
                                     </span>
-                                    <button id="request-id-${id}" class="hidden request-id-element-gnc flex self-start opacity-50 text-transparent	hover:text-inherit">
+                                    <button id="request-id-${id}" class="hidden request-id-element-gnc flex self-start opacity-50 text-transparent">
                                       ${requestIdIcon}
                                     </button>
                                   </h2>

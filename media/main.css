@@ -893,6 +893,10 @@ span.shortcut:after {
     border-bottom: 2px solid var(--checkbox-border);
 }
 
+.answer-element-gnc:hover .request-id-element-gnc {
+    color: inherit;
+}
+
 .answer-element-gnc:last-child.need-continue .continue-element-gnc {
     display: flex;
 }
