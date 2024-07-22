@@ -1862,6 +1862,8 @@ button.stopGenerate:hover,
 }
 
 .pre-code-element:before {
+    position: relative;
+    z-index: 10;
     content: attr(data-lang);
     font-family: var(--vscode-editor-font-family);
     font-size: 11px;
@@ -1910,8 +1912,8 @@ button.stopGenerate:hover,
     transform: scale(1);
 }
 
-.pre-code-element:hover::before,
-.pre-code-element:hover .code-actions-wrapper {
+.answer-element-gnc:not(.responsing) .pre-code-element:hover::before,
+.answer-element-gnc:not(.responsing) .pre-code-element:hover .code-actions-wrapper {
     opacity: 0.7;
 }
 
