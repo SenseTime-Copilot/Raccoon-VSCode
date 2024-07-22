@@ -763,7 +763,7 @@ const sendAction = (shortcut) => {
         var cursorPos = document.getElementById("question-input").selectionStart;
         var preVa = inputText.slice(0, cursorPos);
         var postVa = inputText.slice(cursorPos);
-        var va = preVa.replace(/@\S*$/, "@" + message.value + " ");// + "@" + message.value + " ";
+        var va = preVa.replace(/@\S*$/, "");
         var newPos = va.length;
         if (postVa) {
           va = va + postVa;
@@ -772,6 +772,8 @@ const sendAction = (shortcut) => {
         document.getElementById("question-input").selectionStart = newPos;
         document.getElementById("question-input").selectionEnd = newPos;
         document.getElementById("question-sizer").dataset.value = va;
+        document.getElementById("agent-tab-btn").dataset.agent = `@${message.value}`;
+        document.getElementById("agent-indicator").classList.remove("hidden");
         _toggleAgentList();
         break;
       }
@@ -1301,7 +1303,6 @@ const sendAction = (shortcut) => {
       document.getElementById("ask-list").classList.add("hidden");
       document.getElementById("search-list").classList.add("hidden");
       document.getElementById("question-input").value = "";
-      document.getElementById("highlight-anchor").innerHTML = "";
       document.getElementById("question-sizer").dataset.value = "";
       document.getElementById("chat-input-box").classList.remove("history");
     }
@@ -1315,17 +1316,18 @@ const sendAction = (shortcut) => {
     }
   }
 
-  function _toggleAgentList() {
+  function _toggleAgentList(force) {
     var q = document.getElementById('question-input');
     if (q.value) {
       document.getElementById("chat-input-box").classList.add("prompt-ready");
-      document.getElementById("highlight-anchor").innerHTML = q.value.replace(/</g, '&lt;').replace(/\n$/g, '\n\n').replace(/(@\S+)/g, '<mark>$1</mark>');
     } else {
       document.getElementById("chat-input-box").classList.remove("prompt-ready");
-      document.getElementById("highlight-anchor").innerHTML = "";
     }
     var list = document.getElementById("agent-list");
     var agentCmd = checkCommandToken(q, "@");
+    if (force) {
+      agentCmd = "@";
+    }
     if (agentCmd) {
       let allAction = list.querySelectorAll("button");
       allAction.forEach((btn, _index) => {
@@ -1661,6 +1663,13 @@ const sendAction = (shortcut) => {
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         return;
       }
+      if (e.key === 'Backspace') {
+        let v = e.target.value;
+        if (!v) {
+          document.getElementById("agent-tab-btn").dataset.agent = ``;
+          document.getElementById("agent-indicator").classList.add("hidden");
+        }
+      }
       var composing = e.isComposing || isComposing;
       if (!composing && !e.shiftKey && e.key === "Enter") {
         e.preventDefault();
@@ -1687,7 +1696,6 @@ const sendAction = (shortcut) => {
           historyIdx = -1;
           e.target.value = "";
           document.getElementById("chat-input-box").classList.remove("prompt-ready");
-          document.getElementById("highlight-anchor").innerHTML = "";
           document.getElementById("chat-input-box").classList.remove("history");
           document.getElementById("chat-input-box").classList.remove("search");
         }
@@ -1845,6 +1853,17 @@ const sendAction = (shortcut) => {
 
     if (targetButton?.id === "attach-button") {
       vscode.postMessage({ type: 'selectFile' });
+      return;
+    }
+
+    if (targetButton?.id === "agent-tab-btn") {
+      _toggleAgentList(true);
+      return;
+    }
+
+    if (targetButton?.id === "agent-delete-btn") {
+      document.getElementById("agent-tab-btn").dataset.agent = ``;
+      document.getElementById("agent-indicator").classList.add("hidden");
       return;
     }
 

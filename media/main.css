@@ -411,12 +411,10 @@ textarea::placeholder {
     text-align: justify;
 }
 
-#backdrop::-webkit-scrollbar,
 #question-input::-webkit-scrollbar {
     display: none;
 }
 
-#backdrop,
 #question-input {
     scrollbar-width: none;
 }
@@ -471,26 +469,6 @@ textarea::placeholder {
 #question-input::placeholder {
     color: var(--vscode-input-placeholderForeground);
     opacity: 0.5;
-}
-
-#question-sizer mark {
-    color: transparent;
-    background: transparent;
-    border-bottom: 1px solid var(--progress-background);
-}
-
-#question-sizer #backdrop {
-    position: absolute;
-    padding: 0.25em;
-    background-color: transparent;
-    color: transparent;
-    z-index: 0;
-    overflow: auto;
-    pointer-events: none;
-    transition: transform 1s;
-    width: 100%;
-    max-height: 30vh;
-    text-align: justify;
 }
 
 #question button,
@@ -581,7 +559,7 @@ textarea::placeholder {
     content: "\00a0" attr(data-tip);
 }
 
-#chat-input-box.agent #question-sizer[data-value="@"]:before {
+#chat-input-box.agent #question-sizer:before {
     content: attr(data-agent-hint);
     margin-left: 2.5ch;
 }
@@ -748,6 +726,48 @@ span.shortcut:after {
 .vscode-high-contrast #ask-list button:hover,
 .vscode-high-contrast #ask-list button:focus {
     background: var(--vscode-list-hoverBackground) !important;
+}
+
+#agent-indicator {
+    position: fixed;
+    cursor: pointer;
+    left: 7px;
+    margin-top: -65px;
+}
+
+.vscode-high-contrast #chat-input-box:focus-within #agent-tab-btn::before,
+.vscode-high-contrast #chat-input-box:focus-within #agent-delete-btn::before{
+    border-color: var(--checkbox-border);
+}
+
+#chat-input-box:focus-within #agent-tab-btn::before,
+#chat-input-box:focus-within #agent-delete-btn::before {
+    border-color: var(--button-primary-hover-background);
+}
+
+#agent-indicator #agent-tab-btn:before {
+    content: attr(data-agent);
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--button-primary-foreground);
+    background-color: var(--button-primary-background);
+    border: 1px solid var(--checkbox-border);
+    border-bottom: none;
+    border-right: none;
+    border-radius: 6px 0 0 0;
+    padding: 2px 6px;
+}
+
+#agent-indicator #agent-delete-btn:before {
+    content: "x";
+    font-size: 11px;
+    color: var(--button-primary-foreground);
+    background-color: var(--button-primary-background);
+    border: 1px solid var(--checkbox-border);
+    border-bottom: none;
+    border-left: none;
+    border-radius: 0 6px 0 0;
+    padding: 2px 6px 2px 2px;
 }
 
 .question-element-gnc {

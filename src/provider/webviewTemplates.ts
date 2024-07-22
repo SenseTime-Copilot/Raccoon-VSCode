@@ -576,11 +576,15 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 <div id="agent-list" class="flex flex-col hidden">
                 </div>
                 <div id="ask-list" class="flex flex-col hidden">
-                                </div>
+                </div>
                 <div id="question" class="w-full flex justify-center items-center">
                   <span class="material-symbols-rounded opacity-60 history-icon">
                     history
                   </span>
+                  <div id="agent-indicator" class="flex hidden">
+                    <button id="agent-tab-btn" title="${raccoonConfig.t("Switch")}"></button>
+                    <button id="agent-delete-btn" title="${raccoonConfig.t("Delete")}"></button>
+                  </div>
                   <label id="question-sizer" data-value
                         data-placeholder="${raccoonConfig.t("Ask {{robotname}} a question", { robotname: extensionDisplayName })}"
                         data-action-hint="${raccoonConfig.t("Pick one prompt to send")} [Enter]"
@@ -591,10 +595,6 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                         data-tip2="${raccoonConfig.t("Type [Shift + Enter] to start a new line")}"
                         data-tip3="${raccoonConfig.t("Press [Esc] to stop responding")}"
                   >
-                    <div id="backdrop">
-                      <div id="highlight-anchor" class="whitespace-pre-wrap">
-                      </div>
-                    </div>
                     <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                   </label>
                   <button id="attach-button" class="hidden" title="${raccoonConfig.t("Attach File")}">
@@ -625,11 +625,11 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <vscode-badge class="stop-hint items-center">
                       <span class="key">Esc</span>${raccoonConfig.t("Stop")}
                     </vscode-badge>
-                    <vscode-badge class="prompt-hint items-center hidden">
-                      <span class="key">@</span>${raccoonConfig.t("Agent")}
-                    </vscode-badge>
                     <vscode-badge class="prompt-hint items-center">
                       <span class="key">/</span>${raccoonConfig.t("Prompt")}
+                    </vscode-badge>
+                    <vscode-badge class="prompt-hint items-center hidden">
+                      <span class="key">@</span>${raccoonConfig.t("Agent")}
                     </vscode-badge>
                     <vscode-badge class="prompt-hint items-center">
                       <span class="key">↑↓</span>${raccoonConfig.t("History")}

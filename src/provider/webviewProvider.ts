@@ -266,6 +266,7 @@ export class RaccoonEditor extends Disposable {
         }
         case 'selectFile': {
           let files: Array<QuickPickItem & { uri?: Uri; languageId?: string }> = [];
+          let externalfiles: Array<QuickPickItem & { uri?: Uri; languageId?: string }> = [];
           let allTabGroups = window.tabGroups.all;
           files.push({ label: "Opened", kind: QuickPickItemKind.Separator });
           for (let tg of allTabGroups) {
@@ -275,8 +276,18 @@ export class RaccoonEditor extends Disposable {
                 if (label !== tab.input.uri.fsPath) {
                   let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
                   files.push({ label, uri: tab.input.uri, languageId });
+                } else {
+                  let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
+                  externalfiles.push({ label, uri: tab.input.uri, languageId });
                 }
               }
+            }
+          }
+
+          if (externalfiles.length > 0) {
+            files.push({ label: "External", kind: QuickPickItemKind.Separator });
+            for (let item of externalfiles) {
+              files.push(item);
             }
           }
 
