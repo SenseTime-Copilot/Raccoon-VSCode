@@ -27,6 +27,8 @@ const sendAction = (shortcut) => {
     attachFile,
     shortcut
   });
+  document.getElementById("agent-indicator").classList.add("hidden");
+  document.getElementById("agent-tab-btn").dataset.agent = ``;
 };
 
 (function () {
@@ -1234,14 +1236,18 @@ const sendAction = (shortcut) => {
         }
       }
 
+      var agent = document.getElementById("agent-tab-btn").dataset.agent;
       vscode.postMessage({
         type: "sendQuestion",
         replace: replace && parseInt(replace),
+        agent,
         attachCode,
         attachFile,
         prompt: promptTemp,
         values
       });
+      document.getElementById("agent-indicator").classList.add("hidden");
+      document.getElementById("agent-tab-btn").dataset.agent = ``;
     } else {
       showInfoTip({ style: "error", category: "no-prompt", id: new Date().valueOf(), value: l10nForUI["Empty prompt"] });
     }
@@ -1267,16 +1273,20 @@ const sendAction = (shortcut) => {
         });
       }
     }
+    var agent = document.getElementById("agent-tab-btn").dataset.agent;
     vscode.postMessage({
       type: "sendQuestion",
       attachCode,
       attachFile,
+      agent,
       prompt: {
         label: "",
         type: "free chat",
         message: { role: 'user', content }
       }
     });
+    document.getElementById("agent-indicator").classList.add("hidden");
+    document.getElementById("agent-tab-btn").dataset.agent = ``;
   };
 
   function updateHistory(prompt) {
@@ -1418,7 +1428,7 @@ const sendAction = (shortcut) => {
   }
 
   function toggleSubMenuList() {
-    // _toggleAgentList();
+  // _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
   }
@@ -1666,8 +1676,8 @@ const sendAction = (shortcut) => {
       if (e.key === 'Backspace') {
         let v = e.target.value;
         if (!v) {
-          document.getElementById("agent-tab-btn").dataset.agent = ``;
           document.getElementById("agent-indicator").classList.add("hidden");
+          document.getElementById("agent-tab-btn").dataset.agent = ``;
         }
       }
       var composing = e.isComposing || isComposing;
@@ -1862,8 +1872,9 @@ const sendAction = (shortcut) => {
     }
 
     if (targetButton?.id === "agent-delete-btn") {
-      document.getElementById("agent-tab-btn").dataset.agent = ``;
       document.getElementById("agent-indicator").classList.add("hidden");
+      document.getElementById("agent-tab-btn").dataset.agent = ``;
+      document.getElementById("question-input").focus();
       return;
     }
 

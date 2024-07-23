@@ -362,6 +362,9 @@ export class RaccoonEditor extends Disposable {
               prompt.message.content += "\n{{code}}\n";
             }
           }
+          if (data.agent) {
+            prompt.message.content = `${data.agent} ${prompt.message.content}`;
+          }
           let promptInfo = new PromptInfo(prompt);
           let history = await this.cache.getCacheItems();
           this.sendApiRequest(promptInfo, data.values, history, data.attachFile);
