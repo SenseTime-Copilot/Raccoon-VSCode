@@ -777,6 +777,7 @@ const sendAction = (shortcut) => {
         document.getElementById("agent-tab-btn").dataset.agent = `@${message.value}`;
         document.getElementById("agent-indicator").classList.remove("hidden");
         _toggleAgentList();
+        document.getElementById("question-input").focus();
         break;
       }
       case "promptList": {
@@ -1348,6 +1349,8 @@ const sendAction = (shortcut) => {
       });
       var emptyByFilter = (allAction.length === 0 && agentCmd !== '@') || (allAction.length > 0 && btns.length === 0);
       if (!emptyByFilter) {
+        document.getElementById("agent-indicator").classList.add("hidden");
+        document.getElementById("agent-tab-btn").dataset.agent = ``;
         list.classList.remove("hidden");
         document.getElementById("chat-input-box").classList.add("agent");
         btns.forEach((btn, index) => {
@@ -1868,6 +1871,7 @@ const sendAction = (shortcut) => {
 
     if (targetButton?.id === "agent-tab-btn") {
       _toggleAgentList(true);
+      document.getElementById("question-input").focus();
       return;
     }
 
