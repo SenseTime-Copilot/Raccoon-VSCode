@@ -904,7 +904,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             if (h.type !== CacheItemType.question) {
               role = Role.assistant;
             }
-            let aLen = (h.value.length) + 12;
+            let aLen = (h.value.length) * 2 + 12;
             if ((el + aLen) > maxTokens) {
               break;
             }
