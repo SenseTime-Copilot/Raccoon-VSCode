@@ -42,7 +42,7 @@ export class RaccoonConfig {
     await workspace.fs.readFile(configFile).then((raw) => {
       this._value = JSON.parse(decoder.decode(raw));
     });
-    let lang = this.displayLanguage || this.context.globalState.get(`DisplayLanguage`) || env.language.toLocaleLowerCase();
+    let lang = this.context.globalState.get<string>(`DisplayLanguage`) || env.language.toLocaleLowerCase();
     await this.loadUITextData(lang);
     await this.loadCommitTemplate(lang);
     await this.loadPromptData(lang);
@@ -146,10 +146,6 @@ export class RaccoonConfig {
 
   public get type(): string {
     return this._value.type;
-  }
-
-  public get displayLanguage(): string {
-    return this._value.displayLanguage;
   }
 
   public t(text: string, args?: any): string {

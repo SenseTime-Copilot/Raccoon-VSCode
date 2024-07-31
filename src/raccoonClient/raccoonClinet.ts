@@ -5,19 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccessKey, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, AccessKeyLoginParam, UrlType, Capability, OrganizationSettings } from "./CodeClient";
-
-import sign = require('jwt-encode');
-
-function generateSignature(ak: string, sk: string, date: Date) {
-  let t = date.valueOf();
-  let data = {
-    iss: ak,
-    exp: Math.floor(t / 1000) + 1800,
-    nbf: Math.floor(t / 1000) - 300
-  };
-  return "Bearer " + sign(data, sk);
-}
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, UrlType, Capability, OrganizationSettings, ErrorInfo } from "./CodeClient";
 
 function encrypt(dataStr: string): string {
   const iv = crypto.randomBytes(16);
@@ -33,19 +21,6 @@ export class RaccoonClient implements CodeClient {
   private auth?: AuthInfo;
 
   constructor(private readonly clientConfig: ClientConfig) {
-    let k = this.clientConfig.key;
-    if (k && typeof k === "object" && "secretAccessKey" in k) {
-      let kp = k as AccessKey;
-      let auth = {
-        account: {
-          userId: kp.accessKeyId,
-          username: "User",
-          pro: false
-        },
-        weaverdKey: kp.secretAccessKey,
-      };
-      this.auth = { ...auth };
-    }
   }
 
   setLogger(log?: (message: string, ...args: any[]) => void) {
@@ -106,7 +81,7 @@ export class RaccoonClient implements CodeClient {
     return Promise.resolve(this.clientConfig.baseUrl + "/login");
   }
 
-  public async login(param?: AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  public async login(param?: BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (!param) {
       if (this.clientConfig.key && this.auth) {
         return this.auth;
@@ -123,7 +98,7 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  async _login(param: AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  async _login(param: BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (param.type === "browser") {
       let p = param as BrowserLoginParam;
       let code = '';
@@ -160,16 +135,6 @@ export class RaccoonClient implements CodeClient {
         });
       }
       return Promise.reject(new Error("Invalid Login URL"));
-    } else if (param.type === AuthMethod.accesskey) {
-      let p = param as AccessKeyLoginParam;
-      return {
-        account: {
-          userId: p.accessKeyId,
-          username: "User",
-          pro: false
-        },
-        weaverdKey: p.secretAccessKey,
-      };
     } else if (param.type === AuthMethod.phone) {
       let p = param as PhoneLoginParam;
       return axios.post(this.clientConfig.baseUrl + "/api/plugin/auth/v1/login_with_password", {
@@ -368,7 +333,6 @@ export class RaccoonClient implements CodeClient {
   }
 
   private async chatUsingFetch(auth: AuthInfo, options: ChatOptions, org?: Organization) {
-    let ts = new Date();
     let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}/api/plugin/llm/v1/chat-completions`;
     let headers = options.headers || {};
     headers["Content-Type"] = "application/json";
@@ -381,9 +345,6 @@ export class RaccoonClient implements CodeClient {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
     } else if (typeof this.clientConfig.key === "string") {
       headers["Authorization"] = `Bearer ${this.clientConfig.key}`;
-    } else {
-      let aksk = this.clientConfig.key as AccessKey;
-      headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
     }
 
     let config: any = {};
@@ -403,8 +364,8 @@ export class RaccoonClient implements CodeClient {
     let len = 0;
     for (let idx = options.messages.length - 1; idx >= 0; idx--) {
       let v = options.messages[idx];
-      len += v.content.length;
-      if (len < options.maxInputTokens * 3) {
+      if (len === 0 || ((len + v.content.length) < options.maxInputTokens * 3)) {
+        len += v.content.length;
         reversedMessages.push(v);
       } else {
         break;
@@ -478,11 +439,17 @@ export class RaccoonClient implements CodeClient {
               res.status !== 200
             ) {
               const responseTexts = [];
+              let code = res.status;
               let extraInfo = await res.clone().text();
               try {
                 const resJson = await res.clone().json();
                 if (resJson.error && resJson.error.message) {
                   extraInfo = resJson.error.message;
+                  if (extraInfo.includes("maximum context length limit")) {
+                    code = 17;
+                  } else {
+                    code = resJson.error.code;
+                  }
                 }
               } catch { }
 
@@ -495,12 +462,9 @@ export class RaccoonClient implements CodeClient {
                 responseTexts.push(extraInfo);
               }
 
-              let error: Choice = {
-                index: res.status,
-                message: {
-                  role: Role.assistant,
-                  content: responseTexts.join("\n\n")
-                }
+              let error: ErrorInfo = {
+                code,
+                detail: responseTexts.join("\n\n")
               };
               log?.(JSON.stringify(error, undefined, 2));
               options.onError?.(error, options.thisArg);
@@ -566,12 +530,9 @@ export class RaccoonClient implements CodeClient {
             if (controller.signal.aborted) {
               return;
             }
-            let error: Choice = {
-              index: e.cause.errno,
-              message: {
-                role: Role.assistant,
-                content: e.cause.message
-              }
+            let error: ErrorInfo = {
+              code: e.cause.errno,
+              detail: e.cause.message
             };
             log?.(JSON.stringify(error, undefined, 2));
             options.onError?.(error, options.thisArg);
@@ -601,12 +562,9 @@ export class RaccoonClient implements CodeClient {
 
           responseTexts.push(JSON.stringify(resJson));
 
-          let error: Choice = {
-            index: res.status,
-            message: {
-              role: Role.assistant,
-              content: responseTexts.join("\n\n")
-            }
+          let error: ErrorInfo = {
+            code: res.status,
+            detail: responseTexts.join("\n\n")
           };
           log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
@@ -632,12 +590,9 @@ export class RaccoonClient implements CodeClient {
         }
       }
     } catch (e) {
-      let error: Choice = {
-        index: 0,
-        message: {
-          role: Role.assistant,
-          content: (e as Error).message
-        }
+      let error: ErrorInfo = {
+        code: 1,
+        detail: (e as Error).message
       };
       this.log?.(JSON.stringify(error, undefined, 2));
       options.onError?.(error, options.thisArg);
@@ -663,7 +618,6 @@ export class RaccoonClient implements CodeClient {
   }
 
   async completionUsingFetch(auth: AuthInfo, options: CompletionOptions, org?: Organization): Promise<void> {
-    let ts = new Date();
     let headers = options.headers || {};
     let url = options.config.urlOverwrite || `${this.clientConfig.baseUrl}/api/plugin/llm/v1/completions`;
     headers["Content-Type"] = "application/json";
@@ -676,9 +630,6 @@ export class RaccoonClient implements CodeClient {
       headers["Authorization"] = `Bearer ${auth.weaverdKey}`;
     } else if (typeof this.clientConfig.key === "string") {
       headers["Authorization"] = `Bearer ${this.clientConfig.key}`;
-    } else {
-      let aksk = this.clientConfig.key as AccessKey;
-      headers["Authorization"] = generateSignature(aksk.accessKeyId, aksk.secretAccessKey, ts);
     }
 
     let config: any = {};
@@ -745,12 +696,9 @@ export class RaccoonClient implements CodeClient {
             this.auth = undefined;
             this.onChangeAuthInfo?.();
           }
-          let error: Choice = {
-            index: res.status,
-            message: {
-              role: Role.assistant,
-              content: await res.text()
-            }
+          let error: ErrorInfo = {
+            code: res.status,
+            detail: await res.text()
           };
           this.log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
@@ -772,12 +720,9 @@ export class RaccoonClient implements CodeClient {
         }
       }
     } catch (e) {
-      let error: Choice = {
-        index: 0,
-        message: {
-          role: Role.assistant,
-          content: (e as Error).message
-        }
+      let error: ErrorInfo = {
+        code: 1,
+        detail: (e as Error).message
       };
       this.log?.(JSON.stringify(error, undefined, 2));
       options.onError?.(error, options.thisArg);

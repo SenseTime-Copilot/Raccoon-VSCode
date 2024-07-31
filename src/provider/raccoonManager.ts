@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind, ProgressLocation } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability, ErrorInfo } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
@@ -69,9 +69,9 @@ export class RaccoonManager {
           onHeader: (_headers: Headers) => {
 
           },
-          onError: (e: Choice) => {
+          onError: (e: ErrorInfo) => {
             outlog.error(JSON.stringify(e));
-            window.showErrorMessage(e.message?.content || "", raccoonConfig.t("Close"));
+            window.showErrorMessage(e.detail || "", raccoonConfig.t("Close"));
           },
           onUpdate: (choice: Choice) => {
             let cmtmsg = choice.message?.content;
@@ -750,7 +750,7 @@ export class RaccoonManager {
     }
   }
 
-  public login(param: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
+  public login(param: ApiKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
     let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
 
     return window.withProgress({
@@ -781,7 +781,7 @@ export class RaccoonManager {
       }, (err) => {
         return new Error(err.response?.data?.details || err.message);
       });
-    }).then((v)=>{
+    }).then((v) => {
       if (ca && v === "ok") {
         // this.checkUpdate(ca.client);
       }

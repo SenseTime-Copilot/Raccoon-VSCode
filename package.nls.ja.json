@@ -27,7 +27,6 @@
     "raccoon.view.title": "コーディングアシスタント",
     "raccoon.submenu": "その他...",
     "raccoon.command.new-chat": "新しい会話",
-    "raccoon.command.setAccessKey": "Access Keyを設定",
     "raccoon.command.help": "ヘルプ",
     "raccoon.command.favorite": "管理 コード保存",
     "raccoon.command.agent": "管理 エージェント",

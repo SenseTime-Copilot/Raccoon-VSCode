@@ -44,22 +44,6 @@ export async function activate(context: vscode.ExtensionContext) {
     return v ? undefined : "The value must not be empty";
   };
 
-  registerCommand(context, "setAccessKey", () => {
-    vscode.window.showInputBox({ placeHolder: "Access Key Id", password: true, validateInput, ignoreFocusOut: true }).then(async (accessKeyId) => {
-      if (accessKeyId) {
-        vscode.window.showInputBox({ placeHolder: "Secret Access Key", password: true, validateInput, ignoreFocusOut: true }).then(async (secretAccessKey) => {
-          if (secretAccessKey) {
-            raccoonManager.login({
-              type: AuthMethod.accesskey,
-              accessKeyId,
-              secretAccessKey
-            });
-          }
-        });
-      }
-    });
-  });
-
   registerCommand(context, "setApiKey", () => {
     vscode.window.showInputBox({ placeHolder: "API Key", password: true, validateInput, ignoreFocusOut: true }).then(async (key) => {
       if (key) {
@@ -269,6 +253,14 @@ export async function activate(context: vscode.ExtensionContext) {
             "zh-tw": "更改顯示語言設置將在 VSCode 重啟後生效，確認更改嗎？",
             "ja": "表示言語設定の変更は、VS Code の再起動後に有効になりますが、変更は確認されていますか?"
           };
+          const accept: { [key: string]: string } = {
+            "en": "Restart",
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "zh-cn": "重启",
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "zh-tw": "重啟",
+            "ja": "再起動"
+          };
           let detail = '';
           if (selection[0].description) {
             detail += warn[selection[0].description] + "\n";
@@ -276,8 +268,9 @@ export async function activate(context: vscode.ExtensionContext) {
           if (curLang) {
             detail += warn[curLang] + "\n";
           }
-          vscode.window.showWarningMessage(title[selection[0].description || curLang || "en"], { modal: true, detail }, "✔️ OK").then((v) => {
-            if (v === "✔️ OK") {
+          let acceptBtn = accept[selection[0].description || curLang || "en"];
+          vscode.window.showWarningMessage(title[selection[0].description || curLang || "en"], { modal: true, detail }, acceptBtn).then((v) => {
+            if (v === acceptBtn) {
               context.globalState.update(`DisplayLanguage`, selection[0].description).then(() => {
                 vscode.commands.executeCommand("workbench.action.reloadWindow");
               });

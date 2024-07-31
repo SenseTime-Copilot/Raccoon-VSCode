@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { updateStatusBarItem } from "../utils/updateStatusBarItem";
 import { raccoonManager, telemetryReporter, extensionNameKebab, raccoonConfig } from "../globalEnv";
 import { CompletionPreferenceType, RaccoonRequestParam } from "./raccoonManager";
-import { Choice, CompletionContext, MetricType, Reference } from "../raccoonClient/CodeClient";
+import { Choice, CompletionContext, ErrorInfo, MetricType, Reference } from "../raccoonClient/CodeClient";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ModelCapacity } from "./config";
 import { docSymbolMap } from "../extension";
@@ -58,12 +58,12 @@ async function getCompletionSuggestions(extension: vscode.ExtensionContext, docu
       codeSnippets,
       cfg,
       {
-        onError(err: Choice) {
+        onError(err: ErrorInfo) {
           updateStatusBarItem(
             statusBarItem,
             {
               text: "$(warning)",
-              tooltip: raccoonConfig.t(err.message?.content || "Unknown error")
+              tooltip: raccoonConfig.t(err.detail || "Unknown error")
             }
           );
         },

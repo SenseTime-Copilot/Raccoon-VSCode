@@ -27,7 +27,6 @@
     "raccoon.view.title": "代碼助手",
     "raccoon.submenu": "更多...",
     "raccoon.command.new-chat": "新建對話",
-    "raccoon.command.setAccessKey": "設置 Access Key",
     "raccoon.command.help": "幫助",
     "raccoon.command.favorite": "管理 代碼收藏",
     "raccoon.command.agent": "管理 智慧體",

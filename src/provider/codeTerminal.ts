@@ -5,7 +5,7 @@ import {
   ExtensionContext,
 } from 'vscode';
 import { extensionDisplayName, outlog, raccoonConfig, raccoonManager, telemetryReporter } from "../globalEnv";
-import { Choice, Message, Role } from '../raccoonClient/CodeClient';
+import { Choice, ErrorInfo, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
 import { ModelCapacity } from './config';
@@ -258,13 +258,13 @@ export class RaccoonTerminal {
                   writeEmitter.fire(`\r\n---------------------------------\r\n`);
                 }
               },
-              onError: (err: Choice, thisArg?: any) => {
+              onError: (err: ErrorInfo, thisArg?: any) => {
                 let h = <RaccoonTerminal>thisArg;
                 outlog.error(JSON.stringify(err));
                 h.responsing = false;
                 h.history.pop();
                 h.cacheOutput = "";
-                writeEmitter.fire(`\x1b[1;31merror: ${err.message?.content}\x1b[0m`);
+                writeEmitter.fire(`\x1b[1;31merror: ${err.detail}\x1b[0m`);
                 writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
                 errorFlag = true;
               },

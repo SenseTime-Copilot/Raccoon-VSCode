@@ -1,4 +1,4 @@
-import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, AccessKeyLoginParam, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType, Capability, OrganizationSettings } from "./CodeClient";
+import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType, Capability, OrganizationSettings, ErrorInfo } from "./CodeClient";
 import { EventStreamContentType, fetchEventSource } from "@fortaine/fetch-event-source";
 
 export class TGIClient implements CodeClient {
@@ -32,7 +32,7 @@ export class TGIClient implements CodeClient {
     return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
   }
 
-  public async login(_param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  public async login(_param?: ApiKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
         username: "User",
@@ -173,12 +173,9 @@ export class TGIClient implements CodeClient {
                 responseTexts.push(extraInfo);
               }
 
-              let error: Choice = {
-                index: res.status,
-                message: {
-                  role: Role.assistant,
-                  content: responseTexts.join("\n\n")
-                }
+              let error: ErrorInfo = {
+                code: res.status,
+                detail: responseTexts.join("\n\n")
               };
               log?.(JSON.stringify(error, undefined, 2));
               options.onError?.(error, options.thisArg);
@@ -236,12 +233,9 @@ export class TGIClient implements CodeClient {
             if (controller.signal.aborted) {
               return;
             }
-            let error: Choice = {
-              index: e.cause.errno,
-              message: {
-                role: Role.assistant,
-                content: e.cause.message
-              }
+            let error: ErrorInfo = {
+              code: e.cause.errno,
+              detail: e.cause.message
             };
             log?.(JSON.stringify(error, undefined, 2));
             options.onError?.(error, options.thisArg);
@@ -267,12 +261,9 @@ export class TGIClient implements CodeClient {
 
           responseTexts.push(JSON.stringify(resJson));
 
-          let error: Choice = {
-            index: res.status,
-            message: {
-              role: Role.assistant,
-              content: responseTexts.join("\n\n")
-            }
+          let error: ErrorInfo = {
+            code: res.status,
+            detail: responseTexts.join("\n\n")
           };
           log?.(JSON.stringify(error, undefined, 2));
           options.onError?.(error, options.thisArg);
@@ -291,12 +282,9 @@ export class TGIClient implements CodeClient {
         }
       }
     } catch (e) {
-      let error: Choice = {
-        index: 0,
-        message: {
-          role: Role.assistant,
-          content: (e as Error).message
-        }
+      let error: ErrorInfo = {
+        code: 0,
+        detail: (e as Error).message
       };
       this.log?.(JSON.stringify(error, undefined, 2));
       options.onError?.(error, options.thisArg);
@@ -361,12 +349,9 @@ export class TGIClient implements CodeClient {
 
         responseTexts.push(JSON.stringify(resJson));
 
-        let error: Choice = {
-          index: res.status,
-          message: {
-            role: Role.assistant,
-            content: responseTexts.join("\n\n")
-          }
+        let error: ErrorInfo = {
+          code: res.status,
+          detail: responseTexts.join("\n\n")
         };
         log?.(JSON.stringify(error, undefined, 2));
         options.onError?.(error, options.thisArg);
@@ -384,12 +369,9 @@ export class TGIClient implements CodeClient {
         options.onFinish?.(c, options.thisArg);
       }
     } catch (e) {
-      let error: Choice = {
-        index: 0,
-        message: {
-          role: Role.assistant,
-          content: (e as Error).message
-        }
+      let error: ErrorInfo = {
+        code: 0,
+        detail: (e as Error).message
       };
       this.log?.(JSON.stringify(error, undefined, 2));
       options.onError?.(error, options.thisArg);

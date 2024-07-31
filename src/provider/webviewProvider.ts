@@ -3,7 +3,7 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonS
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
-import { Choice, FinishReason, Message, MetricType, Role } from '../raccoonClient/CodeClient';
+import { Choice, ErrorInfo, FinishReason, Message, MetricType, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
@@ -733,12 +733,16 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             let h = <RaccoonEditor>thisArg;
             h.stopList[id] = controller;
           },
-          onError(err: Choice, thisArg) {
+          onError(err: ErrorInfo, thisArg) {
             let h = <RaccoonEditor>thisArg;
             outlog.error(JSON.stringify(err));
             let rts = new Date().valueOf();
-            let errmsg = err.message?.content || "";
-            switch (err.index) {
+            let errmsg = err.detail || "";
+            switch (err.code) {
+              case 17: {
+                errmsg = raccoonConfig.t("Context Too long");
+                break;
+              }
               case -3008: {
                 errmsg = raccoonConfig.t("Connection error. Check your network settings.");
                 break;
@@ -812,8 +816,12 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             let h = <RaccoonEditor>thisArg;
             outlog.error(JSON.stringify(err));
             let rts = new Date().valueOf();
-            let errmsg = err.message?.content || "";
-            switch (err.index) {
+            let errmsg = err.detail || "";
+            switch (err.code) {
+              case 17: {
+                errmsg = raccoonConfig.t("Context Too long");
+                break;
+              }
               case -3008: {
                 errmsg = raccoonConfig.t("Connection error. Check your network settings.");
                 break;
@@ -946,12 +954,16 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 h.stopList[id] = controller;
               },
-              onError(err: Choice, thisArg) {
+              onError(err: ErrorInfo, thisArg) {
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().valueOf();
-                let errmsg = err.message?.content || "";
-                switch (err.index) {
+                let errmsg = err.detail || "";
+                switch (err.code) {
+                  case 17: {
+                    errmsg = raccoonConfig.t("Context Too long");
+                    break;
+                  }
                   case -3008: {
                     errmsg = raccoonConfig.t("Connection error. Check your network settings.");
                     break;
@@ -1025,8 +1037,12 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
                 let h = <RaccoonEditor>thisArg;
                 outlog.error(JSON.stringify(err));
                 let rts = new Date().valueOf();
-                let errmsg = err.message?.content || "";
-                switch (err.index) {
+                let errmsg = err.detail || "";
+                switch (err.code) {
+                  case 17: {
+                    errmsg = raccoonConfig.t("Context Too long");
+                    break;
+                  }
                   case -3008: {
                     errmsg = raccoonConfig.t("Connection error. Check your network settings.");
                     break;

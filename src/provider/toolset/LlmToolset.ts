@@ -49,10 +49,10 @@ export class LlmToolset implements Toolset {
           let h = <LlmToolset>thisArg;
           msg.content = message[0]?.message?.content || "";
         },
-        onError(choice, thisArg) {
+        onError(error, thisArg) {
           // eslint-disable-next-line no-unused-vars
           let h = <LlmToolset>thisArg;
-          throw new Error(choice.message?.content || "");
+          throw new Error(error.detail || "");
         },
       },
       {});
@@ -75,10 +75,10 @@ export class LlmToolset implements Toolset {
           let h = <LlmToolset>thisArg;
           msg.content = message[0]?.message?.content || "";
         },
-        onError(choice, thisArg) {
+        onError(error, thisArg) {
           // eslint-disable-next-line no-unused-vars
           let h = <LlmToolset>thisArg;
-          throw new Error(choice.message?.content || "");
+          throw new Error(error.detail || "");
         },
       }, {});
     return msg;

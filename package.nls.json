@@ -27,7 +27,6 @@
     "raccoon.view.title": "Assistant",
     "raccoon.submenu": "More Action...",
     "raccoon.command.new-chat": "New Chat",
-    "raccoon.command.setAccessKey": "Set Access Key",
     "raccoon.command.help": "Help",
     "raccoon.command.favorite": "Manage Favorites Folder",
     "raccoon.command.agent": "Manage Custom Agents",

@@ -22,15 +22,18 @@ variables:
     options:
       - "Standard"
       - "Enterprise"
-  DISPLAY_LANGUAGE:
-    description: "The UI display language"
-    value: "auto"
+  COMPLETION_MODEL:
+    description: "The completion model selection"
+    value: "Raccoon Completion 7B (16k)"
     options:
-      - "auto"
-      - "en"
-      - "zh-cn"
-      - "zh-tw"
-      - "ja"
+      - "Raccoon Completion 7B (16k)"
+      - "Raccoon Completion 13B (16k)"
+  ASSISTANT_MODEL:
+    description: "The assistant model selection"
+    value: "Raccoon Assistant 70B (32k)"
+    options:
+      - "Raccoon Assistant 7B (16k)"
+      - "Raccoon Assistant 70B (32k)"
   API_TYPE:
     description: "API type"
     value: "Raccoon"
@@ -58,7 +61,7 @@ build_package:
     - npm config set strict-ssl false
     - npm config set registry https://registry.npm.taobao.org
     - npm install --prefix ./scripts minimist
-    - node ./scripts/render_manifest.js --packageValueFile="$PACKAGE_VALUE_FILE" --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageType="$PACKAGE_TYPE" --displayLanguage="$DISPLAY_LANGUAGE" --apiType="$API_TYPE" --baseUrl="$BASEURL"
+    - node ./scripts/render_manifest.js --packageValueFile="$PACKAGE_VALUE_FILE" --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageType="$PACKAGE_TYPE" --completionModel="$COMPLETION_MODEL" --assistantModel="$ASSISTANT_MODEL" --apiType="$API_TYPE" --baseUrl="$BASEURL"
     - npm install
     - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
   artifacts:

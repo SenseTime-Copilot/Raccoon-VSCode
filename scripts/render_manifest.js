@@ -1,11 +1,12 @@
 const args = require('minimist')(process.argv.slice(2));
 const fs = require('node:fs');
 
-let displayLanguage = args.displayLanguage || "auto";
 let packageId = args.packageId.toLowerCase().replaceAll(" ", "-") || "raccoon";
 let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";
+let completionModel = args.completionModel || "Raccoon Completion 7B (16k)";
+let assistantModel = args.assistantModel || "Raccoon Completion 70B (32k)";
 let apiType = args.apiType || "Raccoon";
 let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
 let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
@@ -17,7 +18,8 @@ if (packageValueFile) {
   console.log(` Package Value File : ${packageValueFile}`);
 } else {
   console.log(` Package Type       : ${packageType}`);
-  console.log(` Display Language   : ${displayLanguage}`);
+  console.log(` Completion Model   : ${completionModel}`);
+  console.log(` Assistant Model    : ${assistantModel}`);
   console.log(` API Type           : ${apiType}`);
   console.log(` Base URL           : ${baseUrl}`);
   console.log(` Auth Method        : ${authMethod}`);
@@ -64,21 +66,48 @@ if (packageValueFile) {
     }
     let cfg = JSON.parse(data);
     cfg.type = packageType;
-    if (displayLanguage !== "auto") {
-      cfg.displayLanguage = displayLanguage;
-    }
     for (let e of cfg.engines) {
       e.robotname = packageName;
       e.apiType = apiType;
       e.baseUrl = baseUrl;
       e.authMethod = authMethod;
+      e.completion.maxInputTokenNum = 12288;
+      e.completion.totalTokenNum = 16384;
+      e.assistant.maxInputTokenNum = 28672;
+      e.assistant.totalTokenNum = 32768;
+      switch(completionModel) {
+        case "Raccoon Completion 7B (16k)": {
+          e.completion.maxInputTokenNum = 12288;
+          e.completion.totalTokenNum = 16384;
+          break;
+        }
+        case "Raccoon Completion 13B (16k)": {
+          e.completion.maxInputTokenNum = 12288;
+          e.completion.totalTokenNum = 16384;
+          break;
+        }
+      }
+      switch(assistantModel) {
+        case "Raccoon Assistant 7B (16k)": {
+          e.assistant.maxInputTokenNum = 12288;
+          e.assistant.totalTokenNum = 16384;
+          break;
+        }
+        case "Raccoon Assistant 70B (32k)": {
+          e.assistant.maxInputTokenNum = 28672;
+          e.assistant.totalTokenNum = 32768;
+          break;
+        }
+      }
     }
     let content = JSON.stringify(cfg, undefined, 2);
     fs.writeFile('./config/value.json', content, writeErr => {
       if (writeErr) {
         console.error(writeErr);
       } else {
-        // file written successfully
+        console.log(`Value File:\n`);
+        console.log(`${JSON.parse(data)}`);
+        console.log("==================================================");
       }
     });
   });

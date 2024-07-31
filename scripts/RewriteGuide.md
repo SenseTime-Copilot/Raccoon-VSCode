@@ -3,7 +3,15 @@
 ## Rewrite Script Usage
 
 ```shell
-node ./render_manifest.js --packageValueFile="<PACKAGE_VALUE_FILE>" --packageId="<PACKAGE_ID>" --packageName="<PACKAGE_NAME>" --packageType="<PACKAGE_TYPE>" --displayLanguage="<DISPLAY_LANGUAGE>" --apiType="<API_TYPE>" --baseUrl="<BASEURL>"
+node ./render_manifest.js \
+--packageValueFile="<PACKAGE_VALUE_FILE>" \
+--packageId="<PACKAGE_ID>" \
+--packageName="<PACKAGE_NAME>" \
+--packageType="<PACKAGE_TYPE>" \
+--completionModel="<COMPLETION_MODEL>" \
+--assistantModel="<ASSISTANT_MODEL>" \
+--apiType="<API_TYPE>" \
+--baseUrl="<BASEURL>"
 ```
 
 params:
@@ -11,9 +19,10 @@ params:
 * `packageValueFile` - 扩展配置文件内容，一旦设置，其他参数都将被忽略
 * `packageId` - 扩展id，全小写，无空格，可用 `-` 分割，默认 `raccoon`
 * `packageName` - 显示名称，大写小英文字母，中间可加空格，默认 `Raccoon`
-* `packageType` - 扩展类型，可以为 "Standard" 或 "Enterprise", 默认 `Standard`
-* `displayLanguage` - 预置插件的界面语言，为 `auto` 时随 UI 语言切换，否则按指定语言固定
-* `apiType` - API 类型，可以为 "Raccoon" 或 "TGI", 默认 `Raccoon`
+* `packageType` - 扩展类型，可以为 `Standard` 或 `Enterprise`, 默认 `Standard`
+* `completionModel` - 补全模型选择，可以为 `Raccoon Completion 7B (16k)`, `Raccoon Completion 13B (16k)` 默认 `Raccoon Completion 7B (16k)`
+* `assistantModel` - 对话模型选择，可以为 `Raccoon Assistant 7B (16k)`, `Raccoon Assistant 70B (32k)` 默认 `Raccoon Assistant 70B (32k)`
+* `apiType` - API 类型，可以为 `Raccoon` 或 `TGI`, 默认 `Raccoon`
 * `baseUrl` - 后端服务 URL 地址，默认：`https://raccoon.sensetime.com`
 
 ## Package Value File
@@ -25,7 +34,6 @@ Package Value File 是扩展配置文件
 ```jsonc
 {
   "type": "Standard", // 扩展类型，可以是 "Standard" 或 "Enterprise"
-  "displayLanguage": "", // 不存在时为自动，一旦设置，必须为 ["en", "zh-cn", "zh-tw", "ja"] 其中之一
   "engines": [ // 后端引擎列表
     {
       "robotname": "Raccoon", // 显示名称，仅用于多后端时下拉选项中区分显示，仅一个后端时没有用处

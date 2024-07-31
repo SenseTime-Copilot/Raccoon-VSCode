@@ -1,21 +1,15 @@
 export enum AuthMethod {
   browser = "browser",
   apikey = "apikey",
-  accesskey = "accesskey",
   phone = "phone",
   email = "email"
 }
-
-export type AccessKey = {
-  accessKeyId: string;
-  secretAccessKey: string;
-};
 
 export type ClientConfig = {
   robotname: string;
   baseUrl: string;
   authMethod: AuthMethod[];
-  key?: string | AccessKey;
+  key?: string;
 };
 
 export type Organization = {
@@ -61,6 +55,11 @@ export enum Role {
 export type Message = {
   role: Role;
   content: string;
+};
+
+export type ErrorInfo = {
+  code: number;
+  detail: string;
 };
 
 export enum ToolType {
@@ -109,11 +108,11 @@ export type RequestParam = {
   model?: string;
   tools?: Array<Tool>;
   toolChoice?: ToolChoice;
-  temperature?: number | null;
-  topP?: number | null;
-  repetitionPenalty?: number | null;
-  n?: number | null;
-  stream?: boolean | null;
+  temperature?: number;
+  topP?: number;
+  repetitionPenalty?: number;
+  n?: number;
+  stream?: boolean;
   stop?: StopToken;
   maxNewTokenNum?: number;
   knowledgeBases?: KnowledgeBase[];
@@ -158,7 +157,7 @@ export interface ChatOptions {
   onHeader?: (headers: Headers) => void;
   onUpdate?: (choice: Choice, thisArg?: any) => void;
   onFinish?: (choices: Choice[], thisArg?: any) => void;
-  onError?: (choice: Choice, thisArg?: any) => void;
+  onError?: (error: ErrorInfo, thisArg?: any) => void;
   onController?: (controller: AbortController, thisArg?: any) => void;
 }
 
@@ -187,7 +186,7 @@ export interface CompletionOptions {
 
   thisArg?: any;
   onFinish?: (choices: Choice[], thisArg?: any) => void;
-  onError?: (choice: Choice, thisArg?: any) => void;
+  onError?: (error: ErrorInfo, thisArg?: any) => void;
   onController?: (controller: AbortController, thisArg?: any) => void;
 }
 
@@ -200,12 +199,6 @@ export enum MetricType {
 export type ApiKeyLoginParam = {
   type: AuthMethod.apikey;
   apikey: string;
-};
-
-export type AccessKeyLoginParam = {
-  type: AuthMethod.accesskey;
-  accessKeyId: string;
-  secretAccessKey: string;
 };
 
 export type BrowserLoginParam = {
@@ -255,7 +248,7 @@ export interface CodeClient {
 
   getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
 
-  login(param?: ApiKeyLoginParam | AccessKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo>;
+  login(param?: ApiKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo>;
 
   restoreAuthInfo(auth: AuthInfo): "SET" | "RESET" | "UPDATE";
 
