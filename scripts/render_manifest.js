@@ -53,7 +53,7 @@ if (packageValueFile) {
         console.error(writeErr);
       } else {
         console.log(`Configuration:\n`);
-        console.log(`${JSON.parse(data)}`);
+        console.log(`${JSON.stringify(JSON.parse(data), undefined, 2)}`);
         console.log("==================================================");
       }
     });
@@ -106,7 +106,7 @@ if (packageValueFile) {
         console.error(writeErr);
       } else {
         console.log(`Value File:\n`);
-        console.log(`${JSON.parse(data)}`);
+        console.log(`${JSON.stringify(JSON.parse(content), undefined, 2)}`);
         console.log("==================================================");
       }
     });
