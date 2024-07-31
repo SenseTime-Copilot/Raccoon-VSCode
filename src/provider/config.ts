@@ -148,6 +148,10 @@ export class RaccoonConfig {
     return this._value.type;
   }
 
+  public get experimentalFeatures(): Array<string> {
+    return this._value.experimentalFeatures || [];
+  }
+
   public t(text: string, args?: any): string {
     let template = this._uiText[text];
     if (!template) {

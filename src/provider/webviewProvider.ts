@@ -71,14 +71,10 @@ export class RaccoonEditor extends Disposable {
         }
         if (!doc) {
           this.lastTextEditor = undefined;
-          this.sendMessage({ type: 'codeReady', value: false });
+          this.sendCode();
         } else if (this.isSupportedScheme(doc)) {
           this.lastTextEditor = e;
-          if (e && this.checkCodeReady(e)) {
-            this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(e.document.uri), file: e.document.uri.toString(), range: e.selections[0] });
-          } else {
-            this.sendMessage({ type: 'codeReady', value: false });
-          }
+          this.sendCode(e);
         }
       })
     );
@@ -87,7 +83,7 @@ export class RaccoonEditor extends Disposable {
         if (this.lastTextEditor) {
           if (this.lastTextEditor.document.uri.path === e.uri.path) {
             this.lastTextEditor = undefined;
-            this.sendMessage({ type: 'codeReady', value: false });
+            this.sendCode();
           }
         }
       })
@@ -95,15 +91,7 @@ export class RaccoonEditor extends Disposable {
     context.subscriptions.push(
       window.onDidChangeTextEditorSelection(e => {
         if (this.isSupportedScheme(e.textEditor.document)) {
-          if (e.selections[0]) {
-            let doc = e.textEditor.document;
-            let text = doc.getText(e.selections[0]);
-            if (text.trim()) {
-              this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(doc.uri), file: doc.uri.toString(), range: e.selections[0] });
-              return;
-            }
-          }
-          this.sendMessage({ type: 'codeReady', value: false });
+          this.sendCode(e.textEditor);
         }
       })
     );
@@ -170,9 +158,17 @@ export class RaccoonEditor extends Disposable {
     }
   }
 
-  public sendCode(e: TextEditor) {
-    if (!e.selection.isEmpty) {
-      this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(e.document.uri), file: e.document.uri.toString(), range: e.selection });
+  public sendCode(e?: TextEditor) {
+    if (!e || e.selection.isEmpty) {
+      this.sendMessage({ type: 'codeReady' });
+    } else {
+      let label = workspace.asRelativePath(e.document.uri);
+      let allRange = new Range(0, 0, e.document.lineCount - 1, e.document.lineAt(e.document.lineCount - 1).text.length);
+      if (e.selection.isEqual(allRange)) {
+        this.sendMessage({ type: 'codeReady', label, file: e.document.uri.toString() });
+      } else {
+        this.sendMessage({ type: 'codeReady', label, file: e.document.uri.toString(), range: e.selection });
+      }
     }
   }
 
@@ -199,6 +195,9 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'listAgent': {
+          if (!raccoonConfig.experimentalFeatures.includes("agent")) {
+            break;
+          }
           let value = Array.from(raccoonManager.agent.values());
           value = value.filter((v, _idx, _arr) => {
             return raccoonManager.checkAgentVisibility(v.id);
@@ -306,10 +305,19 @@ export class RaccoonEditor extends Disposable {
           }
 
           window.showQuickPick<QuickPickItem & { uri?: Uri; languageId?: string }>(files, {
-            placeHolder: "Select a file to attach",
-          }).then((item) => {
-            if (item && item.uri) {
-              this.sendFile(item.uri);
+            placeHolder: "Select file(s) to attach, up to 6 files",
+            canPickMany: true
+          }).then((items) => {
+            if (!items) {
+              return;
+            }
+            if (items.length > 6) {
+              items = items.slice(0, 6);
+            }
+            for (let item of items) {
+              if (item && item.uri) {
+                this.sendFile(item.uri);
+              }
             }
           });
           break;
@@ -641,27 +649,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     });
 
     const editor = window.activeTextEditor || this.lastTextEditor;
-    if (editor && this.checkCodeReady(editor)) {
-      setTimeout(() => {
-        this.sendMessage({ type: 'codeReady', value: true, label: workspace.asRelativePath(editor.document.uri), file: editor.document.uri.toString(), range: editor.selections[0] });
-      }, 1000);
-    }
-  }
-
-  private checkCodeReady(editor: TextEditor): boolean {
-    let codeReady = editor.selection?.isEmpty === false;
-    if (codeReady) {
-      if (this.isSupportedScheme(editor.document)) {
-        if (editor.selections[0]) {
-          let doc = editor.document;
-          let text = doc.getText(editor.selections[0]);
-          if (text.trim()) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+    setTimeout(() => {
+      this.sendCode(editor);
+    }, 1000);
   }
 
   private async contineAnswer(id: number) {
@@ -932,7 +922,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
         let errorFlag = false;
         let msgs = [...historyMsgs, instruction];
-        let requestId: string|undefined;
+        let requestId: string | undefined;
         if (streaming) {
           raccoonManager.chat(
             msgs,

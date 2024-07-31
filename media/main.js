@@ -651,45 +651,47 @@ const sendAction = (shortcut) => {
           return;
         }
         var acc = document.getElementById("attach-code-container");
-        if (message.value) {
-          if (acc && message.file && message.range) {
-            acc.innerHTML = "";
-            let ct = document.createElement('div');
-            ct.dataset['file'] = message.file;
+        if (message.file) {
+          acc.innerHTML = "";
+          let ct = document.createElement('div');
+          ct.dataset['file'] = message.file;
+          if (message.range) {
             ct.dataset['range'] = JSON.stringify(message.range);
-            ct.classList.add("flex", "items-end", "px-1");
-            let rangetag = ``;
-            if (message.range.start.line === message.range.end.line) {
-              rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-${message.range.end.character + 1}`;
-            } else {
-              rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-L${message.range.end.line + 1}C${message.range.end.character + 1}`;
-            }
-            let icon = document.createElement('span');
-            icon.classList.add("material-symbols-rounded");
-            icon.innerText = "segment";
-            let link = document.createElement('vscode-link');
-            link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
-            link.title = message.file + rangetag;
-            link.onclick = (_event) => {
-              vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
-            };
-            link.innerHTML = message.label + '<span class="opacity-75">' + rangetag + '</span>';
-            let rmBtn = document.createElement('span');
-            rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
-            rmBtn.title = l10nForUI["Delete"];
-            rmBtn.innerText = 'cancel';
-            rmBtn.onclick = (_event) => {
-              acc.classList.remove("with-code");
-              acc.classList.add('hidden');
-              acc.innerHTML = "";
-            };
-            ct.appendChild(icon);
-            ct.appendChild(link);
-            ct.appendChild(rmBtn);
-            acc.appendChild(ct);
-            acc.classList.add("with-code");
-            acc.classList.remove('hidden');
           }
+          ct.classList.add("flex", "items-end", "px-1");
+          let rangetag = ``;
+          if (!message.range) {
+            rangetag = ``;
+          } else if (message.range.start.line === message.range.end.line) {
+            rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-${message.range.end.character + 1}`;
+          } else {
+            rangetag = `#L${message.range.start.line + 1}C${message.range.start.character + 1}-L${message.range.end.line + 1}C${message.range.end.character + 1}`;
+          }
+          let icon = document.createElement('span');
+          icon.classList.add("material-symbols-rounded");
+          icon.innerText = "segment";
+          let link = document.createElement('vscode-link');
+          link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
+          link.title = message.file + rangetag;
+          link.onclick = (_event) => {
+            vscode.postMessage({ type: "openDoc", file: message.file, range: message.range });
+          };
+          link.innerHTML = message.label + '<span class="opacity-75">' + rangetag + '</span>';
+          let rmBtn = document.createElement('span');
+          rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
+          rmBtn.title = l10nForUI["Delete"];
+          rmBtn.innerText = 'cancel';
+          rmBtn.onclick = (_event) => {
+            acc.classList.remove("with-code");
+            acc.classList.add('hidden');
+            acc.innerHTML = "";
+          };
+          ct.appendChild(icon);
+          ct.appendChild(link);
+          ct.appendChild(rmBtn);
+          acc.appendChild(ct);
+          acc.classList.add("with-code");
+          acc.classList.remove('hidden');
         } else {
           if (acc) {
             acc.classList.remove("with-code");
@@ -747,12 +749,12 @@ const sendAction = (shortcut) => {
                             <vscode-link><span id="agent-manage" class="material-symbols-rounded">edit_note</span></vscode-link>
                           </div>`;
         agents.forEach((p, idx, _m) => {
-          agentnames += `<button class="flex flex-row-reverse gap-2 items-center ${idx === 1 ? "selected" : ""}" data-shortcut='@${p.id}'
+          agentnames += `<button class="flex flex-row gap-2 items-center ${idx === 1 ? "selected" : ""}" data-shortcut='@${p.id}'
                                   onclick='vscode.postMessage({type: "addAgent", id: "${p.id}"});'
                           >
-                            <span class="material-symbols-rounded">${p.icon || "badge"}</span>
-                            ${p.label}
                             <span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.id}></span>
+                            <span style="text-overflow: ellipsis; overflow: hidden;">${p.label}</span>
+                            <span class="material-symbols-rounded">${p.icon || "badge"}</span>
                           </button>
                       `;
         });
@@ -788,13 +790,13 @@ const sendAction = (shortcut) => {
           let icon = p.icon || "smart_button";
           p.origin = p.origin?.replaceAll("'", "\\'");
           p.message.content = p.message.content.replaceAll("'", "\\'");
-          shortcuts += `  <button class="flex flex-row-reverse gap-2 items-center ${first ? "selected" : ""}"
+          shortcuts += `  <button class="flex flex-row gap-2 items-center ${first ? "selected" : ""}"
                                   ${p.shortcut ? `data-shortcut='/${p.shortcut}'` : ""}
                                   onclick='sendAction("${p.shortcut}");'
                           '>
+                            <span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>
+                            <span style="text-overflow: ellipsis; overflow: hidden;">${p.label}${p.inputRequired ? "..." : ""}</span>
                             <span class="material-symbols-rounded">${icon}</span>
-                            ${p.label}${p.inputRequired ? "..." : ""}
-                            ${p.shortcut ? `<span class="shortcut grow" style="color: var(--progress-background); text-shadow: 0 0 1px var(--progress-background);" data-suffix=${p.shortcut}></span>` : ""}
                           </button>
                       `;
           first = false;
@@ -1347,7 +1349,7 @@ const sendAction = (shortcut) => {
       var btns = Array.from(list.querySelectorAll("button")).filter((sc, _i, _arr) => {
         return sc.dataset.shortcut?.startsWith(agentCmd);
       });
-      var emptyByFilter = (allAction.length === 0 && agentCmd !== '@') || (allAction.length > 0 && btns.length === 0);
+      var emptyByFilter = (allAction.length === 0) || (allAction.length > 0 && btns.length === 0);
       if (!emptyByFilter) {
         document.getElementById("agent-indicator").classList.add("hidden");
         document.getElementById("agent-tab-btn").dataset.agent = ``;
@@ -1431,7 +1433,7 @@ const sendAction = (shortcut) => {
   }
 
   function toggleSubMenuList() {
-  // _toggleAgentList();
+    _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
   }

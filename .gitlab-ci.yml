@@ -8,14 +8,14 @@ stages:
   - build
 
 variables:
-  PACKAGE_VALUE_FILE:
-    description: "FILE TYPE VARIABLE: content for value.json, if set, ignore all belowing values"
   PACKAGE_ID:
     description: "The package ID for shipping package."
     value: "raccoon"
   PACKAGE_NAME:
     description: "The package name for shipping package."
     value: "Raccoon"
+  PACKAGE_VALUE_FILE:
+    description: "FILE TYPE VARIABLE: content for value.json, if set, ignore all belowing values"
   PACKAGE_TYPE:
     description: "The package type for shipping package, Standard/Enterprise"
     value: "Standard"
