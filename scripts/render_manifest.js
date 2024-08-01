@@ -7,6 +7,7 @@ let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";
 let completionModel = args.completionModel || "Raccoon Completion 7B (16k)";
 let assistantModel = args.assistantModel || "Raccoon Completion 70B (32k)";
+let betaFeature = args.betaFeature ? args.betaFeature.split(",") : undefined;
 let apiType = args.apiType || "Raccoon";
 let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
 let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
@@ -20,6 +21,7 @@ if (packageValueFile) {
   console.log(` Package Type       : ${packageType}`);
   console.log(` Completion Model   : ${completionModel}`);
   console.log(` Assistant Model    : ${assistantModel}`);
+  console.log(` Beta Feature       : ${JSON.stringify(betaFeature)}`);
   console.log(` API Type           : ${apiType}`);
   console.log(` Base URL           : ${baseUrl}`);
   console.log(` Auth Method        : ${authMethod}`);
@@ -66,6 +68,9 @@ if (packageValueFile) {
     }
     let cfg = JSON.parse(data);
     cfg.type = packageType;
+    if (betaFeature) {
+      cfg.beta = betaFeature;
+    }
     for (let e of cfg.engines) {
       e.robotname = packageName;
       e.apiType = apiType;

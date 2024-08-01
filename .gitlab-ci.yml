@@ -24,7 +24,7 @@ variables:
       - "Enterprise"
   COMPLETION_MODEL:
     description: "The completion model selection"
-    value: "Raccoon Completion 7B (16k)"
+    value: "Raccoon Completion 13B (16k)"
     options:
       - "Raccoon Completion 7B (16k)"
       - "Raccoon Completion 13B (16k)"
@@ -43,6 +43,8 @@ variables:
   BASEURL:
     description: "The base URL path of backend"
     value: "https://raccoon.sensetime.com"
+  BETA_FEATURE:
+    description: "Enable beta features, could be one of `agent`, `fileAttach`, or combine multi features and separate them by comma"
 
 code_scan:
   image: registry.sensetime.com/security/codescan:latest
@@ -61,7 +63,7 @@ build_package:
     - npm config set strict-ssl false
     - npm config set registry https://registry.npm.taobao.org
     - npm install --prefix ./scripts minimist
-    - node ./scripts/render_manifest.js --packageValueFile="$PACKAGE_VALUE_FILE" --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageType="$PACKAGE_TYPE" --completionModel="$COMPLETION_MODEL" --assistantModel="$ASSISTANT_MODEL" --apiType="$API_TYPE" --baseUrl="$BASEURL"
+    - node ./scripts/render_manifest.js --packageValueFile="$PACKAGE_VALUE_FILE" --packageId="$PACKAGE_ID" --packageName="$PACKAGE_NAME" --packageType="$PACKAGE_TYPE" --completionModel="$COMPLETION_MODEL" --assistantModel="$ASSISTANT_MODEL" --apiType="$API_TYPE" --baseUrl="$BASEURL" --betaFeature="$BETA_FEATURE"
     - npm install
     - vsce package -o $PACKAGE_ID-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA.vsix
   artifacts:

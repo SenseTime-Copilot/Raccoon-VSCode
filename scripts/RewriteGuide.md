@@ -20,7 +20,7 @@ params:
 * `packageId` - 扩展id，全小写，无空格，可用 `-` 分割，默认 `raccoon`
 * `packageName` - 显示名称，大写小英文字母，中间可加空格，默认 `Raccoon`
 * `packageType` - 扩展类型，可以为 `Standard` 或 `Enterprise`, 默认 `Standard`
-* `completionModel` - 补全模型选择，可以为 `Raccoon Completion 7B (16k)`, `Raccoon Completion 13B (16k)` 默认 `Raccoon Completion 7B (16k)`
+* `completionModel` - 补全模型选择，可以为 `Raccoon Completion 7B (16k)`, `Raccoon Completion 13B (16k)` 默认 `Raccoon Completion 13B (16k)`
 * `assistantModel` - 对话模型选择，可以为 `Raccoon Assistant 7B (16k)`, `Raccoon Assistant 70B (32k)` 默认 `Raccoon Assistant 70B (32k)`
 * `apiType` - API 类型，可以为 `Raccoon` 或 `TGI`, 默认 `Raccoon`
 * `baseUrl` - 后端服务 URL 地址，默认：`https://raccoon.sensetime.com`
