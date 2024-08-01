@@ -23,7 +23,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
   }
 
   public provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
-    let ps = raccoonManager.prompt;
+    let ps = raccoonManager.prompts;
     let actions: vscode.CodeAction[] = [];
     if (!range.isEmpty) {
       for (let p of ps) {
@@ -105,7 +105,7 @@ export class RaccoonAction implements vscode.CodeActionProvider {
       return codeAction;
     }
 
-    let ps = raccoonManager.prompt;
+    let ps = raccoonManager.prompts;
     let label = codeAction.title.slice(`${extensionDisplayName}: `.length);
     let prompt: RaccoonPrompt | undefined = undefined;
     let prefix = '';

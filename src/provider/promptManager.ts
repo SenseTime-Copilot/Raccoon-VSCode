@@ -334,7 +334,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
     const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
 
-    let prompts: RaccoonPrompt[] = raccoonManager.prompt;
+    let prompts: RaccoonPrompt[] = raccoonManager.prompts;
 
     let emptyPlaceholder = `
     <div style="text-align: center;margin: 10% 0; opacity: 0.3; user-select: none;">

@@ -1,9 +1,10 @@
-import { outlog } from "../globalEnv";
+import { extensionNameKebab, outlog } from "../globalEnv";
 import { ClientConfig, RequestParam } from "../raccoonClient/CodeClient";
-import { ExtensionContext, FileStat, Uri, env, workspace } from 'vscode';
+import { ExtensionContext, FileStat, Uri, commands, env, workspace } from 'vscode';
 import { RaccoonPrompt } from "./promptTemplates";
 
 import hbs = require("handlebars");
+import { RaccoonAgent } from "./agentManager";
 const decoder = new TextDecoder();
 
 export enum ModelCapacity {
@@ -30,6 +31,8 @@ export class RaccoonConfig {
   protected static instance: RaccoonConfig | undefined = undefined;
   private _value: any = {};
   private _prompt: RaccoonPrompt[] = [];
+  private _systemPrompt: string = "";
+  private _agent: RaccoonAgent[] = [];
   private _uiText: { [key: string]: string } = {};
   private _commitTemplate: string = "";
 
@@ -41,11 +44,17 @@ export class RaccoonConfig {
     outlog.debug(`Read config from ${configFile.toString()}`);
     await workspace.fs.readFile(configFile).then((raw) => {
       this._value = JSON.parse(decoder.decode(raw));
+      if (this._value.beta) {
+        for (let item of this._value.beta) {
+          commands.executeCommand('setContext', `${extensionNameKebab}.beta.${item}`, true);
+        }
+      }
     });
     let lang = this.context.globalState.get<string>(`DisplayLanguage`) || env.language.toLocaleLowerCase();
     await this.loadUITextData(lang);
     await this.loadCommitTemplate(lang);
     await this.loadPromptData(lang);
+    await this.loadAgentData(lang);
   }
 
   private async loadUITextData(lang: string) {
@@ -72,6 +81,43 @@ export class RaccoonConfig {
     if (stat) {
       await workspace.fs.readFile(uiTextFile).then((raw) => {
         this._uiText = JSON.parse(decoder.decode(raw));
+      });
+    }
+  }
+
+  private async loadAgentData(lang: string) {
+    let agnetFile = Uri.joinPath(this.context.extensionUri, `config/agent.${lang}.json`);
+    let stat: FileStat | undefined;
+    try {
+      stat = await workspace.fs.stat(agnetFile);
+    } catch (e) {
+    };
+    if (stat) {
+      outlog.debug(`Read agent configuration from ${agnetFile.toString()}`);
+    } else {
+      agnetFile = Uri.joinPath(this.context.extensionUri, `config/ui.en.json`);
+      try {
+        stat = await workspace.fs.stat(agnetFile);
+      } catch (e) {
+      };
+      if (stat) {
+        outlog.debug(`Read agent configuration from ${agnetFile.toString()}`);
+      } else {
+        outlog.debug(`No agent configuration file`);
+      }
+    }
+    if (stat) {
+      await workspace.fs.readFile(agnetFile).then((raw) => {
+        let as: any[] = JSON.parse(decoder.decode(raw));
+        let agents: RaccoonAgent[] = [];
+        for (let a of as) {
+          if (a.id === "default") {
+            this._systemPrompt = a.systemPrompt;
+          } else {
+            agents.push(a);
+          }
+        }
+        this._agent = agents;
       });
     }
   }
@@ -144,12 +190,20 @@ export class RaccoonConfig {
     return this._value.engines || [];
   }
 
+  public get builtinAgents(): RaccoonAgent[] {
+    return this._agent || [];
+  }
+
+  public get systemPrompt(): string {
+    return this._systemPrompt || "";
+  }
+
   public get type(): string {
     return this._value.type;
   }
 
-  public get experimentalFeatures(): Array<string> {
-    return this._value.experimentalFeatures || [];
+  public get beta(): Array<string> {
+    return this._value.beta || [];
   }
 
   public t(text: string, args?: any): string {

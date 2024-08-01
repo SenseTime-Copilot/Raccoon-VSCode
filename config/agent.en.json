@@ -1,0 +1,54 @@
+[
+    {
+        "id": "default",
+        "systemPrompt": "Your native language is English. Answers will be in English unless the user specifies a language."
+    },
+    {
+        "id": "小浣熊",
+        "label": "Raccoon",
+        "icon": "pets",
+        "systemPrompt": "",
+        "abilities": [],
+        "builtin": true
+    },
+    {
+        "id": "martin",
+        "label": "Manager",
+        "icon": "manage_accounts",
+        "systemPrompt": "",
+        "abilities": [],
+        "builtin": true
+    },
+    {
+        "id": "andy",
+        "label": "Architect",
+        "icon": "design_services",
+        "systemPrompt": "",
+        "abilities": [],
+        "builtin": true
+    },
+    {
+        "id": "eason",
+        "label": "Engineer",
+        "icon": "build_circle",
+        "systemPrompt": "",
+        "abilities": [],
+        "builtin": true
+    },
+    {
+        "id": "taylor",
+        "label": "Testing",
+        "icon": "science",
+        "systemPrompt": "",
+        "abilities": [],
+        "builtin": true
+    },
+    {
+        "id": "doris",
+        "label": "Deployment",
+        "icon": "deployed_code",
+        "systemPrompt": "",
+        "abilities": [],
+        "builtin": true
+    }
+]

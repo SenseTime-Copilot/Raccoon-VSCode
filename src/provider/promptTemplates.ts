@@ -1,5 +1,6 @@
 import { raccoonConfig } from "../globalEnv";
-import { Message } from "../raccoonClient/CodeClient";
+import { Message, Role } from "../raccoonClient/CodeClient";
+import { RaccoonAgent } from "./agentManager";
 
 export enum PromptType {
   help = "help",
@@ -15,6 +16,7 @@ export enum PromptType {
 export interface RaccoonPrompt {
   label: string;
   type: PromptType;
+  systemPrompt?: string;
   message: Message;
   shortcut: string;
   origin?: string;
@@ -40,8 +42,10 @@ export interface RaccoonPromptHtml {
 
 export class PromptInfo {
   private _prompt: RaccoonPrompt;
-  constructor(prompt: RaccoonPrompt) {
+  private _agent?: RaccoonAgent;
+  constructor(prompt: RaccoonPrompt, agent?: RaccoonAgent) {
     this._prompt = prompt;
+    this._agent = agent;
   }
 
   public generatePromptHtml(id: number, argValues?: any): RaccoonPromptHtml {
@@ -158,6 +162,10 @@ export class PromptInfo {
       prompthtml = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${renderHtml.prompt.label.replace("...", "")}</p>` + prompthtml;
     }
 
+    if (this._agent) {
+      prompthtml = `<p class="instruction-label font-bold pl-1 pr-2" title="${this._agent.label}">@${this._agent.id}</p>` + prompthtml;
+    }
+
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
         `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}></div></div>`;
@@ -177,7 +185,16 @@ export class PromptInfo {
     return this._prompt.label;
   }
 
-  public get prompt(): Message {
+  public get systemPrompt(): Message | undefined {
+    if (this._agent?.systemPrompt) {
+      return {
+        role: Role.system,
+        content: this._agent?.systemPrompt
+      };
+    }
+  }
+
+  public get userPrompt(): Message {
     return this._prompt.message;
   }
 

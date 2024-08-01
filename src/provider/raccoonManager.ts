@@ -8,7 +8,7 @@ import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity } from "./config";
-import { RaccoonAgent, builtinAgents } from "./agentManager";
+import { RaccoonAgent } from "./agentManager";
 import { TGIClient } from "../raccoonClient/tgiClient";
 import { compareVersion } from "../utils/versionCompare";
 
@@ -58,8 +58,13 @@ export class RaccoonManager {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       telemetryReporter.logUsage(MetricType.commitMessage, { usage_num: 1 });
 
+      let systemPrompt = raccoonConfig.systemPrompt;
+      let systemMsg: Message[] = [];
+      if (systemPrompt) {
+        systemMsg.push({ role: Role.system, content: systemPrompt });
+      }
       return rm.chat(
-        [{ role: Role.user, content: raccoonConfig.commitTemplate({ changes }) }],
+        [...systemMsg, { role: Role.user, content: raccoonConfig.commitTemplate({ changes }) }],
         {
           stream: true,
           maxNewTokenNum: 128,
@@ -367,8 +372,9 @@ export class RaccoonManager {
     return (ca && ca.client.getAuthInfo());
   }
 
-  public get agent(): Map<string, RaccoonAgent> {
+  public get agents(): Map<string, RaccoonAgent> {
     let agants: Map<string, RaccoonAgent> = new Map();
+    let builtinAgents = raccoonConfig.builtinAgents;
     for (let agent of builtinAgents) {
       agants.set(agent.id, agent);
     }
@@ -380,7 +386,7 @@ export class RaccoonManager {
   }
 
   public async setAgentVisibility(id: string, visible: boolean) {
-    let a = this.agent.get(id);
+    let a = this.agents.get(id);
     if (a) {
       let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenAgents`) || [];
       if (visible && as.includes(id)) {
@@ -397,7 +403,7 @@ export class RaccoonManager {
   }
 
   public checkAgentVisibility(id: string) {
-    let a = this.agent.get(id);
+    let a = this.agents.get(id);
     if (a) {
       let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenAgents`) || [];
       return !as.includes(id);
@@ -408,7 +414,7 @@ export class RaccoonManager {
   public async appendAgent(agent: RaccoonAgent, overwrite?: boolean): Promise<void> {
     let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
     let writeable = true;
-    if (!overwrite && this.agent.get(agent.id)) {
+    if (!overwrite && this.agents.get(agent.id)) {
       writeable = false;
     }
     if (!writeable) {
@@ -436,7 +442,7 @@ export class RaccoonManager {
   }
 
   public getPromptItem(label: string): RaccoonPrompt | undefined {
-    let ps = this.prompt;
+    let ps = this.prompts;
     let t = ps.filter((p) => (p.label === label && p.type === PromptType.customPrompt));
     return t[0];
   }
@@ -488,7 +494,7 @@ export class RaccoonManager {
   }
 
   public async setPromptVisibility(label: string, visible: boolean) {
-    let p = this.prompt.filter((v) => v.label === label);
+    let p = this.prompts.filter((v) => v.label === label);
     if (p[0]) {
       let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
       if (visible && as.includes(label)) {
@@ -505,7 +511,7 @@ export class RaccoonManager {
   }
 
   public checkPromptVisibility(label: string) {
-    let ps = this.prompt;
+    let ps = this.prompts;
     let p = ps.filter((v) => v.label === label);
     if (p[0]) {
       let as = this.context.globalState.get<string[]>(`${extensionNameKebab}.hiddenPrompts`) || [];
@@ -514,7 +520,7 @@ export class RaccoonManager {
     return true;
   }
 
-  public get prompt(): RaccoonPrompt[] {
+  public get prompts(): RaccoonPrompt[] {
     let prompts: RaccoonPrompt[] = [];
     let builtinPrompt: ReadonlyArray<RaccoonPrompt> = raccoonConfig.builtinPrompt();
     for (let idx in builtinPrompt) {

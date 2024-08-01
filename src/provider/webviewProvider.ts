@@ -10,6 +10,7 @@ import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
 import { FavoriteCodeEditor } from './favoriteCode';
 import { ModelCapacity } from './config';
 import { buildChatHtml, buildLoginPage, buildSettingPage, buildWelcomeMessage, makeGuide } from './webviewTemplates';
+import { RaccoonAgent } from './agentManager';
 
 interface TelemetryInfo {
   id: number;
@@ -36,13 +37,13 @@ export class RaccoonEditor extends Disposable {
       if (e.scope.includes("authorization") && !e.quiet) {
         this.showWelcome();
       } else if (e.scope.includes("agent")) {
-        let value = Array.from(raccoonManager.agent.values());
+        let value = Array.from(raccoonManager.agents.values());
         value = value.filter((v, _idx, _arr) => {
           return raccoonManager.checkAgentVisibility(v.id);
         });
         this.sendMessage({ type: 'agentList', value });
       } else if (e.scope.includes("prompt")) {
-        let value = raccoonManager.prompt;
+        let value = raccoonManager.prompts;
         value = value.filter((v, _idx, _arr) => {
           return raccoonManager.checkPromptVisibility(v.label);
         });
@@ -195,10 +196,10 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'listAgent': {
-          if (!raccoonConfig.experimentalFeatures.includes("agent")) {
+          if (!raccoonConfig.beta.includes("agent")) {
             break;
           }
-          let value = Array.from(raccoonManager.agent.values());
+          let value = Array.from(raccoonManager.agents.values());
           value = value.filter((v, _idx, _arr) => {
             return raccoonManager.checkAgentVisibility(v.id);
           });
@@ -206,7 +207,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'listPrompt': {
-          let value = raccoonManager.prompt;
+          let value = raccoonManager.prompts;
           value = value.filter((v, _idx, _arr) => {
             return raccoonManager.checkPromptVisibility(v.label);
           });
@@ -330,14 +331,16 @@ export class RaccoonEditor extends Disposable {
           if (data.replace) {
             await this.cache.removeCacheItem(data.replace);
           }
-          let prompt: RaccoonPrompt | undefined = data.prompt;
-          if (!prompt && data.shortcut) {
-            let p = raccoonManager.prompt.filter((v, _idx, _arr) => {
+          let prompt: RaccoonPrompt | undefined;
+          if (data.shortcut) {
+            let p = raccoonManager.prompts.filter((v, _idx, _arr) => {
               return v.shortcut === data.shortcut;
             });
             if (p && p[0]) {
               prompt = p[0];
             }
+          } else {
+            prompt = data.prompt;
           }
           if (!prompt) {
             break;
@@ -370,10 +373,11 @@ export class RaccoonEditor extends Disposable {
               prompt.message.content += "\n{{code}}\n";
             }
           }
+          let agent: RaccoonAgent | undefined;
           if (data.agent) {
-            prompt.message.content = `${data.agent} ${prompt.message.content}`;
+            agent = raccoonManager.agents.get(data.agent);
           }
-          let promptInfo = new PromptInfo(prompt);
+          let promptInfo = new PromptInfo(prompt, agent);
           let history = await this.cache.getCacheItems();
           this.sendApiRequest(promptInfo, data.values, history, data.attachFile);
           break;
@@ -867,7 +871,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     }
 
     let streaming = raccoonManager.streamResponse;
-    let instruction = prompt.prompt;
+    let instruction = prompt.userPrompt;
 
     let promptHtml = prompt.generatePromptHtml(id, values);
     if (promptHtml.status === RenderStatus.codeMissing) {
@@ -921,7 +925,14 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
         telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { user_question_num: 1 } });
 
         let errorFlag = false;
-        let msgs = [...historyMsgs, instruction];
+        let systemPrompt = raccoonConfig.systemPrompt;
+        let systemMsg: Message[] = [];
+        if (prompt.systemPrompt) {
+          systemMsg.push(prompt.systemPrompt);
+        } else if (systemPrompt) {
+          systemMsg.push({ role: Role.system, content: systemPrompt });
+        }
+        let msgs = [...systemMsg, ...historyMsgs, instruction];
         let requestId: string | undefined;
         if (streaming) {
           raccoonManager.chat(

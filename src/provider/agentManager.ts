@@ -16,68 +16,6 @@ export interface RaccoonAgent {
   builtin?: boolean;
 }
 
-export class AgentInfo {
-  private _agent: RaccoonAgent;
-  constructor(agent: RaccoonAgent) {
-    this._agent = agent;
-  }
-
-  public get label(): string {
-    return this._agent.label;
-  }
-}
-
-export const builtinAgents: RaccoonAgent[] = [
-  {
-    id: "小浣熊",
-    label: "Raccoon",
-    icon: "pets",
-    systemPrompt: "",
-    abilities: [],
-    builtin: true
-  },
-  {
-    id: "martin",
-    label: "Manager",
-    icon: "manage_accounts",
-    systemPrompt: (""),
-    abilities: [],
-    builtin: true
-  },
-  {
-    id: "andy",
-    label: "Architect",
-    icon: "design_services",
-    systemPrompt: (""),
-    abilities: [],
-    builtin: true
-  },
-  {
-    id: "eason",
-    label: "Engineer",
-    icon: "build_circle",
-    systemPrompt: "",
-    abilities: [],
-    builtin: true
-  },
-  {
-    id: "taylor",
-    label: "Testing",
-    icon: "science",
-    systemPrompt: "",
-    abilities: [],
-    builtin: true
-  },
-  {
-    id: "doris",
-    label: "Deployment",
-    icon: "deployed_code",
-    systemPrompt: "",
-    abilities: [],
-    builtin: true
-  }
-];
-
 export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
   static instance?: AgentEditor;
   private webview?: Webview;
@@ -291,7 +229,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'edit': {
-          let agent = raccoonManager.agent.get(msg.id);
+          let agent = raccoonManager.agents.get(msg.id);
           if (agent) {
             commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/edit.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${agent.id}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
           }
@@ -311,7 +249,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
     const mainCSS = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'main.css'));
     const iconUri = webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
 
-    let agents: Map<string, RaccoonAgent> = raccoonManager.agent;
+    let agents: Map<string, RaccoonAgent> = raccoonManager.agents;
 
     let emptyPlaceholder = `
     <div style="text-align: center;margin: 10% 0; opacity: 0.3; user-select: none;">
@@ -347,7 +285,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       emptyPlaceholder = '';
       table += `
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
-        <vscode-data-grid-cell grid-column="1" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="@${s.id}" onclick="editAgent('${s.id}')"><vscode-link>${s.id}</vscode-link></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="1" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="@${s.id}"><vscode-link onclick="editAgent('${s.id}')">${s.id}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="${s.label}">${s.label}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow-x: auto; white-space: pre;">${s.systemPrompt?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="display: flex; align-self: center; justify-self: flex-end; column-gap: 0.25rem;">

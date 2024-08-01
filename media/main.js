@@ -776,7 +776,7 @@ const sendAction = (shortcut) => {
         document.getElementById("question-input").selectionStart = newPos;
         document.getElementById("question-input").selectionEnd = newPos;
         document.getElementById("question-sizer").dataset.value = va;
-        document.getElementById("agent-tab-btn").dataset.agent = `@${message.value}`;
+        document.getElementById("agent-tab-btn").dataset.agent = `${message.value}`;
         document.getElementById("agent-indicator").classList.remove("hidden");
         _toggleAgentList();
         document.getElementById("question-input").focus();

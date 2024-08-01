@@ -165,6 +165,11 @@
                     "when": "view == raccoon.view"
                 },
                 {
+                    "command": "raccoon.agent.manage",
+                    "group": "cache@0",
+                    "when": "view == raccoon.view && raccoon.beta.agent"
+                },
+                {
                     "command": "raccoon.prompt.manage",
                     "group": "cache@1",
                     "when": "view == raccoon.view"
@@ -249,7 +254,7 @@
                 "category": "Raccoon",
                 "title": "%raccoon.command.agent%",
                 "icon": "$(robot)",
-                "enablement": "view == raccoon.view"
+                "enablement": "view == raccoon.view && raccoon.beta.agent"
             },
             {
                 "command": "raccoon.prompt.manage",

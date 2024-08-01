@@ -763,7 +763,7 @@ span.shortcut:after {
 }
 
 #agent-indicator #agent-tab-btn:before {
-    content: attr(data-agent);
+    content: "@" attr(data-agent);
     border-radius: 10px 0 0 0;
     padding: 2px 3px 3px 6px;
     border-right: none;

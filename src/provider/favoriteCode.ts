@@ -394,7 +394,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       let s = snippets[id];
       table += `
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
-        <vscode-data-grid-cell grid-column="1" style="align-self: center; cursor: pointer;" title="#${s.id}" onclick="editSnippet('${s.id}')"><vscode-link>${s.shortcut}</vscode-link></vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="#${s.id}"><vscode-link onclick="editSnippet('${s.id}')">${s.shortcut}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="align-self: center;">${supportedLanguages[s.languageid!].displayName} <small style="opacity: 0.6;">(${s.languageid})</small></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="3" style="align-self: center; white-space: pre;max-height: 5rem; overflow: hidden; text-overflow: ellipsis;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="align-self: center;">

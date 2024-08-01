@@ -14,8 +14,7 @@
         "parameters": {
           "stop": [
             "<EOT>"
-          ],
-          "temperature": 0.4
+          ]
         },
         "maxInputTokenNum": 12288,
         "totalTokenNum": 16384
@@ -24,8 +23,7 @@
         "parameters": {
           "stop": [
             "<|endofmessage|>"
-          ],
-          "temperature": 0.4
+          ]
         },
         "maxInputTokenNum": 28672,
         "totalTokenNum": 32768
