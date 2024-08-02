@@ -929,12 +929,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
         telemetryReporter.logUsage(MetricType.dialog, { dialog_window_usage: { user_question_num: 1 } });
 
         let errorFlag = false;
-        let systemPrompt = raccoonConfig.systemPrompt;
         let systemMsg: Message[] = [];
         if (prompt.systemPrompt) {
           systemMsg.push(prompt.systemPrompt);
-        } else if (systemPrompt) {
-          systemMsg.push({ role: Role.system, content: systemPrompt });
         }
         let msgs = [...systemMsg, ...historyMsgs, instruction];
         let requestId: string | undefined;

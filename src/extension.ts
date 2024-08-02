@@ -17,6 +17,7 @@ import { PromptEditor } from "./provider/promptManager";
 import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
 import { getDocumentSymbols } from "./utils/collectionPromptInfo";
+import { CommitMessageSuggester } from "./provider/commitMessagSuggestion";
 // import { RaccoonCodelensProvider } from "./provider/codeLensProvider";
 
 export let docSymbolMap: { [key: string]: { languageId: string; symbols: vscode.DocumentSymbol[] } } = {};
@@ -127,6 +128,8 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.StatusBarAlignment.Right,
     -1
   );
+
+  CommitMessageSuggester.registerCommitMessageCommand(context);
 
   statusBarItem.command = extensionNameKebab + ".settings";
   updateStatusBarItem(statusBarItem);

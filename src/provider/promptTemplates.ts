@@ -186,10 +186,18 @@ export class PromptInfo {
   }
 
   public get systemPrompt(): Message | undefined {
-    if (this._agent?.systemPrompt) {
+    let defaultSystemPrompt = raccoonConfig.systemPrompt;
+    if (this._agent) {
+      if (this._agent.systemPrompt) {
+        return {
+          role: Role.system,
+          content: this._agent?.systemPrompt
+        };
+      }
+    } else if (defaultSystemPrompt) {
       return {
         role: Role.system,
-        content: this._agent?.systemPrompt
+        content: raccoonConfig.systemPrompt
       };
     }
   }

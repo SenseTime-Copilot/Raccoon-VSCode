@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { raccoonManager } from '../globalEnv';
+import { raccoonConfig, raccoonManager } from '../globalEnv';
 import { getDocumentSymbols } from '../utils/collectionPromptInfo';
 
 export class RaccoonCodelensProvider implements vscode.CodeLensProvider {
@@ -25,15 +25,25 @@ export class RaccoonCodelensProvider implements vscode.CodeLensProvider {
     function gatherSymbol(symbols: vscode.DocumentSymbol[], codeLenses: vscode.CodeLens[]) {
       for (let s of symbols) {
         if ([vscode.SymbolKind.Class, vscode.SymbolKind.Constructor, vscode.SymbolKind.Enum, vscode.SymbolKind.Function, vscode.SymbolKind.Interface, vscode.SymbolKind.Method, vscode.SymbolKind.Struct, vscode.SymbolKind.Object, vscode.SymbolKind.Module, vscode.SymbolKind.Namespace].includes(s.kind)) {
-          codeLenses.push(new vscode.CodeLens(
-            s.range,
-            {
-              title: `${s.kind}`,
-              tooltip: `${s.kind}`,
-              command: "raccoon.HintsAction",
-              arguments: [s.range]
-            }
-          ));
+          codeLenses.push(
+            new vscode.CodeLens(
+              s.range,
+              {
+                title: `$(raccoon-icon)`,
+                command: ""
+              }
+            )
+          );
+          for (let p of raccoonConfig.builtinPrompt()) {
+            codeLenses.push(new vscode.CodeLens(
+              s.range,
+              {
+                title: `${p.label}`,
+                command: "raccoon.HintsAction",
+                arguments: [s.range]
+              }
+            ));
+          }
           gatherSymbol(s.children, codeLenses);
         }
       }
