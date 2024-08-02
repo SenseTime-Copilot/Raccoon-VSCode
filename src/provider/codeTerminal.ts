@@ -240,8 +240,13 @@ export class RaccoonTerminal {
           telemetryReporter.logUsage(MetricType.dialog, { terminal_usage: { user_question_num: 1 } });
           let errorFlag = false;
 
+          let systemPrompt = raccoonConfig.systemPrompt;
+          let systemMsg: Message[] = [];
+          if (systemPrompt) {
+            systemMsg.push({ role: Role.system, content: systemPrompt });
+          }
           raccoonManager.chat(
-            [...hlist, { role: Role.user, content: question }],
+            [...systemMsg, ...hlist, { role: Role.user, content: question }],
             {
               stream: true,
               n: 1
@@ -298,7 +303,15 @@ export class RaccoonTerminal {
               },
             },
             buildHeader(this.context.extension, 'free chat terminal', `${new Date().valueOf()}`)
-          );
+          ).catch((err: Error) => {
+            outlog.error(err.message);
+            this.responsing = false;
+            this.history.pop();
+            this.cacheOutput = "";
+            writeEmitter.fire(`\x1b[1;31merror: ${err.message}\x1b[0m`);
+            writeEmitter.fire('\r\n\r\n\x1b[1;34m' + username + " > \x1b[0m\r\n");
+            errorFlag = true;
+          });
         }
       }
     });
