@@ -362,8 +362,12 @@ export class RaccoonEditor extends Disposable {
           }
           if (data.attachCode && data.attachCode[0]) {
             let d = await workspace.openTextDocument(Uri.parse(data.attachCode[0].file));
-            let r = data.attachCode[0].range;
-            prompt.code = d.getText(new Range(r.start.line, r.start.character, r.end.line, r.end.character));
+            let range: Range | undefined = undefined;
+            if (data.attachCode[0].range) {
+              let r = data.attachCode[0].range;
+              range = new Range(r.start.line, r.start.character, r.end.line, r.end.character);
+            }
+            prompt.code = d.getText(range);
             if (d.languageId !== "plaintext") {
               prompt.languageid = d.languageId;
             }
@@ -928,9 +932,9 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
         let systemPrompt = raccoonConfig.systemPrompt;
         let systemMsg: Message[] = [];
         if (prompt.systemPrompt) {
-          systemMsg.push(prompt.systemPrompt);
+          //systemMsg.push(prompt.systemPrompt);
         } else if (systemPrompt) {
-          systemMsg.push({ role: Role.system, content: systemPrompt });
+          //systemMsg.push({ role: Role.system, content: systemPrompt });
         }
         let msgs = [...systemMsg, ...historyMsgs, instruction];
         let requestId: string | undefined;

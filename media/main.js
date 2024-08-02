@@ -5,10 +5,14 @@ const sendAction = (shortcut) => {
   var acc = document.getElementById("attach-code-container");
   let attachCode = [];
   for (let c of acc.children) {
-    if (c.dataset['file'] && c.dataset['range']) {
+    if (c.dataset['file']) {
+      let range;
+      if (c.dataset['range']) {
+        range = JSON.parse(c.dataset['range']);
+      }
       attachCode.push({
         file: c.dataset['file'],
-        range: JSON.parse(c.dataset['range'])
+        range
       });
     }
   }
@@ -1222,10 +1226,14 @@ const sendAction = (shortcut) => {
       var acc = document.getElementById("attach-code-container");
       let attachCode = [];
       for (let c of acc.children) {
-        if (c.dataset['file'] && c.dataset['range']) {
+        if (c.dataset['file']) {
+          let range;
+          if (c.dataset['range']) {
+            range = JSON.parse(c.dataset['range']);
+          }
           attachCode.push({
             file: c.dataset['file'],
-            range: JSON.parse(c.dataset['range'])
+            range
           });
         }
       }
@@ -1260,10 +1268,14 @@ const sendAction = (shortcut) => {
     var acc = document.getElementById("attach-code-container");
     let attachCode = [];
     for (let c of acc.children) {
-      if (c.dataset['file'] && c.dataset['range']) {
+      if (c.dataset['file']) {
+        let range;
+        if (c.dataset['range']) {
+          range = JSON.parse(c.dataset['range']);
+        }
         attachCode.push({
           file: c.dataset['file'],
-          range: JSON.parse(c.dataset['range'])
+          range
         });
       }
     }
