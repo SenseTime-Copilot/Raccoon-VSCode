@@ -642,6 +642,17 @@ button.disabled,
     z-index: 99999;
 }
 
+#attach-file-container{
+    flex-flow: wrap;
+    gap: 3px;
+    margin-top: 3px;
+    padding-bottom: 3px;
+}
+
+#attach-file-container .attach-file {
+    background-color: var(--badge-background);
+}
+
 #search-list vscode-checkbox.selected {
     background: var(--button-icon-hover-background) !important;
 }

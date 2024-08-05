@@ -58,7 +58,7 @@ export class RaccoonConfig {
   }
 
   private async loadUITextData(lang: string) {
-    let uiTextFile = Uri.joinPath(this.context.extensionUri, `config/ui.${lang}.json`);
+    let uiTextFile = Uri.joinPath(this.context.extensionUri, `config/${lang}/ui.json`);
     let stat: FileStat | undefined;
     try {
       stat = await workspace.fs.stat(uiTextFile);
@@ -67,7 +67,7 @@ export class RaccoonConfig {
     if (stat) {
       outlog.debug(`Read UI text from ${uiTextFile.toString()}`);
     } else {
-      uiTextFile = Uri.joinPath(this.context.extensionUri, `config/ui.en.json`);
+      uiTextFile = Uri.joinPath(this.context.extensionUri, `config/en/ui.json`);
       try {
         stat = await workspace.fs.stat(uiTextFile);
       } catch (e) {
@@ -86,7 +86,7 @@ export class RaccoonConfig {
   }
 
   private async loadAgentData(lang: string) {
-    let agnetFile = Uri.joinPath(this.context.extensionUri, `config/agent.${lang}.json`);
+    let agnetFile = Uri.joinPath(this.context.extensionUri, `config/${lang}/agent.json`);
     let stat: FileStat | undefined;
     try {
       stat = await workspace.fs.stat(agnetFile);
@@ -95,7 +95,7 @@ export class RaccoonConfig {
     if (stat) {
       outlog.debug(`Read agent configuration from ${agnetFile.toString()}`);
     } else {
-      agnetFile = Uri.joinPath(this.context.extensionUri, `config/ui.en.json`);
+      agnetFile = Uri.joinPath(this.context.extensionUri, `config/en/ui.json`);
       try {
         stat = await workspace.fs.stat(agnetFile);
       } catch (e) {
@@ -123,7 +123,7 @@ export class RaccoonConfig {
   }
 
   private async loadCommitTemplate(lang: string) {
-    let commitTemplateFile = Uri.joinPath(this.context.extensionUri, `config/commit.${lang}.template`);
+    let commitTemplateFile = Uri.joinPath(this.context.extensionUri, `config/${lang}/commit.template`);
     let stat: FileStat | undefined;
     try {
       stat = await workspace.fs.stat(commitTemplateFile);
@@ -132,7 +132,7 @@ export class RaccoonConfig {
     if (stat) {
       outlog.debug(`Read Commit Template from ${commitTemplateFile.toString()}`);
     } else {
-      commitTemplateFile = Uri.joinPath(this.context.extensionUri, `config/commit.en.template`);
+      commitTemplateFile = Uri.joinPath(this.context.extensionUri, `config/en/commit.template`);
       try {
         stat = await workspace.fs.stat(commitTemplateFile);
       } catch (e) {
@@ -151,7 +151,7 @@ export class RaccoonConfig {
   }
 
   private async loadPromptData(lang: string) {
-    let promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.${lang}.json`);
+    let promptFile = Uri.joinPath(this.context.extensionUri, `config/${lang}/prompt.json`);
     let stat: FileStat | undefined;
     try {
       stat = await workspace.fs.stat(promptFile);
@@ -160,7 +160,7 @@ export class RaccoonConfig {
     if (stat) {
       outlog.debug(`Read prompt from ${promptFile.toString()}`);
     } else {
-      promptFile = Uri.joinPath(this.context.extensionUri, `config/prompt.en.json`);
+      promptFile = Uri.joinPath(this.context.extensionUri, `config/en/prompt.json`);
       try {
         stat = await workspace.fs.stat(promptFile);
       } catch (e) {

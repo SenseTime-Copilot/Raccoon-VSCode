@@ -19,6 +19,7 @@ export interface CacheItem {
   name: string;
   type: CacheItemType;
   instruction?: string;
+  agent?: string;
   requestId?: string;
   value: string;
 }

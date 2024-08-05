@@ -506,11 +506,15 @@ const sendAction = (shortcut) => {
 
               preCode.parentElement.prepend(buttonWrapper);
             });
+            let labelAgent = '';
+            if (item.agent) {
+              labelAgent = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${item.agent}</p>`;
+            }
             let labelInstruction = '';
             if (item.instruction) {
               labelInstruction = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${item.instruction.replace("...", "")}</p>`;
             }
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelInstruction}${markedResponse.documentElement.innerHTML}</div>`;
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelAgent}${labelInstruction}${markedResponse.documentElement.innerHTML}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
@@ -620,7 +624,7 @@ const sendAction = (shortcut) => {
             }
           }
           let ct = document.createElement('div');
-          ct.classList.add("flex", "items-end", "px-1");
+          ct.classList.add("attach-file", "flex", "items-end", "px-1");
           ct.dataset['file'] = message.file;
           let icon = document.createElement('span');
           icon.classList.add("material-symbols-rounded");

@@ -1,10 +1,10 @@
 [
     {
         "id": "default",
-        "systemPrompt": "你的母语是中文，除非用户指定了语种，否则使用中文回答。"
+        "systemPrompt": "你的母語是中文，除非使用者指定了語種，否則使用中文回答。"
     },
     {
-        "id": "小浣熊",
+        "id": "raccoon",
         "label": "Raccoon",
         "icon": "pets",
         "systemPrompt": "",

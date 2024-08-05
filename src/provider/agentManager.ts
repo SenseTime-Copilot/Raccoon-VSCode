@@ -11,6 +11,7 @@ export interface RaccoonAgent {
   id: string;
   label: string;
   icon: string;
+  contextInformation: "none" | "last" | "all";
   abilities: AgentAbility[];
   systemPrompt: string;
   builtin?: boolean;
@@ -116,6 +117,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       var label = document.getElementById("label").value;
       var shortcut = document.getElementById("shortcut").value;
       var prompt = document.getElementById("prompt").value;
+      var context = document.getElementById("context").value;
       vscode.postMessage(
         {
           "type": "save",
@@ -124,6 +126,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
             "id": shortcut,
             "label": label,
             "icon": "person",
+            "contextInformation": context,
             "systemPrompt": prompt,
             "knowledges": []
           }
@@ -173,12 +176,12 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       <h2>${raccoonConfig.t("Custom Agent")}</h2>
       <div style="display: flex; flex-direction: column;">
         <div style="display: flex; grid-gap: 1rem; flex-flow: wrap">
-          <vscode-text-field id="shortcut" tabindex="1" placeholder="${raccoonConfig.t("Start with a letter, with a length limit of {{lengthLimit}} word characters", { lengthLimit: "1~16" })}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.id}"`}}>${raccoonConfig.t("ID")}
+          <vscode-text-field ${agent?.builtin ? "disabled" : ""} id="shortcut" tabindex="1" placeholder="${raccoonConfig.t("Start with a letter, with a length limit of {{lengthLimit}} word characters", { lengthLimit: "1~16" })}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.id}"`}>${raccoonConfig.t("ID")}
             <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${raccoonConfig.t("ID")}">
               <span class="material-symbols-rounded">alternate_email</span>
             </vscode-link>
           </vscode-text-field>
-          <vscode-text-field id="label" tabindex="2" placeholder="${raccoonConfig.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.label}"`}>${raccoonConfig.t("Label")}
+          <vscode-text-field ${agent?.builtin ? "disabled" : ""} id="label" tabindex="2" placeholder="${raccoonConfig.t("Display label")}" style="white-space: normal; flex-grow: 3; font-family: var(--vscode-editor-font-family);" maxlength="16" ${agent && `value="${agent.label}"`}>${raccoonConfig.t("Label")}
             <vscode-link slot="start" tabindex="-1" style="cursor: help;" href="#" title="${raccoonConfig.t("Display label")}">
               <span class="material-symbols-rounded">smart_button</span>
             </vscode-link>
@@ -187,21 +190,31 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
             <label for="prompt" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("System Prompt")}</label>
-            <textarea tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 9px 9px 9px 9px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
+            <textarea ${agent?.builtin ? "disabled" : ""} tabindex="3" id="prompt" rows="10" resize="vertical" style="border-radius: 6px;padding: 9px 9px 9px 9px;outline-color: var(--vscode-focusBorder);font-family: var(--vscode-editor-font-family);height: 268px;border: 1px solid var(--vscode-dropdown-border);"></textarea>
           </div>
         </div>
         <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
+            <label for="RAG" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Context Information")}</label>
+            <vscode-radio-group ${agent?.builtin ? "disabled" : ""} id="context" style="display: flex; margin-left: 1rem; grid-gap: 0 1rem; flex-flow: wrap" value="${agent?.contextInformation || "none"}">
+              <vscode-radio style="--font-family: var(--vscode-editor-font-family);" value="none">${raccoonConfig.t("None")}</vscode-radio>
+              <vscode-radio style="--font-family: var(--vscode-editor-font-family);" value="last">${raccoonConfig.t("Last Conversation")}</vscode-radio>
+              <vscode-radio style="--font-family: var(--vscode-editor-font-family);" value="all">${raccoonConfig.t("Previous Conversations")}</vscode-radio>
+            </vscode-radio-group>
+          </div>
+        </div>
+        <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap;">
+          <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
             <label for="RAG" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Retrieval Argumention")}</label>
             <div style="display: flex; margin-left: 1rem; grid-gap: 0 1rem; flex-flow: wrap">
-              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Knowledge Base")}</vscode-checkbox>
-              <vscode-checkbox style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Internet")}</vscode-checkbox>
+              <vscode-checkbox ${agent?.builtin ? "disabled" : ""} style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Knowledge Base")}</vscode-checkbox>
+              <vscode-checkbox ${agent?.builtin ? "disabled" : ""} style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Internet")}</vscode-checkbox>
             </div>
           </div>
         </div>
         <div style="display: flex; margin-top: 1rem; align-self: flex-end; grid-gap: 1rem;">
-          <vscode-button tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Cancel")}</vscode-button>
-          <vscode-button tabindex="4" id="save" ${(agent && agent.id.length > 0) ? '' : 'disabled'} onclick="save('${agent?.id}')" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Save")}</vscode-button>
+          <vscode-button ${agent?.builtin ? "disabled" : ""} tabindex="5" appearance="secondary" onclick="cancel()" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Cancel")}</vscode-button>
+          <vscode-button ${agent?.builtin ? "disabled" : ""} tabindex="4" id="save" ${(agent && agent.id.length > 0) ? '' : 'disabled'} onclick="save('${agent?.id}')" style="--button-padding-horizontal: 2rem;">${raccoonConfig.t("Save")}</vscode-button>
         </div>
       </div>
       </div>

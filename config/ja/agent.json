@@ -4,7 +4,7 @@
         "systemPrompt": "あなたの母国語は日本語です。ユーザーが言語を指定しない限り、回答は日本語で行われます。"
     },
     {
-        "id": "小浣熊",
+        "id": "raccoon",
         "label": "Raccoon",
         "icon": "pets",
         "systemPrompt": "",

@@ -206,6 +206,10 @@ export class PromptInfo {
     return this._prompt.message;
   }
 
+  public get agent(): RaccoonAgent | undefined {
+    return this._agent;
+  }
+
   public get codeInfo(): { code: string; languageid: string } | undefined {
     if (this._prompt.code) {
       return {

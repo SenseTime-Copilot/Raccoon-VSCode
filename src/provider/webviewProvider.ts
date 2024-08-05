@@ -553,7 +553,7 @@ export class RaccoonEditor extends Disposable {
             if (renderRequestBody) {
               issueTitle = '[Need Improvement]';
               issueBody = `## Your question\n\n
-${renderRequestBody}
+${qinfo[0]?.agent ? `@${qinfo[0].agent} ` : ""}${renderRequestBody}
 ${ainfo[0]?.value ? `\n\n## Raccoon's answer\n\n${ainfo[0].value}\n\n` : ""}
 ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 ## Your expection
@@ -903,7 +903,8 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
           instruction.content = instruction.content.replace(/\{\{code\}\}/g, "");
         }
         let historyMsgs: Message[] = [];
-        if (history) {
+        let contextSetting = prompt.agent ? (prompt.agent.contextInformation || "none") : "all";
+        if (history && contextSetting !== "none") {
           let hs = Array.from(history).reverse();
           for (let h of hs) {
             let role = Role.user;
@@ -919,9 +920,12 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
               role,
               content: h.value
             });
+            if (contextSetting === "last" && h.type !== CacheItemType.question) {
+              break;
+            }
           }
         }
-        this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, value: instruction.content });
+        this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, agent: prompt.agent?.id, value: instruction.content });
 
         historyMsgs = historyMsgs.reverse();
 
