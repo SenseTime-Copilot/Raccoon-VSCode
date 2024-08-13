@@ -649,6 +649,21 @@ button.disabled,
     z-index: 99999;
 }
 
+#file-list {
+    overflow-y: auto;
+    max-height: 40vh;
+    scrollbar-width: thin;
+}
+
+#file-list button {
+    min-height: 1.5rem;
+}
+
+#file-list::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
 #attach-file-container,
 #attach-code-container {
     flex-direction: column;

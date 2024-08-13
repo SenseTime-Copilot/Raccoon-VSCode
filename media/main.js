@@ -1373,14 +1373,13 @@ const sendAction = (shortcut) => {
 
       var firstSelected = false;
       files.forEach((item, _index) => {
+        var f = document.createElement("button");
         if (item.kind < 0) {
-          var f = document.createElement("button");
           f.classList.add("disabled", "flex", "items-end", "w-full", "overflow-hidden", "whitespace-nowrap", "px-1", "text-xs");
           f.innerText = item.label;
           list.appendChild(f);
           return;
         }
-        var f = document.createElement("button");
         let icon = document.createElement('span');
         icon.classList.add('material-symbols-rounded');
         icon.innerText = item.binary ? "link" : "description";
