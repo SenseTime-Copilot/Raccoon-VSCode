@@ -223,6 +223,10 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'openDoc': {
+          if (!data.range) {
+            commands.executeCommand("vscode.open", Uri.parse(data.file));
+            break;
+          }
           let allTabGroups = window.tabGroups.all;
           for (let tg of allTabGroups) {
             for (let tab of tg.tabs) {
@@ -265,30 +269,52 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'selectFile': {
-          let files: Array<QuickPickItem & { uri?: Uri; languageId?: string }> = [];
-          let externalfiles: Array<QuickPickItem & { uri?: Uri; languageId?: string }> = [];
-          let allTabGroups = window.tabGroups.all;
-          files.push({ label: "Opened", kind: QuickPickItemKind.Separator });
-          for (let tg of allTabGroups) {
-            for (let tab of tg.tabs) {
-              if (tab.input instanceof TabInputText) {
-                let label = workspace.asRelativePath(tab.input.uri);
-                if (label !== tab.input.uri.fsPath) {
-                  let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
-                  files.push({ label, uri: tab.input.uri, languageId });
-                } else {
-                  let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
-                  externalfiles.push({ label, uri: tab.input.uri, languageId });
+          let files: Array<QuickPickItem & { uri?: Uri; binary?: boolean; languageId?: string }> = [];
+          if (!data.all) {
+            let externalfiles: Array<QuickPickItem & { uri?: Uri; binary?: boolean; languageId?: string }> = [];
+            let allTabGroups = window.tabGroups.all;
+            files.push({ label: raccoonConfig.t("Opened"), kind: QuickPickItemKind.Separator });
+            for (let tg of allTabGroups) {
+              for (let tab of tg.tabs) {
+                if (tab.input instanceof TabInputText) {
+                  let label = workspace.asRelativePath(tab.input.uri);
+                  if (label !== tab.input.uri.fsPath) {
+                    try {
+                      let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
+                      files.push({ label, uri: tab.input.uri, languageId });
+                    } catch (err) {
+                      files.push({ label, uri: tab.input.uri, binary: true });
+                    }
+                  } else {
+                    try {
+                      let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
+                      externalfiles.push({ label, uri: tab.input.uri, languageId });
+                    } catch (err) {
+                      files.push({ label, uri: tab.input.uri, binary: true });
+                    }
+                  }
                 }
               }
             }
-          }
 
-          if (externalfiles.length > 0) {
-            files.push({ label: "External", kind: QuickPickItemKind.Separator });
-            for (let item of externalfiles) {
-              files.push(item);
+            if (externalfiles.length > 0) {
+              files.push({ label: raccoonConfig.t("External"), kind: QuickPickItemKind.Separator });
+              for (let item of externalfiles) {
+                files.push(item);
+              }
             }
+
+            this.webview.postMessage({
+              type: 'listFile', value: files.map((v) => {
+                return {
+                  kind: v.kind,
+                  label: v.label,
+                  binary: v.binary,
+                  file: v.uri?.toString()
+                };
+              })
+            });
+            break;
           }
 
           if (workspace.workspaceFolders) {
@@ -306,19 +332,10 @@ export class RaccoonEditor extends Disposable {
           }
 
           window.showQuickPick<QuickPickItem & { uri?: Uri; languageId?: string }>(files, {
-            placeHolder: "Select file(s) to attach, up to 6 files",
-            canPickMany: true
-          }).then((items) => {
-            if (!items) {
-              return;
-            }
-            if (items.length > 6) {
-              items = items.slice(0, 6);
-            }
-            for (let item of items) {
-              if (item && item.uri) {
-                this.sendFile(item.uri);
-              }
+            placeHolder: "Select file to attach"
+          }).then((item) => {
+            if (item && item.uri) {
+              this.sendFile(item.uri);
             }
           });
           break;
@@ -877,7 +894,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
     let streaming = raccoonManager.streamResponse;
     let instruction = prompt.userPrompt;
 
-    let promptHtml = prompt.generatePromptHtml(id, values);
+    let promptHtml = prompt.generatePromptHtml(id, values, attachFile);
     if (promptHtml.status === RenderStatus.codeMissing) {
       this.sendMessage({ type: 'showInfoTip', style: "error", category: 'no-code', value: raccoonConfig.t("No code selected"), id });
       return;
@@ -925,7 +942,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             }
           }
         }
-        this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, agent: prompt.agent?.id, value: instruction.content });
+        this.cache.appendCacheItem({ id, name: username, timestamp: reqTimestamp, type: CacheItemType.question, instruction: prompt.label, agent: prompt.agent?.id, attachFile, value: instruction.content });
 
         historyMsgs = historyMsgs.reverse();
 
@@ -1098,17 +1115,6 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
         }
         this.sendMessage({ type: 'addError', error, id });
       }
-    }
-
-    if (attachFile && attachFile[0]) {
-      this.sendMessage({
-        type: 'addFileAttachment',
-        files: attachFile.map((f: any) => {
-          let uri = Uri.parse(f.file);
-          return workspace.asRelativePath(uri);
-        }),
-        id
-      });
     }
   }
 

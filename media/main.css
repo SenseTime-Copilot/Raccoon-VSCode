@@ -602,9 +602,25 @@ textarea::placeholder {
     opacity: 1;
 }
 
+#chat-input-box.prompt-ready.action #question #attach-button,
+#chat-input-box.prompt-ready.agent #question #attach-button {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 #chat-input-box.prompt-ready.search #question #attach-button,
 #chat-input-box.prompt-ready.search #question #send-button {
     display: none;
+}
+
+#chat-input-box #question #attach-button .close,
+#chat-input-box.file #question #attach-button .open {
+    display: none;
+}
+
+#chat-input-box.file #question #attach-button .close,
+#chat-input-box #question #attach-button .open {
+    display: inline-block;
 }
 
 #chat-input-box.responsing #attach-file-container,
@@ -625,6 +641,7 @@ button.disabled,
 
 #search-list,
 #agent-list,
+#file-list,
 #ask-list {
     width: 100%;
     background-color: var(--input-background);
@@ -640,17 +657,21 @@ button.disabled,
     color: var(--input-placeholder-foreground);
     border-bottom: 1px dashed var(--checkbox-border);
     z-index: 99999;
-}
-
-#attach-file-container{
-    flex-flow: wrap;
     gap: 3px;
     margin-top: 3px;
     padding-bottom: 3px;
 }
 
+#attach-code-container .attach-code,
 #attach-file-container .attach-file {
-    background-color: var(--badge-background);
+    max-width: 100%;
+    flex-grow: 1;
+    border-radius: 4px;
+}
+
+.attachment {
+    border-left: 4px solid var(--focus-border);
+    padding-left: 0.25rem;
 }
 
 #search-list vscode-checkbox.selected {
@@ -658,6 +679,7 @@ button.disabled,
 }
 
 .toolbar {
+    padding-bottom: 2px;
     border-bottom: 1px solid var(--checkbox-border);
 }
 
@@ -714,20 +736,27 @@ span.shortcut:after {
 #agent-list button.selected,
 #agent-list button:hover,
 #agent-list button:focus,
-#ask-list button.selected,
+#file-list button.selected,
+#file-list button:hover,
+#file-list button:focus,#ask-list button.selected,
 #ask-list button:hover,
 #ask-list button:focus {
     outline: none !important;
     background: var(--button-icon-hover-background) !important;
+    color: var(--button-primary-foreground);
 }
 
 .vscode-high-contrast #agent-list button.selected,
 .vscode-high-contrast #agent-list button:hover,
 .vscode-high-contrast #agent-list button:focus,
+.vscode-high-contrast #file-list button.selected,
+.vscode-high-contrast #file-list button:hover,
+.vscode-high-contrast #file-list button:focus,
 .vscode-high-contrast #ask-list button.selected,
 .vscode-high-contrast #ask-list button:hover,
 .vscode-high-contrast #ask-list button:focus {
     background: var(--vscode-list-hoverBackground) !important;
+    color: var(--vscode-list-focusHighlightForeground);
 }
 
 #agent-indicator {

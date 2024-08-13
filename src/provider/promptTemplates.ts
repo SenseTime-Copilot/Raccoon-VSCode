@@ -1,3 +1,4 @@
+import { Uri, workspace } from "vscode";
 import { raccoonConfig } from "../globalEnv";
 import { Message, Role } from "../raccoonClient/CodeClient";
 import { RaccoonAgent } from "./agentManager";
@@ -48,7 +49,7 @@ export class PromptInfo {
     this._agent = agent;
   }
 
-  public generatePromptHtml(id: number, argValues?: any): RaccoonPromptHtml {
+  public generatePromptHtml(id: number, argValues?: any, attachFile?: Array<{ file: string }>): RaccoonPromptHtml {
     if (this._prompt.message.content.includes("{{code}}") && !this._prompt.code) {
       return {
         status: RenderStatus.codeMissing,
@@ -166,12 +167,38 @@ export class PromptInfo {
       prompthtml = `<p class="instruction-label font-bold pl-1 pr-2" title="${this._agent.label}">@${this._agent.id}</p>` + prompthtml;
     }
 
+    let fileList = '';
+    if (attachFile) {
+      for (let item of attachFile) {
+        let uri = Uri.parse(item.file);
+        let label = workspace.asRelativePath(uri);
+        let file = item.file;
+        fileList += `
+        <div class="flex opacity-70 max-w-full self-start items-center overflow-hidden" data-file="${file}">
+          <span class="material-symbols-rounded">file_present</span>
+          <vscode-link class="grow whitespace-pre text-ellipsis overflow-hidden text-xs" title="${file}" onclick='vscode.postMessage({type: "openDoc", file: "${file}"});'>${label}</span>
+        </div>`;
+      }
+    }
+
     if (renderHtml.status === RenderStatus.editRequired) {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}<div id="values-${id}" class="values hidden" ${argData}></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2 editing" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}` +
+        `<div id="attachment-${id}" class="attachment flex flex-col gap-1 items-center">` +
+        `${fileList}` +
+        `</div>` +
+        `<div id="values-${id}" class="values hidden" ${argData}>` +
+        `</div>` +
+        `</div>`;
     } else {
       renderHtml.html =
-        `<div id="prompt-${id}" class="prompt markdown-body pb-2" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}<div id="values-${id}" class="values hidden"></div></div>`;
+        `<div id="prompt-${id}" class="prompt markdown-body pb-2" data-id="${id}" data-label="${this.label}">${prompthtml.trim()}` +
+        `<div id="attachment-${id}" class="attachment flex flex-col gap-1 items-center">` +
+        `${fileList}` +
+        `</div>` +
+        `<div id="values-${id}" class="values hidden">` +
+        `</div>` +
+        `</div>`;
     }
 
     return renderHtml;

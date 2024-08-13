@@ -221,6 +221,47 @@ const sendAction = (shortcut) => {
     return cont;
   }
 
+  function attachFileItem(message) {
+    var afc = document.getElementById("attach-file-container");
+    if (afc && message.file) {
+      for (let item of afc.children) {
+        if (item.dataset['file'] === message.file) {
+          _toggleFileList([], false);
+          return;
+        }
+      }
+      let ct = document.createElement('div');
+      ct.classList.add("attach-file", "flex", "items-end", "px-1");
+      ct.dataset['file'] = message.file;
+      let icon = document.createElement('span');
+      icon.classList.add("material-symbols-rounded");
+      icon.innerText = "file_present";
+      let link = document.createElement('vscode-link');
+      link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
+      link.title = message.file;
+      link.onclick = (_event) => {
+        vscode.postMessage({ type: "openDoc", file: message.file });
+      };
+      link.innerHTML = message.label;
+      let rmBtn = document.createElement('span');
+      rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
+      rmBtn.title = l10nForUI["Delete"];
+      rmBtn.innerText = 'cancel';
+      rmBtn.onclick = (_event) => {
+        ct.remove();
+        if (afc.children.length === 0) {
+          afc.classList.add("hidden");
+        }
+      };
+      ct.appendChild(icon);
+      ct.appendChild(link);
+      ct.appendChild(rmBtn);
+      afc.appendChild(ct);
+      afc.classList.remove("hidden");
+    }
+    _toggleFileList([], false);
+  }
+
   document.getElementById('question-input').addEventListener("focus", (_e) => {
     var acc = document.getElementById("attach-code-container");
     if (acc && acc.classList.contains('with-code')) {
@@ -514,7 +555,14 @@ const sendAction = (shortcut) => {
             if (item.instruction) {
               labelInstruction = `<p class="instruction-label font-bold pl-1 pr-2"><span class="material-symbols-rounded align-text-bottom">auto_fix_normal</span>${item.instruction.replace("...", "")}</p>`;
             }
-            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelAgent}${labelInstruction}${markedResponse.documentElement.innerHTML}</div>`;
+            let files = `<div id="attachment-${item.id}" class="attachment flex flex-col gap-1 items-center">`;
+            if (item.attachFile && item.attachFile[0]) {
+              files += item.attachFile.map((v) => {
+                return `<span class="flex opacity-50 max-w-full self-start items-center overflow-hidden"><span class="material-symbols-rounded">file_present</span><span class="grow whitespace-pre text-ellipsis overflow-hidden text-xs">${decodeURIComponent(v.file)}</span></span>`;
+              }).join("");
+            }
+            files += "</div>";
+            let html = `<div id="prompt-${item.id}" class="prompt markdown-body pb-2">${labelAgent}${labelInstruction}${markedResponse.documentElement.innerHTML}${files}</div>`;
             list.innerHTML += buildQuestion(item.name, undefined, item.timestamp, item.id, html, 'resolved');
           } else if (item.type === "answer") {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
@@ -615,43 +663,12 @@ const sendAction = (shortcut) => {
         showInfoTip(message);
         break;
       }
+      case "listFile": {
+        _toggleFileList(message.value, true);
+        break;
+      }
       case "attachFile": {
-        var afc = document.getElementById("attach-file-container");
-        if (afc && message.file) {
-          for (let item of afc.children) {
-            if (item.dataset['file'] === message.file) {
-              return;
-            }
-          }
-          let ct = document.createElement('div');
-          ct.classList.add("attach-file", "flex", "items-end", "px-1");
-          ct.dataset['file'] = message.file;
-          let icon = document.createElement('span');
-          icon.classList.add("material-symbols-rounded");
-          icon.innerText = "file_present";
-          let link = document.createElement('vscode-link');
-          link.classList.add("grow", "whitespace-pre", "text-ellipsis", "overflow-hidden", "text-xs");
-          link.title = message.file;
-          link.onclick = (_event) => {
-            vscode.postMessage({ type: "openDoc", file: message.file });
-          };
-          link.innerHTML = message.label;
-          let rmBtn = document.createElement('span');
-          rmBtn.classList.add('material-symbols-rounded', 'cursor-pointer', 'float-right', 'hover:scale-105');
-          rmBtn.title = l10nForUI["Delete"];
-          rmBtn.innerText = 'cancel';
-          rmBtn.onclick = (_event) => {
-            ct.remove();
-            if (afc.children.length === 0) {
-              afc.classList.add("hidden");
-            }
-          };
-          ct.appendChild(icon);
-          ct.appendChild(link);
-          ct.appendChild(rmBtn);
-          afc.appendChild(ct);
-          afc.classList.remove("hidden");
-        }
+        attachFileItem(message);
         break;
       }
       case 'codeReady': {
@@ -666,7 +683,7 @@ const sendAction = (shortcut) => {
           if (message.range) {
             ct.dataset['range'] = JSON.stringify(message.range);
           }
-          ct.classList.add("flex", "items-end", "px-1");
+          ct.classList.add("attach-code", "flex", "items-end", "px-1");
           let rangetag = ``;
           if (!message.range) {
             rangetag = ``;
@@ -932,7 +949,6 @@ const sendAction = (shortcut) => {
                                       ${requestIdIcon}
                                     </button>
                                   </h2>
-                                  <div id="attachment-${id}" class="attachment flex flex-col gap-1 items-center"></div>
                                   <div id="reference-${id}" class="reference flex flex-col gap-1 items-center"></div>
                                   <div id="response-${id}" class="response ${promptInfo.prompt?.code ? 'with-code' : ''} empty flex flex-col gap-1 markdown-body"></div>
                                   ${progress}
@@ -1145,19 +1161,7 @@ const sendAction = (shortcut) => {
         const reference = document.getElementById(`reference-${message.id}`);
         if (reference) {
           reference.innerHTML = message.files.map((v) => {
-            return `<span class="flex opacity-50 max-w-full self-start overflow-hidden"><span class="material-symbols-rounded">quick_reference_all</span><span class="align-middle">${decodeURIComponent(v)}</span></span>`;
-          }).join("");
-        }
-        break;
-      }
-      case 'addFileAttachment': {
-        if (!list.innerHTML) {
-          return;
-        }
-        const attachment = document.getElementById(`attachment-${message.id}`);
-        if (attachment) {
-          attachment.innerHTML = message.files.map((v) => {
-            return `<span class="flex opacity-50 max-w-full self-start overflow-hidden"><span class="material-symbols-rounded">quick_reference_all</span><span class="align-middle">${decodeURIComponent(v)}</span></span>`;
+            return `<span class="flex opacity-50 max-w-full self-start items-center overflow-hidden"><span class="material-symbols-rounded">quick_reference_all</span><span class="grow whitespace-pre text-ellipsis overflow-hidden text-xs">${decodeURIComponent(v)}</span></span>`;
           }).join("");
         }
         break;
@@ -1219,36 +1223,46 @@ const sendAction = (shortcut) => {
       if (valuesElems && valuesElems[0]) {
         values = { ...valuesElems[0].dataset };
       }
+      var acc = document.getElementById("attach-code-container");
+      var afc = document.getElementById("attach-file-container");
+
       var promptTemp = editCache.get(id);
       promptTemp.args = undefined;
+      if (replace) {
+        acc = undefined;
+        afc = document.getElementById(`attachment-${replace}`);
+      }
+
+      let attachCode = [];
+      if (acc) {
+        for (let c of acc.children) {
+          if (c.dataset['file']) {
+            let range;
+            if (c.dataset['range']) {
+              range = JSON.parse(c.dataset['range']);
+            }
+            attachCode.push({
+              file: c.dataset['file'],
+              range
+            });
+          }
+        }
+      }
+      let attachFile = [];
+      if (afc) {
+        for (let f of afc.children) {
+          if (f.dataset['file']) {
+            attachFile.push({
+              file: f.dataset['file']
+            });
+          }
+        }
+      }
+
       if (replace) {
         document.getElementById(`question-${replace}`)?.remove();
         document.getElementById(replace)?.remove();
         editCache.delete(id);
-      }
-
-      var acc = document.getElementById("attach-code-container");
-      let attachCode = [];
-      for (let c of acc.children) {
-        if (c.dataset['file']) {
-          let range;
-          if (c.dataset['range']) {
-            range = JSON.parse(c.dataset['range']);
-          }
-          attachCode.push({
-            file: c.dataset['file'],
-            range
-          });
-        }
-      }
-      var afc = document.getElementById("attach-file-container");
-      let attachFile = [];
-      for (let f of afc.children) {
-        if (f.dataset['file']) {
-          attachFile.push({
-            file: f.dataset['file']
-          });
-        }
       }
 
       var agent = document.getElementById("agent-tab-btn").dataset.agent;
@@ -1342,6 +1356,75 @@ const sendAction = (shortcut) => {
       let pieces = target.value.slice(0, target.selectionStart).split(" ");
       let tail = pieces[pieces.length - 1];
       return tail.startsWith(token) ? tail : undefined;
+    }
+  }
+
+  function _toggleFileList(files, show) {
+    var list = document.getElementById("file-list");
+    if (show && files && files[0] && list.classList.contains("hidden")) {
+      document.getElementById("chat-input-box").classList.add("file");
+      var afc = document.getElementById("attach-file-container");
+      let attachedFile = [];
+      for (let f of afc.children) {
+        if (f.dataset['file']) {
+          attachedFile.push(f.dataset['file']);
+        }
+      }
+
+      var firstSelected = false;
+      files.forEach((item, _index) => {
+        if (item.kind < 0) {
+          var f = document.createElement("button");
+          f.classList.add("disabled", "flex", "items-end", "w-full", "overflow-hidden", "whitespace-nowrap", "px-1", "text-xs");
+          f.innerText = item.label;
+          list.appendChild(f);
+          return;
+        }
+        var f = document.createElement("button");
+        let icon = document.createElement('span');
+        icon.classList.add('material-symbols-rounded');
+        icon.innerText = item.binary ? "link" : "description";
+        if (attachedFile.includes(item.file)) {
+          f.classList.add("disabled");
+          icon.innerText = "file_present";
+        } else if (!firstSelected) {
+          f.classList.add("selected");
+          firstSelected = true;
+        }
+        f.classList.add("flex", "gap-1", "items-end", "w-full", "overflow-hidden", "whitespace-nowrap", "px-2", "py-1");
+        f.innerText = item.label;
+        f.title = item.file;
+        f.prepend(icon);
+        f.onclick = () => attachFileItem(item);
+        list.appendChild(f);
+      });
+      var othersTag = document.createElement("button");
+      othersTag.classList.add("disabled", "flex", "items-end", "w-full", "overflow-hidden", "whitespace-nowrap", "px-1", "text-xs");
+      othersTag.innerText = l10nForUI["Others"];
+      list.appendChild(othersTag);
+
+      var browseFile = document.createElement("button");
+      browseFile.classList.add("flex", "gap-1", "items-end", "w-full", "overflow-hidden", "whitespace-nowrap", "px-2", "py-1");
+      if (!firstSelected) {
+        browseFile.classList.add("selected");
+        firstSelected = true;
+      }
+      browseFile.innerText = l10nForUI["Browse"] + "...";
+      let browseFileIcon = document.createElement('span');
+      browseFileIcon.classList.add('material-symbols-rounded');
+      browseFileIcon.innerText = "note_add";
+      browseFile.prepend(browseFileIcon);
+      browseFile.onclick = () => {
+        _toggleFileList([], false);
+        vscode.postMessage({ type: "selectFile", all: true });
+      };
+      list.appendChild(browseFile);
+
+      list.classList.remove("hidden");
+    } else {
+      list.classList.add("hidden");
+      list.innerHTML = "";
+      document.getElementById("chat-input-box").classList.remove("file");
     }
   }
 
@@ -1452,6 +1535,7 @@ const sendAction = (shortcut) => {
     _toggleAgentList();
     _toggleAskList();
     _toggleSearchList();
+    _toggleFileList([], false);
   }
 
   document.addEventListener("change", (e) => {
@@ -1532,6 +1616,10 @@ const sendAction = (shortcut) => {
     historyIdx = -1;
   });
 
+  document.body.onblur = function () {
+    _toggleFileList([], false);
+  };
+
   document.addEventListener("compositionstart", (e) => {
     if (e.target.id === "question-input") {
       isComposing = true;
@@ -1546,6 +1634,7 @@ const sendAction = (shortcut) => {
 
   document.addEventListener("keydown", (e) => {
     var agentList = document.getElementById("agent-list");
+    var fileList = document.getElementById("file-list");
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
     var settings = document.getElementById("settings");
@@ -1553,7 +1642,7 @@ const sendAction = (shortcut) => {
       return;
     }
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
-    if (targetButton) {
+    if (targetButton && fileList.classList.contains("hidden")) {
       return;
     }
     if (!list.classList.contains("hidden") && !document.getElementById("chat-input-box").classList.contains("history")) {
@@ -1677,6 +1766,48 @@ const sendAction = (shortcut) => {
               agentItems[i - 1].classList.add('selected');
             } else {
               agentItems[agentItems.length - 1].classList.add('selected');
+            }
+            break;
+          }
+        };
+      } else {
+        document.getElementById("question-input").focus();
+      }
+      return;
+    } else if (!fileList.classList.contains("hidden") && !document.getElementById("chat-input-box").classList.contains("history")) {
+      var fileItems = Array.from(fileList.querySelectorAll("button")).filter((b, _i, _a) => {
+        return !b.classList.contains('disabled');
+      });
+      if (e.key === "Enter") {
+        e.preventDefault();
+        for (let i = 0; i < fileItems.length; i++) {
+          if (fileItems[i].classList.contains('selected')) {
+            fileItems[i].click();
+            break;
+          }
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        for (let i = 0; i < fileItems.length; i++) {
+          if (fileItems[i].classList.contains('selected')) {
+            fileItems[i].classList.remove('selected');
+            if (i < fileItems.length - 1) {
+              fileItems[i + 1].classList.add('selected');
+            } else {
+              fileItems[0].classList.add('selected');
+            }
+            break;
+          }
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        for (let i = 0; i < fileItems.length; i++) {
+          if (fileItems[i].classList.contains('selected')) {
+            fileItems[i].classList.remove('selected');
+            if (i > 0) {
+              fileItems[i - 1].classList.add('selected');
+            } else {
+              fileItems[fileItems.length - 1].classList.add('selected');
             }
             break;
           }
@@ -1844,6 +1975,11 @@ const sendAction = (shortcut) => {
   document.addEventListener("click", (e) => {
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
     let ts = new Date().valueOf();
+
+    if (targetButton?.id !== "attach-button") {
+      _toggleFileList([], false);
+    }
+
     if (e.target.id === "captcha") {
       vscode.postMessage({ type: "getCaptcha" });
       return;
@@ -2057,7 +2193,8 @@ const sendAction = (shortcut) => {
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       const question = targetButton.closest(".question-element-gnc");
-      sendQuestion(question);
+      let oldId = question.id.slice('question-'.length);
+      sendQuestion(question, oldId);
       return;
     }
 

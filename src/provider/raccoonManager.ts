@@ -1,12 +1,9 @@
 import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind, ProgressLocation } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, Choice, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability, ErrorInfo } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
-import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig, raccoonManager, registerCommand, telemetryReporter } from "../globalEnv";
+import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig, raccoonManager } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
-import { GitUtils } from "../utils/gitUtils";
-import { Repository } from "../utils/git";
-import { buildHeader } from "../utils/buildRequestHeader";
 import { ClientOption, ModelCapacity } from "./config";
 import { RaccoonAgent } from "./agentManager";
 import { TGIClient } from "../raccoonClient/tgiClient";

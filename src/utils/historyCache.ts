@@ -20,6 +20,7 @@ export interface CacheItem {
   type: CacheItemType;
   instruction?: string;
   agent?: string;
+  attachFile?: Array<{ file: string }>;
   requestId?: string;
   value: string;
 }

@@ -577,6 +577,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 </div>
                 <div id="ask-list" class="flex flex-col hidden">
                 </div>
+                <div id="file-list" class="flex flex-col w-full hidden">
+                </div>
                 <div id="question" class="w-full flex justify-center items-center">
                   <span class="material-symbols-rounded opacity-60 history-icon">
                     history
@@ -597,8 +599,9 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                   >
                     <textarea id="question-input" oninput="this.parentNode.dataset.value = this.value" rows="1"></textarea>
                   </label>
-                  <button id="attach-button" class="${!raccoonConfig.beta.includes("fileAttach") ? "hidden" : ""}" title="${raccoonConfig.t("Attach File")}">
-                    <span class="material-symbols-rounded">attach_file_add</span>
+                  <button id="attach-button" class="${!raccoonConfig.beta.includes("fileAttach") ? "hidden" : ""}">
+                    <span class="material-symbols-rounded open" title="${raccoonConfig.t("Attach File")}">attach_file_add</span>
+                    <span class="material-symbols-rounded close" title="${raccoonConfig.t("Close")}">keyboard_arrow_down</span>
                   </button>
                   <button id="send-button" title="${raccoonConfig.t("Send")} [Enter]">
                     <span class="material-symbols-rounded">send</span>
@@ -670,6 +673,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 "Delete": "${raccoonConfig.t("Delete")}",
                 "DeleteQA": "${raccoonConfig.t("Delete this chat entity")}",
                 "Send": "${raccoonConfig.t("Send")}",
+                "Others": "${raccoonConfig.t("Others")}",
+                "Browse": "${raccoonConfig.t("Browse")}",
                 "ToggleWrap": "${raccoonConfig.t("Toggle line wrap")}",
                 "Show graph": "${raccoonConfig.t("Show graph")}",
                 "Hide graph": "${raccoonConfig.t("Hide graph")}",
