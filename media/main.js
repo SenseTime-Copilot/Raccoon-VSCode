@@ -485,6 +485,19 @@ const sendAction = (shortcut) => {
         list.lastChild?.scrollIntoView({ block: "end", inline: "nearest" });
         break;
       }
+      case 'showOrganizationSwitchBtn': {
+        let b = document.getElementById('switch-org-btn');
+        let bl = document.getElementById('switch-org-btn-label');
+        bl.innerText = message.name;
+        bl.title = message.name;
+        if (message.switchEnable) {
+          b.classList.add("switchable");
+        }else{
+          b.classList.add("pointer-events-none");
+        }
+        b.classList.remove("hidden");
+        break;
+      }
       case 'restoreFromCache': {
         for (let item of message.value) {
           if (item.type === 'question') {
@@ -726,15 +739,6 @@ const sendAction = (shortcut) => {
         }
         break;
       }
-      case "captcha": {
-        var captcha = document.getElementById('captcha');
-        if (captcha) {
-          captcha.src = message.value.image;
-          captcha.dataset.id = message.value.uuid;
-          document.getElementById("login-sms-captcha").value = "";
-        }
-        break;
-      }
       case "updateSettingPage": {
         var settings = document.getElementById('settings');
         if (message.action === "close" || (message.action === "toggle" && settings)) {
@@ -761,9 +765,6 @@ const sendAction = (shortcut) => {
               }
               settings.append(...sn.childNodes);
             }
-          }
-          if (document.getElementById("captcha")) {
-            vscode.postMessage({ type: "getCaptcha" });
           }
         }
         break;
@@ -1408,16 +1409,29 @@ const sendAction = (shortcut) => {
         browseFile.classList.add("selected");
         firstSelected = true;
       }
-      browseFile.innerText = l10nForUI["Browse"] + "...";
+      browseFile.innerText = l10nForUI["Workspace Files"] + " ...";
       let browseFileIcon = document.createElement('span');
       browseFileIcon.classList.add('material-symbols-rounded');
-      browseFileIcon.innerText = "note_add";
+      browseFileIcon.innerText = "folder_copy";
       browseFile.prepend(browseFileIcon);
       browseFile.onclick = () => {
         _toggleFileList([], false);
-        vscode.postMessage({ type: "selectFile", all: true });
+        vscode.postMessage({ type: "selectFile", scope: "workspace" });
       };
       list.appendChild(browseFile);
+
+      var browseKB = document.createElement("button");
+      browseKB.classList.add("flex", "gap-1", "items-end", "w-full", "overflow-hidden", "whitespace-nowrap", "px-2", "py-1");
+      browseKB.innerText = l10nForUI["Knowledge Base"] + " ...";
+      let browseKBIcon = document.createElement('span');
+      browseKBIcon.classList.add('material-symbols-rounded');
+      browseKBIcon.innerText = "smb_share";
+      browseKB.prepend(browseKBIcon);
+      browseKB.onclick = () => {
+        _toggleFileList([], false);
+        vscode.postMessage({ type: "selectFile", scope: "knowledgebase" });
+      };
+      list.appendChild(browseKB);
 
       list.classList.remove("hidden");
     } else {
@@ -1979,10 +1993,6 @@ const sendAction = (shortcut) => {
       _toggleFileList([], false);
     }
 
-    if (e.target.id === "captcha") {
-      vscode.postMessage({ type: "getCaptcha" });
-      return;
-    }
     if (targetButton?.id === "login-phone-btn") {
       let nationCode = document.getElementById("login-phone-code")?.value;
       let phone = document.getElementById("login-phone-account").value;
@@ -2018,7 +2028,7 @@ const sendAction = (shortcut) => {
     }
 
     if (targetButton?.id === "attach-button") {
-      vscode.postMessage({ type: 'selectFile' });
+      vscode.postMessage({ type: 'selectFile', scope: "opened" });
       return;
     }
 
@@ -2082,7 +2092,7 @@ const sendAction = (shortcut) => {
       return;
     }
 
-    if (e.target.id === "switch-org") {
+    if (e.target.closest('.switch-org')) {
       vscode.postMessage({ type: "switchOrg" });
       return;
     }

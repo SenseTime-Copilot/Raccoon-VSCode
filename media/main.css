@@ -334,6 +334,25 @@ textarea::placeholder {
     box-shadow: 0 0 3px var(--checkbox-border);
 }
 
+.op-hint .switch-org {
+    opacity: 0.4;
+    color: var(--button-secondary-foreground);
+    background-color: var(--button-secondary-background);
+    border-bottom: 2px solid var(--button-secondary-hover-background);
+    border-radius: 5px;
+}
+
+#chat-input-box:focus-within .op-hint .switch-org.switchable {
+    opacity: 0.6;
+}
+
+#chat-input-box .op-hint .switch-org.switchable:hover {
+    opacity: 0.9;
+    color: var(--button-primary-foreground);
+    background-color: var(--button-primary-hover-background);
+    border-bottom: 2px solid var(--button-primary-background);
+}
+
 #msg-wrapper {
     height: 0;
     display: flex;
@@ -478,7 +497,7 @@ textarea::placeholder {
 }
 
 .op-hint {
-    padding: 3px 0.5rem;
+    padding: 3px 1px 1px 7px;
     display: flex;
     gap: 0.5rem;
     width: 100%;
@@ -502,6 +521,7 @@ textarea::placeholder {
 .prompt-ready-hint,
 .stop-hint,
 .agent-hint,
+.file-hint,
 .action-hint,
 .search-hint,
 .history-hint {
@@ -512,6 +532,7 @@ textarea::placeholder {
 #chat-input-box.responsing .prompt-hint,
 .prompt-ready .prompt-hint,
 .agent .prompt-hint,
+.file .prompt-hint,
 .action .prompt-hint,
 .history .prompt-hint,
 .search .prompt-hint,
@@ -525,6 +546,7 @@ textarea::placeholder {
 #chat-input-box.responsing .stop-hint,
 .prompt-ready .prompt-ready-hint,
 .agent .op-hint .agent-hint,
+.file .op-hint .file-hint,
 .action .op-hint .action-hint,
 .history .op-hint .history-hint,
 .search .op-hint .search-hint {
@@ -547,6 +569,11 @@ textarea::placeholder {
 
 #chat-input-box.agent:not(.prompt-ready) #question-sizer:before {
     content: attr(data-agent-hint);
+    margin-left: 0.2ch;
+}
+
+#chat-input-box.file:not(.prompt-ready) #question-sizer:before {
+    content: attr(data-file-hint);
     margin-left: 0.2ch;
 }
 
@@ -787,6 +814,7 @@ span.shortcut:after {
     display: flex;
     margin-top: -10px;
     opacity: 0;
+    pointer-events: none;
     transition: none;
 }
 

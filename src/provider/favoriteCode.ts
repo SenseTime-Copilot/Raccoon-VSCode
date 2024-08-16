@@ -396,7 +396,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
         <vscode-data-grid-cell grid-column="1" style="align-self: center;" title="#${s.id}"><vscode-link onclick="editSnippet('${s.id}')">${s.shortcut}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="align-self: center;">${supportedLanguages[s.languageid!].displayName} <small style="opacity: 0.6;">(${s.languageid})</small></vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="3" style="align-self: center; white-space: pre;max-height: 5rem; overflow: hidden; text-overflow: ellipsis;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="align-self: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${s.code.replace(/</g, "&lt;")}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="align-self: center;">
           <vscode-link>
             <span class="material-symbols-rounded edit-snippet" onclick="editSnippet('${s.id}')">edit</span>

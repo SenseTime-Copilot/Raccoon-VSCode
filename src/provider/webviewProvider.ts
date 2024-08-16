@@ -108,14 +108,23 @@ export class RaccoonEditor extends Disposable {
       this.sendMessage({ type: 'updateSettingPage', action: "close" });
     }
     let category = "welcome";
-    let org = raccoonManager.activeOrganization();
+    let organization = raccoonManager.activeOrganization();
+    let isEnterprise = (raccoonConfig.type === "Enterprise");
+    let orgs = raccoonManager.organizationList();
+    let switchEnable = true;
+    if (orgs.length === 0 || (isEnterprise && (orgs.length === 1))) {
+      switchEnable = false;
+    }
     let ts = new Date();
     let timestamp = ts.valueOf();
     let robot = extensionDisplayName || "Raccoon";
-    if (org) {
-      robot += ` (${org.name})`;
+    if (organization) {
+      robot += ` (${organization.name})`;
     }
-    let welcomMsg = await buildWelcomeMessage(robot, org);
+    if (switchEnable || isEnterprise) {
+      this.sendMessage({ type: 'showOrganizationSwitchBtn', name: organization?.name || raccoonConfig.t("Individual"), switchEnable });
+    }
+    let welcomMsg = await buildWelcomeMessage(robot, organization, switchEnable);
     this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
   }
 
@@ -269,73 +278,81 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'selectFile': {
-          let files: Array<QuickPickItem & { uri?: Uri; binary?: boolean; languageId?: string }> = [];
-          if (!data.all) {
-            let externalfiles: Array<QuickPickItem & { uri?: Uri; binary?: boolean; languageId?: string }> = [];
-            let allTabGroups = window.tabGroups.all;
-            files.push({ label: raccoonConfig.t("Opened"), kind: QuickPickItemKind.Separator });
-            for (let tg of allTabGroups) {
-              for (let tab of tg.tabs) {
-                if (tab.input instanceof TabInputText) {
-                  let label = workspace.asRelativePath(tab.input.uri);
-                  if (label !== tab.input.uri.fsPath) {
-                    try {
-                      let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
-                      files.push({ label, uri: tab.input.uri, languageId });
-                    } catch (err) {
-                      files.push({ label, uri: tab.input.uri, binary: true });
-                    }
-                  } else {
-                    try {
-                      let languageId = (await workspace.openTextDocument(tab.input.uri)).languageId;
-                      externalfiles.push({ label, uri: tab.input.uri, languageId });
-                    } catch (err) {
-                      files.push({ label, uri: tab.input.uri, binary: true });
+          window.withProgress({
+            location: { viewId: `${extensionNameKebab}.view` }
+          }, async (progress, _cancel) => {
+            let files: Array<QuickPickItem & { uri?: Uri; binary?: boolean; languageId?: string }> = [];
+            if (data.scope === "opened") {
+              let externalfiles: Array<QuickPickItem & { uri?: Uri; binary?: boolean; languageId?: string }> = [];
+              let allTabGroups = window.tabGroups.all;
+              files.push({ label: raccoonConfig.t("Opened"), kind: QuickPickItemKind.Separator });
+              for (let tg of allTabGroups) {
+                for (let tab of tg.tabs) {
+                  if (tab.input instanceof TabInputText) {
+                    let label = workspace.asRelativePath(tab.input.uri);
+                    if (label !== tab.input.uri.fsPath) {
+                      files.push({ label, uri: tab.input.uri });
+                    } else {
+                      externalfiles.push({ label, uri: tab.input.uri });
                     }
                   }
                 }
               }
-            }
 
-            if (externalfiles.length > 0) {
-              files.push({ label: raccoonConfig.t("External"), kind: QuickPickItemKind.Separator });
-              for (let item of externalfiles) {
-                files.push(item);
+              if (externalfiles.length > 0) {
+                files.push({ label: raccoonConfig.t("External"), kind: QuickPickItemKind.Separator });
+                for (let item of externalfiles) {
+                  files.push(item);
+                }
               }
-            }
 
-            this.webview.postMessage({
-              type: 'listFile', value: files.map((v) => {
-                return {
-                  kind: v.kind,
-                  label: v.label,
-                  binary: v.binary,
-                  file: v.uri?.toString()
-                };
-              })
-            });
-            break;
-          }
+              progress.report({ increment: 100 });
 
-          if (workspace.workspaceFolders) {
-            for (let wf of workspace.workspaceFolders) {
-              files.push({ label: wf.name, kind: QuickPickItemKind.Separator });
-              await workspace.findFiles(new RelativePattern(wf, '**/*.*')).then((uris) => {
-                for (let uri of uris) {
-                  let label = workspace.asRelativePath(uri);
-                  if (label !== uri.fsPath) {
-                    files.push({ label, uri });
-                  }
+              this.webview.postMessage({
+                type: 'listFile', value: files.map((v) => {
+                  return {
+                    kind: v.kind,
+                    label: v.label,
+                    binary: v.binary,
+                    file: v.uri?.toString()
+                  };
+                })
+              });
+            } else if (data.scope === "workspace") {
+              if (workspace.workspaceFolders) {
+                for (let wf of workspace.workspaceFolders) {
+                  files.push({ label: wf.name, kind: QuickPickItemKind.Separator });
+                  await workspace.findFiles(new RelativePattern(wf, '**/*.*')).then((uris) => {
+                    for (let uri of uris) {
+                      let label = workspace.asRelativePath(uri);
+                      if (label !== uri.fsPath) {
+                        files.push({ label, uri });
+                      }
+                    }
+                  });
+                }
+              }
+
+              progress.report({ increment: 100 });
+
+              window.showQuickPick<QuickPickItem & { uri?: Uri; languageId?: string }>(files, {
+                placeHolder: raccoonConfig.t("Select file to attach")
+              }).then((item) => {
+                if (item && item.uri) {
+                  this.sendFile(item.uri);
                 }
               });
-            }
-          }
+            } else if (data.scope === "knowledgebase") {
 
-          window.showQuickPick<QuickPickItem & { uri?: Uri; languageId?: string }>(files, {
-            placeHolder: "Select file to attach"
-          }).then((item) => {
-            if (item && item.uri) {
-              this.sendFile(item.uri);
+              progress.report({ increment: 100 });
+
+              window.showQuickPick<QuickPickItem & { uri?: Uri; languageId?: string }>(files, {
+                placeHolder: raccoonConfig.t("Select file to attach")
+              }).then((item) => {
+                if (item && item.uri) {
+                  this.sendFile(item.uri);
+                }
+              });
             }
           });
           break;

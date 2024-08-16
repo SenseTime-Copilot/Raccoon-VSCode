@@ -203,12 +203,12 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
             </vscode-radio-group>
           </div>
         </div>
-        <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap;" disabled>
+        <div style="display: flex; grid-gap: 0 1rem; flex-flow: wrap;">
           <div style="display: flex;flex-direction: column;min-width: 320px;flex-grow: 50;margin-top: 1rem;">
             <label for="RAG" style="display: block;line-height: normal;margin-bottom: 4px;font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Tool Use")}</label>
             <div style="display: flex; margin-left: 1rem; grid-gap: 0 1rem; flex-flow: wrap">
-              <vscode-checkbox ${agent?.builtin ? "readonly" : ""} style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Knowledge Base")}</vscode-checkbox>
-              <vscode-checkbox ${agent?.builtin ? "readonly" : ""} style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Internet")}</vscode-checkbox>
+              <vscode-checkbox ${agent?.builtin ? "readonly" : "disabled"} style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Knowledge Base")}</vscode-checkbox>
+              <vscode-checkbox ${agent?.builtin ? "readonly" : "disabled"} style="--font-family: var(--vscode-editor-font-family);">${raccoonConfig.t("Internet")}</vscode-checkbox>
             </div>
           </div>
         </div>
@@ -300,7 +300,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
       <vscode-data-grid-row id="${s.id}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
         <vscode-data-grid-cell grid-column="1" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="@${s.id}"><vscode-link onclick="editAgent('${s.id}')">${s.id}</vscode-link></vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="${s.label}">${s.label}</vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="3" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow-x: auto; white-space: pre;">${s.systemPrompt?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${s.systemPrompt?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="display: flex; align-self: center; justify-self: flex-end; column-gap: 0.25rem;">
           ${actions}
         </vscode-data-grid-cell>

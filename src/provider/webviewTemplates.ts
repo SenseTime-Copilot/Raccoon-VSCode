@@ -5,12 +5,7 @@ import { phoneZoneCode } from '../utils/phoneZoneCode';
 import { CompletionPreferenceType } from './raccoonManager';
 
 function buildOrgHint(): string {
-  let isEnterprise = (raccoonConfig.type === "Enterprise");
-  let orgs = raccoonManager.organizationList();
-  if (orgs.length === 0 || (isEnterprise && (orgs.length === 1))) {
-    return "";
-  }
-  return `<a id="switch-org" class="reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
+  return `<a class="switch-org reflink flex items-center gap-2 my-2 p-2 leading-loose rounded" style="background-color: var(--vscode-editorCommentsWidget-rangeActiveBackground);">
           <span class='material-symbols-rounded pointer-events-none'>switch_account</span>
           <div class='inline-block leading-loose pointer-events-none'>${raccoonConfig.t("Switch Organization")}</div>
           <span class="material-symbols-rounded grow text-right pointer-events-none">keyboard_double_arrow_right</span>
@@ -35,7 +30,7 @@ function buildDocumentLinkHint() {
 </a>`;
 }
 
-export async function buildWelcomeMessage(robotname: string, org?: Organization) {
+export async function buildWelcomeMessage(robotname: string, org?: Organization, switchEnable?: boolean) {
   let userinfo = await raccoonManager.userInfo();
   let detail = '';
   let name = org?.username || userinfo?.username;
@@ -45,7 +40,9 @@ export async function buildWelcomeMessage(robotname: string, org?: Organization)
     if (org) {
       username += ` (${org.name})`;
     }
-    detail += buildOrgHint();
+    if (switchEnable) {
+      detail += buildOrgHint();
+    }
   } else {
     detail += buildLoginHint();
   }
@@ -282,12 +279,16 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   </style>
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 pt-0 max-w-md">
     <div class="immutable flex gap-2 py-2 px-2 justify-between -mx-2 mb-2 rounded-xl" style="border-bottom: 1px solid var(--panel-view-border);">
-      <a href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
+      <vscode-link href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
         <span class="material-symbols-rounded">undo</span>
-      </a>
+      </vscode-link>
       <span class="flex gap-2">
-        <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage" title="${raccoonConfig.t("Switch Display Language")}">translate</a>
-        <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
+        <vscode-link href="command:${extensionNameKebab}.displayLanguage" title="${raccoonConfig.t("Switch Display Language")}">
+          <span class="material-symbols-rounded">translate</span>
+        </vscode-link>
+        <vscode-link href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
+          <span class="material-symbols-rounded">close</span>
+        </vscode-link>
       </span>
     </div>
     <vscode-divider class="${es.length === 1 ? "hidden" : ""}" style="border-top: calc(var(--border-width) * 1px) solid var(--panel-view-border);"></vscode-divider>
@@ -346,7 +347,7 @@ export async function buildSettingPage(): Promise<string> {
       <label class="my-1 ${knowledgeBaseEnable ? "" : "opacity-50"}" slot="label">${raccoonConfig.t("Reference Source")}</label>
       <div class="flex flex-wrap ml-2 my-1">
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} title="${await raccoonManager.listKnowledgeBase().then(kbs => kbs.map((v, _idx, _arr) => v.name).join("\n"))}" class="w-40" id="knowledgeBaseRef" ${knowledgeBaseEnable && raccoonManager.knowledgeBaseRef ? "checked" : ""}>${raccoonConfig.t("Knowledge Base")}</vscode-checkbox>
-        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${raccoonConfig.t("Workspace Folder(s)")}</vscode-checkbox>
+        <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40" id="workspaceRef" ${knowledgeBaseEnable && raccoonManager.workspaceRef ? "checked" : ""}>${raccoonConfig.t("Workspace Files")}</vscode-checkbox>
         <vscode-checkbox ${knowledgeBaseEnable ? "" : "disabled"} class="w-40 hidden" id="webRef" ${knowledgeBaseEnable && raccoonManager.webRef ? "checked" : ""}>${raccoonConfig.t("Internet")}</vscode-checkbox>
       </div>
     </div>`;
@@ -359,9 +360,9 @@ export async function buildSettingPage(): Promise<string> {
     <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || "User"}</span>
     <div class="flex w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
       <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">
-        <span id="switch-org" class="material-symbols-rounded">sync_alt</span>
+        <span class="switch-org material-symbols-rounded">sync_alt</span>
       </div>
-      <div class="cursor-pointer" id="${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Managed by {{org}}", { org: activeOrg.name })}">
+      <div  class="cursor-pointer ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Managed by {{org}}", { org: activeOrg.name })}">
         ${activeOrg.name}
       </div>
     </div>
@@ -372,9 +373,9 @@ export async function buildSettingPage(): Promise<string> {
     </div>
     <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
       <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">
-        <span id="switch-org" class="material-symbols-rounded">sync_alt</span>
+        <span class="switch-org material-symbols-rounded">sync_alt</span>
       </div>
-      <div class="cursor-pointer" id="${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}">
+      <div class="cursor-pointer ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}">
         ${raccoonConfig.t("Individual")}
       </div>
     </div>
@@ -472,12 +473,16 @@ export async function buildSettingPage(): Promise<string> {
   let settingPage = `
   <div id="settings" class="h-screen select-none flex flex-col gap-2 mx-auto p-4 pt-0 max-w-md">
     <div class="immutable flex gap-2 py-2 px-2 justify-between -mx-2 mb-2 rounded-xl" style="border-bottom: 1px solid var(--panel-view-border);">
-      <a href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
+      <vscode-link href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
         <span class="material-symbols-rounded">undo</span>
-      </a>
+      </vscode-link>
       <span class="flex gap-2">
-        <a class="material-symbols-rounded" href="command:${extensionNameKebab}.displayLanguage" title="${raccoonConfig.t("Switch Display Language")}">translate</a>
-        <a class="material-symbols-rounded" href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">close</a>
+        <vscode-link href="command:${extensionNameKebab}.displayLanguage" title="${raccoonConfig.t("Switch Display Language")}">
+          <span class="material-symbols-rounded">translate</span>
+        </vscode-link>
+        <vscode-link href="#" onclick="document.getElementById('settings').remove();document.getElementById('question-input').focus();">
+          <span class="material-symbols-rounded">close</span>
+        </vscode-link>
       </span>
     </div>
     <div class="immutable flex flex-col px-2 gap-2">
@@ -590,8 +595,9 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                   <label id="question-sizer" data-value
                         data-placeholder="${raccoonConfig.t("Ask {{robotname}} a question", { robotname: extensionDisplayName })}"
                         data-action-hint="${raccoonConfig.t("Pick one prompt to send")} [Enter]"
-                                                data-agent-hint="${raccoonConfig.t("Pick one agent")} [Enter]"
+                        data-agent-hint="${raccoonConfig.t("Pick one agent")} [Enter]"
                         data-search-hint="${raccoonConfig.t("Type anything to search")} [Enter]"
+                        data-file-hint="${raccoonConfig.t("Select file to attach")} [Enter]"
                         data-tip="${raccoonConfig.t("Ask {{robotname}} a question", { robotname: extensionDisplayName })}"
                         data-tip1="${raccoonConfig.t("Double-pressing {{hotkey}} to summon me at any time.", { hotkey: "[Ctrl]" })}"
                         data-tip2="${raccoonConfig.t("Type [Shift + Enter] to start a new line")}"
@@ -618,7 +624,11 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 </div>
                 <div id="attach-code-container" class="flex hidden"></div>
                 <div id="attach-file-container" class="flex hidden"></div>
-                <div class="op-hint">
+                  <div class="op-hint">
+                    <div id="switch-org-btn" class="switch-org hidden cursor-pointer items-center flex gap-1 pl-1 pr-2 text-xs -ml-[6px]">
+                      <span class="flex material-symbols-rounded -mb-[3px]">deployed_code</span>
+                      <div id="switch-org-btn-label" class="text-ellipsis whitespace-nowrap overflow-hidden max-w-[12ch]">${raccoonConfig.t("Individual")}</div>
+                    </div>
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key">Shift+<span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("New Line")}
                     </vscode-badge>
@@ -652,6 +662,12 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                     <vscode-badge class="action-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Select")}
                     </vscode-badge>
+                    <vscode-badge class="file-hint items-center">
+                      <span class="key">↑↓</span>${raccoonConfig.t("Switch")}
+                    </vscode-badge>
+                    <vscode-badge class="file-hint items-center">
+                      <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Select")}
+                    </vscode-badge>
                     <vscode-badge class="search-hint items-center">
                       <span class="key"><span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("Search")}
                     </vscode-badge>
@@ -674,7 +690,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 "DeleteQA": "${raccoonConfig.t("Delete this chat entity")}",
                 "Send": "${raccoonConfig.t("Send")}",
                 "Others": "${raccoonConfig.t("Others")}",
-                "Browse": "${raccoonConfig.t("Browse")}",
+                "Workspace Files": "${raccoonConfig.t("Workspace Files")}",
+                "Knowledge Base": "${raccoonConfig.t("Knowledge Base")}",
                 "ToggleWrap": "${raccoonConfig.t("Toggle line wrap")}",
                 "Show graph": "${raccoonConfig.t("Show graph")}",
                 "Hide graph": "${raccoonConfig.t("Hide graph")}",

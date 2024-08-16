@@ -88,6 +88,7 @@ export class RaccoonManager {
                       let ca = this._clients[c];
                       if (ca) {
                         let act = ca.client.restoreAuthInfo(authinfos[c]);
+                        ca.client.syncUserInfo();
                         if (ca.client.robotName === activeClientName) {
                           if (act !== "UPDATE") {
                             quiet = false;
@@ -147,6 +148,7 @@ export class RaccoonManager {
           let auth = authinfos[e.robotname] as AuthInfo;
           outlog.debug(`Append client ${e.robotname}: [Authorized - ${auth.account.username}]`);
           client.restoreAuthInfo(auth);
+          client.syncUserInfo();
           // this.checkUpdate(client);
           try {
             capabilities = await client.capabilities();

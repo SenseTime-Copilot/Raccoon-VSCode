@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { raccoonManager, telemetryReporter, registerCommand, raccoonConfig, outlog } from "../globalEnv";
-import { Choice, ErrorInfo, Message, MetricType, Role } from "../raccoonClient/CodeClient";
+import { Choice, ErrorInfo, FinishReason, Message, MetricType, Role } from "../raccoonClient/CodeClient";
 import { GitUtils } from "../utils/gitUtils";
 import { Repository } from "../utils/git";
 import { buildHeader } from "../utils/buildRequestHeader";
@@ -44,6 +44,9 @@ export class CommitMessageSuggester {
           let cmtmsg = choice.message?.content;
           if (cmtmsg && targetRepo) {
             targetRepo.inputBox.value += cmtmsg;
+          }
+          if (choice.finishReason === FinishReason.context) {
+            vscode.window.showErrorMessage(raccoonConfig.t("Context Too long"), raccoonConfig.t("Close"));
           }
         },
         onController(controller) {

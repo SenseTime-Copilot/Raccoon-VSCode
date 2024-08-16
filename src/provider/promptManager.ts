@@ -373,7 +373,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
       <vscode-data-grid-row id="${s.shortcut}" style="border-top: 1px solid; border-color: var(--dropdown-border);">
         <vscode-data-grid-cell grid-column="1" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="/${s.shortcut}">${s.shortcut || '-'}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="2" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""}" title="${s.label}" onclick="editPrompt('${s.label}')"><vscode-link>${s.label}</vscode-link></vscode-data-grid-cell>
-        <vscode-data-grid-cell grid-column="3" style="display: flex; align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow-x: auto; white-space: pre;">${s.origin?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
+        <vscode-data-grid-cell grid-column="3" style="align-self: center; ${invisible ? 'opacity: 0.6;' : ""} overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${s.origin?.replace(/</g, "&lt;") || ""}</vscode-data-grid-cell>
         <vscode-data-grid-cell grid-column="4" style="display: flex; align-self: center; justify-self: flex-end; column-gap: 0.25rem;">
           ${actions}
         </vscode-data-grid-cell>
