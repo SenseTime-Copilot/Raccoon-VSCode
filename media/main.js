@@ -273,9 +273,12 @@ const sendAction = (shortcut) => {
   window.addEventListener("message", async (event) => {
     const message = event.data;
     const list = document.getElementById("qa-list");
-
+    const modalShow = !document.getElementsByClassName("modal")[0].classList.contains("hidden");
     switch (message.type) {
       case 'focus': {
+        if (modalShow) {
+          break;
+        }
         document.getElementById('settings')?.remove();
         document.getElementById("question-input").focus();
         document.getElementById('chat-input-box').classList.remove('flash');
@@ -284,6 +287,11 @@ const sendAction = (shortcut) => {
         break;
       }
       case 'clear': {
+        if (modalShow) {
+          let msgBox = document.getElementsByClassName("modal")[0];
+          msgBox.classList.add('hidden');
+          msgBox.innerHTML = "";
+        }
         document.getElementById("chat-input-box")?.classList?.remove("responsing");
         document.getElementById("question-input").disabled = false;
         document.getElementById("question-input").focus();
@@ -492,13 +500,18 @@ const sendAction = (shortcut) => {
         bl.title = message.name;
         if (message.switchEnable) {
           b.classList.add("switchable");
-        }else{
+        } else {
           b.classList.add("pointer-events-none");
         }
         b.classList.remove("hidden");
         break;
       }
       case 'restoreFromCache': {
+        if (modalShow) {
+          let msgBox = document.getElementsByClassName("modal")[0];
+          msgBox.classList.add('hidden');
+          msgBox.innerHTML = "";
+        }
         for (let item of message.value) {
           if (item.type === 'question') {
             const markedResponse = new DOMParser().parseFromString(marked.parse(wrapCode(item.value)), "text/html");
@@ -685,8 +698,11 @@ const sendAction = (shortcut) => {
         break;
       }
       case 'codeReady': {
+        if (modalShow) {
+          break;
+        }
         if (document.getElementById("question-input").disabled) {
-          return;
+          break;
         }
         var acc = document.getElementById("attach-code-container");
         if (message.file) {
@@ -740,6 +756,9 @@ const sendAction = (shortcut) => {
         break;
       }
       case "updateSettingPage": {
+        if (modalShow) {
+          break;
+        }
         var settings = document.getElementById('settings');
         if (message.action === "close" || (message.action === "toggle" && settings)) {
           settings?.remove();
@@ -839,6 +858,9 @@ const sendAction = (shortcut) => {
         break;
       }
       case "addQuestion": {
+        if (modalShow) {
+          break;
+        }
         updateChatBoxStatus("start");
         toggleSubMenuList();
         let id = message.id;
@@ -1090,6 +1112,13 @@ const sendAction = (shortcut) => {
           break;
         }
         respElem.classList.add("need-continue");
+        break;
+      }
+      case "showModal": {
+        document.getElementById('question-input').blur();
+        let modal = document.getElementsByClassName('modal')[0];
+        modal.innerHTML = `<div id="modal-body" class="body p-4 rounded-lg mx-4 h-fit grow shadow-md shadow-black/80 ">${message.value}</div>`;
+        modal.classList.remove('hidden');
         break;
       }
       case "addMessage": {
@@ -1651,6 +1680,9 @@ const sendAction = (shortcut) => {
     var list = document.getElementById("ask-list");
     var search = document.getElementById("search-list");
     var settings = document.getElementById("settings");
+    if (!document.getElementsByClassName("modal")[0].classList.contains("hidden")) {
+      return;
+    }
     if (settings) {
       return;
     }
@@ -2113,6 +2145,20 @@ const sendAction = (shortcut) => {
       document.getElementById("question-input").disabled = false;
       document.getElementById("question-input").focus();
       return;
+    }
+
+    if (targetButton?.classList?.contains("setOrgBtn")) {
+      let msgBox = targetButton.closest(".modal");
+      msgBox.classList.add('hidden');
+      let orgCode = msgBox.querySelector(".orgnazitionSelectionRadio")?._value;
+      msgBox.innerHTML = "";
+      vscode.postMessage({ type: "setOrg", value: orgCode });
+    }
+
+    if (targetButton?.classList?.contains("closeModal")) {
+      let msgBox = targetButton.closest(".modal");
+      msgBox.classList.add('hidden');
+      msgBox.innerHTML = "";
     }
 
     if (targetButton?.classList?.contains('delete-element-gnc')) {

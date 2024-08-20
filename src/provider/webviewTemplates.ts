@@ -1,6 +1,6 @@
 import { ExtensionContext, Uri, Webview, env } from 'vscode';
 import { extensionDisplayName, extensionNameKebab, raccoonConfig, raccoonManager } from "../globalEnv";
-import { AuthMethod, Capability, Organization, UrlType } from '../raccoonClient/CodeClient';
+import { AccountInfo, AuthMethod, Capability, Organization, UrlType } from '../raccoonClient/CodeClient';
 import { phoneZoneCode } from '../utils/phoneZoneCode';
 import { CompletionPreferenceType } from './raccoonManager';
 
@@ -30,8 +30,7 @@ function buildDocumentLinkHint() {
 </a>`;
 }
 
-export async function buildWelcomeMessage(robotname: string, org?: Organization, switchEnable?: boolean) {
-  let userinfo = await raccoonManager.userInfo();
+export async function buildWelcomeMessage(robotname: string, userinfo?: AccountInfo, org?: Organization, switchEnable?: boolean) {
   let detail = '';
   let name = org?.username || userinfo?.username;
   let username = '';
@@ -369,14 +368,13 @@ export async function buildSettingPage(): Promise<string> {
   </div>` : `<div class="grow flex flex-col">
     <div class="flex">
       <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || "User"}</span>
-      ${pro ? `<span class="material-symbols-rounded self-center opacity-50 mx-1" title="Pro">beenhere</span>` : ""}
     </div>
     <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
       <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">
         <span class="switch-org material-symbols-rounded">sync_alt</span>
       </div>
-      <div class="cursor-pointer ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}">
-        ${raccoonConfig.t("Individual")}
+      <div class="cursor-pointer ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}${pro? " Pro" : ""}">
+        ${raccoonConfig.t("Individual")}${pro? " Pro" : ""}
       </div>
     </div>
   </div>`}
@@ -545,6 +543,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               </style>
           </head>
           <body class="overflow-hidden">
+            <div class="modal absolute flex w-full h-full select-none bg-gray-900/50 items-center hidden"></div>
             <div id="setting-page"></div>
             <div class="flex flex-col h-screen" id="qa-list-wrapper">
               <vscode-panel-view id="view-1" class="grow overflow-y-auto p-0 m-0">
@@ -625,9 +624,9 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 <div id="attach-code-container" class="flex hidden"></div>
                 <div id="attach-file-container" class="flex hidden"></div>
                   <div class="op-hint">
-                    <div id="switch-org-btn" class="switch-org hidden cursor-pointer items-center flex gap-1 pl-1 pr-2 text-xs -ml-[6px]">
+                    <div id="switch-org-btn" class="switch-org hidden cursor-pointer items-center flex gap-1 px-1 text-xs -ml-[6px]">
                       <span class="flex material-symbols-rounded -mb-[3px]">deployed_code</span>
-                      <div id="switch-org-btn-label" class="text-ellipsis whitespace-nowrap overflow-hidden max-w-[12ch]">${raccoonConfig.t("Individual")}</div>
+                      <div id="switch-org-btn-label" class="text-ellipsis whitespace-nowrap overflow-hidden max-w-[10ch]">${raccoonConfig.t("Individual")}</div>
                     </div>
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key">Shift+<span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("New Line")}

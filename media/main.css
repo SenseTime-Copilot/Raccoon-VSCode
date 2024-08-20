@@ -340,6 +340,7 @@ textarea::placeholder {
     background-color: var(--button-secondary-background);
     border-bottom: 2px solid var(--button-secondary-hover-background);
     border-radius: 5px;
+    transition-duration: 300ms;
 }
 
 #chat-input-box:focus-within .op-hint .switch-org.switchable {
@@ -953,6 +954,15 @@ span.shortcut:after {
 
 .question-element-gnc .pre-code-element {
     scrollbar-width: none;
+}
+
+.modal {
+    z-index: 9999999;
+}
+
+.modal .body {
+    background-color: var(--panel-view-background);
+    border: 1px solid var(--panel-view-border);
 }
 
 .message-element-gnc {

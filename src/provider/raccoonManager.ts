@@ -1,7 +1,7 @@
-import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, QuickPickItem, QuickPickItemKind, ProgressLocation } from "vscode";
+import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, ProgressLocation } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
-import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig, raccoonManager } from "../globalEnv";
+import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { ClientOption, ModelCapacity } from "./config";
@@ -24,11 +24,13 @@ interface ClientAndConfigInfo {
   options: { [key in ModelCapacity]?: ClientOption };
 }
 
-type ChangeScope = "agent" | "prompt" | "engines" | "active" | "authorization" | "config";
+type ChangeScope = "agent" | "prompt" | "engines" | "active" | "authorization" | "organization" | "config";
 const individual = "Individual";
 
 export interface StatusChangeEvent {
   scope: ChangeScope[];
+  state?: string;
+  args?: any;
   quiet?: boolean;
 }
 
@@ -88,7 +90,6 @@ export class RaccoonManager {
                       let ca = this._clients[c];
                       if (ca) {
                         let act = ca.client.restoreAuthInfo(authinfos[c]);
-                        ca.client.syncUserInfo();
                         if (ca.client.robotName === activeClientName) {
                           if (act !== "UPDATE") {
                             quiet = false;
@@ -176,20 +177,69 @@ export class RaccoonManager {
   private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
     let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
     let authinfos: { [key: string]: AuthInfo } = {};
+    let loginPhase = false;
+    let activeOrgStillAvailable = false;
+    let newOrgAvailable = false;
+    let activeOrgCode = this.activeOrganization()?.code;
+    if (!activeOrgCode || activeOrgCode === individual) {
+      activeOrgStillAvailable = true;
+    }
     if (tks) {
       try {
         authinfos = JSON.parse(tks);
         if (ai) {
+          if (authinfos && authinfos[clientName]) {
+            let auth = authinfos[clientName];
+            let newOrgs = ai.account.organizations || [];
+            let oldOrgs = auth.account.organizations || [];
+            let oldOrgIds = oldOrgs.map((o) => o.code);
+            for (let newOrg of newOrgs) {
+              if (newOrg.code === activeOrgCode) {
+                activeOrgStillAvailable = true;
+                continue;
+              }
+              if (!oldOrgIds.includes(newOrg.code)) {
+                newOrgAvailable = true;
+                continue;
+              }
+            }
+          } else {
+            if (ai.account.organizations && ai.account.organizations.length > 0) {
+              loginPhase = true;
+            }
+          }
           authinfos[clientName] = ai;
         } else {
+          activeOrgStillAvailable = true;
           delete authinfos[clientName];
         }
       } catch (e) { }
     } else if (ai) {
       authinfos[clientName] = ai;
+      if (ai.account.organizations && ai.account.organizations.length > 0) {
+        loginPhase = true;
+      }
     }
+
     return this.context.secrets.store(`${extensionNameCamel}.tokens`, JSON.stringify(authinfos)).then(() => {
-      this.notifyStateChange({ scope: ["authorization"], quiet });
+      let scope: ChangeScope[] = ["authorization"];
+      let orgName: string | undefined = undefined;
+      let state;
+      if (loginPhase) {
+        scope.push("organization");
+        state = "login";
+      } else if (newOrgAvailable) {
+        scope.push("organization");
+        state = "changed";
+      } else if (!activeOrgStillAvailable) {
+        scope.push("organization");
+        state = "deleted";
+        let ao = this.context.globalState.get<string>("ActiveOrganization", individual);
+        if (ao !== individual) {
+          orgName = ao;
+        }
+      }
+      this.notifyStateChange({ scope, quiet, state, args: { orgName } });
     });
   }
 
@@ -581,7 +631,7 @@ export class RaccoonManager {
     return [];
   }
 
-  private async setActiveOrganization(orgCode?: string): Promise<void> {
+  public async setActiveOrganization(orgCode?: string): Promise<void> {
     if (!orgCode) {
       orgCode = individual;
     }
@@ -590,6 +640,7 @@ export class RaccoonManager {
       return Promise.resolve();
     }
     return this.context.globalState.update("ActiveOrganization", orgCode).then(() => {
+      this.updateKnowledgeBaseSettings();
       this.notifyStateChange({ scope: ["active"] });
     });
   }
@@ -613,7 +664,7 @@ export class RaccoonManager {
     }
   }
 
-  private async updateSettings(): Promise<KnowledgeBase[] | undefined> {
+  private async updateKnowledgeBaseSettings(): Promise<KnowledgeBase[] | undefined> {
     let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca) {
       return ca.client.capabilities().then(caps => {
@@ -680,11 +731,12 @@ export class RaccoonManager {
             ca.capabilities = await ca.client.capabilities();
           } catch (_e) {
           }
+          await this.context.globalState.update("ActiveOrganization", individual);
           let orgs = token.account.organizations;
           if (orgs) {
             let isEnterprise = (raccoonConfig.type === "Enterprise");
-            if (isEnterprise && orgs.length > 0 && !this.activeOrganization()) {
-              this.setActiveOrganization(orgs[0].code);
+            if (isEnterprise && orgs.length > 0) {
+              await this.context.globalState.update("ActiveOrganization", orgs[0].code);
             }
           }
           this.updateToken(ca.client.robotName, token);
@@ -727,57 +779,6 @@ export class RaccoonManager {
             progress.report({ increment: 100 });
           });
       }
-    });
-  }
-
-  public async switchOrganization(includeIndividual: boolean) {
-    interface OrgInfo extends QuickPickItem {
-      id: string;
-    };
-    return window.withProgress({
-      location: { viewId: `${extensionNameKebab}.view` }
-    }, async (progress, _cancel) => {
-      return this.userInfo(true, 3000).then(async (ac) => {
-        let ao = this.activeOrganization();
-        let username = ac?.username || "";
-        let orgs: OrgInfo[] = this.organizationList()
-          .filter((org, _idx, _arr) => org.status === "normal")
-          .map((value, _idx, _arr) => {
-            let icon = "$(blank)";
-            let name = value.username || username;
-            if (value.code === ao?.code) {
-              icon = `$(check)`;
-            }
-            return {
-              label: `${icon} ${value.name}`,
-              description: `@${name}`,
-              id: value.code
-            };
-          });
-
-        let additionalItem: OrgInfo[] = [];
-        if (includeIndividual) {
-          let individualItem: OrgInfo = {
-            label: ao ? `$(blank) ${raccoonConfig.t("Individual")}` : `$(check)  ${raccoonConfig.t("Individual")}`,
-            description: `@${username}`,
-            id: ""
-          };
-          let separator: OrgInfo = {
-            id: "",
-            label: "",
-            kind: QuickPickItemKind.Separator
-          };
-          additionalItem = [individualItem, separator];
-        }
-        return window.showQuickPick<OrgInfo>([...additionalItem, ...orgs], { canPickMany: false, placeHolder: raccoonConfig.t("Select Organization") }).then((select) => {
-          progress.report({ increment: 100 });
-          if (select) {
-            return raccoonManager.setActiveOrganization(select.id).then(() => {
-              return this.updateSettings();
-            });
-          }
-        });
-      });
     });
   }
 

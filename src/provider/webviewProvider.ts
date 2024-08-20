@@ -34,8 +34,13 @@ export class RaccoonEditor extends Disposable {
     this.stopList = {};
     this.lastTextEditor = window.activeTextEditor;
     raccoonManager.onDidChangeStatus(async (e) => {
-      if (e.scope.includes("authorization") && !e.quiet) {
-        this.showWelcome();
+      if (e.scope.includes("authorization")) {
+        if (!e.quiet) {
+          await this.showWelcome();
+        }
+        if (e.scope.includes("organization")) {
+          this.showOrganizationSelectionModal(e.state, e.args);
+        }
       } else if (e.scope.includes("agent")) {
         let value = Array.from(raccoonManager.agents.values());
         value = value.filter((v, _idx, _arr) => {
@@ -105,9 +110,10 @@ export class RaccoonEditor extends Disposable {
   private async showWelcome(quiet?: boolean) {
     raccoonManager.update();
     if (!quiet) {
-      this.sendMessage({ type: 'updateSettingPage', action: "close" });
+      await this.sendMessage({ type: 'updateSettingPage', action: "close" });
     }
     let category = "welcome";
+    let userinfo = await raccoonManager.userInfo(true, 3000);
     let organization = raccoonManager.activeOrganization();
     let isEnterprise = (raccoonConfig.type === "Enterprise");
     let orgs = raccoonManager.organizationList();
@@ -118,14 +124,71 @@ export class RaccoonEditor extends Disposable {
     let ts = new Date();
     let timestamp = ts.valueOf();
     let robot = extensionDisplayName || "Raccoon";
+    let orgName = userinfo?.pro ? `${raccoonConfig.t("Individual")} Pro` : raccoonConfig.t("Individual");
     if (organization) {
       robot += ` (${organization.name})`;
+      orgName = organization.name;
     }
     if (switchEnable || isEnterprise) {
-      this.sendMessage({ type: 'showOrganizationSwitchBtn', name: organization?.name || raccoonConfig.t("Individual"), switchEnable });
+      await this.sendMessage({ type: 'showOrganizationSwitchBtn', name: orgName, switchEnable });
     }
-    let welcomMsg = await buildWelcomeMessage(robot, organization, switchEnable);
-    this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
+    let welcomMsg = await buildWelcomeMessage(robot, userinfo, organization, switchEnable);
+    await this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
+  }
+
+  async showOrganizationSelectionModal(state?: string, args?: any) {
+    let organization = raccoonManager.activeOrganization();
+    let isEnterprise = (raccoonConfig.type === "Enterprise");
+    let organizations = raccoonManager.organizationList();
+    let userinfo = await raccoonManager.userInfo();
+    let orgsInfo: { code: string; name: string; active: boolean }[] = organizations.map((itm) => {
+      let active = (itm.code === organization?.code);
+      let name = itm.name;
+      return { code: itm.code, name, active };
+    });
+    if (!isEnterprise) {
+      let active = !organization;
+      let name = `${raccoonConfig.t("Individual")}${userinfo?.pro ? " Pro " : ""}`;
+      orgsInfo = [{ code: "individual", name, active }, ...orgsInfo];
+    }
+
+    let msgText = raccoonConfig.t("Select Organization");
+    if (state === "login") {
+      if (orgsInfo.length > 1) {
+        msgText = raccoonConfig.t("You've joined multiple organizations") + ", " + raccoonConfig.t("select one below to continue working with it");
+      }
+    }
+    if (state === "changed") {
+      msgText = raccoonConfig.t("You've been invited to join a new organization") + ", " + raccoonConfig.t("select one below to continue working with it");
+    }
+    if (state === "deleted") {
+      if (orgsInfo.length === 1) {
+        msgText = raccoonConfig.t("You've been removed from organization {{org}}", { org: args.orgName });
+        msgText = `<div>${msgText}</div><div class="flex justify-end gap-2"><vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Close")}</vscode-button></div>`;
+        this.sendMessage({ type: 'showModal', value: msgText });
+        raccoonManager.setActiveOrganization(orgsInfo[0].code);
+        return;
+      }
+      if (orgsInfo.length > 1) {
+        msgText = raccoonConfig.t("You've been removed from organization {{org}}", { org: args.orgName }) + ", " + raccoonConfig.t("select one below to continue working with it");
+      }
+    }
+
+    let selectionMessage = `<div>${msgText}</div><vscode-radio-group class="orgnazitionSelectionRadio my-4 overflow-hidden whitespace-nowrap">`;
+    for (let org of orgsInfo) {
+      selectionMessage +=
+        `<vscode-radio ${org.active ? "checked" : ""} class="items-end" value="${org.code}" title="${org.name}">
+          ${org.active ? `<b>${org.name}</b><span class="opacity-60 ml-1">(${raccoonConfig.t("Current")})</span>` : `<b>${org.name}</b>`}
+      </vscode-radio>`;
+    }
+    selectionMessage += `</vscode-radio-group>
+    <div class="flex justify-end gap-2">
+      <vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Close")}</vscode-button>
+      <vscode-button class="setOrgBtn">${raccoonConfig.t("OK")}</vscode-button>
+    </div>
+    `;
+
+    await this.sendMessage({ type: 'showModal', value: selectionMessage });
   }
 
   async loadHistory(history: string, replay?: boolean) {
@@ -256,6 +319,8 @@ export class RaccoonEditor extends Disposable {
           raccoonManager.login(data.value).then((res) => {
             if (res !== "ok") {
               this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: raccoonConfig.t("Login failed") + ": " + res.message, id: new Date().valueOf() });
+            } else {
+              this.sendMessage({ type: 'updateSettingPage', action: "close" });
             }
           });
           break;
@@ -477,9 +542,11 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'switchOrg': {
-          raccoonManager.switchOrganization(raccoonConfig.type !== "Enterprise").then(() => {
-            this.updateSettingPage();
-          });
+          this.showOrganizationSelectionModal();
+          break;
+        }
+        case 'setOrg': {
+          raccoonManager.setActiveOrganization(data.value);
           break;
         }
         case 'logout': {
@@ -1137,7 +1204,7 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
 
   public async sendMessage(message: any) {
     if (this.webview) {
-      this.webview.postMessage(message);
+      return this.webview.postMessage(message);
     }
   }
 

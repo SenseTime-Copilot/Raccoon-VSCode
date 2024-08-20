@@ -275,7 +275,14 @@ export class RaccoonClient implements CodeClient {
             organizations
           };
           if (this.auth) {
+            let oldOrgs = this.auth.account.organizations || [];
+            let oldOrgIds = oldOrgs.map((org) => org.code);
+            let newOrgIds = organizations.map((org) => org.code);
+            let changed = oldOrgIds.sort().toString() !== newOrgIds.sort().toString();
             this.auth.account = info;
+            if (changed) {
+              this.onChangeAuthInfo?.(this.auth);
+            }
           }
           return info;
         }

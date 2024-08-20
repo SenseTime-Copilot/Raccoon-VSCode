@@ -94,7 +94,7 @@ class CodeNotebookCellStatusBarItemProvider implements vscode.NotebookCellStatus
         title: '',
         command: "vscode.open",
         arguments: [
-          vscode.Uri.parse(`${extensionNameKebab}://code/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
+          vscode.Uri.parse(`${extensionNameKebab}://raccoon.transpile/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
         ]
       };
       reg.tooltip = raccoonConfig.t("Show Transpiled Typescript Code");
@@ -245,6 +245,9 @@ export class CodeNotebook {
     }
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(extensionNameKebab, {
       provideTextDocumentContent(uri: vscode.Uri, _token: vscode.CancellationToken) {
+        if (uri.authority !== "raccoon.transpile") {
+          return;
+        }
         let code = uri.fragment;
         let ts = RaccoonRunner.parseRaccoon('raccoon', code);
         if (ts) {
