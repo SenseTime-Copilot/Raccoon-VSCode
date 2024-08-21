@@ -335,12 +335,16 @@ textarea::placeholder {
 }
 
 .op-hint .switch-org {
+    padding: 0px 5px 0 2px;
+    margin-left: -6px;
     opacity: 0.4;
+    font-size: 11px;
+    line-height: 16px;
     color: var(--button-secondary-foreground);
     background-color: var(--button-secondary-background);
-    border-bottom: 2px solid var(--button-secondary-hover-background);
-    border-radius: 5px;
+    border-radius: 6px;
     transition-duration: 300ms;
+    transition-property: background-color, opacity;
 }
 
 #chat-input-box:focus-within .op-hint .switch-org.switchable {
@@ -351,7 +355,6 @@ textarea::placeholder {
     opacity: 0.9;
     color: var(--button-primary-foreground);
     background-color: var(--button-primary-hover-background);
-    border-bottom: 2px solid var(--button-primary-background);
 }
 
 #msg-wrapper {
@@ -727,7 +730,7 @@ button.disabled,
 }
 
 .toolbar vscode-link {
-    margin-right: 0.25rem;
+    margin-right: 0.2rem;
     color: var(--panel-tab-foreground);
 }
 
@@ -963,6 +966,7 @@ span.shortcut:after {
 .modal .body {
     background-color: var(--panel-view-background);
     border: 1px solid var(--panel-view-border);
+    max-width: min(80%, 360px);
 }
 
 .message-element-gnc {

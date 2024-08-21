@@ -506,6 +506,14 @@ const sendAction = (shortcut) => {
         b.classList.remove("hidden");
         break;
       }
+      case 'hideOrganizationSwitchBtn': {
+        let b = document.getElementById('switch-org-btn');
+        let bl = document.getElementById('switch-org-btn-label');
+        bl.innerText = "";
+        bl.title = "";
+        b.classList.add("hidden");
+        break;
+      }
       case 'restoreFromCache': {
         if (modalShow) {
           let msgBox = document.getElementsByClassName("modal")[0];
@@ -788,10 +796,22 @@ const sendAction = (shortcut) => {
         }
         break;
       }
+      case "generateQRCode": {
+        let qrc = document.getElementById("qrcode");
+        if (qrc) {
+          qrc.innerHTML = "";
+          new QRCode(qrc, {
+            text: message.value,
+            width: 160,
+            height: 160,
+          });
+        }
+        break;
+      }
       case "agentList": {
         agents = message.value;
         var agentnames = `<div class="toolbar w-full text-end px-1">
-                            <vscode-link><span id="agent-manage" class="material-symbols-rounded">edit_note</span></vscode-link>
+                            <vscode-link title="${l10nForUI["Edit"]}"><span id="agent-manage" class="material-symbols-rounded">tune</span></vscode-link>
                           </div>`;
         agents.forEach((p, idx, _m) => {
           agentnames += `<button class="flex flex-row gap-2 items-center ${idx === 1 ? "selected" : ""}" data-shortcut='@${p.id}'
@@ -829,7 +849,7 @@ const sendAction = (shortcut) => {
       }
       case "promptList": {
         prompts = message.value;
-        var shortcuts = '<div class="toolbar w-full text-end px-1"><vscode-link><span id="prompt-manage" class="material-symbols-rounded">edit_note</span></vscode-link></div>';
+        var shortcuts = `<div class="toolbar w-full text-end px-1"><vscode-link title="${l10nForUI["Edit"]}"><span id="prompt-manage" class="material-symbols-rounded">tune</span></vscode-link></div>`;
         var first = true;
         for (var p of prompts) {
           let icon = p.icon || "smart_button";
@@ -1117,7 +1137,7 @@ const sendAction = (shortcut) => {
       case "showModal": {
         document.getElementById('question-input').blur();
         let modal = document.getElementsByClassName('modal')[0];
-        modal.innerHTML = `<div id="modal-body" class="body p-4 rounded-lg mx-4 h-fit grow shadow-md shadow-black/80 ">${message.value}</div>`;
+        modal.innerHTML = `<div id="modal-body" class="body p-4 rounded-lg h-fit grow mx-auto shadow-md shadow-black/80">${message.value}</div>`;
         modal.classList.remove('hidden');
         break;
       }
@@ -2018,6 +2038,13 @@ const sendAction = (shortcut) => {
   });
 
   document.addEventListener("click", (e) => {
+    if (e.target.classList.contains('modal')) {
+      e.target.classList.add('hidden');
+      e.target.innerHTML = "";
+    }
+    if (e.target.id === "tab-qrcode") {
+      vscode.postMessage({ type: "getQRCodeURL" });
+    }
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
     let ts = new Date().valueOf();
 
@@ -2129,7 +2156,18 @@ const sendAction = (shortcut) => {
       return;
     }
 
+    if (e.target.id === "logoutConfirm") {
+      vscode.postMessage({ type: "logoutConfirm" });
+      return;
+    }
+
     if (e.target.id === "logout") {
+      const modalShow = !document.getElementsByClassName("modal")[0].classList.contains("hidden");
+      if (modalShow) {
+        let msgBox = document.getElementsByClassName("modal")[0];
+        msgBox.classList.add('hidden');
+        msgBox.innerHTML = "";
+      }
       vscode.postMessage({ type: "logout" });
       return;
     }

@@ -43,6 +43,8 @@ export class RaccoonClient implements CodeClient {
         return this.clientConfig.baseUrl + "/register";
       case UrlType.login:
         return this.clientConfig.baseUrl + "/login";
+      case UrlType.qrcode:
+        return this.clientConfig.baseUrl + `/login/mp`;
       case UrlType.forgetPassword:
         return this.clientConfig.baseUrl + "/login?step=forgot-password";
     }
@@ -83,7 +85,14 @@ export class RaccoonClient implements CodeClient {
 
   public async login(param?: BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     if (!param) {
-      if (this.clientConfig.key && this.auth) {
+      if (this.clientConfig.key) {
+        this.auth = {
+          account: {
+            username: this.clientConfig.username || "USER",
+            pro: false
+          },
+          weaverdKey: this.clientConfig.key,
+        };
         return this.auth;
       }
       return Promise.reject(new Error("No preset auth info"));
@@ -255,7 +264,7 @@ export class RaccoonClient implements CodeClient {
       .then(async (resp) => {
         if (resp && resp.status === 200 && resp.data.code === 0 && resp.data.data) {
           let orgs = resp.data.data.orgs;
-          let username = resp.data.data.name;
+          let username = this.clientConfig.username || resp.data.data.name;
           let pro = resp.data.data.pro_code_enabled;
           let organizations: Organization[] = [];
           if (orgs) {
@@ -263,7 +272,7 @@ export class RaccoonClient implements CodeClient {
               organizations.push({
                 code: org.code,
                 name: org.name,
-                username: org.user_name || username,
+                username: this.clientConfig.username || org.user_name || username,
                 status: org.user_status
               });
             }

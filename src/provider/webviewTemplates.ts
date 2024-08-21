@@ -32,7 +32,7 @@ function buildDocumentLinkHint() {
 
 export async function buildWelcomeMessage(robotname: string, userinfo?: AccountInfo, org?: Organization, switchEnable?: boolean) {
   let detail = '';
-  let name = org?.username || userinfo?.username;
+  let name = org?.username || userinfo?.username || "";
   let username = '';
   if (raccoonManager.isClientLoggedin()) {
     username = ` @${name}`;
@@ -147,7 +147,17 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
                 </vscode-panel-view>`;
     }
   }
-
+  if (methods.includes(AuthMethod.qrcode)) {
+    let qrCodeUrl = raccoonManager.getUrl(UrlType.qrcode);
+    if (qrCodeUrl) {
+      tabs += `<vscode-panel-tab id="tab-qrcode">${raccoonConfig.t("QR Code")}</vscode-panel-tab>`;
+      views += `<vscode-panel-view id="view-qrcode" class="login-view flex-col gap-2">
+                  <div></div>
+                  <div id="qrcode" class="mx-auto h-40 border-8 border-white"></div>
+                  <div></div>
+                </vscode-panel-view>`;
+    }
+  }
   if (methods.includes(AuthMethod.email)) {
     tabs += `<vscode-panel-tab id="tab-email">${raccoonConfig.t("Email")}</vscode-panel-tab>`;
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
@@ -327,13 +337,13 @@ export async function buildSettingPage(): Promise<string> {
     avatarEle = `<img class="w-10 h-10 rounded-full" src="${avatar}" />`;
   }
   let logout = `<vscode-link title="${raccoonConfig.t("Logout")}">
-                    <span id="logout" class="material-symbols-rounded" style="font-size: 24px;">logout</span>
+                    <span id="logoutConfirm" class="material-symbols-rounded" style="font-size: 24px;">logout</span>
                   </vscode-link>`;
   let trigger = (completionDelay === 3500) ? "opacity-60" : "";
   let activeOrg = raccoonManager.activeOrganization();
   let knowledgeBaseEnable = pro || activeOrg;
   let isEnterprise = (raccoonConfig.type === "Enterprise");
-  let disableSwitch = (isEnterprise && (raccoonManager.organizationList().length === 1));
+  let disableSwitch = raccoonManager.organizationList().length === 0 || (isEnterprise && (raccoonManager.organizationList().length === 1));
 
   let knowledgeBaseSetting = ``;
   if (raccoonManager.capabilities.includes(Capability.fileSearch)) {
@@ -357,11 +367,9 @@ export async function buildSettingPage(): Promise<string> {
     ${avatarEle}
     ${(activeOrg) ? `<div class="grow flex flex-col">
     <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || "User"}</span>
-    <div class="flex w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
-      <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">
-        <span class="switch-org material-symbols-rounded">sync_alt</span>
-      </div>
-      <div  class="cursor-pointer ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Managed by {{org}}", { org: activeOrg.name })}">
+    <div class="flex w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
+      <span class="switch-org material-symbols-rounded ${disableSwitch ? "hidden" : "cursor-pointer"} text-[15px]" title="${raccoonConfig.t("Switch Organization")}">sync_alt</span>
+      <div  class="text-[10px] ${disableSwitch ? "org-tag" : "cursor-pointer switch-org"}" title="${raccoonConfig.t("Managed by {{org}}", { org: activeOrg.name })}">
         ${activeOrg.name}
       </div>
     </div>
@@ -369,11 +377,9 @@ export async function buildSettingPage(): Promise<string> {
     <div class="flex">
       <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || "User"}</span>
     </div>
-    <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="font-size: 9px;color: var(--button-primary-foreground);background: var(--button-primary-background);">
-      <div class="cursor-pointer ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">
-        <span class="switch-org material-symbols-rounded">sync_alt</span>
-      </div>
-      <div class="cursor-pointer ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}${pro? " Pro" : ""}">
+    <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
+      <span class="switch-org material-symbols-rounded ${disableSwitch ? "hidden" : "cursor-pointer"} text-[15px]" title="${raccoonConfig.t("Switch Organization")}">sync_alt</span>
+      <div class="text-[10px] ${disableSwitch ? "org-tag" : "cursor-pointer switch-org"}" title="${raccoonConfig.t("Individual")}${pro? " Pro" : ""}">
         ${raccoonConfig.t("Individual")}${pro? " Pro" : ""}
       </div>
     </div>
@@ -512,6 +518,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
   const mermaidJs = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'vendor', 'mermaid.min.js'));
   const vendorTailwindJs = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'vendor', 'tailwindcss.3.2.4.min.js'));
   const toolkitUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, "media", "vendor", "toolkit.js"));
+  const vendorQRCodeJs = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'vendor', 'qrcode.min.js'));
   const iconUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'MaterialSymbols', 'materialSymbols.css'));
   const avatarDarkUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-dark.svg'));
   const avatarLightUri = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'media', 'raccoon-light.svg'));
@@ -528,6 +535,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               <script src="${vendorMarkedJs}"></script>
               <script src="${mermaidJs}"></script>
               <script src="${vendorTailwindJs}"></script>
+              <script src="${vendorQRCodeJs}"></script>
               <script type="module" src="${toolkitUri}"></script>
               <style>
               .vscode-high-contrast .robot-avatar,
@@ -624,8 +632,8 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 <div id="attach-code-container" class="flex hidden"></div>
                 <div id="attach-file-container" class="flex hidden"></div>
                   <div class="op-hint">
-                    <div id="switch-org-btn" class="switch-org hidden cursor-pointer items-center flex gap-1 px-1 text-xs -ml-[6px]">
-                      <span class="flex material-symbols-rounded -mb-[3px]">deployed_code</span>
+                    <div id="switch-org-btn" class="switch-org prompt-hint hidden cursor-pointer items-end flex">
+                      <span class="flex material-symbols-rounded">deployed_code</span>
                       <div id="switch-org-btn-label" class="text-ellipsis whitespace-nowrap overflow-hidden max-w-[10ch]">${raccoonConfig.t("Individual")}</div>
                     </div>
                     <vscode-badge class="prompt-ready-hint items-center">
@@ -686,6 +694,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               const l10nForUI = {
                 "Cancel": "${raccoonConfig.t("Cancel")}",
                 "Delete": "${raccoonConfig.t("Delete")}",
+                "Edit": "${raccoonConfig.t("Edit")}",
                 "DeleteQA": "${raccoonConfig.t("Delete this chat entity")}",
                 "Send": "${raccoonConfig.t("Send")}",
                 "Others": "${raccoonConfig.t("Others")}",

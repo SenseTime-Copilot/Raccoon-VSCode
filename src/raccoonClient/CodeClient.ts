@@ -1,5 +1,6 @@
 export enum AuthMethod {
   browser = "browser",
+  qrcode = "qrcode",
   apikey = "apikey",
   phone = "phone",
   email = "email"
@@ -9,6 +10,7 @@ export type ClientConfig = {
   robotname: string;
   baseUrl: string;
   authMethod: AuthMethod[];
+  username?: string;
   key?: string;
 };
 
@@ -223,6 +225,7 @@ export enum UrlType {
   base = "base",
   signup = "signup",
   login = "login",
+  qrcode = "qrcode",
   forgetPassword = "forgetPassword"
 }
 

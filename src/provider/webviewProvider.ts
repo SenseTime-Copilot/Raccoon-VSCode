@@ -3,7 +3,7 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonS
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
-import { Choice, ErrorInfo, FinishReason, Message, MetricType, Role } from '../raccoonClient/CodeClient';
+import { Choice, ErrorInfo, FinishReason, Message, MetricType, Role, UrlType } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
@@ -35,7 +35,7 @@ export class RaccoonEditor extends Disposable {
     this.lastTextEditor = window.activeTextEditor;
     raccoonManager.onDidChangeStatus(async (e) => {
       if (e.scope.includes("authorization")) {
-        if (!e.quiet) {
+        if (!e.quiet || e.state === 'login') {
           await this.showWelcome();
         }
         if (e.scope.includes("organization")) {
@@ -131,6 +131,8 @@ export class RaccoonEditor extends Disposable {
     }
     if (switchEnable || isEnterprise) {
       await this.sendMessage({ type: 'showOrganizationSwitchBtn', name: orgName, switchEnable });
+    } else {
+      await this.sendMessage({ type: 'hideOrganizationSwitchBtn' });
     }
     let welcomMsg = await buildWelcomeMessage(robot, userinfo, organization, switchEnable);
     await this.sendMessage({ type: 'addMessage', category, quiet, robot, value: welcomMsg, timestamp });
@@ -164,7 +166,7 @@ export class RaccoonEditor extends Disposable {
     if (state === "deleted") {
       if (orgsInfo.length === 1) {
         msgText = raccoonConfig.t("You've been removed from organization {{org}}", { org: args.orgName });
-        msgText = `<div>${msgText}</div><div class="flex justify-end gap-2"><vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Close")}</vscode-button></div>`;
+        msgText = `<div>${msgText}</div><div class="flex justify-end gap-2 mt-4"><vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Close")}</vscode-button></div>`;
         this.sendMessage({ type: 'showModal', value: msgText });
         raccoonManager.setActiveOrganization(orgsInfo[0].code);
         return;
@@ -182,8 +184,8 @@ export class RaccoonEditor extends Disposable {
       </vscode-radio>`;
     }
     selectionMessage += `</vscode-radio-group>
-    <div class="flex justify-end gap-2">
-      <vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Close")}</vscode-button>
+    <div class="flex justify-end gap-2 mt-4">
+      <vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Cancel")}</vscode-button>
       <vscode-button class="setOrgBtn">${raccoonConfig.t("OK")}</vscode-button>
     </div>
     `;
@@ -265,6 +267,15 @@ export class RaccoonEditor extends Disposable {
       switch (data.type) {
         case 'welcome': {
           await this.showWelcome();
+          break;
+        }
+        case 'getQRCodeURL': {
+          let qrCodeUrl = raccoonManager.getUrl(UrlType.qrcode);
+          if (qrCodeUrl) {
+            let ts = new Date().valueOf();
+            let value = `${qrCodeUrl}?code=${ts}-${env.sessionId}&title=${"小浣能官网"}`;
+            this.sendMessage({ type: 'generateQRCode', value });
+          }
           break;
         }
         case 'listAgent': {
@@ -549,16 +560,18 @@ export class RaccoonEditor extends Disposable {
           raccoonManager.setActiveOrganization(data.value);
           break;
         }
+        case 'logoutConfirm': {
+          let conformMsg = `
+              <div>${raccoonConfig.t("Logout from {{robotname}}?", { robotname: extensionDisplayName })}</div>
+              <div class="flex justify-end gap-2 mt-4">
+                <vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Cancel")}</vscode-button>
+                <vscode-button id="logout">${raccoonConfig.t("Logout")}</vscode-button>
+              </div>`;
+          this.sendMessage({ type: 'showModal', value: conformMsg });
+          break;
+        }
         case 'logout': {
-          window.showWarningMessage(
-            raccoonConfig.t("Logout from {{robotname}}?", { robotname: extensionDisplayName }),
-            { modal: true },
-            raccoonConfig.t("OK"))
-            .then((v) => {
-              if (v === raccoonConfig.t("OK")) {
-                raccoonManager.logout();
-              }
-            });
+          raccoonManager.logout();
           break;
         }
         case 'completionPreference': {

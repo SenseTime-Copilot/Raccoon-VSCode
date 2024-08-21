@@ -145,7 +145,7 @@ export class RaccoonManager {
           await this.updateToken(e.robotname, ai, !!ai);
         });
         let capabilities: Capability[] = [];
-        if (authinfos[e.robotname]) {
+        if (authinfos[e.robotname] && !e.key) {
           let auth = authinfos[e.robotname] as AuthInfo;
           outlog.debug(`Append client ${e.robotname}: [Authorized - ${auth.account.username}]`);
           client.restoreAuthInfo(auth);
@@ -180,6 +180,7 @@ export class RaccoonManager {
     let loginPhase = false;
     let activeOrgStillAvailable = false;
     let newOrgAvailable = false;
+    let checkOrgChange = (clientName === this.getActiveClientRobotName());
     let activeOrgCode = this.activeOrganization()?.code;
     if (!activeOrgCode || activeOrgCode === individual) {
       activeOrgStillAvailable = true;
@@ -188,24 +189,26 @@ export class RaccoonManager {
       try {
         authinfos = JSON.parse(tks);
         if (ai) {
-          if (authinfos && authinfos[clientName]) {
-            let auth = authinfos[clientName];
-            let newOrgs = ai.account.organizations || [];
-            let oldOrgs = auth.account.organizations || [];
-            let oldOrgIds = oldOrgs.map((o) => o.code);
-            for (let newOrg of newOrgs) {
-              if (newOrg.code === activeOrgCode) {
-                activeOrgStillAvailable = true;
-                continue;
+          if (checkOrgChange) {
+            if (authinfos && authinfos[clientName]) {
+              let auth = authinfos[clientName];
+              let newOrgs = ai.account.organizations || [];
+              let oldOrgs = auth.account.organizations || [];
+              let oldOrgIds = oldOrgs.map((o) => o.code);
+              for (let newOrg of newOrgs) {
+                if (newOrg.code === activeOrgCode) {
+                  activeOrgStillAvailable = true;
+                  continue;
+                }
+                if (!oldOrgIds.includes(newOrg.code)) {
+                  newOrgAvailable = true;
+                  continue;
+                }
               }
-              if (!oldOrgIds.includes(newOrg.code)) {
-                newOrgAvailable = true;
-                continue;
+            } else {
+              if (ai.account.organizations && ai.account.organizations.length > 0) {
+                loginPhase = true;
               }
-            }
-          } else {
-            if (ai.account.organizations && ai.account.organizations.length > 0) {
-              loginPhase = true;
             }
           }
           authinfos[clientName] = ai;
@@ -216,7 +219,7 @@ export class RaccoonManager {
       } catch (e) { }
     } else if (ai) {
       authinfos[clientName] = ai;
-      if (ai.account.organizations && ai.account.organizations.length > 0) {
+      if (checkOrgChange && ai.account.organizations && ai.account.organizations.length > 0) {
         loginPhase = true;
       }
     }
@@ -225,7 +228,9 @@ export class RaccoonManager {
       let scope: ChangeScope[] = ["authorization"];
       let orgName: string | undefined = undefined;
       let state;
-      if (loginPhase) {
+      if (!checkOrgChange) {
+        // pass
+      } else if (loginPhase) {
         scope.push("organization");
         state = "login";
       } else if (newOrgAvailable) {
@@ -739,7 +744,6 @@ export class RaccoonManager {
               await this.context.globalState.update("ActiveOrganization", orgs[0].code);
             }
           }
-          this.updateToken(ca.client.robotName, token);
           progress.report({ increment: 100 });
           return 'ok';
         } else {
