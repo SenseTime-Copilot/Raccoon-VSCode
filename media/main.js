@@ -497,11 +497,10 @@ const sendAction = (shortcut) => {
         let b = document.getElementById('switch-org-btn');
         let bl = document.getElementById('switch-org-btn-label');
         bl.innerText = message.name;
-        bl.title = message.name;
-        if (message.switchEnable) {
-          b.classList.add("switchable");
-        } else {
-          b.classList.add("pointer-events-none");
+        bl.title = message.title;
+        if (!message.switchEnable) {
+          b.classList.remove("switch-org");
+          b.classList.add("org-label");
         }
         b.classList.remove("hidden");
         break;
@@ -800,11 +799,40 @@ const sendAction = (shortcut) => {
         let qrc = document.getElementById("qrcode");
         if (qrc) {
           qrc.innerHTML = "";
+          qrc.classList.remove("empty", "used", "masked");
           new QRCode(qrc, {
             text: message.value,
             width: 160,
             height: 160,
           });
+          qrc.title = "";
+        }
+        break;
+      }
+      case "usedQRCode": {
+        let qrc = document.getElementById("qrcode");
+        if (qrc) {
+          qrc.classList.add("used");
+        } else {
+          vscode.postMessage({ type: 'revokeQRCode' });
+        }
+        break;
+      }
+      case "maskQRCode": {
+        let qrcview = document.getElementById("view-qrcode");
+        let qrc = document.getElementById("qrcode");
+        if (!qrcview || qrcview.hidden || !qrc) {
+          vscode.postMessage({ type: 'revokeQRCode' });
+          if (qrc) {
+            qrc.classList.add("empty");
+            qrc.classList.remove("used");
+          }
+        }
+        if (qrc && qrc.classList.contains("used")) {
+          qrc.classList.add("masked");
+          qrc.classList.add("empty");
+          qrc.classList.remove("used");
+          vscode.postMessage({ type: 'revokeQRCode' });
         }
         break;
       }
@@ -2042,9 +2070,21 @@ const sendAction = (shortcut) => {
       e.target.classList.add('hidden');
       e.target.innerHTML = "";
     }
+
     if (e.target.id === "tab-qrcode") {
-      vscode.postMessage({ type: "getQRCodeURL" });
+      var qc = document.getElementById("qrcode");
+      if (qc && qc.classList.contains("empty")) {
+        vscode.postMessage({ type: "getQRCodeURL" });
+      }
+      return;
     }
+
+    const qrCode = e.target.closest('#qrcode');
+    if (qrCode && qrCode.classList.contains("empty")) {
+      vscode.postMessage({ type: "getQRCodeURL" });
+      return;
+    }
+
     const targetButton = e.target.closest('button') || e.target.closest('vscode-button');
     let ts = new Date().valueOf();
 

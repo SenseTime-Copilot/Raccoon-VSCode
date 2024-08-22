@@ -3,7 +3,7 @@ import { raccoonManager, outlog, telemetryReporter, extensionNameKebab, raccoonS
 import { PromptInfo, PromptType, RenderStatus, RaccoonPrompt } from "./promptTemplates";
 import { RaccoonEditorProvider } from './assitantEditorProvider';
 import { CompletionPreferenceType } from './raccoonManager';
-import { Choice, ErrorInfo, FinishReason, Message, MetricType, Role, UrlType } from '../raccoonClient/CodeClient';
+import { AuthMethod, Choice, ErrorInfo, FinishReason, Message, MetricType, WeChatLoginParam, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { diffCode } from './diffContentProvider';
 import { HistoryCache, CacheItem, CacheItemType } from '../utils/historyCache';
@@ -23,6 +23,8 @@ export class RaccoonEditor extends Disposable {
   private stopList: { [key: number]: AbortController };
   private lastTextEditor?: TextEditor;
   private cache: HistoryCache;
+  private qrCodeCtx?: WeChatLoginParam;
+  private qrCodeLoginCheckLoop?: NodeJS.Timer;
 
   private isSupportedScheme(d: TextDocument) {
     return (d.uri.scheme === "file" || d.uri.scheme === "git" || d.uri.scheme === "untitled" || d.uri.scheme === "vscode-notebook-cell" || d.uri.scheme === "vscode-userdata" || d.uri.scheme === "vscode-remote");
@@ -130,7 +132,7 @@ export class RaccoonEditor extends Disposable {
       orgName = organization.name;
     }
     if (switchEnable || isEnterprise) {
-      await this.sendMessage({ type: 'showOrganizationSwitchBtn', name: orgName, switchEnable });
+      await this.sendMessage({ type: 'showOrganizationSwitchBtn', name: orgName, title: raccoonConfig.t("Managed by {{org}}", { org: orgName }), switchEnable });
     } else {
       await this.sendMessage({ type: 'hideOrganizationSwitchBtn' });
     }
@@ -222,6 +224,11 @@ export class RaccoonEditor extends Disposable {
   }
 
   async updateSettingPage(action?: string): Promise<void> {
+    if (this.qrCodeLoginCheckLoop) {
+      clearInterval(this.qrCodeLoginCheckLoop);
+      this.qrCodeLoginCheckLoop = undefined;
+      this.qrCodeCtx = undefined;
+    }
     if (!raccoonManager.isClientLoggedin()) {
       buildLoginPage(this.context, this.webview).then((value) => {
         this.sendMessage({ type: 'updateSettingPage', value, action });
@@ -270,11 +277,40 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'getQRCodeURL': {
-          let qrCodeUrl = raccoonManager.getUrl(UrlType.qrcode);
+          let ts = new Date().valueOf();
+          let qrCodeCtx: WeChatLoginParam = {
+            type: AuthMethod.wechat,
+            uuid: `${ts}-${env.sessionId}`,
+            appName: encodeURIComponent(env.appName)
+          };
+          let qrCodeUrl = raccoonManager.getAnthUrl(qrCodeCtx);
           if (qrCodeUrl) {
-            let ts = new Date().valueOf();
-            let value = `${qrCodeUrl}?code=${ts}-${env.sessionId}&title=${"小浣能官网"}`;
-            this.sendMessage({ type: 'generateQRCode', value });
+            if (this.qrCodeLoginCheckLoop) {
+              clearInterval(this.qrCodeLoginCheckLoop);
+            }
+            this.qrCodeCtx = qrCodeCtx;
+            this.qrCodeLoginCheckLoop = setInterval(async () => {
+              if (this.qrCodeCtx) {
+                await raccoonManager.login(this.qrCodeCtx).then((res) => {
+                  if (res === "logging") {
+                    this.sendMessage({ type: 'usedQRCode' });
+                  }else if (res === "pending") {
+                    this.sendMessage({ type: 'maskQRCode' });
+                  } else if (res === "canceled" || res === "success") {
+                    this.qrCodeCtx = undefined;
+                    clearInterval(this.qrCodeLoginCheckLoop);
+                  }
+                });
+              }
+            }, 2000);
+            this.sendMessage({ type: 'generateQRCode', value: qrCodeUrl });
+          }
+          break;
+        }
+        case 'revokeQRCode': {
+          if (this.qrCodeLoginCheckLoop) {
+            this.qrCodeCtx = undefined;
+            clearInterval(this.qrCodeLoginCheckLoop);
           }
           break;
         }
@@ -328,10 +364,12 @@ export class RaccoonEditor extends Disposable {
             break;
           }
           raccoonManager.login(data.value).then((res) => {
-            if (res !== "ok") {
+            if (res instanceof Error) {
               this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: raccoonConfig.t("Login failed") + ": " + res.message, id: new Date().valueOf() });
-            } else {
+            } else if (res === "success") {
               this.sendMessage({ type: 'updateSettingPage', action: "close" });
+            } else {
+              this.sendMessage({ type: 'showInfoTip', style: "error", category: 'login-failed', value: raccoonConfig.t("Login failed") + ": " + res, id: new Date().valueOf() });
             }
           });
           break;
@@ -571,7 +609,14 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'logout': {
-          raccoonManager.logout();
+          raccoonManager.logout().catch((e) => {
+            let errMsg = `
+            <div>${raccoonConfig.t(e.message)}</div>
+            <div class="flex justify-end gap-2 mt-4">
+              <vscode-button class="closeModal" appearance="secondary">${raccoonConfig.t("Close")}</vscode-button>
+            </div>`;
+            this.sendMessage({ type: 'showModal', value: errMsg });
+          });
           break;
         }
         case 'completionPreference': {

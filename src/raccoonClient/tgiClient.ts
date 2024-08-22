@@ -1,4 +1,4 @@
-import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType, Capability, OrganizationSettings, ErrorInfo } from "./CodeClient";
+import { CodeClient, AuthInfo, Role, ClientConfig, Choice, ChatOptions, CompletionOptions, AuthMethod, AccountInfo, Organization, KnowledgeBase, MetricType, FinishReason, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, UrlType, Capability, OrganizationSettings, ErrorInfo, WeChatLoginParam } from "./CodeClient";
 import { EventStreamContentType, fetchEventSource } from "@fortaine/fetch-event-source";
 
 export class TGIClient implements CodeClient {
@@ -28,11 +28,11 @@ export class TGIClient implements CodeClient {
     return Promise.resolve([]);
   }
 
-  public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    return Promise.resolve(`authorization://apikey?${this.clientConfig.key}`);
+  public getAuthUrl(_param: BrowserLoginParam | WeChatLoginParam): string {
+    return "";
   }
 
-  public async login(_param?: ApiKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  public async login(_param?: ApiKeyLoginParam | BrowserLoginParam | WeChatLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
     let auth: AuthInfo = {
       account: {
         username: "User",

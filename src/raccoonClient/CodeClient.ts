@@ -1,6 +1,6 @@
 export enum AuthMethod {
   browser = "browser",
-  qrcode = "qrcode",
+  wechat = "wechat",
   apikey = "apikey",
   phone = "phone",
   email = "email"
@@ -205,7 +205,14 @@ export type ApiKeyLoginParam = {
 
 export type BrowserLoginParam = {
   type: AuthMethod.browser;
-  callbackParam: string;
+  callback: string;
+  appName: string;
+};
+
+export type WeChatLoginParam = {
+  type: AuthMethod.wechat;
+  uuid: string;
+  appName: string;
 };
 
 export type PhoneLoginParam = {
@@ -224,8 +231,6 @@ export type EmailLoginParam = {
 export enum UrlType {
   base = "base",
   signup = "signup",
-  login = "login",
-  qrcode = "qrcode",
   forgetPassword = "forgetPassword"
 }
 
@@ -249,9 +254,9 @@ export interface CodeClient {
 
   capabilities(): Promise<Capability[]>;
 
-  getAuthUrlLogin(codeVerifier: string): Promise<string | undefined>;
+  getAuthUrl(param: BrowserLoginParam | WeChatLoginParam): string;
 
-  login(param?: ApiKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo>;
+  login(param?: ApiKeyLoginParam | BrowserLoginParam | WeChatLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo | "pending" | "logging" | "canceled">;
 
   restoreAuthInfo(auth: AuthInfo): "SET" | "RESET" | "UPDATE";
 

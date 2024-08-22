@@ -12,7 +12,7 @@ import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
 import { HistoryCache } from "./utils/historyCache";
-import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, agentEditorViewType, raccoonConfig } from "./globalEnv";
+import { raccoonManager, telemetryReporter, initEnv, registerCommand, extensionNameKebab, raccoonEditorProviderViewType, raccoonSearchEditorProviderViewType, favoriteCodeEditorViewType, promptEditorViewType, agentEditorViewType, raccoonConfig, extensionDisplayName } from "./globalEnv";
 import { PromptEditor } from "./provider/promptManager";
 import { AuthMethod, MetricType } from "./raccoonClient/CodeClient";
 import { AgentEditor } from "./provider/agentManager";
@@ -24,7 +24,7 @@ export let docSymbolMap: { [key: string]: { languageId: string; symbols: vscode.
 
 class RaccoonUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    raccoonManager.login({ type: AuthMethod.browser, callbackParam: uri.query });
+    raccoonManager.login({ type: AuthMethod.browser, callback: uri.query, appName: extensionDisplayName });
   }
 }
 

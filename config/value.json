@@ -7,6 +7,7 @@
       "baseUrl": "https://raccoon.sensetime.com",
       "authMethod": [
         "browser",
+        "wechat",
         "email",
         "phone"
       ],

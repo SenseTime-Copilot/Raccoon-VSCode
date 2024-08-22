@@ -218,6 +218,51 @@ textarea::placeholder {
     display: none;
 }
 
+#setting-page #qrcode.used {
+    opacity: 0.6;
+}
+
+#setting-page #qrcode.used:before {
+    content:  " ";
+    display: block;
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    margin: 40px 40px;
+    background: conic-gradient(#fff0, #ffff);
+    animation: scan 2s infinite linear;
+    border-radius: 50%;
+}
+
+@keyframes scan {
+    to {
+	transform: rotate(1turn);
+    }
+}
+
+#setting-page #qrcode.masked {
+    border-color: transparent;
+    cursor: pointer;
+}
+
+#setting-page #qrcode.masked img {
+    opacity: 0.1;
+}
+
+#setting-page #qrcode.masked:before {
+    content:  "⭮";
+    color: white;
+    opacity: 0.5;
+    display: flex;
+    font-size: 50px;
+    font-weight: bold;
+    position: absolute;
+    width: 144px;
+    height: 144px;
+    align-items: center;
+    justify-content: center;
+}
+
 .attach-btn-left,
 .attach-btn-right {
     border-radius: calc(var(--corner-radius) * 1px);
@@ -334,6 +379,7 @@ textarea::placeholder {
     box-shadow: 0 0 3px var(--checkbox-border);
 }
 
+.op-hint .org-label,
 .op-hint .switch-org {
     padding: 0px 5px 0 2px;
     margin-left: -6px;
@@ -347,11 +393,13 @@ textarea::placeholder {
     transition-property: background-color, opacity;
 }
 
-#chat-input-box:focus-within .op-hint .switch-org.switchable {
+#chat-input-box:focus-within .op-hint .org-label,
+#chat-input-box:focus-within .op-hint .switch-org {
     opacity: 0.6;
 }
 
-#chat-input-box .op-hint .switch-org.switchable:hover {
+#chat-input-box .op-hint .org-label:hover,
+#chat-input-box .op-hint .switch-org:hover {
     opacity: 0.9;
     color: var(--button-primary-foreground);
     background-color: var(--button-primary-hover-background);
@@ -784,7 +832,8 @@ span.shortcut:after {
 #agent-list button:focus,
 #file-list button.selected,
 #file-list button:hover,
-#file-list button:focus,#ask-list button.selected,
+#file-list button:focus,
+#ask-list button.selected,
 #ask-list button:hover,
 #ask-list button:focus {
     outline: none !important;
@@ -828,7 +877,7 @@ span.shortcut:after {
 }
 
 .vscode-high-contrast #chat-input-box:focus-within #agent-tab-btn::before,
-.vscode-high-contrast #chat-input-box:focus-within #agent-delete-btn::before{
+.vscode-high-contrast #chat-input-box:focus-within #agent-delete-btn::before {
     border-color: var(--checkbox-border);
 }
 

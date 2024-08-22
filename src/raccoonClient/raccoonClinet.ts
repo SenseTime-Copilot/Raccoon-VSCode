@@ -5,7 +5,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import * as crypto from "crypto";
 import jwt_decode from "jwt-decode";
-import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, UrlType, Capability, OrganizationSettings, ErrorInfo } from "./CodeClient";
+import { CodeClient, AuthInfo, ClientConfig, AuthMethod, AccountInfo, ChatOptions, Choice, Role, FinishReason, Message, CompletionOptions, Organization, MetricType, KnowledgeBase, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, UrlType, Capability, OrganizationSettings, ErrorInfo, WeChatLoginParam, ApiKeyLoginParam } from "./CodeClient";
 
 function encrypt(dataStr: string): string {
   const iv = crypto.randomBytes(16);
@@ -40,11 +40,7 @@ export class RaccoonClient implements CodeClient {
       case UrlType.base:
         return this.clientConfig.baseUrl;
       case UrlType.signup:
-        return this.clientConfig.baseUrl + "/register";
-      case UrlType.login:
         return this.clientConfig.baseUrl + "/login";
-      case UrlType.qrcode:
-        return this.clientConfig.baseUrl + `/login/mp`;
       case UrlType.forgetPassword:
         return this.clientConfig.baseUrl + "/login?step=forgot-password";
     }
@@ -79,11 +75,19 @@ export class RaccoonClient implements CodeClient {
     });
   }
 
-  public getAuthUrlLogin(_codeVerifier: string): Promise<string | undefined> {
-    return Promise.resolve(this.clientConfig.baseUrl + "/login");
+  public getAuthUrl(param: BrowserLoginParam | WeChatLoginParam): string {
+    let type = param.type;
+    if (type === AuthMethod.browser) {
+      let p = param as BrowserLoginParam;
+      return `${this.clientConfig.baseUrl}/login?appname=${encodeURIComponent(p.appName)}&redirect=${encodeURIComponent(p.callback)}`;
+    } else if (type === AuthMethod.wechat) {
+      let p = param as WeChatLoginParam;
+      return `${this.clientConfig.baseUrl}/login/mp?code=${encodeURIComponent(p.uuid)}&appname=${(p.appName)}`;
+    }
+    return "";
   }
 
-  public async login(param?: BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  public async login(param?: ApiKeyLoginParam | BrowserLoginParam | WeChatLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo | "pending" | "logging" | "canceled"> {
     if (!param) {
       if (this.clientConfig.key) {
         this.auth = {
@@ -98,20 +102,30 @@ export class RaccoonClient implements CodeClient {
       return Promise.reject(new Error("No preset auth info"));
     }
     return this._login(param).then((v) => {
-      this.auth = { ...v };
-      return this.syncUserInfo().then((info) => {
-        let auth = { ...v, account: info };
-        this.auth = { ...auth };
-        return auth;
-      }, () => v);
+      if (typeof (v) === "string") {
+        return v;
+      }
+      return this.syncUserInfo()
+        .then((info) => {
+          let auth = { ...v, account: info };
+          return auth;
+        }, () => v)
+        .then((vv) => {
+          return vv;
+        })
+        .then((vvv) => {
+          this.auth = { ...vvv };
+          this.onChangeAuthInfo?.(this.auth);
+          return this.auth;
+        });
     });
   }
 
-  async _login(param: BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo> {
+  async _login(param: ApiKeyLoginParam | BrowserLoginParam | WeChatLoginParam | PhoneLoginParam | EmailLoginParam): Promise<AuthInfo | "pending" | "logging" | "canceled"> {
     if (param.type === "browser") {
       let p = param as BrowserLoginParam;
       let code = '';
-      p.callbackParam.trim()
+      p.callback.trim()
         .split('&')
         .forEach(item => {
           let kv = item.split('=');
@@ -144,6 +158,37 @@ export class RaccoonClient implements CodeClient {
         });
       }
       return Promise.reject(new Error("Invalid Login URL"));
+    } else if (param.type === AuthMethod.wechat) {
+      let p = param as WeChatLoginParam;
+      return axios.post(this.clientConfig.baseUrl + "/api/plugin/auth/v1/login_with_qrcode_code", {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        qrcode_code: p.uuid
+      }).then(resp => {
+        if (resp.status === 200 && resp.data.code === 0) {
+          if (resp.data.data.status === "logging") {
+            return "logging";
+          } else if (resp.data.data.status === "pending") {
+            return "pending";
+          } else if (resp.data.data.status === "canceled") {
+            return "canceled";
+          } else if (resp.data.data.status === "success") {
+            let jwtDecoded: any = jwt_decode(resp.data.data.access_token);
+            return {
+              account: {
+                userId: jwtDecoded["iss"],
+                username: jwtDecoded["name"],
+                pro: false
+              },
+              expiration: jwtDecoded["exp"],
+              weaverdKey: resp.data.data.access_token,
+              refreshToken: resp.data.data.refresh_token,
+            };
+          }
+        }
+        throw new Error(resp.data.message || resp.data);
+      }).catch(err => {
+        throw err;
+      });
     } else if (param.type === AuthMethod.phone) {
       let p = param as PhoneLoginParam;
       return axios.post(this.clientConfig.baseUrl + "/api/plugin/auth/v1/login_with_password", {
@@ -231,13 +276,14 @@ export class RaccoonClient implements CodeClient {
       headers["Content-Type"] = "application/json";
       headers["Authorization"] = `Bearer ${this.auth.weaverdKey}`;
       this.auth = undefined;
+      this.onChangeAuthInfo?.(undefined);
       return axios.post(`${this.clientConfig.baseUrl}/api/plugin/auth/v1/logout`, {}, { headers }).then(() => {
         return undefined;
       });
     }
   }
 
-  public async syncUserInfo(timeoutMs?: number): Promise<AccountInfo> {
+  public async _syncUserInfo(timeoutMs?: number, notifier?: (token?: AuthInfo) => void): Promise<AccountInfo> {
     let url = `${this.clientConfig.baseUrl}/api/plugin/auth/v1/user_info`;
     let ts = new Date();
     let auth = this.auth;
@@ -286,11 +332,13 @@ export class RaccoonClient implements CodeClient {
           if (this.auth) {
             let oldOrgs = this.auth.account.organizations || [];
             let oldOrgIds = oldOrgs.map((org) => org.code);
-            let newOrgIds = organizations.map((org) => org.code);
-            let changed = oldOrgIds.sort().toString() !== newOrgIds.sort().toString();
             this.auth.account = info;
-            if (changed) {
-              this.onChangeAuthInfo?.(this.auth);
+            if (notifier) {
+              let newOrgIds = organizations.map((org) => org.code);
+              let changed = oldOrgIds.sort().toString() !== newOrgIds.sort().toString();
+              if (changed) {
+                notifier(this.auth);
+              }
             }
           }
           return info;
@@ -299,6 +347,10 @@ export class RaccoonClient implements CodeClient {
       }, (_err) => {
         return Promise.resolve(auth!.account);
       });
+  }
+
+  public async syncUserInfo(timeoutMs?: number): Promise<AccountInfo> {
+    return this._syncUserInfo(timeoutMs, this.onChangeAuthInfo);
   }
 
   onDidChangeAuthInfo(handler?: (token: AuthInfo | undefined) => void): void {

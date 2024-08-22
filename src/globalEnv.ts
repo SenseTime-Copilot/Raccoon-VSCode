@@ -49,6 +49,8 @@ export async function initEnv(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(extensionDisplayName, { log: true });
   context.subscriptions.push(outlog);
 
+  outlog.debug(`------------------- ${context.extension.id}-${context.extension.packageJSON.version} -------------------`);
+
   raccoonConfig = await RaccoonConfig.getInstance(context);
 
   raccoonManager = RaccoonManager.getInstance(context);

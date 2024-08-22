@@ -1,5 +1,5 @@
 import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, ProgressLocation } from "vscode";
-import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability } from "../raccoonClient/CodeClient";
+import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability, WeChatLoginParam } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
 import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
@@ -52,7 +52,6 @@ export class RaccoonManager {
 
   private constructor(private readonly context: ExtensionContext) {
     this.flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
-    outlog.debug(`------------------- ${this.flag} -------------------`);
 
     this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
     context.subscriptions.push(
@@ -149,7 +148,7 @@ export class RaccoonManager {
           let auth = authinfos[e.robotname] as AuthInfo;
           outlog.debug(`Append client ${e.robotname}: [Authorized - ${auth.account.username}]`);
           client.restoreAuthInfo(auth);
-          client.syncUserInfo();
+          // client.syncUserInfo();
           // this.checkUpdate(client);
           try {
             capabilities = await client.capabilities();
@@ -157,16 +156,17 @@ export class RaccoonManager {
           }
         } else {
           await client.login().then(async (ai) => {
+            if (typeof(ai) === "string") {
+              return;
+            }
             outlog.debug(`Append client ${e.robotname}: [Authorized - ${ai.account.username}]`);
             // this.checkUpdate(client);
             try {
               capabilities = await client.capabilities();
             } catch (_e) {
             }
-            return this.updateToken(e.robotname, ai);
           }, (_err) => {
             outlog.debug(`Append client ${e.robotname} [Unauthorized]`);
-            return undefined;
           });
         }
         this._clients[e.robotname] = { client, capabilities, options: e };
@@ -177,6 +177,7 @@ export class RaccoonManager {
   private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
     let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
     let authinfos: { [key: string]: AuthInfo } = {};
+    let login = false;
     let loginPhase = false;
     let activeOrgStillAvailable = false;
     let newOrgAvailable = false;
@@ -206,6 +207,7 @@ export class RaccoonManager {
                 }
               }
             } else {
+              login = true;
               if (ai.account.organizations && ai.account.organizations.length > 0) {
                 loginPhase = true;
               }
@@ -230,6 +232,8 @@ export class RaccoonManager {
       let state;
       if (!checkOrgChange) {
         // pass
+      } else if (login) {
+        state = "login";
       } else if (loginPhase) {
         scope.push("organization");
         state = "login";
@@ -714,14 +718,21 @@ export class RaccoonManager {
     return [];
   }
 
-  public getUrl(type: UrlType): Uri | undefined {
+  public getUrl(type: UrlType): string | undefined {
     let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
     if (ca) {
-      return Uri.parse(ca.client.url(type));
+      return ca.client.url(type);
     }
   }
 
-  public login(param: ApiKeyLoginParam | BrowserLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<'ok' | Error> {
+  public getAnthUrl(config: BrowserLoginParam | WeChatLoginParam): string | undefined {
+    let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
+    if (ca) {
+      return ca.client.getAuthUrl(config);
+    }
+  }
+
+  public login(param: ApiKeyLoginParam | BrowserLoginParam | WeChatLoginParam | PhoneLoginParam | EmailLoginParam): Thenable<"success" | "pending" | "logging" | "canceled" | Error> {
     let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
 
     return window.withProgress({
@@ -731,6 +742,9 @@ export class RaccoonManager {
         return new Error("Invalid Client Handler");
       }
       return ca.client.login(param).then(async (token) => {
+        if (typeof (token) === "string") {
+          return token;
+        }
         if (ca && token) {
           try {
             ca.capabilities = await ca.client.capabilities();
@@ -745,7 +759,7 @@ export class RaccoonManager {
             }
           }
           progress.report({ increment: 100 });
-          return 'ok';
+          return 'success';
         } else {
           return new Error(raccoonConfig.t("Incorrect username or password"));
         }
@@ -753,7 +767,7 @@ export class RaccoonManager {
         return new Error(err.response?.data?.details || err.message);
       });
     }).then((v) => {
-      if (ca && v === "ok") {
+      if (ca && v === "success") {
         // this.checkUpdate(ca.client);
       }
       return v;
@@ -766,22 +780,20 @@ export class RaccoonManager {
     }, async (progress, _cancel) => {
       let ca: ClientAndConfigInfo | undefined = this.getActiveClient();
       if (ca) {
-        await ca.client.logout()
+        return ca.client.logout()
           .then(
             async (logoutUrl) => {
+              if (ca) {
+                ca.capabilities = [];
+                await this.context.globalState.update("ActiveOrganization", undefined);
+                await this.context.globalState.update("ActiceClient", undefined);
+              }
               if (logoutUrl) {
                 commands.executeCommand("vscode.open", logoutUrl);
               }
+              progress.report({ increment: 100 });
             }
-          ).finally(async () => {
-            if (ca) {
-              this.updateToken(ca.client.robotName);
-              ca.capabilities = [];
-              await this.context.globalState.update("ActiveOrganization", undefined);
-              await this.context.globalState.update("ActiceClient", undefined);
-            }
-            progress.report({ increment: 100 });
-          });
+          );
       }
     });
   }
@@ -833,13 +845,7 @@ export class RaccoonManager {
         ...callbacks
       };
 
-      return ca.client.chat(options, org).catch(e => {
-        if (e.response?.status === 401) {
-          outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
-          this.updateToken(ca!.client.robotName);
-        }
-        return Promise.reject(e);
-      });
+      return ca.client.chat(options, org);
     } else if (ca) {
       return Promise.reject(Error(raccoonConfig.t("Unauthorized")));
     } else {
@@ -871,13 +877,7 @@ export class RaccoonManager {
         headers,
         ...callbacks
       };
-      return ca.client.completion(options, org).catch(e => {
-        if (e.response?.status === 401) {
-          outlog.info(`[${ca!.client.robotName}] Reset access token sense 401 recevived`);
-          this.updateToken(ca!.client.robotName);
-        }
-        return Promise.reject(e);
-      });
+      return ca.client.completion(options, org);
     } else if (ca) {
       return Promise.reject(Error(raccoonConfig.t("Unauthorized")));
     } else {

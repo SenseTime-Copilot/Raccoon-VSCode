@@ -133,37 +133,38 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   let tabs = '';
   let views = '';
   if (methods.includes(AuthMethod.browser)) {
-    let loginUrl = raccoonManager.getUrl(UrlType.login);
+    let callback = Uri.parse(`${env.uriScheme}://${context.extension.id}/login`).toString();
+    let loginUrl = raccoonManager.getAnthUrl({
+      type: AuthMethod.browser,
+      callback,
+      appName: extensionDisplayName
+    });
     if (loginUrl) {
       tabs += `<vscode-panel-tab id="tab-browser">${raccoonConfig.t("Browser")}</vscode-panel-tab>`;
-      let redirectUrl = Uri.parse(`${env.uriScheme}://${context.extension.id}/login`).toString();
       views += `<vscode-panel-view id="view-browser" class="login-view flex-col gap-2">
                   <div></div>
                   <span class="material-symbols-rounded" style="text-align: center;font-size: 80px;opacity: 0.4;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;">cloud_sync</span>
-                  <a title="${raccoonConfig.t("Login")}" class="sso-btn" href="${loginUrl.with({ query: `appname=${encodeURIComponent(env.appName)}&redirect=${encodeURIComponent(redirectUrl)}` }).toString(true)}">
+                  <a title="${raccoonConfig.t("Login")}" class="sso-btn" href="${loginUrl}">
                     <vscode-button style="width: 100%">${raccoonConfig.t("Login")}</vscode-button>
                   </a>
                   <div></div>
                 </vscode-panel-view>`;
     }
   }
-  if (methods.includes(AuthMethod.qrcode)) {
-    let qrCodeUrl = raccoonManager.getUrl(UrlType.qrcode);
-    if (qrCodeUrl) {
-      tabs += `<vscode-panel-tab id="tab-qrcode">${raccoonConfig.t("QR Code")}</vscode-panel-tab>`;
-      views += `<vscode-panel-view id="view-qrcode" class="login-view flex-col gap-2">
+  if (methods.includes(AuthMethod.wechat)) {
+    tabs += `<vscode-panel-tab id="tab-qrcode">${raccoonConfig.t("WeChat")}</vscode-panel-tab>`;
+    views += `<vscode-panel-view id="view-qrcode" class="login-view flex-col gap-2">
                   <div></div>
-                  <div id="qrcode" class="mx-auto h-40 border-8 border-white"></div>
+                  <div id="qrcode" class="mx-auto h-40 border-8 border-white empty"></div>
                   <div></div>
                 </vscode-panel-view>`;
-    }
   }
   if (methods.includes(AuthMethod.email)) {
     tabs += `<vscode-panel-tab id="tab-email">${raccoonConfig.t("Email")}</vscode-panel-tab>`;
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {
-      forgetPwd = `<vscode-link tabindex="-1" title="${raccoonConfig.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString(true)}">
+      forgetPwd = `<vscode-link tabindex="-1" title="${raccoonConfig.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink}">
                 ${raccoonConfig.t("Forgot Password")}?
               </vscode-link>`;
     } else {
@@ -201,7 +202,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {
-      forgetPwd = `<vscode-link tabindex="-1" title="${raccoonConfig.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink.toString(true)}">
+      forgetPwd = `<vscode-link tabindex="-1" title="${raccoonConfig.t("Forgot Password")}?" class="text-xs" href="${forgetPwdLink}">
                 ${raccoonConfig.t("Forgot Password")}?
               </vscode-link>`;
     } else {
@@ -257,7 +258,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
   if (!isEnterprise && signupUrl) {
     signupLink = `<span class="self-center grow">
       ${raccoonConfig.t("Do not have an account?")}
-      <vscode-link title="${raccoonConfig.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl.toString(true)}">
+      <vscode-link title="${raccoonConfig.t("Sign Up")}" class="text-xs mx-1 self-center" href="${signupUrl}">
         ${raccoonConfig.t("Sign Up")}
       </vscode-link>
     </span>`;
@@ -379,8 +380,8 @@ export async function buildSettingPage(): Promise<string> {
     </div>
     <div class="${username ? "flex" : "hidden"} w-fit rounded-sm gap-1 leading-relaxed items-center px-1 py-px" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
       <span class="switch-org material-symbols-rounded ${disableSwitch ? "hidden" : "cursor-pointer"} text-[15px]" title="${raccoonConfig.t("Switch Organization")}">sync_alt</span>
-      <div class="text-[10px] ${disableSwitch ? "org-tag" : "cursor-pointer switch-org"}" title="${raccoonConfig.t("Individual")}${pro? " Pro" : ""}">
-        ${raccoonConfig.t("Individual")}${pro? " Pro" : ""}
+      <div class="text-[10px] ${disableSwitch ? "org-tag" : "cursor-pointer switch-org"}" title="${raccoonConfig.t("Individual")}${pro ? " Pro" : ""}">
+        ${raccoonConfig.t("Individual")}${pro ? " Pro" : ""}
       </div>
     </div>
   </div>`}
