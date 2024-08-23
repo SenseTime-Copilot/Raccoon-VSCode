@@ -33,6 +33,7 @@ variables:
     value: "Raccoon Assistant 70B (32k)"
     options:
       - "Raccoon Assistant 7B (16k)"
+      - "Raccoon Assistant 70B (16k)"
       - "Raccoon Assistant 70B (32k)"
   API_TYPE:
     description: "API type"

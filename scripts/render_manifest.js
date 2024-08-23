@@ -6,7 +6,7 @@ let packageName = args.packageName || "Raccoon";
 let packageValueFile = args.packageValueFile || undefined;
 let packageType = args.packageType || "Standard";
 let completionModel = args.completionModel || "Raccoon Completion 7B (16k)";
-let assistantModel = args.assistantModel || "Raccoon Completion 70B (32k)";
+let assistantModel = args.assistantModel || "Raccoon Assistant 70B (32k)";
 let betaFeature = args.betaFeature ? args.betaFeature.split(",").map((feature) => feature.trim()) : undefined;
 let apiType = args.apiType || "Raccoon";
 let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
