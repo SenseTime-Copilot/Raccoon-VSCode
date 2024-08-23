@@ -156,7 +156,7 @@ export class RaccoonManager {
           }
         } else {
           await client.login().then(async (ai) => {
-            if (typeof(ai) === "string") {
+            if (typeof (ai) === "string") {
               return;
             }
             outlog.debug(`Append client ${e.robotname}: [Authorized - ${ai.account.username}]`);

@@ -7,7 +7,7 @@ import { RaccoonEditorProvider } from "./provider/assitantEditorProvider";
 import { decorateCodeWithRaccoonLabel } from "./utils/decorateCode";
 import { RaccoonTerminal } from "./provider/codeTerminal";
 import DiffContentProvider from "./provider/diffContentProvider";
-import { TextDocumentShowOptions } from "vscode";
+import { TextDocumentChangeReason, TextDocumentShowOptions } from "vscode";
 import { RaccoonSearchEditorProvider } from "./provider/searchEditorProvider";
 import { FavoriteCodeEditor } from "./provider/favoriteCode";
 import { CodeNotebook } from "./provider/codeNotebook";
@@ -307,5 +307,23 @@ export async function activate(context: vscode.ExtensionContext) {
   DiffContentProvider.register(context);
 
   CodeNotebook.rigister(context);
+
+  if (raccoonConfig.beta.includes("lineChangeCounter")) {
+    vscode.workspace.onDidChangeTextDocument(async (ev) => {
+      if (ev.reason === TextDocumentChangeReason.Redo || ev.reason === TextDocumentChangeReason.Undo) {
+        return;
+      }
+      for (let c of ev.contentChanges) {
+        if (c.text) {
+          let lines = c.text.split("\n").length - 1;
+          if (lines === 0) {
+            continue;
+          }
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { file_increment_line_num: c.text.split("\n").length - 1 } });
+        }
+      }
+    });
+  }
 }
 export function deactivate() { }

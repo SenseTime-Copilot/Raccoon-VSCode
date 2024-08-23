@@ -804,6 +804,7 @@ const sendAction = (shortcut) => {
             text: message.value,
             width: 160,
             height: 160,
+            correctLevel: QRCode.CorrectLevel.L
           });
           qrc.title = "";
         }
@@ -2071,10 +2072,19 @@ const sendAction = (shortcut) => {
       e.target.innerHTML = "";
     }
 
-    if (e.target.id === "tab-qrcode") {
-      var qc = document.getElementById("qrcode");
-      if (qc && qc.classList.contains("empty")) {
-        vscode.postMessage({ type: "getQRCodeURL" });
+    if (e.target.classList.contains("login-panel-tab")) {
+      if (e.target.id === "tab-qrcode") {
+        var qc = document.getElementById("qrcode");
+        if (qc && qc.classList.contains("empty")) {
+          vscode.postMessage({ type: "getQRCodeURL" });
+        }
+      } else {
+        var qc = document.getElementById("qrcode");
+        if (qc) {
+          qc.classList.add("empty");
+          qc.classList.remove("used");
+        }
+        vscode.postMessage({ type: 'revokeQRCode' });
       }
       return;
     }

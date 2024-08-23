@@ -140,7 +140,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
       appName: extensionDisplayName
     });
     if (loginUrl) {
-      tabs += `<vscode-panel-tab id="tab-browser">${raccoonConfig.t("Browser")}</vscode-panel-tab>`;
+      tabs += `<vscode-panel-tab id="tab-browser" class="login-panel-tab">${raccoonConfig.t("Browser")}</vscode-panel-tab>`;
       views += `<vscode-panel-view id="view-browser" class="login-view flex-col gap-2">
                   <div></div>
                   <span class="material-symbols-rounded" style="text-align: center;font-size: 80px;opacity: 0.4;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;">cloud_sync</span>
@@ -152,7 +152,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
     }
   }
   if (methods.includes(AuthMethod.wechat)) {
-    tabs += `<vscode-panel-tab id="tab-qrcode">${raccoonConfig.t("WeChat")}</vscode-panel-tab>`;
+    tabs += `<vscode-panel-tab id="tab-qrcode" class="login-panel-tab">${raccoonConfig.t("WeChat")}</vscode-panel-tab>`;
     views += `<vscode-panel-view id="view-qrcode" class="login-view flex-col gap-2">
                   <div></div>
                   <div id="qrcode" class="mx-auto h-40 border-8 border-white empty"></div>
@@ -160,7 +160,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
                 </vscode-panel-view>`;
   }
   if (methods.includes(AuthMethod.email)) {
-    tabs += `<vscode-panel-tab id="tab-email">${raccoonConfig.t("Email")}</vscode-panel-tab>`;
+    tabs += `<vscode-panel-tab id="tab-email" class="login-panel-tab">${raccoonConfig.t("Email")}</vscode-panel-tab>`;
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {
@@ -198,7 +198,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
               </vscode-panel-view>`;
   }
   if (!isEnterprise && methods.includes(AuthMethod.phone)) {
-    tabs += `<vscode-panel-tab id="tab-pwd">${raccoonConfig.t("Phone")}</vscode-panel-tab>`;
+    tabs += `<vscode-panel-tab id="tab-pwd" class="login-panel-tab">${raccoonConfig.t("Phone")}</vscode-panel-tab>`;
     let forgetPwdLink = raccoonManager.getUrl(UrlType.forgetPassword);
     let forgetPwd = '';
     if (forgetPwdLink) {
