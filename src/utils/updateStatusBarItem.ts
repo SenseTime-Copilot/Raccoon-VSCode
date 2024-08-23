@@ -1,5 +1,5 @@
 import { StatusBarItem, MarkdownString, ThemeColor } from "vscode";
-import { extensionDisplayName, raccoonConfig, raccoonManager } from "../globalEnv";
+import { extensionDisplayName, extensionNameKebab, raccoonConfig, raccoonManager } from "../globalEnv";
 
 var statusbartimer: NodeJS.Timeout;
 
@@ -23,16 +23,16 @@ export function updateStatusBarItem(
     statusBarItem.backgroundColor = new ThemeColor("statusBarItem.warningBackground");
   }
   if (!info) {
-    statusBarItem.text = "$(raccoon-icon)";
+    statusBarItem.text = `$(${extensionNameKebab}-icon)`;
     statusBarItem.tooltip = buildTip();
     return;
   }
 
-  statusBarItem.text = `$(raccoon-icon) $(dash) ${info.text}`;
+  statusBarItem.text = `$(${extensionNameKebab}-icon) $(dash) ${info.text}`;
   statusBarItem.tooltip = buildTip(info.tooltip);
   if (!info.keep) {
     statusbartimer = setTimeout(() => {
-      statusBarItem.text = `$(raccoon-icon)`;
+      statusBarItem.text = `$(${extensionNameKebab}-icon)`;
       statusBarItem.tooltip = buildTip();
     }, 10000);
   }

@@ -564,7 +564,7 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
               </div>
               <div id="chat-input-box" class="chat-box w-full flex flex-col justify-center items-center px-1">
                 <div id="search-list" class="flex flex-col w-full py-2 hidden">
-                  <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://raccoon.search/stackoverflow.search?\${query}'>
+                  <vscode-checkbox class="px-2 py-1 m-0" checked title='Search in StackOverflow' data-query='${extensionNameKebab}://${extensionNameKebab}.search/stackoverflow.search?\${query}'>
                     StackOverflow
                   </vscode-checkbox>
                   <vscode-checkbox class="px-2 py-1 m-0" title='Search in StackOverflow w/ DuckDuckGo' data-query='https://duckduckgo.com/?q=site%3Astackoverflow.com+\${query}'>

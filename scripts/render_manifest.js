@@ -10,11 +10,15 @@ let assistantModel = args.assistantModel || "Raccoon Assistant 70B (32k)";
 let betaFeature = args.betaFeature ? args.betaFeature.split(",").map((feature) => feature.trim()) : undefined;
 let apiType = args.apiType || "Raccoon";
 let baseUrl = args.baseUrl || "https://raccoon.sensetime.com";
-let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "email", "phone"]);
+let authMethod = (packageType === "Enterprise" ? ["email"] : ["browser", "wechat", "email", "phone"]);
+
+let extensionId = packageId.replace(/^@/g, '').replace(/[@~.\/]/g, '-');
+let extensionIdCamel = extensionId.replace(/-./g, x=>x[1].toUpperCase());
+let extensionName = packageName;
 
 console.log("=============== Rendering Settings ===============");
-console.log(` Package ID         : ${packageId}`);
-console.log(` Package Name       : ${packageName}`);
+console.log(` Package ID         : ${extensionId}`);
+console.log(` Package Name       : ${extensionName}`);
 if (packageValueFile) {
   console.log(` Package Value File : ${packageValueFile}`);
 } else {
@@ -33,8 +37,7 @@ fs.readFile('./package-sample.json', 'utf8', (err, data) => {
     console.error(err);
     return;
   }
-  let nameWoWs = packageName.replace(" ", "");
-  let content = data.replaceAll("{extensionId}", packageId).replaceAll("{extensionName}", packageName).replaceAll("{extensionNameWithoutWhiteSpace}", nameWoWs);
+  let content = data.replaceAll("{extensionId}", extensionId).replaceAll("{extensionIdCamel}", extensionIdCamel).replaceAll("{extensionName}", extensionName);
   fs.writeFile('./package.json', content, writeErr => {
     if (writeErr) {
       console.error(writeErr);
@@ -72,7 +75,7 @@ if (packageValueFile) {
       cfg.beta = betaFeature;
     }
     for (let e of cfg.engines) {
-      e.robotname = packageName;
+      e.robotname = extensionName;
       e.apiType = apiType;
       e.baseUrl = baseUrl;
       e.authMethod = authMethod;
@@ -94,6 +97,11 @@ if (packageValueFile) {
       }
       switch (assistantModel) {
         case "Raccoon Assistant 7B (16k)": {
+          e.assistant.maxInputTokenNum = 12288;
+          e.assistant.totalTokenNum = 16384;
+          break;
+        }
+        case "Raccoon Assistant 70B (16k)": {
           e.assistant.maxInputTokenNum = 12288;
           e.assistant.totalTokenNum = 16384;
           break;

@@ -70,7 +70,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
           }
           let item = new CompletionItem(snippet.shortcut, CompletionItemKind.Snippet);
           item.insertText = snippet.code;
-          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(raccoon-icon) _${raccoonConfig.t("from {{robotname}} favorite code snippets", { robotname: extensionDisplayName })}_`, true);
+          item.documentation = new MarkdownString(`\`\`\`${snippet.languageid}\n${snippet.code}\n\`\`\`\n\n$(${extensionNameKebab}-icon) _${raccoonConfig.t("from {{robotname}} favorite code snippets", { robotname: extensionDisplayName })}_`, true);
           return new CompletionList([item]);
         }
       }
@@ -170,7 +170,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
   }
 
   openCustomDocument(uri: Uri, _openContext: CustomDocumentOpenContext, _token: CancellationToken): CustomDocument {
-    if (uri.path === "/all.raccoon.favorites") {
+    if (uri.path === `/all.${extensionNameKebab}.favorites`) {
       return {
         uri,
         dispose: () => {
@@ -186,7 +186,7 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
   }
 
   resolveCustomEditor(document: CustomDocument, webviewPanel: WebviewPanel, _token: CancellationToken): void | Thenable<void> {
-    if (document.uri.path === "/all.raccoon.favorites") {
+    if (document.uri.path === `/all.${extensionNameKebab}.favorites`) {
       this.webview = webviewPanel.webview;
       return this.favoriteCodeSnippetListPage(webviewPanel);
     } else {
@@ -348,13 +348,13 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
             id: `${id}`,
             code: ''
           };
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), favoriteCodeEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.favorites/${msg.id}.${extensionNameKebab}.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${id}]` }))}#${encodeURIComponent(JSON.stringify(temp))}`), favoriteCodeEditorViewType);
           break;
         }
         case 'edit': {
           this.getSnippetItems(msg.id).then((snippets) => {
             if (snippets[msg.id]) {
-              commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${msg.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), favoriteCodeEditorViewType);
+              commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.favorites/${msg.id}.${extensionNameKebab}.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${msg.id}]` }))}#${encodeURIComponent(JSON.stringify(snippets[msg.id]))}`), favoriteCodeEditorViewType);
             }
           });
           break;

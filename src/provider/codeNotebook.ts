@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { parseMarkdown, writeCellsToMarkdown } from '../utils/markdownParser';
-import { codeNotebookType, extensionNameKebab, raccoonConfig, raccoonManager, registerCommand } from "../globalEnv";
+import { codeNotebookType, extensionDisplayName, extensionNameKebab, extensionNamePascal, raccoonConfig, raccoonManager, registerCommand } from "../globalEnv";
 import { Message } from "../raccoonClient/CodeClient";
 import { RaccoonRunner } from "./raccoonToolset";
 
@@ -29,7 +29,7 @@ class CodeNotebookController {
   constructor(context: vscode.ExtensionContext, private readonly robot: string, viewType: string) {
     this.controller = vscode.notebooks.createNotebookController(robot, viewType, robot);
     this.controller.supportsExecutionOrder = true;
-    this.controller.supportedLanguages = ["typescript", "raccoon"];
+    this.controller.supportedLanguages = ["typescript", extensionNameKebab];
     this.controller.executeHandler = this.execute.bind(this);
     context.subscriptions.push(this.controller);
   }
@@ -88,13 +88,13 @@ class CodeNotebookController {
 class CodeNotebookCellStatusBarItemProvider implements vscode.NotebookCellStatusBarItemProvider {
   onDidChangeCellStatusBarItems?: vscode.Event<void> | undefined;
   provideCellStatusBarItems(cell: vscode.NotebookCell, _token: vscode.CancellationToken): vscode.ProviderResult<vscode.NotebookCellStatusBarItem | vscode.NotebookCellStatusBarItem[]> {
-    if (cell.document.languageId === 'raccoon') {
+    if (cell.document.languageId === extensionNameKebab) {
       let reg = new vscode.NotebookCellStatusBarItem('🦝', vscode.NotebookCellStatusBarAlignment.Right);
       reg.command = {
         title: '',
         command: "vscode.open",
         arguments: [
-          vscode.Uri.parse(`${extensionNameKebab}://raccoon.transpile/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
+          vscode.Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.transpile/${cell.document.uri.path}-${cell.index}.ts#${encodeURIComponent(cell.document.getText())}`)
         ]
       };
       reg.tooltip = raccoonConfig.t("Show Transpiled Typescript Code");
@@ -104,12 +104,12 @@ class CodeNotebookCellStatusBarItemProvider implements vscode.NotebookCellStatus
   }
 }
 
-const notebookInitialContent =
-  `## 开始使用 Raccoon Notebook
+function generateNotebookInitialContent() {
+  return `## 开始使用 ${extensionNamePascal} Notebook
 
-Raccoon Notebook 为您提供了交互式的代码执行体验，帮助您快速验证想法，或沉淀有用的流程。
+${extensionNamePascal} Notebook 为您提供了交互式的代码执行体验，帮助您快速验证想法，或沉淀有用的流程。
 
-在 Raccoon Notebook 中，您可以创建 \`Markdown\` 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`Raccoon 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
+在 ${extensionNamePascal} Notebook 中，您可以创建 \`Markdown\` 格式的单元格，来记录说明性文字，同时可以在其中穿插创建代码单元格，其中可以包含 \`${extensionNamePascal} 指令\` 或 \`TypeScript\` 代码，并支持编辑修改和实时运行，快速查看输出结果。
 
 ### 支持的模块和接口
 
@@ -122,10 +122,10 @@ interface Message {
 }
 \`\`\`
 
-Raccoon Notebook 为每个单元格提供了 \`RaccoonContext\` 上下文信息，其中提供了工具函数入口及已运行单元格的输出信息，其详细定义如下:
+${extensionNamePascal} Notebook 为每个单元格提供了 \`${extensionNamePascal}Context\` 上下文信息，其中提供了工具函数入口及已运行单元格的输出信息，其详细定义如下:
 
 \`\`\`ts readonly
-interface RaccoonContext {
+interface ${extensionNamePascal}Context {
   llm: any; // LLM 工具函数入口
   ide: any; // IDE 工具函数入口
   output: { // output 映射，可以通过执行后的输出索引号获取对应的消息
@@ -137,7 +137,7 @@ interface RaccoonContext {
 
 以下是当前支持的工具函数列表：
 
-| Raccoon Directive   | TypeScript Interface                           | Description                                                                                 |
+| ${extensionNamePascal} Directive   | TypeScript Interface                           | Description                                                                                 |
 |---------------------|------------------------------------------------|---------------------------------------------------------------------------------------------|
 | \`@llm.assistant\`    | \`llm.assistant({messages: Message[]})\`         | 调用远端语言模型问答接口, 参数为需要发送的对话消息列表, 最后一条消息的 \`role\` 必须为 \`user\` |
 | \`@llm.completion\`   | \`llm.completion({prompt: string})\`             | 调用远端语言模型补全接口, 参数为需要发送的提示内容                                          |
@@ -146,11 +146,11 @@ interface RaccoonContext {
 | \`@ide.files\`        | \`ide.files({recursive: number})\`               | 列举当前工作目录文件, 参数为最大遍历深度                                                    |
 | \`@ide.show\`         | \`ide.show({path: string; beside: boolean})\`    | 打开指定的文件, 参数为需要打开文件的路径, 及是否在侧边打开文件                              |
 
-### \`Raccoon 指令\`
+### \`${extensionNamePascal} 指令\`
 
-使用 \`Raccoon 指令\` 可以方便的调用 Raccoon 提供的远端语言模型、本地代理等能力，要使用 \`Raccoon 指令\`，首先创建一个代码单元格，并保证其语言类型是 \`Raccoon\`，在单元格内，可以使用如下形式来调用能力：
+使用 \`${extensionNamePascal} 指令\` 可以方便的调用 ${extensionDisplayName} 提供的远端语言模型、本地代理等能力，要使用 \`${extensionNamePascal} 指令\`，首先创建一个代码单元格，并保证其语言类型是 \`${extensionNameKebab}\`，在单元格内，可以使用如下形式来调用能力：
 
-\`\`\`raccoon
+\`\`\`${extensionNameKebab}
 // 调用 llm 的 assistant 能力回答用户问题
 @llm.assistant // 指令格式 \`@<module>.<function>\`
 messages: [{role: "user", content: "将'你好'翻译成英文"}] // 通过 \`output[]\` 来使用指定的上文信息
@@ -160,12 +160,12 @@ messages: [{role: "user", content: "将'你好'翻译成英文"}] // 通过 \`ou
 
 我们可以在后续单元格中使用 \`output\` 及 \`outputs\` 来引用上文输出:
 
-\`\`\`raccoon
+\`\`\`${extensionNameKebab}
 @llm.assistant
 messages: [...outputs, {role: "user", content: "那法语呢?"}] // 通过 \`outputs\` 来使用上文全部信息
 \`\`\`
 
-\`Raccoon 指令\` 本质是将指令转译为下文将会介绍的 \`TypeScript\` 代码执行，可以点击单元格底部 \`🦝\` 可查看转译结果。
+\`${extensionNamePascal} 指令\` 本质是将指令转译为下文将会介绍的 \`TypeScript\` 代码执行，可以点击单元格底部 \`🦝\` 可查看转译结果。
 
 输出结果显示形式可以通过输出单元格前的配置菜单，按喜好切换:
 
@@ -177,13 +177,13 @@ messages: [...outputs, {role: "user", content: "那法语呢?"}] // 通过 \`out
 为了实现具体功能，您可以在创建 \`Typescript\` 类型的代码单元格，并实现符合以下合约形式的代码：
 
 \`\`\`ts
-(context: RaccoonContext): Promise<Message> => {
+(context: ${extensionNamePascal}Context): Promise<Message> => {
   return context.llm.assistant({messages: [{role: 'user', content: "珠穆朗玛峰海拔是多少?"}]})
 }
 \`\`\`
 
 \`\`\`ts
-(context: RaccoonContext): Promise<Message> => {
+(context: ${extensionNamePascal}Context): Promise<Message> => {
   return context.llm.assistant({messages: [{role: 'user', content: "乞力马扎罗峰海拔是多少?"}]})
 }
 \`\`\`
@@ -192,7 +192,7 @@ messages: [...outputs, {role: "user", content: "那法语呢?"}] // 通过 \`out
 
 \`\`\`ts
 // 海拔差计算器
-(context: RaccoonContext): Promise<Message> => {
+(context: ${extensionNamePascal}Context): Promise<Message> => {
   return new Promise<Message>((resolve, reject) => {
     let h1 = /([0-9,]+)米/.exec(context.output[21].content);
     let h2 = /([0-9,]+)米/.exec(context.output[22].content);
@@ -207,35 +207,37 @@ messages: [...outputs, {role: "user", content: "那法语呢?"}] // 通过 \`out
 
 ### 与本地 IDE 互动
 
-通过与本地 IDE 的功能集成，我们可以使用 Raccoon Notebook 与 IDE 互动：
+通过与本地 IDE 的功能集成，我们可以使用 ${extensionNamePascal} Notebook 与 IDE 互动：
 
-\`\`\`raccoon
+\`\`\`${extensionNameKebab}
 @ide.files
 recursive: 2
 \`\`\`
 
-\`\`\`raccoon
+\`\`\`${extensionNameKebab}
 @ide.select
 items: output[27].content.split('\\n')
 title: "open file..."
 \`\`\`
 
-\`\`\`raccoon
+\`\`\`${extensionNameKebab}
 @ide.select
 items: ['yes', 'no']
 title: "open beside?"
 \`\`\`
 
-\`\`\`raccoon
+\`\`\`${extensionNameKebab}
 @ide.show
 path: output[28].content
 beside: output[29].content === 'yes'
 \`\`\`
 
 `;
+}
 
 export class CodeNotebook {
   static rigister(context: vscode.ExtensionContext) {
+    let notebookInitialContent = generateNotebookInitialContent();
     context.subscriptions.push(vscode.workspace.registerNotebookSerializer(codeNotebookType, new CodeNotebookSerializer(), { transientOutputs: true }));
     for (let c of raccoonManager.robotNames) {
       if (c) {
@@ -245,25 +247,25 @@ export class CodeNotebook {
     }
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(extensionNameKebab, {
       provideTextDocumentContent(uri: vscode.Uri, _token: vscode.CancellationToken) {
-        if (uri.authority !== "raccoon.transpile") {
+        if (uri.authority !== `${extensionNameKebab}.transpile`) {
           return;
         }
         let code = uri.fragment;
-        let ts = RaccoonRunner.parseRaccoon('raccoon', code);
+        let ts = RaccoonRunner.parseRaccoon(extensionNameKebab, code);
         if (ts) {
           return `interface Message {
   role: string;
   content: string;
 }
 
-interface RaccoonContext {
+interface ${extensionNamePascal}Context {
   llm: any;
   ide: any;
   output: {
     [key: number]: Message;
   };
   outputs: Message[];
-}\n\n` + ts;
+}\n\n` + ts.replace(/RaccoonContext/g, `${extensionNamePascal}Context`);
         }
       }
     }));

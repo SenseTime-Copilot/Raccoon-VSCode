@@ -43,7 +43,7 @@ export class RaccoonSearchEditorProvider implements CustomReadonlyEditorProvider
                   let items = ``;
                   for (let item of resp.data.items) {
                     let section = `<section>`;
-                    section += `<vscode-link href='#' onclick='openDocument("${extensionNameKebab}://raccoon.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
+                    section += `<vscode-link href='#' onclick='openDocument("${extensionNameKebab}://${extensionNameKebab}.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
                     section += `<div class="${item.item_type}">`;
                     let lines = item.excerpt.split('\n');
                     for (let line of lines) {
@@ -267,7 +267,7 @@ export class RaccoonSearchEditorProvider implements CustomReadonlyEditorProvider
               let page = `<h1>${q.query}</h1>`;
               for (let item of resp.data.items) {
                 let section = `<section>`;
-                section += `<vscode-link href='#' onclick='openDocument("${extensionNameKebab}://raccoon.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
+                section += `<vscode-link href='#' onclick='openDocument("${extensionNameKebab}://${extensionNameKebab}.search/stackoverflow.question?${encodeURIComponent(JSON.stringify({ "id": item.question_id, "query": item.title }))}")'><h3>${item.title}</h3></vscode-link>`;
                 section += `<div class="${item.item_type}">`;
                 let lines = item.excerpt.split('\n');
                 for (let line of lines) {

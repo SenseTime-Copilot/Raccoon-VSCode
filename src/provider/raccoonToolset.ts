@@ -3,6 +3,7 @@ import { Message } from "../raccoonClient/CodeClient";
 import { CancellationToken, NotebookCellKind, NotebookData } from "vscode";
 import { VscodeToolset } from "./toolset/VscodeToolset";
 import { LlmToolset } from "./toolset/LlmToolset";
+import { extensionNameKebab } from "../globalEnv";
 
 export interface Toolset {
   fn: { [key: string]: { func: (args: any) => Promise<Message>; description: string; parameters: { type: 'object'; properties: object } } };
@@ -45,7 +46,7 @@ export class RaccoonRunner {
   };
 
   static parseRaccoon(languageId: string, content: string): string {
-    if (languageId === 'raccoon') {
+    if (languageId === extensionNameKebab) {
       let lines = content.split('\n');
       let parameters: string[] = [];
       let toolset = '';

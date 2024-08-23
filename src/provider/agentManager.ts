@@ -45,7 +45,7 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
   }
 
   openCustomDocument(uri: Uri, _openContext: CustomDocumentOpenContext, _token: CancellationToken): CustomDocument {
-    if (uri.path === "/all.raccoon.agent") {
+    if (uri.path === `/all.${extensionNameKebab}.agent`) {
       return {
         uri,
         dispose: () => {
@@ -61,10 +61,10 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
   }
 
   resolveCustomEditor(document: CustomDocument, webviewPanel: WebviewPanel, _token: CancellationToken): void | Thenable<void> {
-    if (document.uri.path === "/all.raccoon.agent") {
+    if (document.uri.path === `/all.${extensionNameKebab}.agent`) {
       this.webview = webviewPanel.webview;
       return this.agentListPage(webviewPanel);
-    } else if (document.uri.path === "/new.raccoon.agent") {
+    } else if (document.uri.path === `/new.${extensionNameKebab}.agent`) {
       return this.agentEditorPage(webviewPanel);
     } else {
       let agent = JSON.parse(document.uri.fragment);
@@ -238,13 +238,13 @@ export class AgentEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'add': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/new.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${raccoonConfig.t("New")}]` }))}`), agentEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.agent/new.${extensionNameKebab}.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${raccoonConfig.t("New")}]` }))}`), agentEditorViewType);
           break;
         }
         case 'edit': {
           let agent = raccoonManager.agents.get(msg.id);
           if (agent) {
-            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.agent/edit.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${agent.id}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
+            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.agent/edit.${extensionNameKebab}.agent?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Agent")} [${agent.id}]` }))}#${encodeURIComponent(JSON.stringify(agent))}`), agentEditorViewType);
           }
           break;
         }

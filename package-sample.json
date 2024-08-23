@@ -2,7 +2,7 @@
     "publisher": "SenseTime",
     "name": "{extensionId}",
     "displayName": "{extensionName}",
-    "description": "Raccoon is Another Code CO-pilOt Navigator",
+    "description": "{extensionName} is Another Code CO-pilOt Navigator",
     "homepage": "https://code.sensetime.com",
     "repository": {
         "type": "git",
@@ -50,7 +50,7 @@
         "configuration": [
             {
                 "properties": {
-                    "{extensionNameWithoutWhiteSpace}.Agent": {
+                    "{extensionIdCamel}.Agent": {
                         "type": "object",
                         "markdownDescription": "%raccoon.config.agent%",
                         "additionalProperties": {
@@ -58,7 +58,7 @@
                             "description": "%raccoon.config.agent.item%"
                         }
                     },
-                    "{extensionNameWithoutWhiteSpace}.Prompt": {
+                    "{extensionIdCamel}.Prompt": {
                         "type": "object",
                         "markdownDescription": "%raccoon.config.prompt%",
                         "additionalProperties": {
@@ -211,12 +211,12 @@
                 {
                     "command": "{extensionId}.new-chat",
                     "group": "navigation@1",
-                    "when": "resourceFilename == 'assistant.raccoon'"
+                    "when": "resourceFilename == 'assistant.{extensionId}'"
                 },
                 {
                     "command": "{extensionId}.restoreHistory",
                     "group": "navigation@2",
-                    "when": "resourceFilename == 'assistant.raccoon'"
+                    "when": "resourceFilename == 'assistant.{extensionId}'"
                 }
             ],
             "notebook/toolbar": [
@@ -275,7 +275,7 @@
                 "category": "{extensionName}",
                 "title": "%raccoon.command.new-chat%",
                 "icon": "$(add)",
-                "enablement": "view == {extensionId}.view || resourceFilename == 'assistant.raccoon'"
+                "enablement": "view == {extensionId}.view || resourceFilename == 'assistant.{extensionId}'"
             },
             {
                 "command": "{extensionId}.chat.ask",
@@ -298,14 +298,14 @@
                 "category": "{extensionName}",
                 "title": "%raccoon.command.restoreHistory%",
                 "icon": "$(history)",
-                "enablement": "view == {extensionId}.view || resourceFilename == 'assistant.raccoon'"
+                "enablement": "view == {extensionId}.view || resourceFilename == 'assistant.{extensionId}'"
             },
             {
                 "command": "{extensionId}.openEditor",
                 "category": "{extensionName}",
                 "title": "%raccoon.command.openEditor%",
                 "icon": "$(empty-window)",
-                "enablement": "view == {extensionId}.view || resourceFilename == 'assistant.raccoon'"
+                "enablement": "view == {extensionId}.view || resourceFilename == 'assistant.{extensionId}'"
             },
             {
                 "command": "{extensionId}.inlineSuggest.trigger",
@@ -337,7 +337,7 @@
                 "category": "{extensionName}",
                 "title": "%raccoon.command.notebook.register%",
                 "shortTitle": "Register",
-                "icon": "$(raccoon-icon)",
+                "icon": "$({extensionId}-icon)",
                 "enablement": "notebookType == '{extensionId}'"
             }
         ],
@@ -356,8 +356,8 @@
             }
         ],
         "icons": {
-            "raccoon-icon": {
-                "description": "Raccoon icon",
+            "{extensionId}-icon": {
+                "description": "{extensionName} icon",
                 "default": {
                     "fontPath": "media/raccoon-icons.woff",
                     "fontCharacter": "\\E001"
@@ -366,11 +366,11 @@
         },
         "languages": [
             {
-                "id": "raccoon-files",
+                "id": "{extensionId}-files",
                 "extensions": [
-                    ".raccoon.favorites",
-                    ".raccoon.agent",
-                    ".raccoon.prompt",
+                    ".{extensionId}.favorites",
+                    ".{extensionId}.agent",
+                    ".{extensionId}.prompt",
                     ".rcnb",
                     ".search",
                     ".question"
@@ -381,12 +381,12 @@
                 }
             },
             {
-                "id": "raccoon",
+                "id": "{extensionId}",
                 "aliases": [
-                    "Raccoon"
+                    "{extensionName}"
                 ],
                 "extensions": [
-                    ".raccoon"
+                    ".{extensionId}"
                 ],
                 "icon": {
                     "light": "media/raccoon-logo.png",
@@ -396,7 +396,7 @@
         ],
         "grammars": [
             {
-                "language": "raccoon",
+                "language": "{extensionId}",
                 "scopeName": "source.raccoon",
                 "path": "./languages/raccoon-syntax.json",
                 "injectTo": [
@@ -418,35 +418,35 @@
         "resourceLabelFormatters": [
             {
                 "scheme": "{extensionId}",
-                "authority": "raccoon.favorites",
+                "authority": "{extensionId}.favorites",
                 "formatting": {
                     "label": "${query.title}"
                 }
             },
             {
                 "scheme": "{extensionId}",
-                "authority": "raccoon.agent",
+                "authority": "{extensionId}.agent",
                 "formatting": {
                     "label": "${query.title}"
                 }
             },
             {
                 "scheme": "{extensionId}",
-                "authority": "raccoon.prompt",
+                "authority": "{extensionId}.prompt",
                 "formatting": {
                     "label": "${query.title}"
                 }
             },
             {
                 "scheme": "{extensionId}",
-                "authority": "raccoon.editor",
+                "authority": "{extensionId}.editor",
                 "formatting": {
                     "label": "%raccoon.view.title%"
                 }
             },
             {
                 "scheme": "{extensionId}",
-                "authority": "raccoon.search",
+                "authority": "{extensionId}.search",
                 "formatting": {
                     "label": "${query.query}"
                 }
@@ -476,7 +476,7 @@
                 "displayName": "{extensionName} Favorites",
                 "selector": [
                     {
-                        "filenamePattern": "*.raccoon.favorites"
+                        "filenamePattern": "*.{extensionId}.favorites"
                     }
                 ]
             },
@@ -485,7 +485,7 @@
                 "displayName": "{extensionName} Agent Manager",
                 "selector": [
                     {
-                        "filenamePattern": "*.raccoon.agent"
+                        "filenamePattern": "*.{extensionId}.agent"
                     }
                 ]
             },
@@ -494,7 +494,7 @@
                 "displayName": "{extensionName} Prompt Manager",
                 "selector": [
                     {
-                        "filenamePattern": "*.raccoon.prompt"
+                        "filenamePattern": "*.{extensionId}.prompt"
                     }
                 ]
             },
@@ -503,7 +503,7 @@
                 "displayName": "{extensionName} Assistant",
                 "selector": [
                     {
-                        "filenamePattern": "*.raccoon"
+                        "filenamePattern": "*.{extensionId}"
                     }
                 ]
             },
@@ -512,7 +512,7 @@
                 "displayName": "{extensionName} Search Result",
                 "selector": [
                     {
-                        "filenamePattern": "*.raccoon.search"
+                        "filenamePattern": "*.{extensionId}.search"
                     }
                 ]
             }

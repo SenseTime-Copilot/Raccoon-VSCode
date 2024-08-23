@@ -664,7 +664,7 @@ const sendAction = (shortcut) => {
             });
             let reqIdIcon = ``;
             if (item.requestId) {
-              reqIdIcon = `<button id="request-id-${item.id}" class="request-id-element-gnc flex self-start opacity-50 text-transparent" title="x-raccoon-request-id: ${item.requestId}" data-request-id="${item.requestId}">
+              reqIdIcon = `<button id="request-id-${item.id}" class="request-id-element-gnc flex self-start opacity-50 text-transparent" title="request-id: ${item.requestId}" data-request-id="${item.requestId}">
                             ${requestIdIcon}
                           </button>`;
             }
@@ -1226,7 +1226,7 @@ const sendAction = (shortcut) => {
         }
         const ridElem = document.getElementById(`request-id-${message.id}`);
         if (ridElem) {
-          ridElem.title = `x-raccoon-request-id: ${message.requestId}`;
+          ridElem.title = `request-id: ${message.requestId}`;
           ridElem.dataset["requestId"] = message.requestId;
           ridElem.classList.remove("hidden");
         }

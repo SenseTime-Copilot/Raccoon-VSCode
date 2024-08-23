@@ -6,6 +6,7 @@ import { MetricType } from "./raccoonClient/CodeClient";
 export let extensionDisplayName: string;
 export let extensionNameKebab: string;
 export let extensionNameCamel: string;
+export let extensionNamePascal: string;
 export let extensionVersion: string;
 export let raccoonEditorProviderViewType: string;
 export let favoriteCodeEditorViewType: string;
@@ -25,10 +26,12 @@ export function registerCommand(context: vscode.ExtensionContext, command: strin
 
 export async function initEnv(context: vscode.ExtensionContext) {
 
-  extensionNameKebab = context.extension.packageJSON['name'];
-  extensionDisplayName = context.extension.packageJSON['displayName'];
-  extensionNameCamel = context.extension.packageJSON['displayName'].replaceAll(' ', '');
-  extensionVersion = context.extension.packageJSON['version'];
+  let packageJSON = context.extension.packageJSON;
+  extensionNameKebab = packageJSON['name'].replace(/^@/g, '').replace(/[@~.\/]/g, '-');
+  extensionNameCamel = extensionNameKebab.replace(/-./g, x=>x[1].toUpperCase());
+  extensionNamePascal = extensionNameCamel.charAt(0).toUpperCase() + extensionNameCamel.slice(1);
+  extensionDisplayName = packageJSON['displayName'];
+  extensionVersion = packageJSON['version'];
 
   raccoonEditorProviderViewType = `${extensionNameKebab}.editor`;
   favoriteCodeEditorViewType = `${extensionNameKebab}.favorites`;
@@ -49,7 +52,7 @@ export async function initEnv(context: vscode.ExtensionContext) {
   outlog = vscode.window.createOutputChannel(extensionDisplayName, { log: true });
   context.subscriptions.push(outlog);
 
-  outlog.debug(`------------------- ${context.extension.id}-${context.extension.packageJSON.version} -------------------`);
+  outlog.debug(`------------------- ${context.extension.id}-${packageJSON.version} -------------------`);
 
   raccoonConfig = await RaccoonConfig.getInstance(context);
 

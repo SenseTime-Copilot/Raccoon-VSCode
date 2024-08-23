@@ -4,7 +4,7 @@ import {
   EventEmitter,
   ExtensionContext,
 } from 'vscode';
-import { extensionDisplayName, outlog, raccoonConfig, raccoonManager, telemetryReporter } from "../globalEnv";
+import { extensionDisplayName, extensionNameKebab, outlog, raccoonConfig, raccoonManager, telemetryReporter } from "../globalEnv";
 import { Choice, ErrorInfo, Message, Role } from '../raccoonClient/CodeClient';
 import { buildHeader } from '../utils/buildRequestHeader';
 import { CacheItem, CacheItemType } from '../utils/historyCache';
@@ -94,7 +94,7 @@ export class RaccoonTerminal {
     let terminal = window.createTerminal({
       name: `${extensionDisplayName}`,
       isTransient: true,
-      iconPath: new ThemeIcon('raccoon-icon'),
+      iconPath: new ThemeIcon(`${extensionNameKebab}-icon`),
       pty: {
         onDidWrite: writeEmitter.event,
         onDidChangeName: changeNameEmitter.event,

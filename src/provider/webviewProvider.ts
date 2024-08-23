@@ -377,7 +377,7 @@ export class RaccoonEditor extends Disposable {
         case 'searchQuery': {
           this.sendMessage({ type: 'addSearch', value: '?' + data.query });
           for (let url of data.searchUrl) {
-            if (url.startsWith(`${extensionNameKebab}://raccoon.search/stackoverflow`)) {
+            if (url.startsWith(`${extensionNameKebab}://${extensionNameKebab}.search/stackoverflow`)) {
               let q = url.replace('${query}', `${encodeURIComponent(JSON.stringify({ "query": data.query }))}`);
               commands.executeCommand('vscode.openWith', Uri.parse(q), raccoonSearchEditorProviderViewType);
             } else {
@@ -690,7 +690,7 @@ export class RaccoonEditor extends Disposable {
           break;
         }
         case 'addFavorite': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.favorites/${data.id}.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.favorites/${data.id}.${extensionNameKebab}.favorites?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Favorite Snippet")} [${data.id}]` }))}#${encodeURIComponent(JSON.stringify(data))}`), favoriteCodeEditorViewType);
           break;
         }
         case 'bugReport': {

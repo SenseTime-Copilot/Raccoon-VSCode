@@ -1,7 +1,7 @@
 import { workspace, ExtensionContext, Uri, FileType, commands, window, QuickPickItem, QuickPickItemKind, ThemeIcon, TextDocument } from 'vscode';
 import { RaccoonEditorProvider } from '../provider/assitantEditorProvider';
 import { RaccoonViewProvider } from '../provider/webviewProvider';
-import { raccoonConfig, registerCommand } from '../globalEnv';
+import { extensionNameKebab, raccoonConfig, registerCommand } from '../globalEnv';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -111,10 +111,10 @@ export class HistoryCache {
                 let uri = Uri.joinPath(cacheDir, oldName + ".json");
                 let newUri = Uri.joinPath(cacheDir, newName + ".json");
                 workspace.fs.rename(uri, newUri, { overwrite: false }).then(() => {
-                  commands.executeCommand('raccoon.restoreHistory', ...args);
+                  commands.executeCommand(`${extensionNameKebab}.restoreHistory`, ...args);
                 });
               } else {
-                commands.executeCommand('raccoon.restoreHistory', ...args);
+                commands.executeCommand(`${extensionNameKebab}.restoreHistory`, ...args);
               }
             });
           } else if (e.button.tooltip === raccoonConfig.t('Preview')) {

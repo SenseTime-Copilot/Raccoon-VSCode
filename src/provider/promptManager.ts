@@ -31,7 +31,7 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
   }
 
   openCustomDocument(uri: Uri, _openContext: CustomDocumentOpenContext, _token: CancellationToken): CustomDocument {
-    if (uri.path === "/all.raccoon.prompt") {
+    if (uri.path === `/all.${extensionNameKebab}.prompt`) {
       return {
         uri,
         dispose: () => {
@@ -47,10 +47,10 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
   }
 
   resolveCustomEditor(document: CustomDocument, webviewPanel: WebviewPanel, _token: CancellationToken): void | Thenable<void> {
-    if (document.uri.path === "/all.raccoon.prompt") {
+    if (document.uri.path === `/all.${extensionNameKebab}.prompt`) {
       this.webview = webviewPanel.webview;
       return this.promptListPage(webviewPanel);
-    } else if (document.uri.path === "/new.raccoon.prompt") {
+    } else if (document.uri.path === `/new.${extensionNameKebab}.prompt`) {
       return this.promptEditorPage(webviewPanel);
     } else {
       let msg = JSON.parse(document.uri.fragment);
@@ -309,14 +309,14 @@ export class PromptEditor implements CustomReadonlyEditorProvider, Disposable {
           break;
         }
         case 'add': {
-          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/new.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Prompt")} [${raccoonConfig.t("New")}]` }))}`), promptEditorViewType);
+          commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.prompt/new.${extensionNameKebab}.prompt?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Prompt")} [${raccoonConfig.t("New")}]` }))}`), promptEditorViewType);
           break;
         }
         case 'edit': {
           let prompt = raccoonManager.getPromptItem(msg.label);
           if (prompt) {
             let info = { label: prompt.label, shortcut: prompt.shortcut || "", origin: prompt.origin || prompt.message.content || "" };
-            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://raccoon.prompt/edit.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), promptEditorViewType);
+            commands.executeCommand("vscode.openWith", Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.prompt/edit.${extensionNameKebab}.prompt?${encodeURIComponent(JSON.stringify({ title: `${raccoonConfig.t("Custom Prompt")} [${prompt.label}]` }))}#${encodeURIComponent(JSON.stringify(info))}`), promptEditorViewType);
           }
           break;
         }

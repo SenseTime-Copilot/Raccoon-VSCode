@@ -61,15 +61,15 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   registerCommand(context, "favorite.manage", async () => {
-    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.favorites/all.raccoon.favorites?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Favorite Snippet") }))}`), favoriteCodeEditorViewType);
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.favorites/all.${extensionNameKebab}.favorites?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Favorite Snippet") }))}`), favoriteCodeEditorViewType);
   });
 
   registerCommand(context, "agent.manage", async () => {
-    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.agent/all.raccoon.agent?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Custom Agent") }))}`), agentEditorViewType);
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.agent/all.${extensionNameKebab}.agent?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Custom Agent") }))}`), agentEditorViewType);
   });
 
   registerCommand(context, "prompt.manage", async () => {
-    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://raccoon.prompt/all.raccoon.prompt?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Custom Prompt") }))}`), promptEditorViewType);
+    vscode.commands.executeCommand("vscode.openWith", vscode.Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.prompt/all.${extensionNameKebab}.prompt?${encodeURIComponent(JSON.stringify({ title: raccoonConfig.t("Custom Prompt") }))}`), promptEditorViewType);
   });
 
   registerCommand(context, "terminal", async () => {
@@ -83,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
       showOption = { viewColumn: vscode.ViewColumn.Beside };
     }
     vscode.commands.executeCommand('vscode.openWith',
-      vscode.Uri.parse(`${extensionNameKebab}://raccoon.editor/assistant.raccoon?${id}`),
+      vscode.Uri.parse(`${extensionNameKebab}://${extensionNameKebab}.editor/assistant.${extensionNameKebab}?${id}`),
       raccoonEditorProviderViewType, showOption);
   });
 

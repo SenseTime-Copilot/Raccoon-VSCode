@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { raccoonConfig, raccoonManager } from '../globalEnv';
+import { extensionNameKebab, raccoonConfig, raccoonManager } from '../globalEnv';
 import { getDocumentSymbols } from '../utils/collectionPromptInfo';
 
 export class RaccoonCodelensProvider implements vscode.CodeLensProvider {
@@ -29,7 +29,7 @@ export class RaccoonCodelensProvider implements vscode.CodeLensProvider {
             new vscode.CodeLens(
               s.range,
               {
-                title: `$(raccoon-icon)`,
+                title: `$(${extensionNameKebab}-icon)`,
                 command: ""
               }
             )
@@ -39,7 +39,7 @@ export class RaccoonCodelensProvider implements vscode.CodeLensProvider {
               s.range,
               {
                 title: `${p.label}`,
-                command: "raccoon.HintsAction",
+                command: `${extensionNameKebab}.HintsAction`,
                 arguments: [s.range]
               }
             ));
