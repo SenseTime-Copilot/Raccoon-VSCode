@@ -221,7 +221,8 @@ export class RaccoonManager {
       } catch (e) { }
     } else if (ai) {
       authinfos[clientName] = ai;
-      if (checkOrgChange && ai.account.organizations && ai.account.organizations.length > 0) {
+      login = true;
+      if (ai.account.organizations && ai.account.organizations.length > 0) {
         loginPhase = true;
       }
     }

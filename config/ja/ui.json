@@ -156,6 +156,7 @@
   "Type [Shift + Enter] to start a new line": " [Shift + Enter] キーで改行を入力可能",
   "Pick one prompt to send": "一つのプロンプトを選ぶ",
   "Pick one agent": "一つのエージェントを選ぶ",
+  "Select file to attach": "ファイルを添付する",
   "Delete this chat entity": "この会話内容を削除",
   "Search": "検索",
   "New Line": "改行",
