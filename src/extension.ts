@@ -308,22 +308,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
   CodeNotebook.rigister(context);
 
-  if (raccoonConfig.beta.includes("lineChangeCounter")) {
-    vscode.workspace.onDidChangeTextDocument(async (ev) => {
-      if (ev.reason === TextDocumentChangeReason.Redo || ev.reason === TextDocumentChangeReason.Undo) {
-        return;
-      }
-      for (let c of ev.contentChanges) {
-        if (c.text) {
-          let lines = c.text.split("\n").length - 1;
-          if (lines === 0) {
-            continue;
-          }
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { file_increment_line_num: c.text.split("\n").length - 1 } });
+  vscode.workspace.onDidChangeTextDocument(async (ev) => {
+    if (ev.document.uri.scheme === "output" || ev.reason === TextDocumentChangeReason.Redo || ev.reason === TextDocumentChangeReason.Undo) {
+      return;
+    }
+    if (!raccoonManager.activeOrganization()) {
+      return;
+    }
+    for (let c of ev.contentChanges) {
+      if (c.text) {
+        let lines = c.text.trim().split("\n").length;
+        if (lines === 0) {
+          continue;
         }
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { file_increment_line_num: lines } });
       }
-    });
-  }
+    }
+  });
 }
+
 export function deactivate() { }

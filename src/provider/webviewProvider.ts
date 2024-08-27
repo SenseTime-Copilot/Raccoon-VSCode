@@ -16,7 +16,10 @@ interface TelemetryInfo {
   id: number;
   ts: number;
   action: string;
-  languageid: string;
+  args?: {
+    languageid?: string;
+    codeLines?: number;
+  };
 }
 
 export class RaccoonEditor extends Disposable {
@@ -294,7 +297,7 @@ export class RaccoonEditor extends Disposable {
                 await raccoonManager.login(this.qrCodeCtx).then((res) => {
                   if (res === "logging") {
                     this.sendMessage({ type: 'usedQRCode' });
-                  }else if (res === "pending") {
+                  } else if (res === "pending") {
                     this.sendMessage({ type: 'maskQRCode' });
                   } else if (res === "canceled" || res === "success") {
                     this.qrCodeCtx = undefined;
@@ -771,15 +774,16 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             }
             case "code-generated": {
               let metrics_by_language: any = {};
-              metrics_by_language[tinfo.languageid || "Unknown"] = {
-                code_generate_num: 1
+              metrics_by_language[tinfo.args?.languageid || "Unknown"] = {
+                code_generate_num: 1,
+                code_generate_line_num: tinfo.args?.codeLines
               };
               code_accept_usage = { metrics_by_language };
               break;
             }
             case "diff-code": {
               let metrics_by_language: any = {};
-              metrics_by_language[tinfo.languageid || "Unknown"] = {
+              metrics_by_language[tinfo.args?.languageid || "Unknown"] = {
                 code_compare_num: 1
               };
               code_accept_usage = { metrics_by_language };
@@ -787,16 +791,18 @@ ${einfo[0]?.value ? `\n\n## Raccoon's error\n\n${einfo[0].value}\n\n` : ""}
             }
             case "copy-snippet": {
               let metrics_by_language: any = {};
-              metrics_by_language[tinfo.languageid || "Unknown"] = {
-                code_copy_num: 1
+              metrics_by_language[tinfo.args?.languageid || "Unknown"] = {
+                code_copy_num: 1,
+                code_accept_line_num: tinfo.args?.codeLines
               };
               code_accept_usage = { metrics_by_language };
               break;
             }
             case "insert-snippet": {
               let metrics_by_language: any = {};
-              metrics_by_language[tinfo.languageid || "Unknown"] = {
-                code_insert_num: 1
+              metrics_by_language[tinfo.args?.languageid || "Unknown"] = {
+                code_insert_num: 1,
+                code_accept_line_num: tinfo.args?.codeLines
               };
               code_accept_usage = { metrics_by_language };
               break;

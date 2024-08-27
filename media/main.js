@@ -1086,8 +1086,10 @@ const sendAction = (shortcut) => {
                 preCode.parentElement.dataset.lang = cls.slice(9);
               }
             });
+            
+            let codeLines = preCode.textContent.split("\n").length;
 
-            vscode.postMessage({ type: 'telemetry', id: parseInt(message.id), ts: new Date().valueOf(), action: "code-generated", languageid: preCode.parentElement.dataset.lang });
+            vscode.postMessage({ type: 'telemetry', id: parseInt(message.id), ts: new Date().valueOf(), action: "code-generated", args: { languageid: preCode.parentElement.dataset.lang, codeLines } });
 
             if (index !== preCodeList.length - 1) {
               preCode.parentElement.classList.add("mb-8");
@@ -2419,8 +2421,9 @@ const sendAction = (shortcut) => {
     if (targetButton?.classList?.contains("code-element-gnc")) {
       e.preventDefault();
       let id = targetButton.dataset.id;
-      var codelang = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", codelang });
+      let code = targetButton.parentElement?.parentElement?.lastChild?.textContent;
+      var languageid = targetButton.parentElement?.parentElement?.dataset?.lang;
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "copy-snippet", args: { languageid, codeLines: code?.split("\n").length } });
       navigator.clipboard.writeText(targetButton.parentElement?.parentElement?.lastChild?.textContent).then(() => {
         targetButton.innerHTML = checkIcon;
 
@@ -2450,7 +2453,7 @@ const sendAction = (shortcut) => {
       e.preventDefault();
       let id = targetButton.dataset.id;
       var difflang = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "diff-code", difflang });
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "diff-code", args: { languageid: difflang } });
       vscode.postMessage({
         type: "diff",
         languageid: difflang,
@@ -2463,11 +2466,12 @@ const sendAction = (shortcut) => {
     if (targetButton?.classList?.contains("edit-element-gnc")) {
       e.preventDefault();
       let id = targetButton.dataset.id;
+      let code= targetButton.parentElement?.parentElement?.lastChild?.textContent;
       var insertlang = targetButton.parentElement?.parentElement?.dataset?.lang;
-      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "insert-snippet", insertlang });
+      vscode.postMessage({ type: 'telemetry', id: parseInt(id), ts, action: "insert-snippet", args: { languageid: insertlang, codeLines: code?.split("\n").length } });
       vscode.postMessage({
         type: "editCode",
-        value: targetButton.parentElement?.parentElement?.lastChild?.textContent,
+        value: code,
       });
 
       // return;

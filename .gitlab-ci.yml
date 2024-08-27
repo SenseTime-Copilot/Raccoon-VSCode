@@ -45,7 +45,7 @@ variables:
     description: "The base URL path of backend"
     value: "https://raccoon.sensetime.com"
   BETA_FEATURE:
-    description: "Enable beta features, could be one of `agent`, `fileAttach`, `lineChangeCounter`, or combine multi features and separate them by comma"
+    description: "Enable beta features, could be one of `agent`, `fileAttach`, or combine multi features and separate them by comma"
 
 code_scan:
   image: registry.sensetime.com/security/codescan:latest

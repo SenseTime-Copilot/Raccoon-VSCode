@@ -892,6 +892,7 @@ export class RaccoonManager {
     if (!ca) {
       return Promise.resolve();
     }
+    outlog.trace(`sendTelemetry[${metricType}]\n${JSON.stringify(metric, undefined, 2)}`);
     return ca.client.sendTelemetry(org, metricType, common, metric);
   }
 

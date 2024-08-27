@@ -204,13 +204,16 @@ export class FavoriteCodeEditor implements CustomReadonlyEditorProvider, Disposa
       switch (msg.type) {
         case 'save': {
           this.appendSnippetItem(msg);
+          let codeLines = msg.code?.split("\n") || [];
           // eslint-disable-next-line @typescript-eslint/naming-convention
           let code_accept_usage: any;
           // eslint-disable-next-line @typescript-eslint/naming-convention
           let metrics_by_language: any = {};
           metrics_by_language[msg.languageid || "Unknown"] = {
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            code_collect_num: 1
+            code_collect_num: 1,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            code_accept_line_num: codeLines.length
           };
           // eslint-disable-next-line @typescript-eslint/naming-convention
           code_accept_usage = { metrics_by_language };
