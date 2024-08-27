@@ -321,8 +321,13 @@ export async function activate(context: vscode.ExtensionContext) {
         if (lines === 0) {
           continue;
         }
+        let usage: any = {};
+        usage[ev.document.languageId] = {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          file_increment_line_num: lines
+        };
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { file_increment_line_num: lines } });
+        telemetryReporter.logUsage(MetricType.codeCompletion, { code_accept_usage: { metrics_by_language: usage } });
       }
     }
   });

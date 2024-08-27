@@ -263,7 +263,7 @@ export async function buildLoginPage(context: ExtensionContext, _webview: Webvie
       </vscode-link>
     </span>`;
   }
-  let feedbackBtn = `<div class="flex self-center cursor-pointer items-end opacity-50">
+  let feedbackBtn = `<div class="flex grow self-center cursor-pointer items-end opacity-50">
                                   <span class="material-symbols-rounded">bug_report</span><span id="report-issue">${raccoonConfig.t("Report Issue")}</span>
                                 </div>`;
 

@@ -195,7 +195,11 @@ export class RaccoonEditor extends Disposable {
     </div>
     `;
 
-    await this.sendMessage({ type: 'showModal', value: selectionMessage });
+    if (orgsInfo.length > 1) {
+      await this.sendMessage({ type: 'showModal', value: selectionMessage });
+    } else if (orgsInfo.length === 1) {
+      raccoonManager.setActiveOrganization(orgsInfo[0].code);
+    }
   }
 
   async loadHistory(history: string, replay?: boolean) {
