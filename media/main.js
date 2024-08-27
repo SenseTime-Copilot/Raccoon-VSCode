@@ -501,6 +501,9 @@ const sendAction = (shortcut) => {
         if (!message.switchEnable) {
           b.classList.remove("switch-org");
           b.classList.add("org-label");
+        } else {
+          b.classList.add("switch-org");
+          b.classList.remove("org-label");
         }
         b.classList.remove("hidden");
         break;

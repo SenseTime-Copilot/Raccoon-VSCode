@@ -381,16 +381,29 @@ textarea::placeholder {
 
 .op-hint .org-label,
 .op-hint .switch-org {
-    padding: 0px 5px 0 2px;
+    padding: 0px 2px;
     margin-left: -6px;
     opacity: 0.4;
     font-size: 11px;
     line-height: 16px;
     color: var(--button-secondary-foreground);
     background-color: var(--button-secondary-background);
-    border-radius: 6px;
+    border-radius: 4px;
     transition-duration: 300ms;
     transition-property: background-color, opacity;
+}
+
+.op-hint #switch-org-btn #switch-org-btn-label {
+    padding-right: 2px;
+}
+
+.op-hint .switch-org-btn-icon {
+    display: none;
+    margin: 0 -3px;
+}
+
+.op-hint .switch-org .switch-org-btn-icon {
+    display: flex;
 }
 
 #chat-input-box:focus-within .op-hint .org-label,
