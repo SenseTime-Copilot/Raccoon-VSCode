@@ -368,21 +368,23 @@ export async function buildSettingPage(): Promise<string> {
     ${avatarEle}
     ${(activeOrg) ? `<div class="grow flex flex-col">
     <span class="font-bold text-base" ${userId ? `title="${activeOrg.username || username} @${userId}"` : ""}>${activeOrg.username || username || "User"}</span>
-    <div class="flex cursor-pointer w-fit rounded-sm items-end py-px" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
-      <div  class="px-1 text-[10px] ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Managed by {{org}}", { org: activeOrg.name })}">
+    <div class="flex cursor-pointer w-fit rounded-sm items-end px-1 gap-px text-[10px]" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
+      <span id="switch-org-btn-icon" class="material-symbols-rounded">corporate_fare</span>
+      <div  class="${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Managed by {{org}}", { org: activeOrg.name })}">
         ${activeOrg.name}
       </div>
-      <span class="switch-org material-symbols-rounded ${disableSwitch ? "hidden" : ""} -ml-1 text-[14px]" title="${raccoonConfig.t("Switch Organization")}">keyboard_arrow_down</span>
+      <span class="switch-org material-symbols-rounded -mr-1 ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">keyboard_arrow_down</span>
     </div>
   </div>` : `<div class="grow flex flex-col">
     <div class="flex">
       <span class="font-bold text-base" ${userId ? `title="${username} @${userId}"` : ""}>${username || "User"}</span>
     </div>
-    <div class="${username ? "flex" : "hidden"} cursor-pointer w-fit rounded-sm items-end py-px" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
-      <div class="px-1 text-[10px] ${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}${pro ? " Pro" : ""}">
+    <div class="${username ? "flex" : "hidden"} cursor-pointer w-fit rounded-sm items-end px-1 gap-px text-[10px]" style="color: var(--button-primary-foreground);background: var(--button-primary-background);">
+      <span id="switch-org-btn-icon" class="material-symbols-rounded">account_box</span>
+      <div class="${disableSwitch ? "org-tag" : "switch-org"}" title="${raccoonConfig.t("Individual")}${pro ? " Pro" : ""}">
         ${raccoonConfig.t("Individual")}${pro ? " Pro" : ""}
       </div>
-      <span class="switch-org material-symbols-rounded ${disableSwitch ? "hidden" : ""} -ml-1 text-[14px]" title="${raccoonConfig.t("Switch Organization")}">keyboard_arrow_down</span>
+      <span class="switch-org material-symbols-rounded -mr-1 ${disableSwitch ? "hidden" : ""}" title="${raccoonConfig.t("Switch Organization")}">keyboard_arrow_down</span>
     </div>
   </div>`}
     ${logout}
@@ -633,10 +635,10 @@ export async function buildChatHtml(context: ExtensionContext, webview: Webview)
                 <div id="attach-code-container" class="flex hidden"></div>
                 <div id="attach-file-container" class="flex hidden"></div>
                   <div class="op-hint">
-                    <div id="switch-org-btn" class="prompt-hint hidden cursor-pointer items-end flex">
-                      <span class="flex material-symbols-rounded">deployed_code</span>
+                    <div id="switch-org-btn" class="prompt-hint hidden cursor-pointer items-end flex" title="${raccoonConfig.t("Switch Organization")}">
+                      <span id="switch-org-btn-icon" class="flex material-symbols-rounded">account_box</span>
                       <div id="switch-org-btn-label" class="text-ellipsis whitespace-nowrap overflow-hidden max-w-[10ch]">${raccoonConfig.t("Individual")}</div>
-                      <span class="switch-org-btn-icon material-symbols-rounded" title="${raccoonConfig.t("Switch Organization")}">keyboard_arrow_down</span>
+                      <span class="switch-org-icon material-symbols-rounded">keyboard_double_arrow_right</span>
                     </div>
                     <vscode-badge class="prompt-ready-hint items-center">
                       <span class="key">Shift+<span class="material-symbols-rounded">keyboard_return</span></span>${raccoonConfig.t("New Line")}

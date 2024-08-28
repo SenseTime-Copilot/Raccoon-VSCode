@@ -495,9 +495,15 @@ const sendAction = (shortcut) => {
       }
       case 'showOrganizationSwitchBtn': {
         let b = document.getElementById('switch-org-btn');
+        let bi = document.getElementById('switch-org-btn-icon');
         let bl = document.getElementById('switch-org-btn-label');
-        bl.innerText = message.name;
-        bl.title = message.title;
+        if (message.organization) {
+          bi.innerText = "corporate_fare";
+          bl.innerText = message.organization.name;
+        } else {
+          bi.innerText = "account_box";
+          bl.innerText = message.name;
+        }
         if (!message.switchEnable) {
           b.classList.remove("switch-org");
           b.classList.add("org-label");
@@ -510,7 +516,9 @@ const sendAction = (shortcut) => {
       }
       case 'hideOrganizationSwitchBtn': {
         let b = document.getElementById('switch-org-btn');
+        let bi = document.getElementById('switch-org-btn-icon');
         let bl = document.getElementById('switch-org-btn-label');
+        bi.innerText = "";
         bl.innerText = "";
         bl.title = "";
         b.classList.add("hidden");

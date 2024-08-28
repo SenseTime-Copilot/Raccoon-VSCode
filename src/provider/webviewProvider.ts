@@ -129,13 +129,16 @@ export class RaccoonEditor extends Disposable {
     let ts = new Date();
     let timestamp = ts.valueOf();
     let robot = extensionDisplayName || "Raccoon";
-    let orgName = userinfo?.pro ? `${raccoonConfig.t("Individual")} Pro` : raccoonConfig.t("Individual");
     if (organization) {
       robot += ` (${organization.name})`;
-      orgName = organization.name;
     }
     if (switchEnable || isEnterprise) {
-      await this.sendMessage({ type: 'showOrganizationSwitchBtn', name: orgName, title: raccoonConfig.t("Managed by {{org}}", { org: orgName }), switchEnable });
+      if (organization) {
+        await this.sendMessage({ type: 'showOrganizationSwitchBtn', organization, switchEnable });
+      } else {
+        let name = userinfo?.pro ? `${raccoonConfig.t("Individual")} Pro` : raccoonConfig.t("Individual");
+        await this.sendMessage({ type: 'showOrganizationSwitchBtn', name, switchEnable });
+      }
     } else {
       await this.sendMessage({ type: 'hideOrganizationSwitchBtn' });
     }
@@ -148,15 +151,15 @@ export class RaccoonEditor extends Disposable {
     let isEnterprise = (raccoonConfig.type === "Enterprise");
     let organizations = raccoonManager.organizationList();
     let userinfo = await raccoonManager.userInfo();
-    let orgsInfo: { code: string; name: string; active: boolean }[] = organizations.map((itm) => {
+    let orgsInfo: { code: string; name: string; username: string; active: boolean }[] = organizations.map((itm) => {
       let active = (itm.code === organization?.code);
       let name = itm.name;
-      return { code: itm.code, name, active };
+      return { code: itm.code, name, username: itm.username, active };
     });
     if (!isEnterprise) {
       let active = !organization;
       let name = `${raccoonConfig.t("Individual")}${userinfo?.pro ? " Pro " : ""}`;
-      orgsInfo = [{ code: "individual", name, active }, ...orgsInfo];
+      orgsInfo = [{ code: "individual", name, username: "", active }, ...orgsInfo];
     }
 
     let msgText = raccoonConfig.t("Select Organization");
@@ -183,9 +186,13 @@ export class RaccoonEditor extends Disposable {
 
     let selectionMessage = `<div>${msgText}</div><vscode-radio-group class="orgnazitionSelectionRadio my-4 overflow-hidden whitespace-nowrap">`;
     for (let org of orgsInfo) {
+      let usernameElem = ``;
+      if (org.username) {
+        usernameElem = `<span class="opacity-60">@${org.username}</span>`;
+      }
       selectionMessage +=
         `<vscode-radio ${org.active ? "checked" : ""} class="items-end" value="${org.code}" title="${org.name}">
-          ${org.active ? `<b>${org.name}</b><span class="opacity-60 ml-1">(${raccoonConfig.t("Current")})</span>` : `<b>${org.name}</b>`}
+          ${org.active ? `<b>${org.name}</b>${usernameElem}<span class="opacity-60 ml-1">(${raccoonConfig.t("Current")})</span>` : `<b>${org.name}</b>${usernameElem}`}
       </vscode-radio>`;
     }
     selectionMessage += `</vscode-radio-group>

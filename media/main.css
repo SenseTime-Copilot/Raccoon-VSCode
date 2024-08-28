@@ -393,16 +393,11 @@ textarea::placeholder {
     transition-property: background-color, opacity;
 }
 
-.op-hint #switch-org-btn #switch-org-btn-label {
-    padding-right: 2px;
-}
-
-.op-hint .switch-org-btn-icon {
+.op-hint .switch-org-icon {
     display: none;
-    margin: 0 -3px;
 }
 
-.op-hint .switch-org .switch-org-btn-icon {
+.op-hint .switch-org .switch-org-icon {
     display: flex;
 }
 
