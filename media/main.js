@@ -1193,6 +1193,14 @@ const sendAction = (shortcut) => {
         } else {
         }
 
+        if (message.category === "welcome") {
+          if (modalShow) {
+            let msgBox = document.getElementsByClassName("modal")[0];
+            msgBox.classList.add('hidden');
+            msgBox.innerHTML = "";
+          }
+        }
+
         list.innerHTML += `<div class="p-4 message-element-gnc ${message.category || ""}">
                             <h2 class="avatar mb-2 -ml-1 flex gap-1">
                               <span class="flex gap-2 flex text-xl items-center">
