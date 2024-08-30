@@ -1,7 +1,7 @@
 import { commands, env, ExtensionContext, window, workspace, WorkspaceConfiguration, EventEmitter, Uri, ProgressLocation } from "vscode";
 import { AuthInfo, AuthMethod, RequestParam, ChatOptions, CodeClient, Role, Message, CompletionOptions, Organization, AccountInfo, KnowledgeBase, MetricType, BrowserLoginParam, PhoneLoginParam, EmailLoginParam, ApiKeyLoginParam, CompletionContext, UrlType, Capability, WeChatLoginParam } from "../raccoonClient/CodeClient";
 import { RaccoonClient } from "../raccoonClient/raccoonClinet";
-import { extensionNameCamel, extensionNameKebab, extensionVersion, outlog, raccoonConfig } from "../globalEnv";
+import { extensionNameKebab, extensionNamePascal, extensionVersion, outlog, raccoonConfig } from "../globalEnv";
 import { RaccoonPrompt } from "./promptTemplates";
 import { PromptType } from "./promptTemplates";
 import { ClientOption, ModelCapacity } from "./config";
@@ -53,18 +53,18 @@ export class RaccoonManager {
   private constructor(private readonly context: ExtensionContext) {
     this.flag = `${context.extension.id}-${context.extension.packageJSON.version}`;
 
-    this.configuration = workspace.getConfiguration(extensionNameCamel, undefined);
+    this.configuration = workspace.getConfiguration(extensionNamePascal, undefined);
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration(extensionNameCamel)) {
+        if (e.affectsConfiguration(extensionNamePascal)) {
           this.update();
-          if (e.affectsConfiguration(`${extensionNameCamel}.Agent`)) {
+          if (e.affectsConfiguration(`${extensionNamePascal}.Agent`)) {
             this.notifyStateChange({ scope: ["agent"] });
           }
-          if (e.affectsConfiguration(`${extensionNameCamel}.Prompt`)) {
+          if (e.affectsConfiguration(`${extensionNamePascal}.Prompt`)) {
             this.notifyStateChange({ scope: ["prompt"] });
           }
-          if (e.affectsConfiguration(`${extensionNameCamel}.Engines`)) {
+          if (e.affectsConfiguration(`${extensionNamePascal}.Engines`)) {
             this.initialClients().then(() => {
               this.notifyStateChange({ scope: ["engines"] });
             });
@@ -73,14 +73,14 @@ export class RaccoonManager {
       })
     );
     context.secrets.onDidChange((e) => {
-      if (e.key === `${extensionNameCamel}.stateUpdated`) {
-        this.context.secrets.get(`${extensionNameCamel}.stateUpdated`).then((notify) => {
+      if (e.key === `${extensionNamePascal}.stateUpdated`) {
+        this.context.secrets.get(`${extensionNamePascal}.stateUpdated`).then((notify) => {
           if (notify) {
             let ntfy = JSON.parse(notify);
             let evt = ntfy.event as StatusChangeEvent;
             if (ntfy.sessionId !== env.sessionId) {
               if (evt.scope.includes("authorization")) {
-                context.secrets.get(`${extensionNameCamel}.tokens`).then((tks) => {
+                context.secrets.get(`${extensionNamePascal}.tokens`).then((tks) => {
                   try {
                     let authinfos: { [key: string]: AuthInfo } = JSON.parse(tks || "{}");
                     let quiet = true;
@@ -120,7 +120,7 @@ export class RaccoonManager {
       // await this.resetAllCacheData();
       await this.context.globalState.update(this.flag, true);
     }
-    let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
+    let tks = await this.context.secrets.get(`${extensionNamePascal}.tokens`);
     let authinfos: any = {};
     if (tks) {
       try {
@@ -175,7 +175,7 @@ export class RaccoonManager {
   }
 
   private async updateToken(clientName: string, ai?: AuthInfo, quiet?: boolean) {
-    let tks = await this.context.secrets.get(`${extensionNameCamel}.tokens`);
+    let tks = await this.context.secrets.get(`${extensionNamePascal}.tokens`);
     let authinfos: { [key: string]: AuthInfo } = {};
     let login = false;
     let loginPhase = false;
@@ -227,7 +227,7 @@ export class RaccoonManager {
       }
     }
 
-    return this.context.secrets.store(`${extensionNameCamel}.tokens`, JSON.stringify(authinfos)).then(() => {
+    return this.context.secrets.store(`${extensionNamePascal}.tokens`, JSON.stringify(authinfos)).then(() => {
       let scope: ChangeScope[] = ["authorization"];
       let orgName: string | undefined = undefined;
       let state;
@@ -282,7 +282,7 @@ export class RaccoonManager {
 
   private notifyStateChange(event: StatusChangeEvent) {
     let timeStamp = new Date().valueOf();
-    this.context.secrets.store(`${extensionNameCamel}.stateUpdated`, `${JSON.stringify({ sessionId: env.sessionId, timeStamp, event })}`);
+    this.context.secrets.store(`${extensionNamePascal}.stateUpdated`, `${JSON.stringify({ sessionId: env.sessionId, timeStamp, event })}`);
   }
 
   private async resetAllCacheData() {
@@ -292,12 +292,12 @@ export class RaccoonManager {
     await this.configuration.update("Agent", undefined, true);
     await this.configuration.update("Prompt", undefined, true);
 
-    await this.context.secrets.delete(`${extensionNameCamel}.tokens`);
+    await this.context.secrets.delete(`${extensionNamePascal}.tokens`);
     this.notifyStateChange({ scope: ["authorization", "active", "engines", "agent", "prompt", "config"] });
   }
 
   public update(): void {
-    this.configuration = workspace.getConfiguration(`${extensionNameCamel}`, undefined);
+    this.configuration = workspace.getConfiguration(`${extensionNamePascal}`, undefined);
   }
 
   private getClient(client?: string): ClientAndConfigInfo | undefined {
@@ -381,7 +381,7 @@ export class RaccoonManager {
   }
 
   public async appendAgent(agent: RaccoonAgent, overwrite?: boolean): Promise<void> {
-    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let cfg = workspace.getConfiguration(extensionNamePascal, undefined);
     let writeable = true;
     if (!overwrite && this.agents.get(agent.id)) {
       writeable = false;
@@ -402,7 +402,7 @@ export class RaccoonManager {
   }
 
   public async removeAgent(id: string) {
-    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let cfg = workspace.getConfiguration(extensionNamePascal, undefined);
     let customAgents: Map<string, RaccoonAgent> = new Map(Object.entries(this.configuration.get("Agent") || {}));
     if (customAgents) {
       customAgents.delete(id);
@@ -417,7 +417,7 @@ export class RaccoonManager {
   }
 
   public async appendPrompt(label: string, shortcut: string, prompt: string, overwrite?: boolean): Promise<void> {
-    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let cfg = workspace.getConfiguration(extensionNamePascal, undefined);
     let customPrompts: { [key: string]: string | any } = {};
     let writeable = true;
     if (cfg) {
@@ -448,7 +448,7 @@ export class RaccoonManager {
   }
 
   public async removePromptItem(label: string) {
-    let cfg = workspace.getConfiguration(extensionNameCamel, undefined);
+    let cfg = workspace.getConfiguration(extensionNamePascal, undefined);
     let customPrompts: { [key: string]: any } = {};
     if (cfg) {
       customPrompts = cfg.get<{ [key: string]: any }>("Prompt", {});
